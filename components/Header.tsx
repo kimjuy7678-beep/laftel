@@ -4,7 +4,7 @@ import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 
 const MenuList = [
-    { id: 1, title: "태그검색", path: "/tag" },
+    { id: 1, title: "태그검색", path: "/tag-search" },
     { id: 2, title: "요일별 신작", path: "/day" },
     { id: 3, title: "멤버십", path: "/membership" },
     { id: 4, title: "스토어", path: "/store", badge: "N" },
