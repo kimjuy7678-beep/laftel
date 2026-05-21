@@ -5,8 +5,8 @@ import React, { useEffect, useState } from 'react'
 
 const MenuList = [
     { id: 1, title: "태그검색", path: "/tag-search" },
-    { id: 2, title: "요일별 신작", path: "/day" },
-    { id: 3, title: "멤버십", path: "/membership" },
+    { id: 2, title: "요일별 신작", path: "/day-new" },
+    { id: 3, title: "라이브", path: "/live", live: true },
     { id: 4, title: "스토어", path: "/store", badge: "N" },
     { id: 5, title: "이벤트", path: "/event" },
 ]
@@ -33,7 +33,7 @@ export default function Header() {
                 <div className="flex items-center gap-10">
                     <h1>
                         <Link href="/">
-                            <img src="/images/logo.png" alt="logo" className='w-50' />
+                            <img src="/images/logo.png" alt="logo" className='w-28' />
                         </Link>
                     </h1>
                     <nav>
@@ -45,6 +45,11 @@ export default function Header() {
                                         className="flex items-center gap-1 text-sm text-white/90 hover:text-white transition-colors"
                                     >
                                         {menu.title}
+                                        {menu.live && (
+                                            <span className="inline-flex items-center justify-center px-1.5 h-4 rounded bg-red-500 text-[10px] font-bold text-white animate-pulse">
+                                                LIVE
+                                            </span>
+                                        )}
                                         {menu.badge && (
                                             <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#6c63ff] text-[10px] font-bold text-white">
                                                 {menu.badge}
@@ -57,23 +62,29 @@ export default function Header() {
                     </nav>
                 </div>
 
-                {/* 오른쪽: 검색 / 알림 / 유저 */}
                 <div className="flex items-center gap-4">
-                    {/* 검색 아이콘 */}
+
+
+                    <Link href="/membership" className="text-white/80 hover:text-white transition-colors" aria-label="멤버십">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+                            <path d="M13 5v2M13 17v2M13 11v2" />
+                        </svg>
+                    </Link>
+
+
                     <button className="text-white/80 hover:text-white transition-colors" aria-label="검색">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                         </svg>
                     </button>
 
-                    {/* 알림 아이콘 */}
                     <button className="text-white/80 hover:text-white transition-colors" aria-label="알림">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
                         </svg>
                     </button>
 
-                    {/* 유저 영역 */}
                     {!user ? (
                         <Link
                             href="/login"
