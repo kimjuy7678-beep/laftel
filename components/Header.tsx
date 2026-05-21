@@ -25,7 +25,7 @@ export default function Header() {
 
     return (
         <header
-            className={`fixed top-0 left-0 w-full z-[1000] transition-colors duration-300 ${scrolled ? 'bg-black' : 'bg-transparent'
+            className={`fixed top-0 left-0 w-full z-[1000] transition-colors duration-300 ${scrolled ? 'bg-black' : 'bg-gradient-to-b from-black/60 to-transparent'
                 }`}
         >
             <div className="inner flex h-[56px] items-center justify-between px-6">
