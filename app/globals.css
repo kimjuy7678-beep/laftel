@@ -15,20 +15,16 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
-}
-
-.inner {
-  max-width: 1600px;
-  margin: 0 auto;
-}
-
-body {
-  font-family: Arial, Helvetica, sans-serif;
   background: white;
   color: #171717;
 }
 
-.dark body {
+html.dark body {
   background: #0a0a0a;
   color: #ededed;
+}
+
+.inner {
+  max-width: 1820px;
+  margin: 0 auto;
 }

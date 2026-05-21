@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body className="min-h-full flex flex-col bg-white dark:bg-[#0a0a0a] text-black dark:text-white transition-colors">
+      <body className="min-h-full flex flex-col transition-colors">
         <ThemeProvider>
           <Header />
           <main className="pt-[56px]">{children}</main>
