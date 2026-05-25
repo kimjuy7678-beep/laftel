@@ -3,8 +3,11 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import Link from 'next/link'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+
+const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
+const IMG = 'https://image.tmdb.org/t/p'
 
 const MenuList = [
     { id: 1, title: "태그검색", path: "/tag-search" },
@@ -67,6 +70,269 @@ function EventNotifications() {
     )
 }
 
+// ── 검색 오버레이 ──────────────────────────────────────────────
+function SearchOverlay({ onClose }: { onClose: () => void }) {
+    const [query, setQuery] = useState('')
+    const [results, setResults] = useState<any[]>([])
+    const [loading, setLoading] = useState(false)
+    const inputRef = useRef<HTMLInputElement>(null)
+    const router = useRouter()
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        inputRef.current?.focus()
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [onClose])
+
+    const search = useCallback(async (q: string) => {
+        if (!q.trim()) { setResults([]); return }
+        setLoading(true)
+        try {
+            const res = await fetch(
+                `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&language=ko-KR&page=1`
+            )
+            const data = await res.json()
+            const filtered = (data.results || [])
+                .filter((r: any) => r.origin_country?.includes('JP') || r.original_language === 'ja')
+                .slice(0, 8)
+            setResults(filtered)
+        } catch {
+            setResults([])
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const v = e.target.value
+        setQuery(v)
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => search(v), 320)
+    }
+
+    const handleSubmit = () => {
+        if (!query.trim()) return
+        onClose()
+        router.push(`/anime/search?q=${encodeURIComponent(query)}`)
+    }
+
+    const handleCardClick = (id: number) => {
+        onClose()
+        router.push(`/anime/${id}`)
+    }
+
+    return (
+        <>
+            <style>{`
+                .srch-overlay {
+                    position: fixed; inset: 0; z-index: 2000;
+                    background: rgba(0,0,0,0.7);
+                    backdrop-filter: blur(8px);
+                    animation: srch-in .18s ease;
+                }
+                @keyframes srch-in {
+                    from { opacity: 0 }
+                    to   { opacity: 1 }
+                }
+                .srch-box {
+                    position: absolute;
+                    top: 0; left: 0; right: 0;
+                    background: rgba(14,14,14,0.98);
+                    border-bottom: 1px solid rgba(255,255,255,0.08);
+                    padding: 20px 40px 0;
+                    animation: srch-slide .2s ease;
+                }
+                @keyframes srch-slide {
+                    from { transform: translateY(-10px); opacity: 0 }
+                    to   { transform: translateY(0);     opacity: 1 }
+                }
+                .srch-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    max-width: 860px;
+                    margin: 0 auto;
+                    height: 64px;
+                }
+                .srch-input {
+                    flex: 1;
+                    background: none;
+                    border: none;
+                    outline: none;
+                    color: #fff;
+                    font-size: 22px;
+                    font-weight: 500;
+                    caret-color: #6c63ff;
+                }
+                .srch-input::placeholder { color: rgba(255,255,255,0.2); }
+                .srch-btn {
+                    display: flex; align-items: center; justify-content: center;
+                    width: 40px; height: 40px; border-radius: 10px;
+                    background: #6c63ff; border: none;
+                    color: #fff; cursor: pointer;
+                    transition: background .2s;
+                    flex-shrink: 0;
+                }
+                .srch-btn:hover { background: #5a52e0; }
+                .srch-close {
+                    display: flex; align-items: center; justify-content: center;
+                    width: 36px; height: 36px; border-radius: 8px;
+                    background: none; border: none;
+                    color: rgba(255,255,255,0.4); cursor: pointer;
+                    transition: color .2s;
+                    flex-shrink: 0;
+                }
+                .srch-close:hover { color: #fff; }
+                .srch-results {
+                    max-width: 860px;
+                    margin: 0 auto;
+                    padding: 12px 0 20px;
+                }
+                .srch-hint {
+                    font-size: 12px;
+                    color: rgba(255,255,255,0.2);
+                    padding: 6px 0 14px;
+                    text-align: center;
+                }
+                .srch-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 12px;
+                }
+                .srch-card {
+                    display: flex;
+                    align-items: center;
+                    gap: 11px;
+                    padding: 10px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    transition: background .15s;
+                    border: 1px solid transparent;
+                }
+                .srch-card:hover {
+                    background: rgba(255,255,255,0.06);
+                    border-color: rgba(255,255,255,0.08);
+                }
+                .srch-card-thumb {
+                    width: 44px;
+                    height: 62px;
+                    border-radius: 6px;
+                    overflow: hidden;
+                    background: #1e1e1e;
+                    flex-shrink: 0;
+                }
+                .srch-card-thumb img {
+                    width: 100%; height: 100%; object-fit: cover;
+                }
+                .srch-card-np {
+                    width: 100%; height: 100%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 16px; font-weight: 800;
+                    color: rgba(255,255,255,0.1);
+                }
+                .srch-card-info { flex: 1; min-width: 0; }
+                .srch-card-name {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: rgba(255,255,255,0.88);
+                    line-height: 1.4;
+                    overflow: hidden;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    margin: 0 0 4px;
+                }
+                .srch-card-meta {
+                    font-size: 11px;
+                    color: rgba(255,255,255,0.3);
+                    margin: 0;
+                }
+                .srch-loading {
+                    display: flex; align-items: center; justify-content: center;
+                    padding: 28px 0;
+                    gap: 8px;
+                    color: rgba(255,255,255,0.25);
+                    font-size: 13px;
+                }
+                .srch-spinner {
+                    width: 18px; height: 18px;
+                    border: 2px solid rgba(255,255,255,0.1);
+                    border-top-color: #6c63ff;
+                    border-radius: 50%;
+                    animation: spin .7s linear infinite;
+                }
+                @keyframes spin { to { transform: rotate(360deg) } }
+                .srch-empty {
+                    text-align: center;
+                    padding: 28px 0;
+                    font-size: 13px;
+                    color: rgba(255,255,255,0.22);
+                }
+            `}</style>
+
+            <div className="srch-overlay" onClick={onClose}>
+                <div className="srch-box" onClick={e => e.stopPropagation()}>
+                    <div className="srch-row">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round">
+                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input
+                            ref={inputRef}
+                            className="srch-input"
+                            value={query}
+                            onChange={handleChange}
+                            onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
+                            placeholder="애니 제목, 장르, 태그로 검색"
+                        />
+                        <button className="srch-btn" onClick={handleSubmit}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                            </svg>
+                        </button>
+                        <button className="srch-close" onClick={onClose}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div className="srch-results">
+                        {loading ? (
+                            <div className="srch-loading">
+                                <div className="srch-spinner" />
+                                검색 중...
+                            </div>
+                        ) : results.length > 0 ? (
+                            <div className="srch-grid">
+                                {results.map(item => (
+                                    <div key={item.id} className="srch-card" onClick={() => handleCardClick(item.id)}>
+                                        <div className="srch-card-thumb">
+                                            {item.poster_path
+                                                ? <img src={`${IMG}/w154${item.poster_path}`} alt={item.name} />
+                                                : <div className="srch-card-np">{(item.name||'?')[0]}</div>
+                                            }
+                                        </div>
+                                        <div className="srch-card-info">
+                                            <p className="srch-card-name">{item.name}</p>
+                                            <p className="srch-card-meta">{item.first_air_date?.slice(0,4) || ''}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : query.trim() ? (
+                            <div className="srch-empty">검색 결과가 없어요</div>
+                        ) : (
+                            <div className="srch-hint">제목을 입력하면 바로 검색됩니다 · Enter로 전체 결과 보기</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </>
+    )
+}
+
 export default function Header() {
     const { user, onLogout } = useAuthStore()
     const avatarConfig = useAuthStore(s => s.avatarConfig)
@@ -75,6 +341,7 @@ export default function Header() {
     const [scrolled, setScrolled] = useState(false)
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [notiOpen, setNotiOpen] = useState(false)
+    const [searchOpen, setSearchOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const notiRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
@@ -104,6 +371,12 @@ export default function Header() {
         return () => document.removeEventListener('mousedown', handler)
     }, [])
 
+    // 검색창 열릴 때 스크롤 막기
+    useEffect(() => {
+        document.body.style.overflow = searchOpen ? 'hidden' : ''
+        return () => { document.body.style.overflow = '' }
+    }, [searchOpen])
+
     const handleLogout = async () => {
         await onLogout()
         setDropdownOpen(false)
@@ -122,197 +395,205 @@ export default function Header() {
     ]
 
     return (
-        <header className={`fixed top-0 left-0 w-full z-[1000] transition-colors duration-300 ${scrolled ? 'bg-black' : 'bg-transparent'}`}>
-            <div className="inner flex h-[56px] items-center justify-between px-6">
-                <div className="flex items-center gap-10">
-                    <h1>
-                        <Link href="/"><img src="/images/logo.png" alt="logo" className='h-8 w-auto' /></Link>
-                    </h1>
-                    <nav>
-                        <ul className="flex gap-6">
-                            {MenuList.map((menu) => (
-                                <li key={menu.id} className="relative group">
-                                    <Link href={menu.path} className="flex items-center gap-1 text-sm text-white/90 hover:text-white transition-colors">
-                                        {menu.title}
-                                        {menu.live && <span className="inline-flex items-center justify-center px-1.5 h-4 rounded bg-red-500 text-[10px] font-bold text-white animate-pulse">LIVE</span>}
-                                        {menu.badge && <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#6c63ff] text-[10px] font-bold text-white">{menu.badge}</span>}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </nav>
-                </div>
+        <>
+            {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
 
-                <div className="flex items-center gap-4">
-                    <Link href="/membership" className="text-white/80 hover:text-white transition-colors" aria-label="멤버십">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
-                            <path d="M13 5v2M13 17v2M13 11v2"/>
-                        </svg>
-                    </Link>
-
-                    <button className="text-white/80 hover:text-white transition-colors" aria-label="검색">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                        </svg>
-                    </button>
-
-                    {/* 알림 */}
-                    <div className="relative" ref={notiRef}>
-                       <button
-    onClick={() => {
-        setNotiOpen(!notiOpen)
-        if (!notiOpen && user?.uid && unreadCount > 0) markAllRead(user.uid)
-    }}
-    className="relative text-white/80 hover:text-white transition-colors flex items-center h-[56px]"
-    aria-label="알림"
->
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                            </svg>
-                            {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
-                                    {unreadCount > 9 ? '9+' : unreadCount}
-                                </span>
-                            )}
-                        </button>
-
-                        {notiOpen && (
-                            <div className="absolute right-0 top-12 w-[320px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                                    <span className="text-sm font-bold text-white">알림</span>
-                                    {unreadCount > 0 && (
-                                        <button onClick={() => user?.uid && markAllRead(user.uid)} className="text-xs text-[#6c63ff] hover:text-[#5a52e0]">
-                                            모두 읽음
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="overflow-y-auto max-h-[360px]">
-                                    {notifications.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-12 gap-2">
-                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20">
-                                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                                            </svg>
-                                            <p className="text-white/30 text-xs">알림이 없어요</p>
-                                        </div>
-                                    ) : (
-                                        notifications.map((n) => (
-                                            <div
-                                                key={n.id}
-                                                onClick={() => {
-                                                    if (user?.uid) markOneRead(user.uid, n.id)
-                                                    if (n.link) router.push(n.link)
-                                                    setNotiOpen(false)
-                                                }}
-                                                className={`flex items-start gap-3 px-4 py-3 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-colors ${!n.read ? 'bg-[#6c63ff]/5' : ''}`}
-                                            >
-                                                <span className="text-lg shrink-0">{typeIcon[n.type] || '🔔'}</span>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className={`text-xs font-medium ${!n.read ? 'text-white' : 'text-white/70'}`}>{n.title}</p>
-                                                    <p className="text-xs text-white/40 mt-0.5 leading-relaxed">{n.body}</p>
-                                                    <p className="text-[10px] text-white/25 mt-1">{formatTime(n.createdAt)}</p>
-                                                </div>
-                                                {!n.read && <div className="w-2 h-2 rounded-full bg-[#6c63ff] shrink-0 mt-1" />}
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                                <EventNotifications />
-                            </div>
-                        )}
+            <header className={`fixed top-0 left-0 w-full z-[1000] transition-colors duration-300 ${scrolled ? 'bg-black' : 'bg-transparent'}`}>
+                <div className="inner flex h-[56px] items-center justify-between px-6">
+                    <div className="flex items-center gap-10">
+                        <h1>
+                            <Link href="/"><img src="/images/logo.png" alt="logo" className='h-8 w-auto' /></Link>
+                        </h1>
+                        <nav>
+                            <ul className="flex gap-6">
+                                {MenuList.map((menu) => (
+                                    <li key={menu.id} className="relative group">
+                                        <Link href={menu.path} className="flex items-center gap-1 text-sm text-white/90 hover:text-white transition-colors">
+                                            {menu.title}
+                                            {menu.live && <span className="inline-flex items-center justify-center px-1.5 h-4 rounded bg-red-500 text-[10px] font-bold text-white animate-pulse">LIVE</span>}
+                                            {menu.badge && <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#6c63ff] text-[10px] font-bold text-white">{menu.badge}</span>}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
                     </div>
 
-                    {!user ? (
-                      <Link href="/login" className="text-sm text-white/80 hover:text-white transition-colors">로그인</Link>
-) : (
-    <div className="relative" ref={dropdownRef}>
-        <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 cursor-pointer group h-[56px]">
-            <Link
-                href="/profile"
-                onClick={e => e.stopPropagation()}
-                className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-full flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-transparent hover:ring-white/40 transition-all duration-200"
-                style={{ background: memberInfo.color || '#6c63ff' }}
-            >
-                {avatarConfig?.svgDataUrl ? (
-                    <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
-                ) : user.photoURL ? (
-                    <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" />
-                ) : (
-                    <span className="text-white text-xs font-bold">
-                        {user.name?.[0]?.toUpperCase() || '?'}
-                    </span>
-                )}
-            </Link>
-            <span className="text-sm text-white/90 group-hover:text-white transition-colors">{user.name}</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-white/60 transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}>
-                <path d="m6 9 6 6 6-6"/>
-            </svg>
-        </button>
+                    <div className="flex items-center gap-4">
+                        <Link href="/membership" className="text-white/80 hover:text-white transition-colors" aria-label="멤버십">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+                                <path d="M13 5v2M13 17v2M13 11v2"/>
+                            </svg>
+                        </Link>
 
-                            {dropdownOpen && (
-                                <div className="absolute right-0 top-12 w-[260px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                                    <div className="flex flex-col items-center gap-3 px-4 py-5 border-b border-white/10">
-                                        <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden" style={{ background: memberInfo.color || '#6c63ff' }}>
-                                            {avatarConfig?.svgDataUrl ? (
-                                                <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
-                                            ) : user.photoURL ? (
-                                                <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        <button
+                            className="text-white/80 hover:text-white transition-colors"
+                            aria-label="검색"
+                            onClick={() => setSearchOpen(true)}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                            </svg>
+                        </button>
+
+                        {/* 알림 */}
+                        <div className="relative" ref={notiRef}>
+                            <button
+                                onClick={() => {
+                                    setNotiOpen(!notiOpen)
+                                    if (!notiOpen && user?.uid && unreadCount > 0) markAllRead(user.uid)
+                                }}
+                                className="relative text-white/80 hover:text-white transition-colors flex items-center h-[56px]"
+                                aria-label="알림"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                                </svg>
+                                {unreadCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+                                        {unreadCount > 9 ? '9+' : unreadCount}
+                                    </span>
+                                )}
+                            </button>
+
+                            {notiOpen && (
+                                <div className="absolute right-0 top-12 w-[320px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                                        <span className="text-sm font-bold text-white">알림</span>
+                                        {unreadCount > 0 && (
+                                            <button onClick={() => user?.uid && markAllRead(user.uid)} className="text-xs text-[#6c63ff] hover:text-[#5a52e0]">
+                                                모두 읽음
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="overflow-y-auto max-h-[360px]">
+                                        {notifications.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-12 gap-2">
+                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20">
+                                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                                                 </svg>
-                                            )}
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-white font-semibold text-sm">{user.name}</p>
-                                            <p className="text-white/50 text-xs mt-0.5">{user.email}</p>
-                                            {membership !== 'none' && (
-                                                <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
-                                                    style={{ background: `${memberInfo.color}30`, color: memberInfo.color! }}>
-                                                    {memberInfo.label}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <ul className="py-1">
-                                        {DropdownMenu.map((item) => (
-                                            <li key={item.title}>
-                                                <Link
-                                                    href={item.path}
-                                                    onClick={() => setDropdownOpen(false)}
-                                                    target={item.path.startsWith('http') ? '_blank' : undefined}
-                                                    rel={item.path.startsWith('http') ? 'noopener noreferrer' : undefined}
-                                                    className="flex items-center justify-between px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                                                <p className="text-white/30 text-xs">알림이 없어요</p>
+                                            </div>
+                                        ) : (
+                                            notifications.map((n) => (
+                                                <div
+                                                    key={n.id}
+                                                    onClick={() => {
+                                                        if (user?.uid) markOneRead(user.uid, n.id)
+                                                        if (n.link) router.push(n.link)
+                                                        setNotiOpen(false)
+                                                    }}
+                                                    className={`flex items-start gap-3 px-4 py-3 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-colors ${!n.read ? 'bg-[#6c63ff]/5' : ''}`}
                                                 >
-                                                    <span className="flex items-center gap-3">
-                                                        <span className="text-white/50" style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : undefined }}>
-                                                            {item.icon}
-                                                        </span>
-                                                        <span style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : undefined }}>
-                                                            {item.title}
-                                                        </span>
-                                                    </span>
-                                                    {item.sub && (
-                                                        <span className="text-xs" style={{ color: item.subColor || undefined }}>{item.sub}</span>
-                                                    )}
-                                                </Link>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    <div className="border-t border-white/10 py-1">
-                                        <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
-                                            </svg>
-                                            로그아웃
-                                        </button>
+                                                    <span className="text-lg shrink-0">{typeIcon[n.type] || '🔔'}</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`text-xs font-medium ${!n.read ? 'text-white' : 'text-white/70'}`}>{n.title}</p>
+                                                        <p className="text-xs text-white/40 mt-0.5 leading-relaxed">{n.body}</p>
+                                                        <p className="text-[10px] text-white/25 mt-1">{formatTime(n.createdAt)}</p>
+                                                    </div>
+                                                    {!n.read && <div className="w-2 h-2 rounded-full bg-[#6c63ff] shrink-0 mt-1" />}
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
+                                    <EventNotifications />
                                 </div>
                             )}
                         </div>
-                    )}
+
+                        {!user ? (
+                            <Link href="/login" className="text-sm text-white/80 hover:text-white transition-colors">로그인</Link>
+                        ) : (
+                            <div className="relative" ref={dropdownRef}>
+                                <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 cursor-pointer group h-[56px]">
+                                    <Link
+                                        href="/profile"
+                                        onClick={e => e.stopPropagation()}
+                                        className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-full flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-transparent hover:ring-white/40 transition-all duration-200"
+                                        style={{ background: memberInfo.color || '#6c63ff' }}
+                                    >
+                                        {avatarConfig?.svgDataUrl ? (
+                                            <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
+                                        ) : user.photoURL ? (
+                                            <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-white text-xs font-bold">
+                                                {user.name?.[0]?.toUpperCase() || '?'}
+                                            </span>
+                                        )}
+                                    </Link>
+                                    <span className="text-sm text-white/90 group-hover:text-white transition-colors">{user.name}</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-white/60 transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}>
+                                        <path d="m6 9 6 6 6-6"/>
+                                    </svg>
+                                </button>
+
+                                {dropdownOpen && (
+                                    <div className="absolute right-0 top-12 w-[260px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                        <div className="flex flex-col items-center gap-3 px-4 py-5 border-b border-white/10">
+                                            <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden" style={{ background: memberInfo.color || '#6c63ff' }}>
+                                                {avatarConfig?.svgDataUrl ? (
+                                                    <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
+                                                ) : user.photoURL ? (
+                                                    <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-white font-semibold text-sm">{user.name}</p>
+                                                <p className="text-white/50 text-xs mt-0.5">{user.email}</p>
+                                                {membership !== 'none' && (
+                                                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
+                                                        style={{ background: `${memberInfo.color}30`, color: memberInfo.color! }}>
+                                                        {memberInfo.label}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <ul className="py-1">
+                                            {DropdownMenu.map((item) => (
+                                                <li key={item.title}>
+                                                    <Link
+                                                        href={item.path}
+                                                        onClick={() => setDropdownOpen(false)}
+                                                        target={item.path.startsWith('http') ? '_blank' : undefined}
+                                                        rel={item.path.startsWith('http') ? 'noopener noreferrer' : undefined}
+                                                        className="flex items-center justify-between px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                                                    >
+                                                        <span className="flex items-center gap-3">
+                                                            <span className="text-white/50" style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : undefined }}>
+                                                                {item.icon}
+                                                            </span>
+                                                            <span style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : undefined }}>
+                                                                {item.title}
+                                                            </span>
+                                                        </span>
+                                                        {item.sub && (
+                                                            <span className="text-xs" style={{ color: item.subColor || undefined }}>{item.sub}</span>
+                                                        )}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <div className="border-t border-white/10 py-1">
+                                            <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                                                </svg>
+                                                로그아웃
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
-        </header>
+            </header>
+        </>
     )
 }
