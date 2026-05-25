@@ -9,11 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@dicebear/avataaars": "^9.4.2",
+    "@dicebear/core": "^9.4.2",
     "firebase": "^12.13.0",
     "next": "16.2.6",
     "next-themes": "^0.2.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "swiper": "^12.1.4",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
