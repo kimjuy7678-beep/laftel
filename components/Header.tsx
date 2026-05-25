@@ -16,6 +16,7 @@ const MenuList = [
     { id: 4, title: "스토어", path: "/store", badge: "N" },
     { id: 5, title: "이벤트", path: "/event" },
     { id: 6, title: "OST", path: "/ost" },
+    { id: 7, title: "OP 모드", path: "/op" },
 ]
 
 const membershipConfig: Record<string, { label: string; color: string | null }> = {
