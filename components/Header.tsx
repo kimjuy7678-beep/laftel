@@ -15,12 +15,16 @@ const MenuList = [
     { id: 3, title: "라이브", path: "/live", live: true },
     { id: 4, title: "스토어", path: "/store", badge: "N" },
     { id: 5, title: "이벤트", path: "/event" },
+    { id: 6, title: "OST", path: "/ost" },
 ]
 
-const membershipConfig = {
+const membershipConfig: Record<string, { label: string; color: string | null }> = {
     none: { label: '라프텔 멤버십', color: null },
     basic: { label: 'BASIC 회원', color: '#3b82f6' },
     premium: { label: 'PREMIUM 회원', color: '#f59e0b' },
+    anime: { label: '애니 멤버십', color: '#6c63ff' },
+    ost: { label: 'OST 멤버십', color: '#ec4899' },
+    allinone: { label: '올인원 멤버십', color: '#f59e0b' },
 }
 
 const typeIcon: Record<string, string> = {
@@ -346,8 +350,8 @@ export default function Header() {
     const notiRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
 
-    const membership = (user?.membership || 'none') as 'none' | 'basic' | 'premium'
-    const memberInfo = membershipConfig[membership]
+    const membership = user?.membership || 'none'
+    const memberInfo = membershipConfig[membership] || membershipConfig['none']
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 10)

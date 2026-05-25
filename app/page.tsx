@@ -5,7 +5,7 @@ import MembershipBanner from "@/components/home/MembershipBanner"
 import Top10Section from "@/components/home/Top10Section"
 import ThemeRowSection from "@/components/home/ThemeRowSection"
 import TagTop10Section from "@/components/home/TagTop10Section"
-import AnimationList from "@/components/AnimationList"
+import OstSection from "@/components/home/OstSection_home"
 
 export default function Home() {
     return (
@@ -19,7 +19,7 @@ export default function Home() {
             <ThemeRowSection genre={10749} title="로맨스 추천" />
             <ThemeRowSection genre={14} title="판타지 세계로" />
             <TagTop10Section />
-            <AnimationList/>
+            <OstSection />
         </div>
     )
 }

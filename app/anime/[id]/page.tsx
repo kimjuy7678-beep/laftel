@@ -1,4 +1,5 @@
 'use client'
+import OstSectionDetail from '@/components/anime/OstSectionDetail'
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -371,6 +372,7 @@ export default function AnimeDetailPage() {
                                     </div>
                                 </div>
                             )}
+                            <OstSectionDetail animeName={detail.original_name || detail.name} />
                         </div>
                     )}
 

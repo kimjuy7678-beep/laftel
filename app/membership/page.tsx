@@ -12,55 +12,74 @@ const reviews = [
     { name: "시럽Sir**", title: "덕분에 제 인생이 더 즐거워졌던 것 같아요.", body: "라프텔을 예전부터 써왔습니다. 예전보다 오히려 발전했다는 것입니다." },
     { name: "Papago**", title: "라프텔 늦게 다운로드한 게 인생 최대 후회입니다.", body: "정말 너무너무 좋습니다. 애니 볼 때마다 너무 힐링되고 월정액도 부담되는 가격이 아니라 너무 좋아요." },
     { name: "gab25**", title: "합법적으로 당당하게 애니를 보니 재미도 배가 됩니다.", body: "한 플랫폼을 결제하는 것만으로도 왠만한 건 다 볼 수 있다는 메리트가 있어서 합법사이트 중에서는 단연코 1위입니다." },
-    { name: "비*", title: "한국에 애니만 모아놓은 플랫폼 흔치 않은데 별 100개도 주고싶어요", body: "검색엔진도 좋고 카테고리별로 분류도 잘되어있어서 보기 정말 편해요!! 고화질에 무제한에 한 달에 9,900원이면 정말 싼거죠." },
-    { name: "환불**", title: "진짜 너무너무 완벽한 앱인거같아요...", body: "한달에 9,900원이라는 가격에 많은 애니를 볼 수 있다는게 너무나도 큰 장점이에요. 돈 많이버십ㅂ쇼!" },
+    { name: "비*", title: "한국에 애니만 모아놓은 플랫폼 흔치 않은데 별 100개도 주고싶어요", body: "검색엔진도 좋고 카테고리별로 분류도 잘되어있어서 보기 정말 편해요!!" },
+    { name: "환불**", title: "진짜 너무너무 완벽한 앱인거같아요...", body: "한달에 9,900원이라는 가격에 많은 애니를 볼 수 있다는게 너무나도 큰 장점이에요." },
     { name: "이**", title: "아무튼 라프텔은 진짜 애니 플렛폼중 최고임", body: "초창기 멤버십도 없던 시절 라프텔이 맞나? 진짜 라프텔은 전설이다..." },
     { name: "제페토**", title: "UI가 깔끔하여 사용하기 편함", body: "전체적으로 상당히 만족함" },
     { name: "chow**", title: "저 원래 별 다섯개 잘 안주는데 이거 대박임ㅜㅜ", body: "진짜 다른 어플들보다 애니 더 많음!! 진짜 라프텔 만든분들 제발 떡상하셨으면" },
     { name: "이만**", title: "이만한 애니 스트리밍 사이트 없어요.", body: "멤버십 가격 이만하면 혜자라고 생각하고, 서비스도 굉장히 좋습니다." },
 ]
 
-const features = [
-    {
-        title: "초고화질로 선명하게 감상하세요",
-        desc: "FHD 해상도로 생생한 감동을 느껴보세요. 최애캐의 작은 디테일까지 놓치지 않고 감상할 수 있어요.",
-        icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-    },
-    {
-        title: "TV에서 웅장하게 감상하세요",
-        desc: "스마트 TV, 크롬캐스트 등 큰 화면에서 최애 애니를 몰입해서 즐겨보세요.",
-        icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
-    },
-    {
-        title: "프로필 최대 4인으로 함께 즐기세요",
-        desc: "동시 4개 기기에서 재생가능한 프리미엄 멤버십으로 여럿이 즐기세요.",
-        icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    },
-    {
-        title: "라이브로 지금 바로 감상하세요",
-        desc: "이번 분기 인기 신작, 라이브로 가장 빠르게 감상할 수 있어요.",
-        icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M7.76 7.76a6 6 0 0 0 0 8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-    },
-]
-
 const plans = [
     {
-        id: 'basic' as const,
-        name: "베이직",
+        id: 'anime' as const,
+        name: "애니 멤버십",
         price: "9,900",
-        days: 30,
         period: "월",
-        features: ["광고 없는 무제한 스트리밍", "FHD 화질", "프로필 1개", "모바일/PC 지원"],
+        days: 30,
+        color: "#6c63ff",
+        emoji: "🎬",
+        desc: "애니메이션 무제한 시청",
         highlight: false,
+        features: [
+            "광고 없는 무제한 스트리밍",
+            "FHD 고화질",
+            "프로필 최대 4개",
+            "동시 4기기 재생",
+            "모바일/PC/TV 지원",
+            "라이브 신작 시청",
+        ],
+        notIncluded: ["OST 전곡 감상"],
     },
     {
-        id: 'premium' as const,
-        name: "프리미엄",
+        id: 'allinone' as const,
+        name: "올인원",
         price: "13,900",
-        days: 30,
         period: "월",
-        features: ["광고 없는 무제한 스트리밍", "FHD 화질", "프로필 최대 4개", "동시 4기기 재생", "모바일/PC/TV 지원", "라이브 시청"],
+        days: 30,
+        color: "#f59e0b",
+        emoji: "⚡",
+        desc: "애니 + OST 전부 다",
         highlight: true,
+        features: [
+            "광고 없는 무제한 스트리밍",
+            "FHD 고화질",
+            "프로필 최대 4개",
+            "동시 4기기 재생",
+            "모바일/PC/TV 지원",
+            "라이브 신작 시청",
+            "OST 전곡 무제한 감상",
+            "OST 오프라인 저장",
+        ],
+        notIncluded: [],
+    },
+    {
+        id: 'ost' as const,
+        name: "OST 멤버십",
+        price: "4,900",
+        period: "월",
+        days: 30,
+        color: "#ec4899",
+        emoji: "🎵",
+        desc: "애니 OST 전곡 감상",
+        highlight: false,
+        features: [
+            "OST 전곡 무제한 감상",
+            "OST 오프라인 저장",
+            "고음질 스트리밍",
+            "아티스트/앨범 탐색",
+        ],
+        notIncluded: ["애니메이션 시청"],
     },
 ]
 
@@ -69,35 +88,32 @@ export default function MembershipPage() {
     const { user, setMembership } = useAuthStore()
     const router = useRouter()
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
-    const [selectedPlan, setSelectedPlan] = useState<'basic' | 'premium'>('premium')
+    const [selectedPlan, setSelectedPlan] = useState<'anime' | 'ost' | 'allinone'>('allinone')
 
     useEffect(() => {
         if (aniList.length === 0) onFetchAni()
     }, [])
 
-    const gridAnime = aniList.filter(a => a.backdrop_path).slice(0, 12)
+    const gridAnime = aniList.filter((a: any) => a.backdrop_path).slice(0, 12)
 
     const handleSubscribe = async (plan: typeof plans[0]) => {
         if (!user) { router.push('/login'); return }
         setLoadingPlan(plan.id)
         try {
-            const memberRef = doc(db, 'users', user.uid)
-            await setDoc(memberRef, {
+            await setDoc(doc(db, 'users', user.uid), {
                 membership: plan.id,
                 membershipDays: plan.days,
                 membershipStartAt: new Date()
             }, { merge: true })
-
             await addDoc(collection(db, 'users', user.uid, 'membership_history'), {
                 type: plan.id,
-                label: `${plan.name} 멤버십 ${plan.days}일 이용권`,
+                label: `${plan.name} ${plan.days}일 이용권`,
                 days: plan.days,
                 createdAt: new Date(),
             })
-
             setMembership(plan.id)
-            alert(`🎉 ${plan.name} 멤버십이 시작되었어요!`)
-        } catch (err) {
+            alert(`🎉 ${plan.name}이 시작되었어요!`)
+        } catch {
             alert('오류가 발생했어요. 다시 시도해주세요.')
         } finally {
             setLoadingPlan(null)
@@ -110,79 +126,161 @@ export default function MembershipPage() {
             {/* 히어로 */}
             <div className="relative w-full h-screen flex flex-col items-center justify-center text-center overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-b from-[#6c63ff]/20 via-black to-black" />
-                <div className="absolute inset-0">
-                    {[...Array(20)].map((_, i) => (
-                        <div
-                            key={i}
-                            className="absolute rounded-full bg-[#6c63ff]/10"
-                            style={{
-                                width: Math.random() * 300 + 50,
-                                height: Math.random() * 300 + 50,
-                                left: `${Math.random() * 100}%`,
-                                top: `${Math.random() * 100}%`,
-                                filter: 'blur(60px)',
-                            }}
-                        />
-                    ))}
-                </div>
                 <div className="relative z-10 flex flex-col items-center gap-6 px-6">
+                    <div className="flex items-center gap-3 text-sm font-bold text-[#9d97ff] tracking-widest uppercase mb-2">
+                        <span>🎬 애니</span>
+                        <span className="text-white/20">+</span>
+                        <span>🎵 OST</span>
+                    </div>
                     <h1 className="text-5xl font-black leading-tight max-w-2xl">
-                        동시방영 신작부터<br />역대 인기작까지<br />
+                        보고 싶은 것도,<br />듣고 싶은 것도<br />
                         <span className="text-[#6c63ff]">한 곳에서</span>
                     </h1>
-                    <p className="text-white/60 text-lg">월 9,900원으로 무제한 스트리밍</p>
+                    <p className="text-white/50 text-lg">애니 무제한 시청 + OST 전곡 감상, 당신의 취향대로</p>
                     <Link href="#plans" className="px-8 py-4 bg-[#6c63ff] hover:bg-[#5a52e0] rounded-xl font-bold text-lg transition-colors">
                         멤버십 시작하기
                     </Link>
                 </div>
             </div>
 
-            {/* 끝없는 애니메이션 세계로 */}
-            <div className="py-24 overflow-hidden">
-                <h2 className="text-center text-4xl font-black mb-3">끝없는 애니메이션 세계로</h2>
-                <p className="text-center text-white/50 mb-12">멤버십으로 다양한 장르의 애니들을 마음껏 즐기세요.</p>
-                {gridAnime.length > 0 && (
+            {/* 마퀴 */}
+            {gridAnime.length > 0 && (
+                <div className="py-16 overflow-hidden">
                     <div className="relative">
                         <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
                         <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
                         <div className="flex gap-3 mb-3 animate-marquee-left">
-                            {[...gridAnime, ...gridAnime, ...gridAnime].map((ani, i) => (
+                            {[...gridAnime, ...gridAnime, ...gridAnime].map((ani: any, i: number) => (
                                 <div key={i} className="shrink-0 w-64 h-36 rounded-xl overflow-hidden">
                                     <img src={`https://image.tmdb.org/t/p/w500${ani.backdrop_path}`} alt={ani.name} className="w-full h-full object-cover" />
                                 </div>
                             ))}
                         </div>
                         <div className="flex gap-3 animate-marquee-right">
-                            {[...gridAnime.slice(6), ...gridAnime, ...gridAnime.slice(0, 6)].map((ani, i) => (
+                            {[...gridAnime.slice(6), ...gridAnime, ...gridAnime.slice(0, 6)].map((ani: any, i: number) => (
                                 <div key={i} className="shrink-0 w-64 h-36 rounded-xl overflow-hidden">
                                     <img src={`https://image.tmdb.org/t/p/w500${ani.backdrop_path}`} alt={ani.name} className="w-full h-full object-cover" />
                                 </div>
                             ))}
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
-            {/* 기능 소개 */}
-            <div className="inner px-6 py-24">
-                <div className="flex flex-col gap-32">
-                    {features.map((feat, i) => (
-                        <div key={feat.title} className={`flex items-center gap-16 ${i % 2 === 1 ? 'flex-row-reverse' : ''}`}>
-                            <div className="flex-1">
-                                <h2 className="text-4xl font-black mb-4 leading-tight">{feat.title}</h2>
-                                <p className="text-white/60 text-lg leading-relaxed">{feat.desc}</p>
-                            </div>
-                            <div className="flex-1 flex items-center justify-center">
-                                <div className="w-64 h-64 rounded-3xl bg-[#6c63ff]/10 border border-[#6c63ff]/20 flex items-center justify-center text-[#6c63ff]">
-                                    <div className="scale-[3]">{feat.icon}</div>
+            {/* 요금제 */}
+            <div id="plans" style={{ padding: '80px 48px' }}>
+                <h2 style={{ fontSize: 32, fontWeight: 900, textAlign: 'center', margin: '0 0 12px' }}>나에게 맞는 멤버십을 선택하세요</h2>
+                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', margin: '0 0 56px' }}>언제든 해지 가능 · 다음 결제일 전까지 이용 가능</p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, maxWidth: 960, margin: '0 auto' }}>
+                    {plans.map(plan => {
+                        const isSelected = selectedPlan === plan.id
+                        return (
+                            <div
+                                key={plan.id}
+                                onClick={() => setSelectedPlan(plan.id)}
+                                style={{
+                                    borderRadius: 20,
+                                    border: `2px solid ${isSelected ? plan.color : 'rgba(255,255,255,0.08)'}`,
+                                    background: isSelected ? `${plan.color}12` : '#111',
+                                    padding: '32px 28px',
+                                    cursor: 'pointer',
+                                    transition: 'all .2s',
+                                    position: 'relative',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    transform: plan.highlight && isSelected ? 'translateY(-8px)' : 'none',
+                                    boxShadow: isSelected ? `0 20px 60px ${plan.color}30` : 'none',
+                                }}
+                            >
+                                {plan.highlight && (
+                                    <div style={{
+                                        position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
+                                        background: plan.color, color: '#fff',
+                                        fontSize: 12, fontWeight: 800, padding: '4px 16px', borderRadius: 20,
+                                        whiteSpace: 'nowrap',
+                                    }}>
+                                        ✨ 가장 인기
+                                    </div>
+                                )}
+                                <div style={{ fontSize: 36, marginBottom: 12 }}>{plan.emoji}</div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: plan.color, marginBottom: 6 }}>{plan.name}</div>
+                                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20 }}>{plan.desc}</div>
+                                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginBottom: 28 }}>
+                                    <span style={{ fontSize: 36, fontWeight: 900, color: '#fff' }}>₩{plan.price}</span>
+                                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>/{plan.period}</span>
                                 </div>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+                                    {plan.features.map(f => (
+                                        <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={plan.color} strokeWidth="3"><polyline points="20,6 9,17 4,12"/></svg>
+                                            {f}
+                                        </div>
+                                    ))}
+                                    {plan.notIncluded.map(f => (
+                                        <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                            {f}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={e => { e.stopPropagation(); handleSubscribe(plan) }}
+                                    disabled={loadingPlan === plan.id}
+                                    style={{
+                                        width: '100%', padding: '14px 0', borderRadius: 12, border: 'none',
+                                        background: isSelected ? plan.color : 'rgba(255,255,255,0.08)',
+                                        color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                        transition: 'all .2s', opacity: loadingPlan === plan.id ? 0.5 : 1,
+                                    }}
+                                >
+                                    {loadingPlan === plan.id ? '처리 중...' : '시작하기'}
+                                </button>
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
+                </div>
+
+                {/* 비교표 */}
+                <div style={{ maxWidth: 960, margin: '60px auto 0' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr>
+                                <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>기능</th>
+                                {plans.map(p => (
+                                    <th key={p.id} style={{ padding: '12px 16px', fontSize: 13, color: p.color, fontWeight: 700, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                        {p.emoji} {p.name}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {[
+                                { label: '애니 무제한 시청', anime: true, allinone: true, ost: false },
+                                { label: 'FHD 고화질', anime: true, allinone: true, ost: false },
+                                { label: '라이브 신작', anime: true, allinone: true, ost: false },
+                                { label: 'OST 전곡 감상', anime: false, allinone: true, ost: true },
+                                { label: 'OST 오프라인 저장', anime: false, allinone: true, ost: true },
+                                { label: '광고 없음', anime: true, allinone: true, ost: true },
+                            ].map(row => (
+                                <tr key={row.label} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                    <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{row.label}</td>
+                                    {plans.map(p => (
+                                        <td key={p.id} style={{ padding: '14px 16px', textAlign: 'center' }}>
+                                            {(row as any)[p.id]
+                                                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={p.color} strokeWidth="3"><polyline points="20,6 9,17 4,12"/></svg>
+                                                : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                            }
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            {/* 리뷰 마퀴 */}
+            {/* 리뷰 */}
             <div className="py-16 overflow-hidden bg-[#0a0a0a]">
                 <h2 className="text-center text-3xl font-black mb-2">150만 유저의 생생한 후기</h2>
                 <p className="text-center text-white/40 mb-10">스토어 평균 별점 4.5 ⭐</p>
@@ -205,58 +303,6 @@ export default function MembershipPage() {
                             <p className="text-white/30 text-xs mt-2">{r.name}</p>
                         </div>
                     ))}
-                </div>
-            </div>
-
-            {/* 요금제 */}
-            <div id="plans" className="inner px-6 py-24">
-                <h2 className="text-3xl font-black text-center mb-3">나에게 맞는 멤버십을 확인하세요</h2>
-                <p className="text-white/40 text-center mb-12">멤버십은 언제든 해지가 가능해요.</p>
-                <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto items-stretch">
-                    {plans.map((plan) => {
-                        const isSelected = selectedPlan === plan.id
-                        return (
-                            <div
-                                key={plan.name}
-                                onClick={() => setSelectedPlan(plan.id)}
-                                className={`rounded-2xl p-6 border flex flex-col cursor-pointer transition-all duration-200 ${
-                                    isSelected
-                                        ? 'border-[#6c63ff] bg-[#6c63ff]/10'
-                                        : 'border-white/10 bg-[#1a1a1a] hover:border-white/20'
-                                }`}
-                            >
-                                {plan.highlight && (
-                                    <span className="text-xs bg-[#6c63ff] text-white px-2 py-0.5 rounded-full font-bold mb-3 inline-block w-fit">추천</span>
-                                )}
-                                <h3 className="text-xl font-black mb-1">{plan.name}</h3>
-                                <div className="flex items-end gap-1 mb-6">
-                                   <span className="text-3xl font-black text-[#6c63ff]">₩{plan.price}</span>
-                                    <span className="text-white/40 mb-1">/{plan.period}</span>
-                                </div>
-                                <ul className="flex flex-col gap-2 mb-6 flex-1">
-                                    {plan.features.map((f) => (
-                                        <li key={f} className="flex items-center gap-2 text-sm text-white/80">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="3">
-                                                <polyline points="20,6 9,17 4,12"/>
-                                            </svg>
-                                            {f}
-                                        </li>
-                                    ))}
-                                </ul>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleSubscribe(plan) }}
-                                    disabled={loadingPlan === plan.id}
-                                    className={`w-full py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-50 ${
-                                        isSelected
-                                            ? 'bg-[#6c63ff] hover:bg-[#5a52e0] text-white'
-                                            : 'bg-white/10 hover:bg-white/20 text-white'
-                                    }`}
-                                >
-                                    {loadingPlan === plan.id ? '처리 중...' : '시작하기'}
-                                </button>
-                            </div>
-                        )
-                    })}
                 </div>
             </div>
         </div>
