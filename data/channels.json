@@ -1,0 +1,32 @@
+[
+    {
+        "id": "aniplus",
+        "name": "애니플러스",
+        "slug": "aniplus",
+        "logo": "/images/brand-logo/aniplus.svg",
+        "youtubeId": "UCciFL1bEM7JxsFX4W2HzqnA",
+        "videoId": "Qn6CF9zl6m8",
+        "color": "#FF6B00",
+        "description": "한·일 동시방영의 선도적 채널"
+    },
+    {
+        "id": "animax",
+        "name": "애니맥스",
+        "slug": "animax",
+        "logo": "/images/brand-logo/animax.svg",
+        "youtubeId": "UCK5eBtuR27bwXDOSFMC8p6A",
+        "videoId": "y_LTf8mwdbM",
+        "color": "#E50012",
+        "description": "애니메이션 전문 채널"
+    },
+ {
+    "id": "anione",
+    "name": "애니원",
+    "slug": "anione",
+    "logo": "/images/brand-logo/anione.svg",
+    "youtubeId": "UC4S3XAzHJSBpZFCMIoUkxcg",
+    "videoId": "_4hOU3N-CmQ",
+    "color": "#0066CC",
+    "description": "애니원 공식 채널"
+}
+]

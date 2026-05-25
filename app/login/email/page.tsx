@@ -28,11 +28,12 @@ export default function EmailLoginPage() {
         try {
             if (isLogin) {
                 const result = await signInWithEmailAndPassword(auth, email, password)
-                onLogin({
-                    email: result.user.email,
-                    name: result.user.displayName || email.split('@')[0],
-                    photoURL: result.user.photoURL,
-                })
+               onLogin({
+    email: result.user.email,
+    name: result.user.displayName || email.split('@')[0],
+    photoURL: result.user.photoURL,
+    uid: result.user.uid,  
+})
                 showToast('로그인 완료!')
                 setTimeout(() => router.push('/'), 1000)
             } else {
