@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
@@ -442,7 +442,14 @@ function OstTab({ tracks, playingId, onPlay }: { tracks: Track[]; playingId: str
     const prevBgm = useRef<HTMLButtonElement>(null)
     const nextBgm = useRef<HTMLButtonElement>(null)
 
-    const top10 = [...tracks].sort(() => Math.random() - 0.5).slice(0, 10) // 실제로는 재생수 기준
+    // top10 고정 — tracks 처음 로드될 때 한 번만 계산
+    const top10 = useMemo(() => {
+        if (tracks.length === 0) return []
+        // popularity 기준 정렬, 없으면 duration 기준
+        return [...tracks]
+            .sort((a, b) => (b.popularity || b.duration || 0) - (a.popularity || a.duration || 0))
+            .slice(0, 10)
+    }, [tracks.length > 0 ? tracks[0].id : ''])  // tracks[0]가 바뀔 때만 재계산
     const opTracks = tracks.filter(t => t.type === 'op')
     const edTracks = tracks.filter(t => t.type === 'ed')
     const bgmTracks = tracks.filter(t => t.type === 'bgm' || t.type === 'ost')
@@ -537,6 +544,9 @@ export default function OstPage() {
     const tracksRef = useRef<Track[]>([])
 
     useEffect(() => { tracksRef.current = tracks }, [tracks])
+
+    // 오디오 onended에서 tracksRef 최신값 보장
+    const getPlayableTracks = useCallback(() => tracksRef.current.filter(t => t.previewUrl), [])
     useEffect(() => { if (audioRef.current) audioRef.current.volume = volume }, [volume])
 
     useEffect(() => {
@@ -586,11 +596,11 @@ export default function OstPage() {
             setProgress((audioRef.current.currentTime / (audioRef.current.duration || 30)) * 100)
         }, 200)
         audioRef.current.onended = () => {
-            const all = tracksRef.current.filter(t => t.previewUrl)
+            const all = getPlayableTracks()
             const idx = all.findIndex(t => t.id === track.id)
-            if (idx < all.length - 1) startPlay(all[idx + 1]); else stopAudio()
+            if (idx >= 0 && idx < all.length - 1) startPlay(all[idx + 1]); else stopAudio()
         }
-    }, [stopAudio, volume])
+    }, [stopAudio, volume, getPlayableTracks])
 
     const handlePlay = useCallback((track: Track) => {
         if (playingId === track.id) { stopAudio(); return }
@@ -605,17 +615,17 @@ export default function OstPage() {
 
     const handlePrev = useCallback(() => {
         if (!currentTrack) return
-        const all = tracksRef.current.filter(t => t.previewUrl)
+        const all = getPlayableTracks()
         const idx = all.findIndex(t => t.id === currentTrack.id)
         if (idx > 0) startPlay(all[idx - 1])
-    }, [currentTrack, startPlay])
+    }, [currentTrack, startPlay, getPlayableTracks])
 
     const handleNext = useCallback(() => {
         if (!currentTrack) return
-        const all = tracksRef.current.filter(t => t.previewUrl)
+        const all = getPlayableTracks()
         const idx = all.findIndex(t => t.id === currentTrack.id)
         if (idx < all.length - 1) startPlay(all[idx + 1])
-    }, [currentTrack, startPlay])
+    }, [currentTrack, startPlay, getPlayableTracks])
 
     const opEdTracks = tracks.filter(t => t.type === 'op' || t.type === 'ed')
 
