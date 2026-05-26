@@ -1,13 +1,60 @@
-// app/login/page.tsx
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Marquee from "react-fast-marquee"
 import { useAuthStore } from "@/store/useAuthStore"
+
+interface AnimeItem {
+    id: number
+    backdrop_path: string
+}
 
 export default function LoginPage() {
     const router = useRouter()
     const { googleLogin } = useAuthStore()
+
+    // 추가
+    const [images, setImages] = useState<string[]>([])
+
+    // 추가
+    useEffect(() => {
+        const fetchAnime = async () => {
+            try {
+                const res = await fetch(
+                    `https://api.themoviedb.org/3/discover/tv?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&with_genres=16&sort_by=popularity.desc&page=1`
+                )
+
+                const data = await res.json()
+
+                const backdrops = data.results
+                    .filter((item: AnimeItem) => item.backdrop_path)
+                    .map(
+                        (item: AnimeItem) =>
+                            `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
+                    )
+
+                // 더 많게 반복
+                setImages([...backdrops, ...backdrops, ...backdrops])
+            } catch (err) {
+                console.error(err)
+            }
+        }
+
+        fetchAnime()
+    }, [])
+
+    // 추가
+    const marqueeRows = useMemo(() => {
+        return [
+            images.slice(0, 12),
+            images.slice(12, 24),
+            images.slice(24, 36),
+            images.slice(36, 48),
+            images.slice(48, 60),
+        ]
+    }, [images])
 
     const handleGoogleLogin = async () => {
         try {
@@ -19,8 +66,47 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#141414] flex items-center justify-center px-4">
-            <div className="w-full max-w-[420px] flex flex-col items-center gap-6">
+        <div className="min-h-screen bg-[#141414] flex items-center justify-center px-4 relative overflow-hidden">
+
+            {/* background marquee */}
+            <div className="absolute inset-0 overflow-hidden">
+
+                {/* overlay */}
+                <div className="absolute inset-0 bg-black/70 z-10" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-black z-10" />
+
+                {/* marquee area */}
+                <div className="absolute inset-[-25%] rotate-[-12deg] scale-[1.35] flex flex-col justify-center gap-5">
+
+                    {marqueeRows.map((row, idx) => (
+                        <Marquee
+                            key={idx}
+                            speed={35 + idx * 5}
+                            gradient={false}
+                            direction={idx % 2 === 0 ? "left" : "right"}
+                        >
+                            <div className="flex gap-5 pr-5">
+                                {[...row, ...row].map((img, i) => (
+                                    <div
+                                        key={i}
+                                        className="w-[360px] aspect-video rounded-2xl overflow-hidden shrink-0"
+                                    >
+                                        <img
+                                            src={img}
+                                            alt=""
+                                            className="w-full h-full object-cover opacity-80"
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </Marquee>
+                    ))}
+                </div>
+            </div>
+
+            {/* 기존 로그인 UI */}
+            <div className="w-full max-w-[420px] flex flex-col items-center gap-6 relative z-20">
 
                 <h1 className="font-black text-white text-4xl tracking-widest">LAFTEL</h1>
 
