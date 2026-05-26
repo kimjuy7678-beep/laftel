@@ -45,7 +45,6 @@ export default function LoginPage() {
         fetchAnime()
     }, [])
 
-    // 추가
     const marqueeRows = useMemo(() => {
         return [
             images.slice(0, 12),
@@ -53,6 +52,8 @@ export default function LoginPage() {
             images.slice(24, 36),
             images.slice(36, 48),
             images.slice(48, 60),
+            images.slice(60, 72),
+            images.slice(72, 84),
         ]
     }, [images])
 
@@ -73,7 +74,7 @@ export default function LoginPage() {
 
                 {/* overlay */}
                 <div className="absolute inset-0 bg-black/70 z-10" />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-black z-10" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black z-10" />
 
                 {/* marquee area */}
                 <div className="absolute inset-[-25%] rotate-[-12deg] scale-[1.35] flex flex-col justify-center gap-5">
