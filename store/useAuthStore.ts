@@ -8,7 +8,7 @@ interface User {
     name?: string | null;
     photoURL?: string | null;
     uid: string | null;
-    membership?: 'none' | 'basic' | 'premium';
+    membership?: 'none' | 'anime' | 'ost' | 'allinone';
 }
 
 export interface AvatarConfig {
@@ -34,7 +34,7 @@ interface AuthStore {
     onLogin: (user: User) => void;
     googleLogin: () => Promise<void>;
     onLogout: () => Promise<void>;
-    setMembership: (type: 'none' | 'basic' | 'premium') => void;
+    setMembership: (type: 'none' | 'anime' | 'ost' | 'allinone') => void;
     setAvatarConfig: (config: AvatarConfig) => void;
 }
 

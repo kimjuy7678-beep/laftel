@@ -13,14 +13,18 @@ const MenuList = [
     { id: 1, title: "태그검색", path: "/tag-search" },
     { id: 2, title: "요일별 신작", path: "/day-new" },
     { id: 3, title: "라이브", path: "/live", live: true },
-    { id: 4, title: "스토어", path: "/store", badge: "N" },
-    { id: 5, title: "이벤트", path: "/event" },
+    { id: 4, title: "OST", path: "/ost" },
+    { id: 5, title: "스토어", path: "/store", badge: "N" },
+    { id: 6, title: "이벤트", path: "/event" },
 ]
 
-const membershipConfig = {
+const membershipConfig: Record<string, { label: string; color: string | null }> = {
     none: { label: '라프텔 멤버십', color: null },
     basic: { label: 'BASIC 회원', color: '#3b82f6' },
     premium: { label: 'PREMIUM 회원', color: '#f59e0b' },
+    anime: { label: '애니 멤버십', color: '#6c63ff' },
+    ost: { label: 'OST 멤버십', color: '#ec4899' },
+    allinone: { label: '올인원 멤버십', color: '#f59e0b' },
 }
 
 const typeIcon: Record<string, string> = {
@@ -45,7 +49,7 @@ function EventNotifications() {
         fetch('https://api.laftel.net/api/events/v2/list/?offset=0&limit=5')
             .then(r => r.json())
             .then(d => setEvents(d.results?.filter((e: any) => e.status === 'ongoing').slice(0, 3) || []))
-            .catch(() => {})
+            .catch(() => { })
     }, [])
 
     if (events.length === 0) return null
@@ -276,7 +280,7 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
                 <div className="srch-box" onClick={e => e.stopPropagation()}>
                     <div className="srch-row">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round">
-                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                         </svg>
                         <input
                             ref={inputRef}
@@ -288,12 +292,12 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
                         />
                         <button className="srch-btn" onClick={handleSubmit}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                             </svg>
                         </button>
                         <button className="srch-close" onClick={onClose}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                             </svg>
                         </button>
                     </div>
@@ -311,12 +315,12 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
                                         <div className="srch-card-thumb">
                                             {item.poster_path
                                                 ? <img src={`${IMG}/w154${item.poster_path}`} alt={item.name} />
-                                                : <div className="srch-card-np">{(item.name||'?')[0]}</div>
+                                                : <div className="srch-card-np">{(item.name || '?')[0]}</div>
                                             }
                                         </div>
                                         <div className="srch-card-info">
                                             <p className="srch-card-name">{item.name}</p>
-                                            <p className="srch-card-meta">{item.first_air_date?.slice(0,4) || ''}</p>
+                                            <p className="srch-card-meta">{item.first_air_date?.slice(0, 4) || ''}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -346,8 +350,8 @@ export default function Header() {
     const notiRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
 
-    const membership = (user?.membership || 'none') as 'none' | 'basic' | 'premium'
-    const memberInfo = membershipConfig[membership]
+    const membership = user?.membership || 'none'
+    const memberInfo = membershipConfig[membership] || membershipConfig['none']
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 10)
@@ -422,8 +426,8 @@ export default function Header() {
                     <div className="flex items-center gap-4">
                         <Link href="/membership" className="text-white/80 hover:text-white transition-colors" aria-label="멤버십">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
-                                <path d="M13 5v2M13 17v2M13 11v2"/>
+                                <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+                                <path d="M13 5v2M13 17v2M13 11v2" />
                             </svg>
                         </Link>
 
@@ -433,7 +437,7 @@ export default function Header() {
                             onClick={() => setSearchOpen(true)}
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                             </svg>
                         </button>
 
@@ -448,7 +452,7 @@ export default function Header() {
                                 aria-label="알림"
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
                                 </svg>
                                 {unreadCount > 0 && (
                                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
@@ -471,7 +475,7 @@ export default function Header() {
                                         {notifications.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center py-12 gap-2">
                                                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20">
-                                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
                                                 </svg>
                                                 <p className="text-white/30 text-xs">알림이 없어요</p>
                                             </div>
@@ -525,7 +529,7 @@ export default function Header() {
                                     </Link>
                                     <span className="text-sm text-white/90 group-hover:text-white transition-colors">{user.name}</span>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-white/60 transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}>
-                                        <path d="m6 9 6 6 6-6"/>
+                                        <path d="m6 9 6 6 6-6" />
                                     </svg>
                                 </button>
 
@@ -539,7 +543,7 @@ export default function Header() {
                                                     <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-                                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                                                     </svg>
                                                 )}
                                             </div>
@@ -582,7 +586,7 @@ export default function Header() {
                                         <div className="border-t border-white/10 py-1">
                                             <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors">
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16,17 21,12 16,7" /><line x1="21" y1="12" x2="9" y2="12" />
                                                 </svg>
                                                 로그아웃
                                             </button>

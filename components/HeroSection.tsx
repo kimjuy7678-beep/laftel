@@ -101,13 +101,13 @@ export default function HeroSection() {
                                 <div className="flex items-center gap-3">
                                     <button className="flex items-center gap-2 px-6 py-3 bg-white text-black font-bold text-sm rounded-lg hover:bg-white/90 transition-colors">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                            <polygon points="5,3 19,12 5,21"/>
+                                            <polygon points="5,3 19,12 5,21" />
                                         </svg>
                                         재생
                                     </button>
                                     <button className="flex items-center gap-2 px-6 py-3 bg-white/20 text-white font-bold text-sm rounded-lg hover:bg-white/30 transition-colors backdrop-blur-sm">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+                                            <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
                                         </svg>
                                         상세 정보
                                     </button>

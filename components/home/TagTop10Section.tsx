@@ -6,11 +6,12 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation } from 'swiper/modules'
 import 'swiper/css'
 
-const POSTER_W = 200
-const POSTER_H = 300
-const NUM_W = 120
-const OVERLAP = 50
+const POSTER_W = 300
+const POSTER_H = 450
+const NUM_W = 160
+const OVERLAP = 60
 const CARD_W = NUM_W + POSTER_W - OVERLAP
+const NUM_FONT = 220
 
 const TAGS = [
     { label: '액션',     genres: [10759] },
@@ -65,38 +66,37 @@ export default function TagTop10Section() {
                     height: ${POSTER_H}px;
                     cursor: pointer;
                     transition: transform .25s;
-                    flex-shrink: 0;
                 }
-                .tt-card:hover { transform: translateY(-5px); }
+                .tt-card:hover { transform: translateY(-6px); }
                 .tt-rank {
                     position: absolute;
-                    left: 0; bottom: 0;
-                    width: ${NUM_W}px;
-                    font-size: 160px; font-weight: 900; line-height: 1;
+                    left: 0; bottom: 0px;
+                    width: ${NUM_W + 20}px;
+                    font-size: ${NUM_FONT}px; font-weight: 900; line-height: 1;
                     color: #fff; text-align: right;
-                    z-index: 1; user-select: none;
+                    z-index: 3; user-select: none;
                     letter-spacing: -0.06em;
+                    text-shadow: 0 4px 24px rgba(0,0,0,0.5);
                 }
                 .tt-thumb {
                     position: absolute;
                     right: 0; top: 0;
-                    width: ${POSTER_W}px;
-                    height: ${POSTER_H}px;
-                    border-radius: 10px; overflow: hidden; background: #1e1e1e;
-                    box-shadow: -8px 8px 28px rgba(0,0,0,0.7);
+                    width: ${POSTER_W}px; height: ${POSTER_H}px;
+                    border-radius: 12px; overflow: hidden; background: #1e1e1e;
+                    box-shadow: 0 10px 32px rgba(0,0,0,0.7);
                     z-index: 2;
                     transition: transform .25s, box-shadow .25s;
                 }
                 .tt-card:hover .tt-thumb {
                     transform: translateY(-4px);
-                    box-shadow: -10px 14px 40px rgba(0,0,0,0.9);
+                    box-shadow: 0 18px 48px rgba(0,0,0,0.9);
                 }
                 .tt-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s; }
                 .tt-card:hover .tt-thumb img { transform: scale(1.04); }
                 .tt-thumb-np {
                     width: 100%; height: 100%;
                     display: flex; align-items: center; justify-content: center;
-                    font-size: 32px; font-weight: 800; color: rgba(255,255,255,0.07);
+                    font-size: 40px; font-weight: 800; color: rgba(255,255,255,0.07);
                 }
                 .tt-empty {
                     display: flex; align-items: center; justify-content: center;
@@ -129,31 +129,33 @@ export default function TagTop10Section() {
                 {items.length === 0 ? (
                     <div className="tt-empty">해당 태그의 작품이 없어요</div>
                 ) : (
-                    <Swiper
-                        modules={[Navigation]}
-                        navigation={{ prevEl: prevRef.current, nextEl: nextRef.current }}
-                        onBeforeInit={(swiper: any) => {
-                            swiper.params.navigation.prevEl = prevRef.current
-                            swiper.params.navigation.nextEl = nextRef.current
-                        }}
-                        slidesPerView="auto"
-                        spaceBetween={0}
-                        style={{ overflow: 'visible' }}
-                    >
-                        {items.map((ani: any, i: number) => (
-                            <SwiperSlide key={ani.id} style={{ width: CARD_W }}>
-                                <div className="tt-card" onClick={() => router.push(`/anime/${ani.id}`)}>
-                                    <span className="tt-rank">{i + 1}</span>
-                                    <div className="tt-thumb">
-                                        {ani.poster_path
-                                            ? <img src={`https://image.tmdb.org/t/p/w342${ani.poster_path}`} alt={ani.name} />
-                                            : <div className="tt-thumb-np">{(ani.name||'?')[0]}</div>
-                                        }
+                    <div style={{ marginLeft: -(NUM_W - OVERLAP) }}>
+                        <Swiper
+                            modules={[Navigation]}
+                            navigation={{ prevEl: prevRef.current, nextEl: nextRef.current }}
+                            onBeforeInit={(swiper: any) => {
+                                swiper.params.navigation.prevEl = prevRef.current
+                                swiper.params.navigation.nextEl = nextRef.current
+                            }}
+                            slidesPerView="auto"
+                            spaceBetween={-20}
+                            style={{ overflow: 'visible' }}
+                        >
+                            {items.map((ani: any, i: number) => (
+                                <SwiperSlide key={ani.id} style={{ width: CARD_W }}>
+                                    <div className="tt-card" onClick={() => router.push(`/anime/${ani.id}`)}>
+                                        <span className="tt-rank">{i + 1}</span>
+                                        <div className="tt-thumb">
+                                            {ani.poster_path
+                                                ? <img src={`https://image.tmdb.org/t/p/w500${ani.poster_path}`} alt={ani.name} />
+                                                : <div className="tt-thumb-np">{(ani.name||'?')[0]}</div>
+                                            }
+                                        </div>
                                     </div>
-                                </div>
-                            </SwiperSlide>
-                        ))}
-                    </Swiper>
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    </div>
                 )}
             </div>
         </section>
