@@ -256,7 +256,7 @@ function Top10Card({ track, rank, isPlaying, onPlay }: { track: Track; rank: num
             onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
             {/* 카드 = 숫자 왼쪽 + 커버 오른쪽 */}
             <div style={{ position: 'relative', width: 220, height: 220 }}>
-                <span style={{ position: 'absolute', left: 0, bottom: 0, fontSize: 110, fontWeight: 900, lineHeight: 1, color: isPlaying ? '#6c63ff' : '#fff', zIndex: 3, letterSpacing: '-0.06em', width: 110, textAlign: 'right', textShadow: '0 4px 24px rgba(0,0,0,0.9)', userSelect: 'none' }}>{rank}</span>
+                <span style={{ position: 'absolute', left: 0, bottom: 0, fontSize: 110, fontWeight: 900, lineHeight: 1, color: isPlaying ? '#6c63ff' : '#fff', zIndex: 1, letterSpacing: '-0.06em', width: 110, textAlign: 'right', textShadow: '0 4px 24px rgba(0,0,0,0.9)', userSelect: 'none' }}>{rank}</span>
                 <div style={{ position: 'absolute', right: 0, top: 0, width: 160, height: 160, borderRadius: 12, overflow: 'hidden', background: '#1a1a1a', boxShadow: '-8px 8px 28px rgba(0,0,0,0.7)', zIndex: 2 }}>
                     {track.cover ? <img src={track.cover} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎵</div>}
                     {isPlaying && <div style={{ position: 'absolute', inset: 0, background: 'rgba(108,99,255,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -451,56 +451,10 @@ function OstTab({ tracks, playingId, onPlay }: { tracks: Track[]; playingId: str
     const allTags = ['전체', ...Array.from(new Set(tracks.flatMap(t => t.tags))).sort()]
 
     const tagFiltered = activeTag === '전체' ? tracks : tracks.filter(t => t.tags.includes(activeTag))
-    const KO_TO_EN: Record<string, string> = {
-        '진격의 거인': 'titan', '귀멸의 칼날': 'demon slayer', '주술회전': 'jujutsu',
-        '나루토': 'naruto', '원피스': 'one piece', '블리치': 'bleach',
-        '드래곤볼': 'dragon ball', '원펀맨': 'one punch man', '헌터x헌터': 'hunter x hunter',
-        '헌터': 'hunter', '나의 히어로 아카데미아': 'hero academia', '나의 히어로': 'hero academia',
-        '히로아카': 'hero academia', '스파이 패밀리': 'spy family', '체인소 맨': 'chainsaw man',
-        '체인소': 'chainsaw', '프리렌': 'frieren', '장송의 프리렌': 'frieren',
-        '무직전생': 'mushoku tensei', '던전밥': 'dungeon meshi',
-        '소드 아트 온라인': 'sword art online', 'sao': 'sword art online',
-        '에반게리온': 'evangelion', '강철의 연금술사': 'fullmetal alchemist',
-        '풀메탈': 'fullmetal alchemist', '카우보이 비밥': 'cowboy bebop',
-        '바이올렛 에버가든': 'violet evergarden', '바이올렛': 'violet evergarden',
-        '리제로': 're zero', '오버로드': 'overlord', '카구야': 'kaguya',
-        '하이큐': 'haikyuu', '도쿄구울': 'tokyo ghoul', '포켓몬': 'pokemon',
-        '코드 기어스': 'code geass', '마도카': 'madoka magica', '마법소녀 마도카': 'madoka magica',
-        '원령공주': 'princess mononoke', '센과 치히로': 'spirited away',
-        '하울의 움직이는 성': 'howl moving castle', '이웃집 토토로': 'totoro',
-        '슬램덩크': 'slam dunk', '더 퍼스트 슬램덩크': 'slam dunk',
-        '블루 록': 'blue lock', '블루록': 'blue lock',
-        '모브사이코': 'mob psycho', '도쿄 리벤저스': 'tokyo revengers',
-        '도쿄리벤저스': 'tokyo revengers', '이세계': 'isekai', '이세계 식당': 'isekai shokudo',
-        '약사의 혼잣말': 'apothecary diaries', '약사': 'apothecary',
-        '나 혼자만 레벨업': 'solo leveling', '솔로 레벨링': 'solo leveling',
-        '무시시': 'mushishi', '흑집사': 'black butler',
-        '페어리 테일': 'fairy tail', '소울 이터': 'soul eater',
-        '토라도라': 'toradora', '너의 이름은': 'your name',
-        '날씨의 아이': 'weathering with you', '목소리의 형태': 'a silent voice',
-        '아노하나': 'anohana', '클라나드': 'clannad',
-        '러브라이브': 'love live', '케이온': 'k-on', '코노수바': 'konosuba',
-        '전생 슬라임': 'tensura', '그래서 나는 슬라임': 'tensura slime',
-        '페이트': 'fate stay night', '공의 경계': 'kara no kyoukai',
-        '귀멸': 'demon slayer', '진격': 'titan', '주술': 'jujutsu',
-        '오버플로우': 'overflow', '약속의 네버랜드': 'promised neverland',
-        '네버랜드': 'promised neverland', '고블린 슬레이어': 'goblin slayer',
-        '리그 오브 레전드': 'league of legends', '원신': 'genshin',
-        '만화경': 'kaleidoscope', '도검난무': 'touken ranbu',
-        '뱅드림': 'bang dream', '앙상블 스타즈': 'ensemble stars',
-        '아이돌마스터': 'idolmaster', '우마무스메': 'uma musume',
-    }
-    const translated = KO_TO_EN[search.trim()] ||
-        Object.entries(KO_TO_EN).find(([k]) => search.trim().includes(k))?.[1] ||
-        search.toLowerCase()
-
     const searchFiltered = search ? tagFiltered.filter(t =>
         t.title.toLowerCase().includes(search.toLowerCase()) ||
         t.animeName.toLowerCase().includes(search.toLowerCase()) ||
-        t.artist.toLowerCase().includes(search.toLowerCase()) ||
-        t.title.toLowerCase().includes(translated) ||
-        t.animeName.toLowerCase().includes(translated) ||
-        t.collectionName.toLowerCase().includes(translated)
+        t.artist.toLowerCase().includes(search.toLowerCase())
     ) : tagFiltered
 
     // 섹션별 그룹 (검색/태그 필터시)
@@ -588,28 +542,25 @@ export default function OstPage() {
     useEffect(() => {
         const load = async () => {
             setLoading(true)
-            // 20개 쿼리 병렬 → 즉시 보여주기
+            // 핵심 쿼리 8개만 → 전부 병렬 → limit 50으로 줄임
             const queries = [
-                'anime opening theme', 'anime ending theme', 'anime ost bgm score',
-                'anime song jpop', 'jujutsu kaisen', 'demon slayer kimetsu',
-                'attack on titan', 'spy family', 'frieren beyond journey',
-                'mushoku tensei', 'chainsaw man', 'one punch man',
-                'bleach anime', 'naruto shippuden', 'my hero academia',
-                'haikyuu', 'violet evergarden', 'fullmetal alchemist',
-                're zero', 'overlord anime',
+                'anime opening theme',
+                'anime ending theme',
+                'anime original soundtrack',
+                'jujutsu kaisen demon slayer attack titan',
+                'naruto bleach one piece',
+                'spy family frieren chainsaw man',
+                'violet evergarden fullmetal alchemist',
+                'haikyuu mob psycho blue lock',
             ]
-            let allTracks: Track[] = []
             const seen = new Set<string>()
-            // 5개씩 배치로 로드
-            for (let i = 0; i < queries.length; i += 5) {
-                const batch = queries.slice(i, i + 5)
-                const results = await Promise.all(batch.map(q => fetchItunesAnime(q, 100)))
-                results.flat().forEach(t => {
-                    if (!seen.has(t.id)) { seen.add(t.id); allTracks.push(t) }
-                })
-                setTracks([...allTracks])
-                setLoadCount(allTracks.length)
-            }
+            const results = await Promise.all(queries.map(q => fetchItunesAnime(q, 50)))
+            const allTracks: Track[] = []
+            results.flat().forEach(t => {
+                if (!seen.has(t.id)) { seen.add(t.id); allTracks.push(t) }
+            })
+            setTracks(allTracks)
+            setLoadCount(allTracks.length)
             setLoading(false)
         }
         load()
