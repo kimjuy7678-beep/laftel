@@ -6,9 +6,12 @@ import ThemeProvider from "@/components/ThemeProvider";
 import QuickMenu from "@/components/QuickMenu";
 
 export const metadata: Metadata = {
-  title: "LAFTEL",
-  description: "라프텔 애니메이션 OTT",
-};
+    title: "LAFTEL",
+    description: "라프텔 애니메이션 OTT",
+    icons: {
+        icon: '/favicon.png', 
+    },
+}
 
 export default function RootLayout({
   children,
@@ -20,7 +23,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col transition-colors">
         <ThemeProvider>
           <Header />
-          <main className="pt-[56px]">{children}</main>
+          <main>{children}</main>
           <Footer />
           <QuickMenu />
         </ThemeProvider>
