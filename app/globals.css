@@ -14,18 +14,31 @@
 }
 
 @keyframes marquee-left {
-    from { transform: translateX(0); }
-    to { transform: translateX(-33.333%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-33.333%);
+  }
 }
+
 @keyframes marquee-right {
-    from { transform: translateX(-33.333%); }
-    to { transform: translateX(0); }
+  from {
+    transform: translateX(-33.333%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
+
 .animate-marquee-left {
-    animation: marquee-left 30s linear infinite;
+  animation: marquee-left 30s linear infinite;
 }
+
 .animate-marquee-right {
-    animation: marquee-right 30s linear infinite;
+  animation: marquee-right 30s linear infinite;
 }
 
 body {
@@ -43,4 +56,3 @@ html.dark body {
   max-width: 1820px;
   margin: 0 auto;
 }
-
