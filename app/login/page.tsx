@@ -14,48 +14,30 @@ interface AnimeItem {
 export default function LoginPage() {
     const router = useRouter()
     const { googleLogin } = useAuthStore()
-
-    // 추가
     const [images, setImages] = useState<string[]>([])
 
-    // 추가
     useEffect(() => {
         const fetchAnime = async () => {
             try {
                 const res = await fetch(
                     `https://api.themoviedb.org/3/discover/tv?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&with_genres=16&sort_by=popularity.desc&page=1`
                 )
-
                 const data = await res.json()
-
                 const backdrops = data.results
                     .filter((item: AnimeItem) => item.backdrop_path)
-                    .map(
-                        (item: AnimeItem) =>
-                            `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
-                    )
-
-                // 더 많게 반복
+                    .map((item: AnimeItem) => `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`)
                 setImages([...backdrops, ...backdrops, ...backdrops])
             } catch (err) {
                 console.error(err)
             }
         }
-
         fetchAnime()
     }, [])
 
-    const marqueeRows = useMemo(() => {
-        return [
-            images.slice(0, 12),
-            images.slice(12, 24),
-            images.slice(24, 36),
-            images.slice(36, 48),
-            images.slice(48, 60),
-            images.slice(60, 72),
-            images.slice(72, 84),
-        ]
-    }, [images])
+    const marqueeRows = useMemo(() => [
+        images.slice(0, 12), images.slice(12, 24), images.slice(24, 36),
+        images.slice(36, 48), images.slice(48, 60), images.slice(60, 72), images.slice(72, 84),
+    ], [images])
 
     const handleGoogleLogin = async () => {
         try {
@@ -66,38 +48,30 @@ export default function LoginPage() {
         }
     }
 
+    // 네이버 로그인
+    const handleNaverLogin = () => {
+        const CLIENT_ID = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID
+        const REDIRECT_URI = encodeURIComponent(`${window.location.origin}/login/naver/callback`)
+        const STATE = Math.random().toString(36).substring(2)
+        sessionStorage.setItem('naver_state', STATE)
+        const url = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&state=${STATE}`
+        window.location.href = url
+    }
+
     return (
         <div className="min-h-screen bg-[#141414] flex items-center justify-center px-4 relative overflow-hidden">
 
             {/* background marquee */}
             <div className="absolute inset-0 overflow-hidden">
-
-                {/* overlay */}
                 <div className="absolute inset-0 bg-black/70 z-10" />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black z-10" />
-
-                {/* marquee area */}
                 <div className="absolute inset-[-25%] rotate-[-12deg] scale-[1.35] flex flex-col justify-center gap-5">
-
                     {marqueeRows.map((row, idx) => (
-                        <Marquee
-                            key={idx}
-                            speed={35 + idx * 5}
-                            gradient={false}
-                            direction={idx % 2 === 0 ? "left" : "right"}
-                        >
+                        <Marquee key={idx} speed={35 + idx * 5} gradient={false} direction={idx % 2 === 0 ? "left" : "right"}>
                             <div className="flex gap-5 pr-5">
                                 {[...row, ...row].map((img, i) => (
-                                    <div
-                                        key={i}
-                                        className="w-[360px] aspect-video rounded-2xl overflow-hidden shrink-0"
-                                    >
-                                        <img
-                                            src={img}
-                                            alt=""
-                                            className="w-full h-full object-cover opacity-80"
-                                            loading="lazy"
-                                        />
+                                    <div key={i} className="w-[360px] aspect-video rounded-2xl overflow-hidden shrink-0">
+                                        <img src={img} alt="" className="w-full h-full object-cover opacity-80" loading="lazy" />
                                     </div>
                                 ))}
                             </div>
@@ -106,7 +80,7 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            {/* 기존 로그인 UI */}
+            {/* 로그인 UI */}
             <div className="w-full max-w-[420px] flex flex-col items-center gap-6 relative z-20">
 
                 <h1 className="font-black text-white text-4xl tracking-widest">LAFTEL</h1>
@@ -142,10 +116,7 @@ export default function LoginPage() {
                     </Link>
 
                     {/* 구글 */}
-                    <button
-                        onClick={handleGoogleLogin}
-                        className="w-[72px] h-[72px] rounded-full bg-white hover:brightness-95 transition-all flex items-center justify-center"
-                    >
+                    <button onClick={handleGoogleLogin} className="w-[72px] h-[72px] rounded-full bg-white hover:brightness-95 transition-all flex items-center justify-center">
                         <svg width="28" height="28" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -154,12 +125,10 @@ export default function LoginPage() {
                         </svg>
                     </button>
 
-                    {/* 애플 */}
-                    <Link href="/login/apple" className="w-[72px] h-[72px] rounded-full bg-white hover:brightness-95 transition-all flex items-center justify-center">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="#000">
-                            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.37.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4zm-3.1-17.5c.06 2.06-1.52 3.72-3.44 3.56-.27-1.9 1.67-3.72 3.44-3.56z" />
-                        </svg>
-                    </Link>
+                    {/* 네이버 */}
+                    <button onClick={handleNaverLogin} className="w-[72px] h-[72px] rounded-full bg-[#03C75A] hover:brightness-95 transition-all flex items-center justify-center">
+                        <span className="text-white font-black text-2xl leading-none">N</span>
+                    </button>
                 </div>
 
                 <Link href="/login/help" className="text-white/50 text-sm underline underline-offset-2 hover:text-white/80 transition-colors mt-2">

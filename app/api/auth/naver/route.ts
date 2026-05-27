@@ -1,4 +1,3 @@
-// app/api/auth/naver/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
@@ -18,23 +17,37 @@ export async function POST(req: NextRequest) {
             }),
         })
         const tokenData = await tokenRes.json()
-        if (!tokenData.access_token) throw new Error('토큰 발급 실패')
+        console.log('[NAVER] tokenData:', JSON.stringify(tokenData))
+
+        if (!tokenData.access_token) {
+            return NextResponse.json({ error: '네이버 토큰 발급 실패', detail: tokenData }, { status: 500 })
+        }
 
         // 2. 네이버 유저 정보 조회
         const userRes = await fetch('https://openapi.naver.com/v1/nid/me', {
             headers: { Authorization: `Bearer ${tokenData.access_token}` },
         })
         const userData = await userRes.json()
+        console.log('[NAVER] userData:', JSON.stringify(userData))
         const profile = userData.response
 
-        // 3. Firebase Admin으로 Custom Token 발급
-        const admin = (await import('firebase-admin')).default
+        if (!profile) {
+            return NextResponse.json({ error: '네이버 유저 정보 조회 실패', detail: userData }, { status: 500 })
+        }
+
+        // 3. Firebase Admin 초기화
+        const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+        console.log('[FIREBASE] projectId:', process.env.FIREBASE_PROJECT_ID)
+        console.log('[FIREBASE] clientEmail:', process.env.FIREBASE_CLIENT_EMAIL)
+        console.log('[FIREBASE] privateKey 존재:', !!privateKey)
+
+        const { default: admin } = await import('firebase-admin')
         if (!admin.apps.length) {
             admin.initializeApp({
                 credential: admin.credential.cert({
                     projectId: process.env.FIREBASE_PROJECT_ID,
                     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+                    privateKey,
                 }),
             })
         }
@@ -62,8 +75,9 @@ export async function POST(req: NextRequest) {
             name: profile.name,
             profileImage: profile.profile_image,
         })
-    } catch (err) {
-        console.error('Naver auth error:', err)
-        return NextResponse.json({ error: '로그인 실패' }, { status: 500 })
+
+    } catch (err: any) {
+        console.error('[NAVER] 전체 에러:', err?.message, err?.stack)
+        return NextResponse.json({ error: err?.message || '알 수 없는 오류' }, { status: 500 })
     }
 }

@@ -6,11 +6,11 @@ import Footer from "@/components/Footer";
 import QuickMenu from "@/components/QuickMenu";
 
 export const metadata: Metadata = {
-    title: "LAFTEL",
-    description: "라프텔 애니메이션 OTT",
-    icons: {
-        icon: '/favicon.png', 
-    },
+  title: "LAFTEL",
+  description: "라프텔 애니메이션 OTT",
+  icons: {
+    icon: '/favicon.png',
+  },
 }
 
 export default function RootLayout({
@@ -22,10 +22,10 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className="min-h-full flex flex-col transition-colors">
         {/* <ThemeProvider> */}
-          <Header />
-          <main>{children}</main>
-          <Footer />
-          <QuickMenu />
+        <Header />
+        <main>{children}</main>
+        <Footer />
+        {/* <QuickMenu /> */}
         {/* </ThemeProvider> */}
       </body>
     </html>
