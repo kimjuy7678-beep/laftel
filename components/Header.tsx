@@ -534,22 +534,26 @@ export default function Header() {
                                 </button>
 
                                 {dropdownOpen && (
-                                    <div className="absolute right-0 top-12 w-[260px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                                        <div className="flex flex-col items-center gap-3 px-4 py-5 border-b border-white/10">
-                                            <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden" style={{ background: memberInfo.color || '#6c63ff' }}>
+                                    <div className="absolute right-0 top-12 w-[300px] bg-[#141420] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                        {/* 프로필 영역 */}
+                                        <div className="flex flex-col items-center gap-2 px-5 py-6 border-b border-white/10">
+                                            <div className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden mb-1" style={{ background: memberInfo.color || '#6c63ff' }}>
                                                 {avatarConfig?.svgDataUrl ? (
                                                     <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
                                                 ) : user.photoURL ? (
                                                     <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="white">
                                                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                                                     </svg>
                                                 )}
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-white font-semibold text-sm">{user.name}</p>
-                                                <p className="text-white/50 text-xs mt-0.5">{user.email}</p>
+                                                <p className="text-white font-bold text-sm flex items-center gap-1 justify-center">
+                                                    {user.name || user.email?.split('@')[0]}
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                                                </p>
+                                                <p className="text-white/40 text-xs mt-0.5">😊 Lv.0 베이비</p>
                                                 {membership !== 'none' && (
                                                     <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
                                                         style={{ background: `${memberInfo.color}30`, color: memberInfo.color! }}>
@@ -557,6 +561,21 @@ export default function Header() {
                                                     </span>
                                                 )}
                                             </div>
+                                            {/* 통계 */}
+                                            <div className="flex gap-6 mt-2">
+                                                {[{label:'별점',val:0},{label:'리뷰',val:0},{label:'댓글',val:0}].map(s => (
+                                                    <div key={s.label} className="text-center">
+                                                        <p className="text-white font-black text-base">{s.val}</p>
+                                                        <p className="text-white/35 text-[11px]">{s.label}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {/* 보관함 버튼 */}
+                                            <Link href="/library" onClick={() => setDropdownOpen(false)}
+                                                className="w-full mt-3 py-2.5 rounded-xl border border-white/10 bg-white/4 text-white/70 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-white/8 hover:text-white transition-colors">
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                                                보관함
+                                            </Link>
                                         </div>
                                         <ul className="py-1">
                                             {DropdownMenu.map((item) => (
