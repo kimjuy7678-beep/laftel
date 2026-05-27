@@ -43,8 +43,8 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
-  background: white;
-  color: #171717;
+  background: #171717;
+  color: #ededed;
 }
 
 html.dark body {
