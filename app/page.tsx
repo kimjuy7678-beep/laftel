@@ -9,6 +9,7 @@ import OstSection from "@/components/home/OstSection_home"
 import AnimationList from "@/components/AnimationList"
 import MoodSection from "@/components/home/MoodSection"
 import SurveyBanner from "@/components/home/SurveyBanner"
+import StockMarquee from "@/components/StockMarquee"
 
 export default function Home() {
   return (
@@ -26,6 +27,7 @@ export default function Home() {
       <OstSection />
       <SurveyBanner />
       <AnimationList />
+      <StockMarquee />
     </div>
   )
 }
