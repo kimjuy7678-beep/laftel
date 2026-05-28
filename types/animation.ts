@@ -21,7 +21,9 @@ export interface AniVideo {
     source: "tmdb" | "youtube";
 }
 
-export interface AniState {
+export interface AniStore {
     aniList: AniItem[];
+    aniVideos: Record<number, AniVideo>;
     onFetchAni: () => Promise<void>;
+    onFetchVideo: (id: number, name: string) => Promise<void>;
 }

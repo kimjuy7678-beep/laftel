@@ -1,0 +1,433 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useEventStore } from '@/store/useEventStore'
+
+const STATUS_LABEL: Record<string, string> = {
+    ongoing: '진행중',
+    result: '결과 발표',
+    past: '이벤트 종료',
+}
+const STATUS_COLOR: Record<string, string> = {
+    ongoing: '#6c63ff',
+    result: '#f59e0b',
+    past: 'rgba(255,255,255,0.3)',
+}
+
+const sortOptions = [
+    { label: '최신순', value: 'latest' as const },
+    { label: '인기순', value: 'popular' as const },
+]
+
+const HeartIcon = ({ filled }: { filled: boolean }) => (
+    <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        style={{
+            width: 14,
+            height: 14,
+            color: filled ? '#ff4d6d' : 'rgba(255,255,255,.35)',
+            fill: filled ? '#ff4d6d' : 'none',
+            flexShrink: 0,
+        }}
+    >
+        <path
+            d="M20.8 4.6c-2-1.8-5.1-1.6-6.9.4L12 7.1 10.1 5C8.3 3 5.2 2.8 3.2 4.6 1 6.6.9 10 .9 10l.2 1.1c.3 1.4 1.1 2.7 2.2 3.7l8.1 7.1c.4.3.9.3 1.3 0l8.1-7.1c1.1-1 1.9-2.3 2.2-3.7l.2-1.1s-.1-3.4-2.4-5.4Z"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinejoin="round"
+        />
+    </svg>
+)
+
+export default function EventDetailPage() {
+    const params = useParams()
+    const router = useRouter()
+    const id = params?.id as string
+    const eventId = Number(id)
+    const {
+        events,
+        onFetchEvents,
+        selectedEvent: detail,
+        detailLoading: loading,
+        onFetchEventDetail,
+        comments,
+        commentTotal,
+        commentLoading,
+        hasNextComment,
+        onFetchComments,
+    } = useEventStore()
+
+    const [sorting, setSorting] = useState<'latest' | 'popular'>('latest')
+    const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (events.length === 0) onFetchEvents()
+    }, [events.length, onFetchEvents])
+
+    useEffect(() => {
+        if (!eventId) return
+        onFetchEventDetail(eventId)
+    }, [eventId, onFetchEventDetail])
+
+    useEffect(() => {
+        if (!eventId) return
+        onFetchComments(eventId, sorting, 0)
+    }, [eventId, sorting, onFetchComments])
+
+    const handleLoadMore = () => {
+        onFetchComments(eventId, sorting, comments.length)
+    }
+
+    const formatDate = (dt: string) => dt?.slice(0, 10).replaceAll('-', '.')
+    const eventSummary = events.find(e => String(e.id) === String(id))
+    const detailStatus = detail?.status ?? eventSummary?.status
+    const detailType = detail?.type ?? eventSummary?.type
+    const detailBannerImg = detail?.banner_img ?? eventSummary?.banner_img
+    const isPast = detailStatus === 'past'
+    const isOngoing = detailStatus === 'ongoing'
+
+    // 관련 이벤트 (같은 type 또는 status)
+    const sameGroupEvents = events.filter(e =>
+        String(e.id) !== String(id) && (e.type === detailType || e.status === detailStatus)
+    )
+    const related = (sameGroupEvents.length > 0
+        ? sameGroupEvents
+        : events.filter(e => String(e.id) !== String(id))
+    )
+        .slice(0, 3)
+
+    if (loading) return (
+        <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingTop: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 36, height: 36, border: '3px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+    )
+
+    if (!detail) return (
+        <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingTop: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+            <p style={{ fontSize: 48 }}>🎪</p>
+            <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 16 }}>이벤트를 찾을 수 없어요</p>
+            <button onClick={() => router.push('/event')} style={{ padding: '10px 24px', borderRadius: 10, background: '#6c63ff', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                이벤트 목록으로
+            </button>
+        </div>
+    )
+
+    const candidateBannerSrc = detailBannerImg || detail.img
+    const bannerSrc = candidateBannerSrc !== failedImageSrc ? candidateBannerSrc : null
+
+    return (
+        <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingTop: 56, paddingBottom: 80 }}>
+            <style>{`
+                @keyframes spin { to { transform: rotate(360deg) } }
+                @keyframes fade-in { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
+                .ev-content img { max-width: 100%; border-radius: 12px; }
+                .ev-content a { color: #9d97ff; }
+                .ev-content-blocks img { width: 100%; display: block; }
+            `}</style>
+
+            {/* 히어로 배너 */}
+            <div style={{ position: 'relative', width: '100%', maxHeight: 520, overflow: 'hidden' }}>
+                {bannerSrc ? (
+                    <img
+                        src={bannerSrc}
+                        alt={detail.name}
+                        onError={() => setFailedImageSrc(bannerSrc)}
+                        style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block', filter: isPast ? 'brightness(0.5)' : 'none' }}
+                    />
+                ) : (
+                    <div style={{ width: '100%', height: 360, background: 'linear-gradient(135deg, #1a1535, #0f0f2a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64 }}>
+                        🎪
+                    </div>
+                )}
+                {/* 하단 그라디언트 */}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 200, background: 'linear-gradient(to top, #0a0a0a, transparent)', pointerEvents: 'none' }} />
+
+                {/* 상태 배지 */}
+                <div style={{ position: 'absolute', top: 20, left: 24 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, padding: '5px 14px', borderRadius: 20, background: STATUS_COLOR[detailStatus ?? 'ongoing'] || '#6c63ff', color: '#fff' }}>
+                        {detailStatus ? STATUS_LABEL[detailStatus] || detailStatus : '이벤트'}
+                    </span>
+                </div>
+            </div>
+
+            {/* 본문 */}
+            <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 32px', animation: 'fade-in .4s ease' }}>
+
+                {/* 브레드크럼 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,.3)', margin: '24px 0 20px' }}>
+                    <Link href="/event" style={{ color: 'rgba(255,255,255,.35)', textDecoration: 'none' }}>이벤트</Link>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+                    <span style={{ color: 'rgba(255,255,255,.6)' }}>{detail.name}</span>
+                </div>
+
+                {/* 제목 + 메타 */}
+                <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: '0 0 14px', lineHeight: 1.3 }}>
+                    {detail.name}
+                </h1>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>
+                        📅 {formatDate(detail.start_datetime)} ~ {formatDate(detail.end_datetime)}
+                    </span>
+                    {detailType && (
+                        <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 10, background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.1)' }}>
+                            {detailType}
+                        </span>
+                    )}
+                </div>
+
+                {/* 구분선 */}
+                <div style={{ height: 1, background: 'rgba(255,255,255,.07)', marginBottom: 32 }} />
+
+                {/* 이벤트 내용 */}
+                {detail.contents?.blocks ? (
+                    <div className="ev-content-blocks" style={{ overflow: 'hidden', borderRadius: 16, background: '#000' }}>
+                        {detail.contents.blocks.map((block, index) => {
+                            const text = block.content?.map(item => item.content).join('') ?? ''
+
+                            if (block.type === 'image_v1' && block.src) {
+                                return (
+                                    <img
+                                        key={`${block.id}-${index}`}
+                                        src={block.src}
+                                        alt={detail.name}
+                                        style={{ width: '100%', display: 'block' }}
+                                    />
+                                )
+                            }
+
+                            if (block.type === 'heading_v1' && text) {
+                                return (
+                                    <h2
+                                        key={`${block.id}-${index}`}
+                                        style={{
+                                            margin: 0,
+                                            padding: '18px 24px',
+                                            color: '#fff',
+                                            fontSize: block.level === 1 ? 22 : 18,
+                                            fontWeight: 900,
+                                            textAlign: block.textAlign ?? 'left',
+                                        }}
+                                    >
+                                        {text}
+                                    </h2>
+                                )
+                            }
+
+                            if (block.type === 'paragraph_v1' && text) {
+                                return (
+                                    <p
+                                        key={`${block.id}-${index}`}
+                                        style={{
+                                            margin: 0,
+                                            padding: '12px 24px',
+                                            color: 'rgba(255,255,255,.72)',
+                                            fontSize: 15,
+                                            lineHeight: 1.8,
+                                            textAlign: block.textAlign ?? 'left',
+                                            whiteSpace: 'pre-wrap',
+                                        }}
+                                    >
+                                        {text}
+                                    </p>
+                                )
+                            }
+
+                            if (block.type === 'margin_v1') {
+                                return <div key={`${block.id}-${index}`} style={{ height: block.size ?? 16 }} />
+                            }
+
+                            return null
+                        })}
+                    </div>
+                ) : detail.content ? (
+                    <div
+                        className="ev-content"
+                        style={{ color: 'rgba(255,255,255,.75)', lineHeight: 1.8, fontSize: 15 }}
+                        dangerouslySetInnerHTML={{ __html: detail.content }}
+                    />
+                ) : (
+                    /* content/description 없으면 배너 이미지 크게 보여줌 */
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                        {(detail.img) && (
+                            <img
+                                src={detail.img}
+                                alt={detail.name}
+                                style={{ width: '100%', borderRadius: 16, objectFit: 'cover' }}
+                            />
+                        )}
+                        <p style={{ color: 'rgba(255,255,255,.3)', fontSize: 14 }}>
+                            이벤트 상세 내용은 라프텔 앱에서 확인해주세요
+                        </p>
+                    </div>
+                )}
+
+                {/* 상태별 안내 */}
+                {isPast && (
+                    <div style={{ marginTop: 32, padding: '16px 20px', background: 'rgba(255,255,255,.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 18 }}>📦</span>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: 0 }}>종료된 이벤트예요. 다음 이벤트를 기대해주세요!</p>
+                    </div>
+                )}
+
+                {/* 관련 이벤트 */}
+                {related.length > 0 && (
+                    <div style={{ marginTop: 56 }}>
+                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#fff', margin: '0 0 20px' }}>
+                            {isOngoing ? '🎪 진행중인 다른 이벤트' : '📋 관련 이벤트'}
+                        </h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                            {related.map(ev => (
+                                <Link key={ev.id} href={`/event/${ev.id}`} style={{ textDecoration: 'none' }}>
+                                    <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,.07)', background: '#111', transition: 'transform .2s, border-color .2s', cursor: 'pointer' }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(108,99,255,.3)' }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,.07)' }}>
+                                        <div style={{ width: '100%', aspectRatio: '16/9', overflow: 'hidden', background: '#1a1a2e' }}>
+                                            <img src={ev.img} alt={ev.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: ev.status === 'past' ? 'brightness(.5)' : 'none' }} />
+                                        </div>
+                                        <div style={{ padding: '10px 12px 12px' }}>
+                                            <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.75)', margin: '0 0 4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                                                {ev.name}
+                                            </p>
+                                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,.28)', margin: 0 }}>
+                                                {formatDate(ev.start_datetime)} ~ {formatDate(ev.end_datetime)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 댓글 */}
+                <section style={{ marginTop: 56 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#fff', margin: 0 }}>
+                            댓글 <span style={{ color: '#6c63ff' }}>{commentTotal.toLocaleString()}</span>
+                        </h2>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            {sortOptions.map(option => (
+                                <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => setSorting(option.value)}
+                                    style={{
+                                        border: 'none',
+                                        borderRadius: 999,
+                                        padding: '7px 12px',
+                                        background: sorting === option.value ? '#6c63ff' : 'rgba(255,255,255,.06)',
+                                        color: sorting === option.value ? '#fff' : 'rgba(255,255,255,.45)',
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {commentLoading && comments.length === 0 ? (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '42px 0' }}>
+                            <div style={{ width: 26, height: 26, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+                        </div>
+                    ) : comments.length === 0 ? (
+                        <div style={{ padding: '38px 0', textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 14 }}>
+                            첫 번째 댓글을 남겨보세요!
+                        </div>
+                    ) : (
+                        <>
+                            <ul style={{ listStyle: 'none', margin: 0, padding: 0, borderTop: '1px solid rgba(255,255,255,.06)' }}>
+                                {comments.map(comment => (
+                                    <li
+                                        key={comment.id}
+                                        style={{
+                                            display: 'flex',
+                                            gap: 12,
+                                            padding: '18px 0',
+                                            borderBottom: '1px solid rgba(255,255,255,.06)',
+                                        }}
+                                    >
+                                        {comment.author.profile_img ? (
+                                            <img
+                                                src={comment.author.profile_img}
+                                                alt={comment.author.nickname}
+                                                style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                                            />
+                                        ) : (
+                                            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>
+                                                {comment.author.nickname[0] ?? '?'}
+                                            </div>
+                                        )}
+
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                                                <span style={{ color: 'rgba(255,255,255,.82)', fontSize: 13, fontWeight: 800 }}>
+                                                    {comment.author.nickname}
+                                                </span>
+                                                <span style={{ color: 'rgba(255,255,255,.28)', fontSize: 12 }}>
+                                                    {formatDate(comment.created)}
+                                                </span>
+                                            </div>
+                                            <p style={{ margin: 0, color: 'rgba(255,255,255,.64)', fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                                                {comment.content}
+                                            </p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 9 }}>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,.4)', fontSize: 12 }}>
+                                                    <HeartIcon filled={comment.is_liked} />
+                                                    {comment.like_count.toLocaleString()}
+                                                </span>
+                                                {comment.reply_count > 0 && (
+                                                    <span style={{ color: 'rgba(255,255,255,.32)', fontSize: 12 }}>
+                                                        답글 {comment.reply_count.toLocaleString()}개
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            {hasNextComment && (
+                                <button
+                                    type="button"
+                                    onClick={handleLoadMore}
+                                    disabled={commentLoading}
+                                    style={{
+                                        width: '100%',
+                                        marginTop: 18,
+                                        padding: '12px 0',
+                                        border: '1px solid rgba(255,255,255,.08)',
+                                        borderRadius: 12,
+                                        background: 'rgba(255,255,255,.05)',
+                                        color: 'rgba(255,255,255,.58)',
+                                        fontSize: 13,
+                                        fontWeight: 800,
+                                        cursor: commentLoading ? 'default' : 'pointer',
+                                        opacity: commentLoading ? .55 : 1,
+                                    }}
+                                >
+                                    {commentLoading ? '불러오는 중...' : '댓글 더보기'}
+                                </button>
+                            )}
+                        </>
+                    )}
+                </section>
+
+                {/* 목록으로 */}
+                <div style={{ marginTop: 48, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <Link href="/event"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 20px', background: 'rgba(255,255,255,.06)', borderRadius: 10, color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(255,255,255,.1)', transition: 'all .2s' }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
+                        이벤트 목록
+                    </Link>
+                </div>
+            </div>
+        </div>
+    )
+}
