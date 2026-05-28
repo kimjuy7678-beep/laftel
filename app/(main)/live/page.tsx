@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import channels from '@/data/channels.json'
+import PartySection from '@/components/PartySection'
+import MyPartySection from '@/components/MyPartySection'
 
 export default function LivePage() {
     return (
@@ -49,6 +51,9 @@ export default function LivePage() {
                         </li>
                     ))}
                 </ul>
+                
+                <MyPartySection />
+                <PartySection />
             </div>
         </div>
     )

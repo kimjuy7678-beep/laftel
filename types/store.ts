@@ -51,3 +51,19 @@ export type ProductCategory =
     | "포스터"
     | "스티커·엽서"
     | "키링";
+
+s
+
+import { AniItem, AniVideo } from './animation'
+
+export interface AniStore {
+    aniList: AniItem[];
+    aniVideos: Record<number, AniVideo>;
+    aniDetails: Record<number, AniDetail>;
+    aniSeasons: Record<string, AniSeasonDetail>;
+    onFetchAni: () => Promise<void>;
+    onFetchTopAni: () => Promise<void>
+    onFetchVideo: (id: number, name: string) => Promise<void>;
+    onFetchDetail: (id: number) => Promise<void>;
+    onFetchSeason: (id: number, seasonNumber: number) => Promise<void>;
+}

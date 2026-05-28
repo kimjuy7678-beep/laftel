@@ -1,9 +1,11 @@
 'use client'
 import OstSectionDetail from '@/components/anime/OstSectionDetail'
+import SeasonSelect from '@/components/anime/SeasonSelect'
+import { useAniStore } from '@/store/useAniStore'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
+import Button from '@/components/Button'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
@@ -18,13 +20,31 @@ const GENRE_MAP: Record<number, string> = {
 export default function AnimeDetailPage() {
     const { id } = useParams()
     const router = useRouter()
+    const numericId = Number(id)
+
+    // store
+    const { aniVideos, onFetchVideo } = useAniStore()
+
     const [detail, setDetail] = useState<any>(null)
     const [credits, setCredits] = useState<any[]>([])
     const [similar, setSimilar] = useState<any[]>([])
-    const [trailer, setTrailer] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [liked, setLiked] = useState(false)
-    const [activeTab, setActiveTab] = useState<'info' | 'cast' | 'similar'>('info')
+    const [activeTab, setActiveTab] = useState<'info' | 'cast' | 'similar' | 'seasons'>('seasons')
+
+    // 시즌 관련 state
+    const [seasonList, setSeasonList] = useState<any[]>([])
+    const [selectedSeason, setSelectedSeason] = useState<number>(1)
+    const [episodes, setEpisodes] = useState<any[]>([])
+    const [episodeLoading, setEpisodeLoading] = useState(false)
+    const [episodeCache, setEpisodeCache] = useState<Record<number, any[]>>({})
+
+    // 모달
+    const [modalOpen, setModalOpen] = useState(false)
+    const [videoLoading, setVideoLoading] = useState(false)
+
+    // 현재 작품 비디오 키
+    const videoInfo = aniVideos[numericId]
 
     useEffect(() => {
         if (!id) return
@@ -33,390 +53,405 @@ export default function AnimeDetailPage() {
             fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${TMDB_KEY}&language=ko-KR`).then(r => r.json()),
             fetch(`https://api.themoviedb.org/3/tv/${id}/aggregate_credits?api_key=${TMDB_KEY}&language=ko-KR`).then(r => r.json()),
             fetch(`https://api.themoviedb.org/3/tv/${id}/similar?api_key=${TMDB_KEY}&language=ko-KR`).then(r => r.json()),
-            fetch(`https://api.themoviedb.org/3/tv/${id}/videos?api_key=${TMDB_KEY}`).then(r => r.json()),
-        ]).then(([det, cred, sim, vids]) => {
+        ]).then(([det, cred, sim]) => {
             setDetail(det)
             setCredits((cred.cast || []).slice(0, 20))
             setSimilar((sim.results || []).slice(0, 12))
-            const t = (vids.results || []).find((v: any) =>
-                v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
-            )
-            if (t) setTrailer(t.key)
+
+            const validSeasons = (det.seasons || []).filter((s: any) => s.season_number > 0)
+            setSeasonList(validSeasons)
+            if (validSeasons.length > 0) setSelectedSeason(validSeasons[0].season_number)
         }).finally(() => setLoading(false))
     }, [id])
 
+    // 시즌 에피소드 fetch
+    useEffect(() => {
+        if (activeTab !== 'seasons' || !id || !selectedSeason) return
+        if (episodeCache[selectedSeason]) {
+            setEpisodes(episodeCache[selectedSeason])
+            return
+        }
+        setEpisodeLoading(true)
+        fetch(`https://api.themoviedb.org/3/tv/${id}/season/${selectedSeason}?api_key=${TMDB_KEY}&language=ko-KR`)
+            .then(r => r.json())
+            .then(data => {
+                const eps = data.episodes || []
+                setEpisodes(eps)
+                setEpisodeCache(prev => ({ ...prev, [selectedSeason]: eps }))
+            })
+            .finally(() => setEpisodeLoading(false))
+    }, [activeTab, selectedSeason, id])
+
+    // 모달 열기 — store의 onFetchVideo 활용    
+    const openPlayer = useCallback(async () => {
+        if (!detail) return
+        setModalOpen(true)
+
+        // 이미 store에 있으면 바로 사용
+        if (aniVideos[numericId]) return
+
+        // 없으면 fetch
+        setVideoLoading(true)
+        await onFetchVideo(numericId, detail.original_name || detail.name)
+        setVideoLoading(false)
+    }, [detail, numericId, aniVideos, onFetchVideo])
+
+    // ESC 키로 모달 닫기
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setModalOpen(false)
+        }
+        window.addEventListener('keydown', handler)
+        return () => window.removeEventListener('keydown', handler)
+    }, [setModalOpen])
+
     if (loading) return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ width: 36, height: 36, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
-            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+            <div className="w-9 h-9 border-[3px] border-white/10 border-t-[#6c63ff] rounded-full animate-spin" />
         </div>
     )
 
     if (!detail || detail.status_code === 34) return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16 }}>작품을 찾을 수 없어요</p>
-            <button onClick={() => router.back()} style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 14 }}>돌아가기</button>
+        <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center gap-4">
+            <p className="text-white/40 text-base">작품을 찾을 수 없어요</p>
+            <button onClick={() => router.back()} className="px-6 py-2.5 bg-[#6c63ff] border-none rounded-lg text-white cursor-pointer text-sm">
+                돌아가기
+            </button>
         </div>
     )
 
     const backdrop = detail.backdrop_path ? `${IMG}/original${detail.backdrop_path}` : null
-    const poster   = detail.poster_path   ? `${IMG}/w500${detail.poster_path}`       : null
-    const score    = Math.round((detail.vote_average || 0) * 10) / 10
-    const year     = detail.first_air_date?.slice(0, 4) || ''
-    const genres   = (detail.genres || []).map((g: any) => GENRE_MAP[g.id] || g.name)
-    const seasons  = detail.number_of_seasons || 0
-    const episodes = detail.number_of_episodes || 0
-    const status   = detail.status === 'Returning Series' ? '방영중' : detail.status === 'Ended' ? '완결' : detail.status || ''
+    const poster = detail.poster_path ? `${IMG}/w500${detail.poster_path}` : null
+    const score = Math.round((detail.vote_average || 0) * 10) / 10
+    const latestSeason = (detail.seasons || []).filter((s: any) => s.season_number > 0).at(-1)
+    const year = latestSeason?.air_date?.slice(0, 4) || detail.first_air_date?.slice(0, 4) || ''
+    const genres = (detail.genres || []).map((g: any) => GENRE_MAP[g.id] || g.name)
+    const seasonCount = detail.number_of_seasons || 0
+    const episodeCount = detail.number_of_episodes || 0
+    const status = detail.status === 'Returning Series' ? '방영중' : detail.status === 'Ended' ? '완결' : detail.status || ''
+
+    const TABS = [
+        { key: 'seasons', label: '시즌 & 에피소드' },
+        { key: 'info', label: '작품 정보' },
+        { key: 'cast', label: '출연진' },
+        { key: 'similar', label: '비슷한 작품' },
+    ] as const
 
     return (
-        <>
-            <style>{`
-                .det-wrap { min-height: 100vh; background: #0a0a0a; color: #fff; padding-top: 56px; }
+        <div className="min-h-screen bg-[#0a0a0a] text-white pt-14">
 
-                /* 히어로 */
-                .det-hero { position: relative; width: 100%; height: 520px; overflow: hidden; }
-                .det-hero-bg { position: absolute; inset: 0; }
-                .det-hero-bg img { width: 100%; height: 100%; object-fit: cover; }
-                .det-hero-dim {
-                    position: absolute; inset: 0;
-                    background: linear-gradient(to right, rgba(10,10,10,1) 30%, rgba(10,10,10,0.4) 70%, rgba(10,10,10,0.2) 100%),
-                                linear-gradient(to top, rgba(10,10,10,1) 0%, transparent 60%);
-                }
-                .det-hero-content {
-                    position: relative; z-index: 10;
-                    display: flex; align-items: flex-end;
-                    height: 100%; max-width: 1200px;
-                    margin: 0 auto; padding: 0 48px 48px;
-                    gap: 36px;
-                }
-                .det-poster {
-                    width: 170px; min-width: 170px; height: 255px;
-                    border-radius: 12px; overflow: hidden;
-                    background: #1e1e1e;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
-                    flex-shrink: 0;
-                }
-                .det-poster img { width: 100%; height: 100%; object-fit: cover; }
-                .det-poster-np {
-                    width: 100%; height: 100%;
-                    display: flex; align-items: center; justify-content: center;
-                    font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.08);
-                }
-                .det-meta { flex: 1; min-width: 0; }
-                .det-badges { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-                .det-badge {
-                    font-size: 11px; font-weight: 600;
-                    padding: 3px 10px; border-radius: 4px;
-                    background: rgba(108,99,255,0.2); color: #9d97ff;
-                    border: 1px solid rgba(108,99,255,0.3);
-                }
-                .det-badge.green { background: rgba(34,197,94,0.15); color: #4ade80; border-color: rgba(34,197,94,0.25); }
-                .det-title { font-size: 34px; font-weight: 900; line-height: 1.2; margin: 0 0 8px; }
-                .det-title-orig { font-size: 14px; color: rgba(255,255,255,0.35); margin: 0 0 14px; }
-                .det-score-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-                .det-score { display: flex; align-items: center; gap: 5px; font-size: 22px; font-weight: 800; color: #fbbf24; }
-                .det-score-sub { font-size: 13px; color: rgba(255,255,255,0.35); }
-                .det-info-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-                .det-chip {
-                    font-size: 12px; color: rgba(255,255,255,0.5);
-                    padding: 4px 12px; border-radius: 20px;
-                    border: 1px solid rgba(255,255,255,0.12);
-                    background: rgba(255,255,255,0.04);
-                }
-                .det-actions { display: flex; gap: 10px; }
-                .det-btn-play {
-                    display: flex; align-items: center; gap-8px; gap: 8px;
-                    height: 46px; padding: 0 28px;
-                    background: #6c63ff; border: none; border-radius: 10px;
-                    color: #fff; font-size: 15px; font-weight: 700;
-                    cursor: pointer; transition: background .2s;
-                }
-                .det-btn-play:hover { background: #5a52e0; }
-                .det-btn-icon {
-                    width: 46px; height: 46px;
-                    display: flex; align-items: center; justify-content: center;
-                    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
-                    border-radius: 10px; cursor: pointer; transition: all .2s;
-                    color: rgba(255,255,255,0.6);
-                }
-                .det-btn-icon:hover { background: rgba(255,255,255,0.14); color: #fff; }
-                .det-btn-icon.liked { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #f87171; }
+            {/* ── 비디오 모달 ── */}
+            {modalOpen && (
+                <div
+                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+                    onClick={() => setModalOpen(false)}
+                >
+                    <div
+                        className="relative w-full max-w-5xl mx-4"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* 닫기 버튼 */}
+                        <button
+                            onClick={() => setModalOpen(false)}
+                            className="absolute -top-12 right-0 flex items-center gap-2 text-white/60 hover:text-white text-sm transition-colors"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M18 6 6 18M6 6l12 12" />
+                            </svg>
+                            닫기 (ESC)
+                        </button>
 
-                /* 바디 */
-                .det-body { max-width: 1200px; margin: 0 auto; padding: 40px 48px 80px; }
+                        {/* 영상 영역 */}
+                        <div className="w-full aspect-video rounded-2xl overflow-hidden bg-[#0d0d0d] border border-white/[0.06] shadow-[0_32px_80px_rgba(0,0,0,0.8)]">
+                            {videoLoading ? (
+                                // 로딩 중
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+                                    <div className="w-10 h-10 border-[3px] border-white/10 border-t-[#6c63ff] rounded-full animate-spin" />
+                                    <p className="text-white/30 text-sm">영상 불러오는 중...</p>
+                                </div>
+                            ) : videoInfo ? (
+                                // 영상 있음
+                                <iframe
+                                    className="w-full h-full border-none"
+                                    src={`https://www.youtube.com/embed/${videoInfo.key}?autoplay=1&rel=0`}
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                                    allowFullScreen
+                                />
+                            ) : (
+                                // 영상 없음
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M12 8v4M12 16h.01" />
+                                    </svg>
+                                    <p className="text-white/25 text-sm">영상 정보가 없어요</p>
+                                </div>
+                            )}
+                        </div>
 
-                /* 탭 */
-                .det-tabs { display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 36px; }
-                .det-tab {
-                    padding: 12px 24px; font-size: 14px; font-weight: 600;
-                    color: rgba(255,255,255,0.35); background: none; border: none;
-                    cursor: pointer; position: relative; transition: color .2s;
-                }
-                .det-tab.active { color: #fff; }
-                .det-tab.active::after {
-                    content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
-                    height: 2px; background: #6c63ff; border-radius: 1px;
-                }
+                        {/* 작품명 */}
+                        <div className="mt-4 flex items-center gap-3">
+                            <p className="text-white/80 font-semibold">{detail.name}</p>
+                            {videoInfo?.source === 'youtube' && (
+                                <span className="text-[11px] text-white/30 px-2 py-0.5 rounded border border-white/10">YouTube</span>
+                            )}
+                            {videoInfo?.source === 'tmdb' && (
+                                <span className="text-[11px] text-white/30 px-2 py-0.5 rounded border border-white/10">TMDB</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                /* 정보 탭 */
-                .det-overview { font-size: 15px; line-height: 1.9; color: rgba(255,255,255,0.65); margin: 0 0 36px; max-width: 720px; }
-                .det-section-title { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.85); margin: 0 0 16px; }
-                .det-genre-list { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 36px; }
-                .det-genre-tag {
-                    font-size: 13px; padding: 6px 16px; border-radius: 20px;
-                    background: rgba(108,99,255,0.12); color: #9d97ff;
-                    border: 1px solid rgba(108,99,255,0.2);
-                }
-                .det-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 36px; }
-                .det-stat {
-                    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
-                    border-radius: 12px; padding: 20px;
-                }
-                .det-stat-val { font-size: 24px; font-weight: 800; color: #fff; margin: 0 0 4px; }
-                .det-stat-label { font-size: 12px; color: rgba(255,255,255,0.35); margin: 0; }
+            {/* 뒤로 버튼 */}
+            <button
+                className="fixed top-[70px] left-6 z-[100] flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-white/60 text-[13px] cursor-pointer transition-all hover:text-white hover:bg-black/80"
+                onClick={() => router.back()}
+            >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+                뒤로
+            </button>
 
-                /* 트레일러 */
-                .det-trailer { margin-bottom: 36px; }
-                .det-trailer-frame {
-                    width: 100%; max-width: 720px;
-                    aspect-ratio: 16/9;
-                    border-radius: 12px; overflow: hidden;
-                    background: #111;
-                }
-                .det-trailer-frame iframe { width: 100%; height: 100%; border: none; }
-
-                /* 출연진 탭 */
-                .det-cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; }
-                .det-cast-card { text-align: center; }
-                .det-cast-thumb {
-                    width: 100%; aspect-ratio: 1/1; border-radius: 50%;
-                    overflow: hidden; background: #1e1e1e; margin: 0 auto 10px;
-                    max-width: 100px;
-                }
-                .det-cast-thumb img { width: 100%; height: 100%; object-fit: cover; }
-                .det-cast-np {
-                    width: 100%; height: 100%;
-                    display: flex; align-items: center; justify-content: center;
-                    font-size: 28px; font-weight: 800; color: rgba(255,255,255,0.08);
-                }
-                .det-cast-name { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.8); margin: 0 0 3px; }
-                .det-cast-role { font-size: 11px; color: rgba(255,255,255,0.3); margin: 0; }
-
-                /* 유사 탭 */
-                .det-sim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 20px 13px; }
-                .det-sim-card { cursor: pointer; }
-                .det-sim-thumb {
-                    width: 100%; aspect-ratio: 2/3; border-radius: 8px;
-                    overflow: hidden; background: #181818; margin-bottom: 8px;
-                    transition: transform .25s;
-                }
-                .det-sim-card:hover .det-sim-thumb { transform: scale(1.03); }
-                .det-sim-thumb img { width: 100%; height: 100%; object-fit: cover; }
-                .det-sim-np {
-                    width: 100%; height: 100%;
-                    display: flex; align-items: center; justify-content: center;
-                    font-size: 32px; font-weight: 800; color: rgba(255,255,255,0.08);
-                }
-                .det-sim-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); margin: 0 0 3px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-                .det-sim-year { font-size: 11px; color: rgba(255,255,255,0.3); margin: 0; }
-
-                /* 백 버튼 */
-                .det-back {
-                    position: fixed; top: 70px; left: 24px; z-index: 100;
-                    display: flex; align-items: center; gap-6px; gap: 6px;
-                    padding: 8px 14px; border-radius: 8px;
-                    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    color: rgba(255,255,255,0.6); font-size: 13px;
-                    cursor: pointer; transition: all .2s;
-                }
-                .det-back:hover { color: #fff; background: rgba(0,0,0,0.8); }
-            `}</style>
-
-            <div className="det-wrap">
-                <button className="det-back" onClick={() => router.back()}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="m15 18-6-6 6-6"/>
-                    </svg>
-                    뒤로
-                </button>
-
-                {/* 히어로 */}
-                <div className="det-hero">
-                    <div className="det-hero-bg">
-                        {backdrop
-                            ? <img src={backdrop} alt={detail.name} />
-                            : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)' }} />
+            {/* 히어로 */}
+            <div className="relative w-full h-[520px] overflow-hidden">
+                <div className="absolute inset-0">
+                    {backdrop
+                        ? <img src={backdrop} alt={detail.name} className="w-full h-full object-cover" />
+                        : <div className="w-full h-full bg-gradient-to-br from-[#1a1a2e] to-[#16213e]" />
+                    }
+                </div>
+                <div
+                    className="absolute inset-0"
+                    style={{ background: 'linear-gradient(to right, rgba(10,10,10,1) 30%, rgba(10,10,10,0.4) 70%, rgba(10,10,10,0.2) 100%), linear-gradient(to top, rgba(10,10,10,1) 0%, transparent 60%)' }}
+                />
+                <div className="relative z-10 flex items-end h-full max-w-[1200px] mx-auto px-12 pb-12 gap-9">
+                    <div className="w-[170px] min-w-[170px] h-[255px] rounded-xl overflow-hidden bg-[#1e1e1e] shadow-[0_20px_60px_rgba(0,0,0,0.7)] shrink-0">
+                        {poster
+                            ? <img src={poster} alt={detail.name} className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center text-5xl font-black text-white/[0.08]">{(detail.name || '?')[0]}</div>
                         }
                     </div>
-                    <div className="det-hero-dim" />
-                    <div className="det-hero-content">
-                        <div className="det-poster">
-                            {poster
-                                ? <img src={poster} alt={detail.name} />
-                                : <div className="det-poster-np">{(detail.name||'?')[0]}</div>
-                            }
-                        </div>
-                        <div className="det-meta">
-                            <div className="det-badges">
-                                {status && <span className={`det-badge${status === '방영중' ? ' green' : ''}`}>{status}</span>}
-                                {genres.slice(0, 3).map((g: string) => (
-                                    <span key={g} className="det-badge">{g}</span>
-                                ))}
-                            </div>
-                            <h1 className="det-title">{detail.name}</h1>
-                            {detail.original_name !== detail.name && (
-                                <p className="det-title-orig">{detail.original_name}</p>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-3.5 flex-wrap">
+                            {status && (
+                                <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded border ${status === '방영중' ? 'bg-green-500/15 text-green-400 border-green-500/25' : 'bg-[#6c63ff]/20 text-[#9d97ff] border-[#6c63ff]/30'}`}>
+                                    {status}
+                                </span>
                             )}
-                            <div className="det-score-row">
-                                {score > 0 && (
-                                    <div className="det-score">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fbbf24" stroke="none"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-                                        {score}
-                                    </div>
-                                )}
-                                <span className="det-score-sub">{detail.vote_count?.toLocaleString()}명 평가</span>
-                            </div>
-                            <div className="det-info-chips">
-                                {year && <span className="det-chip">{year}</span>}
-                                {seasons > 0 && <span className="det-chip">시즌 {seasons}</span>}
-                                {episodes > 0 && <span className="det-chip">{episodes}화</span>}
-                                {detail.original_language && <span className="det-chip">{detail.original_language.toUpperCase()}</span>}
-                            </div>
-                            <div className="det-actions">
-                                <button className="det-btn-play">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-                                    재생하기
-                                </button>
-                                <button
-                                    className={`det-btn-icon${liked ? ' liked' : ''}`}
-                                    onClick={() => setLiked(v => !v)}
-                                    title="찜하기"
-                                >
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                                    </svg>
-                                </button>
-                                <button className="det-btn-icon" title="공유">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                                    </svg>
-                                </button>
-                            </div>
+                            {genres.slice(0, 3).map((g: string) => (
+                                <span key={g} className="text-[11px] font-semibold px-2.5 py-0.5 rounded border bg-[#6c63ff]/20 text-[#9d97ff] border-[#6c63ff]/30">{g}</span>
+                            ))}
                         </div>
-                    </div>
-                </div>
-
-                {/* 바디 */}
-                <div className="det-body">
-                    {/* 탭 */}
-                    <div className="det-tabs">
-                        {(['info', 'cast', 'similar'] as const).map(tab => (
-                            <button
-                                key={tab}
-                                className={`det-tab${activeTab === tab ? ' active' : ''}`}
-                                onClick={() => setActiveTab(tab)}
+                        <h1 className="text-[34px] font-black leading-tight mb-2">{detail.name}</h1>
+                        {detail.original_name !== detail.name && (
+                            <p className="text-sm text-white/35 mb-3.5">{detail.original_name}</p>
+                        )}
+                        <div className="flex items-center gap-4 mb-4 flex-wrap">
+                            {score > 0 && (
+                                <div className="flex items-center gap-1.5 text-[22px] font-black text-amber-400">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fbbf24" stroke="none">
+                                        <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+                                    </svg>
+                                    {score}
+                                </div>
+                            )}
+                            <span className="text-[13px] text-white/35">{detail.vote_count?.toLocaleString()}명 평가</span>
+                        </div>
+                        <div className="flex gap-2 flex-wrap mb-5">
+                            {year && <span className="text-xs text-white/50 px-3 py-1 rounded-full border border-white/12 bg-white/[0.04]">{year}</span>}
+                            {seasonCount > 0 && <span className="text-xs text-white/50 px-3 py-1 rounded-full border border-white/12 bg-white/[0.04]">시즌 {seasonCount}</span>}
+                            {episodeCount > 0 && <span className="text-xs text-white/50 px-3 py-1 rounded-full border border-white/12 bg-white/[0.04]">{episodeCount}화</span>}
+                            {detail.original_language && <span className="text-xs text-white/50 px-3 py-1 rounded-full border border-white/12 bg-white/[0.04]">{detail.original_language.toUpperCase()}</span>}
+                        </div>
+                        <div className="flex gap-2.5">
+                            {/* 재생하기 → 모달 오픈 */}
+                            {/* <button
+                                onClick={openPlayer}
+                                className="flex items-center gap-2 h-[46px] px-7 bg-[#6c63ff] border-none rounded-[10px] text-white text-[15px] font-bold cursor-pointer transition-colors hover:bg-[#5a52e0]"
                             >
-                                {{ info: '작품 정보', cast: '출연진', similar: '비슷한 작품' }[tab]}
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
+                                재생하기
+                            </button> */}
+                            <Button
+                                onClick={openPlayer}
+                                className="bg-[#6c63ff] text-white px-7 "
+                                content="재생하기"
+                            />
+                            <button
+                                className={`w-[46px] h-[46px] flex items-center justify-center rounded-[10px] border cursor-pointer transition-all ${liked ? 'bg-red-500/15 border-red-500/30 text-red-400' : 'bg-white/[0.08] border-white/12 text-white/60 hover:bg-white/[0.14] hover:text-white'}`}
+                                onClick={() => setLiked(v => !v)}
+                                title="찜하기"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                </svg>
                             </button>
-                        ))}
+                            <button className="w-[46px] h-[46px] flex items-center justify-center rounded-[10px] border bg-white/[0.08] border-white/12 text-white/60 cursor-pointer transition-all hover:bg-white/[0.14] hover:text-white" title="공유">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-
-                    {/* 정보 탭 */}
-                    {activeTab === 'info' && (
-                        <div>
-                            {detail.overview && (
-                                <p className="det-overview">{detail.overview}</p>
-                            )}
-
-                            {genres.length > 0 && (
-                                <div style={{ marginBottom: 36 }}>
-                                    <p className="det-section-title">장르</p>
-                                    <div className="det-genre-list">
-                                        {genres.map((g: string) => (
-                                            <span key={g} className="det-genre-tag">{g}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="det-stats">
-                                <div className="det-stat">
-                                    <p className="det-stat-val">★ {score || '-'}</p>
-                                    <p className="det-stat-label">TMDB 평점</p>
-                                </div>
-                                <div className="det-stat">
-                                    <p className="det-stat-val">{seasons || '-'}</p>
-                                    <p className="det-stat-label">시즌</p>
-                                </div>
-                                <div className="det-stat">
-                                    <p className="det-stat-val">{episodes || '-'}</p>
-                                    <p className="det-stat-label">총 에피소드</p>
-                                </div>
-                                <div className="det-stat">
-                                    <p className="det-stat-val">{year || '-'}</p>
-                                    <p className="det-stat-label">첫 방영</p>
-                                </div>
-                            </div>
-
-                            {trailer && (
-                                <div className="det-trailer">
-                                    <p className="det-section-title">트레일러</p>
-                                    <div className="det-trailer-frame">
-                                        <iframe
-                                            src={`https://www.youtube.com/embed/${trailer}`}
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                            allowFullScreen
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                            <OstSectionDetail animeName={detail.original_name || detail.name} />
-                        </div>
-                    )}
-
-                    {/* 출연진 탭 */}
-                    {activeTab === 'cast' && (
-                        <div className="det-cast-grid">
-                            {credits.length === 0 ? (
-                                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 14 }}>출연진 정보가 없어요</p>
-                            ) : credits.map((c: any) => (
-                                <div key={c.id} className="det-cast-card">
-                                    <div className="det-cast-thumb">
-                                        {c.profile_path
-                                            ? <img src={`${IMG}/w185${c.profile_path}`} alt={c.name} loading="lazy" />
-                                            : <div className="det-cast-np">{(c.name||'?')[0]}</div>
-                                        }
-                                    </div>
-                                    <p className="det-cast-name">{c.name}</p>
-                                    <p className="det-cast-role">{c.roles?.[0]?.character || ''}</p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* 비슷한 작품 탭 */}
-                    {activeTab === 'similar' && (
-                        <div className="det-sim-grid">
-                            {similar.length === 0 ? (
-                                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 14 }}>비슷한 작품이 없어요</p>
-                            ) : similar.map((item: any) => (
-                                <div key={item.id} className="det-sim-card" onClick={() => router.push(`/anime/${item.id}`)}>
-                                    <div className="det-sim-thumb">
-                                        {item.poster_path
-                                            ? <img src={`${IMG}/w342${item.poster_path}`} alt={item.name} loading="lazy" />
-                                            : <div className="det-sim-np">{(item.name||'?')[0]}</div>
-                                        }
-                                    </div>
-                                    <p className="det-sim-name">{item.name}</p>
-                                    <p className="det-sim-year">{item.first_air_date?.slice(0,4) || ''}</p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
                 </div>
             </div>
-        </>
+
+            {/* 바디 */}
+            <div className="max-w-[1200px] mx-auto px-12 pt-10 pb-20">
+
+                {/* 탭 */}
+                <div className="flex border-b border-white/[0.08] mb-9">
+                    {TABS.map(({ key, label }) => (
+                        <button
+                            key={key}
+                            onClick={() => setActiveTab(key)}
+                            className={`relative px-6 py-3 text-sm font-semibold bg-transparent border-none cursor-pointer transition-colors ${activeTab === key ? 'text-white' : 'text-white/35'}`}
+                        >
+                            {label}
+                            {activeTab === key && <span className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-[#6c63ff] rounded-sm" />}
+                        </button>
+                    ))}
+                </div>
+
+                {/* 작품 정보 탭 */}
+                {activeTab === 'info' && (
+                    <div>
+                        {detail.overview && (
+                            <p className="text-[15px] leading-[1.9] text-white/65 mb-9 max-w-[720px]">{detail.overview}</p>
+                        )}
+                        {genres.length > 0 && (
+                            <div className="mb-9">
+                                <p className="text-base font-bold text-white/85 mb-4">장르</p>
+                                <div className="flex gap-2 flex-wrap">
+                                    {genres.map((g: string) => (
+                                        <span key={g} className="text-[13px] px-4 py-1.5 rounded-full bg-[#6c63ff]/12 text-[#9d97ff] border border-[#6c63ff]/20">{g}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-4 gap-4 mb-9">
+                            {[
+                                { val: `★ ${score || '-'}`, label: 'TMDB 평점' },
+                                { val: seasonCount || '-', label: '시즌' },
+                                { val: episodeCount || '-', label: '총 에피소드' },
+                                { val: year || '-', label: '첫 방영' },
+                            ].map(({ val, label }) => (
+                                <div key={label} className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-5">
+                                    <p className="text-2xl font-black text-white mb-1">{val}</p>
+                                    <p className="text-xs text-white/35">{label}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <OstSectionDetail animeName={detail.original_name || detail.name} />
+                    </div>
+                )}
+
+                {/* 출연진 탭 */}
+                {activeTab === 'cast' && (
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-4">
+                        {credits.length === 0 ? (
+                            <p className="text-white/25 text-sm">출연진 정보가 없어요</p>
+                        ) : credits.map((c: any) => (
+                            <div key={c.id} className="text-center">
+                                <div className="w-full aspect-square rounded-full overflow-hidden bg-[#1e1e1e] mx-auto mb-2.5 max-w-[100px]">
+                                    {c.profile_path
+                                        ? <img src={`${IMG}/w185${c.profile_path}`} alt={c.name} loading="lazy" className="w-full h-full object-cover" />
+                                        : <div className="w-full h-full flex items-center justify-center text-[28px] font-black text-white/[0.08]">{(c.name || '?')[0]}</div>
+                                    }
+                                </div>
+                                <p className="text-xs font-semibold text-white/80 mb-0.5">{c.name}</p>
+                                <p className="text-[11px] text-white/30">{c.roles?.[0]?.character || ''}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 비슷한 작품 탭 */}
+                {activeTab === 'similar' && (
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-x-[13px] gap-y-5">
+                        {similar.length === 0 ? (
+                            <p className="text-white/25 text-sm">비슷한 작품이 없어요</p>
+                        ) : similar.map((item: any) => (
+                            <div key={item.id} className="cursor-pointer group" onClick={() => router.push(`/anime/${item.id}`)}>
+                                <div className="w-full aspect-[2/3] rounded-lg overflow-hidden bg-[#181818] mb-2 transition-transform duration-300 group-hover:scale-[1.03]">
+                                    {item.poster_path
+                                        ? <img src={`${IMG}/w342${item.poster_path}`} alt={item.name} loading="lazy" className="w-full h-full object-cover" />
+                                        : <div className="w-full h-full flex items-center justify-center text-[32px] font-black text-white/[0.08]">{(item.name || '?')[0]}</div>
+                                    }
+                                </div>
+                                <p className="text-[13px] font-semibold text-white/85 mb-0.5 line-clamp-2">{item.name}</p>
+                                <p className="text-[11px] text-white/30">{item.first_air_date?.slice(0, 4) || ''}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 시즌 & 에피소드 탭 */}
+                {activeTab === 'seasons' && (
+                    <div>
+                        {seasonList.length === 0 ? (
+                            <p className="text-white/25 text-sm">시즌 정보가 없어요</p>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-4 mb-7 flex-wrap">
+                                    <SeasonSelect
+                                        seasons={seasonList}
+                                        value={selectedSeason}
+                                        onChange={setSelectedSeason}
+                                        episodeCount={episodes.length}
+                                    />
+                                </div>
+
+                                {episodeLoading ? (
+                                    <div className="flex items-center justify-center py-16 gap-2.5 text-white/30 text-sm">
+                                        <div className="w-5 h-5 border-2 border-white/10 border-t-[#6c63ff] rounded-full animate-spin" />
+                                        불러오는 중...
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-3">
+                                        {episodes.map((ep: any) => (
+                                            <div
+                                                key={ep.episode_number}
+                                                className="flex gap-4 items-start bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 transition-all hover:bg-[#6c63ff]/[0.07] hover:border-[#6c63ff]/20 cursor-pointer group"
+                                                onClick={openPlayer}
+                                            >
+                                                {/* 썸네일 */}
+                                                <div className="relative w-[140px] min-w-[140px] aspect-video rounded-lg overflow-hidden bg-[#1a1a1a] shrink-0">
+                                                    {ep.still_path
+                                                        ? <img src={`${IMG}/w300${ep.still_path}`} alt={ep.name} loading="lazy" className="w-full h-full object-cover" />
+                                                        : <div className="w-full h-full flex items-center justify-center text-[22px] font-black text-white/[0.06]">{ep.episode_number}</div>
+                                                    }
+                                                    {/* 재생 오버레이 */}
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[11px] text-white/30 mb-1">{ep.episode_number}화</p>
+                                                    <p className="text-[15px] font-bold text-white/90 mb-1.5 truncate">{ep.name || `에피소드 ${ep.episode_number}`}</p>
+                                                    {ep.overview && (
+                                                        <p className="text-[13px] leading-[1.7] text-white/45 mb-2 line-clamp-2">{ep.overview}</p>
+                                                    )}
+                                                    <div className="flex gap-3">
+                                                        {ep.air_date && <span className="text-[11px] text-white/25">{ep.air_date}</span>}
+                                                        {ep.runtime && <span className="text-[11px] text-white/25">{ep.runtime}분</span>}
+                                                        {ep.vote_average > 0 && <span className="text-[11px] text-white/25">★ {Math.round(ep.vote_average * 10) / 10}</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
     )
 }
