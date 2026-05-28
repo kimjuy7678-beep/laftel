@@ -2,6 +2,7 @@ import Link from 'next/link'
 import channels from '@/data/channels.json'
 import PartySection from '@/components/PartySection'
 import MyPartySection from '@/components/MyPartySection'
+import ScheduleBoard from '@/components/ScheduleBoard'
 
 export default function LivePage() {
     return (
@@ -54,6 +55,7 @@ export default function LivePage() {
                 
                 <MyPartySection />
                 <PartySection />
+                <ScheduleBoard />
             </div>
         </div>
     )

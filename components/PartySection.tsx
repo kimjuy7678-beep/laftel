@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useAniStore } from '@/store/useAniStore'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 const DUMMY_PARTIES = [
@@ -14,6 +15,7 @@ const DUMMY_PARTIES = [
 const ROTATE_INTERVAL_MS = 15 * 1000
 
 export default function PartySection() {
+    const router = useRouter()
     const { aniList, onFetchTopAni } = useAniStore()
     const [offset, setOffset] = useState(0)
 
@@ -50,7 +52,10 @@ export default function PartySection() {
 
                     return (
                         <li key={`${ani.id}-${offset}-${idx}`} className="relative">
-                            <div className="relative overflow-hidden rounded-xl aspect-video bg-[#1a1a2e] cursor-pointer group">
+                            <div
+                                onClick={() => router.push(`/live/party/dummy-${ani.id}`)}
+                                className="relative overflow-hidden rounded-xl aspect-video bg-[#1a1a2e] cursor-pointer group"
+                            >
                                 {imgPath && (
                                     <img
                                         src={`https://image.tmdb.org/t/p/w500${imgPath}`}
