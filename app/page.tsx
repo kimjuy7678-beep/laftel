@@ -9,7 +9,7 @@ import OstSection from "@/components/home/OstSection_home"
 import AnimationList from "@/components/AnimationList"
 import MoodSection from "@/components/home/MoodSection"
 import SurveyBanner from "@/components/home/SurveyBanner"
-import StockMarquee from "@/components/StockMarquee"
+import VideoBanner from "@/components/home/VideoBanner"
 
 export default function Home() {
   return (
@@ -18,6 +18,7 @@ export default function Home() {
       <WatchHistory />
       <DayNewSection />
       <MoodSection />
+      <VideoBanner />
       <MembershipBanner />
       <Top10Section />
       <ThemeRowSection genre={16} title="지금 인기있는 애니" />
@@ -27,7 +28,6 @@ export default function Home() {
       <OstSection />
       <SurveyBanner />
       <AnimationList />
-      <StockMarquee />
     </div>
   )
 }
