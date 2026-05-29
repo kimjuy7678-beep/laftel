@@ -34,7 +34,7 @@
 }
 
 .animate-marquee-left {
-  animation: marquee-left 60s linear infinite;
+  animation: marquee-left 150s linear infinite;
 }
 
 .animate-marquee-right {
@@ -53,6 +53,6 @@ html.dark body {
 }
 
 .inner {
-  max-width: 1820px;
+  max-width: 1770px;
   margin: 0 auto;
 }

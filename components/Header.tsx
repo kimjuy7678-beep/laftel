@@ -403,7 +403,7 @@ export default function Header() {
             {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
 
             <header className={`fixed top-0 left-0 w-full z-[1000] transition-colors duration-300 ${scrolled ? 'bg-black' : 'bg-transparent'}`}>
-                <div className="inner flex h-[56px] items-center justify-between px-6">
+                <div style={{ width: '90%', margin: '0 auto' }} className="flex h-[56px] items-center justify-between">
                     <div className="flex items-center gap-10">
                         <h1>
                             <Link href="/"><img src="/images/logo.png" alt="logo" className='h-8 w-auto' /></Link>
@@ -551,7 +551,7 @@ export default function Header() {
                                             <div className="text-center">
                                                 <p className="text-white font-bold text-sm flex items-center gap-1 justify-center">
                                                     {user.name || user.email?.split('@')[0]}
-                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                                                 </p>
                                                 <p className="text-white/40 text-xs mt-0.5">😊 Lv.0 베이비</p>
                                                 {membership !== 'none' && (
@@ -563,7 +563,7 @@ export default function Header() {
                                             </div>
                                             {/* 통계 */}
                                             <div className="flex gap-6 mt-2">
-                                                {[{label:'별점',val:0},{label:'리뷰',val:0},{label:'댓글',val:0}].map(s => (
+                                                {[{ label: '별점', val: 0 }, { label: '리뷰', val: 0 }, { label: '댓글', val: 0 }].map(s => (
                                                     <div key={s.label} className="text-center">
                                                         <p className="text-white font-black text-base">{s.val}</p>
                                                         <p className="text-white/35 text-[11px]">{s.label}</p>
@@ -573,7 +573,7 @@ export default function Header() {
                                             {/* 보관함 버튼 */}
                                             <Link href="/library" onClick={() => setDropdownOpen(false)}
                                                 className="w-full mt-3 py-2.5 rounded-xl border border-white/10 bg-white/4 text-white/70 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-white/8 hover:text-white transition-colors">
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></svg>
                                                 보관함
                                             </Link>
                                         </div>

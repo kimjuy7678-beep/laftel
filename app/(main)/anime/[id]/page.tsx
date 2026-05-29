@@ -2,6 +2,8 @@
 import OstSectionDetail from '@/components/anime/OstSectionDetail'
 import SeasonSelect from '@/components/anime/SeasonSelect'
 import { useAniStore } from '@/store/useAniStore'
+import { useWatchProgressStore } from '@/store/useWatchProgressStore'
+import { useAuthStore } from '@/store/useAuthStore'
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -9,6 +11,8 @@ import Button from '@/components/Button'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
+const { saveProgress } = useWatchProgressStore()
+const { user } = useAuthStore()
 
 const GENRE_MAP: Record<number, string> = {
     16: '애니메이션', 10759: '액션·어드벤처', 35: '코미디', 18: '드라마',
