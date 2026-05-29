@@ -1,59 +1,119 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useAniStore } from '@/store/useAniStore'
 import { useEffect } from 'react'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useWatchProgressStore } from '@/store/useWatchProgressStore'
 
 export default function WatchHistory() {
-    const { aniList, onFetchAni } = useAniStore()
     const router = useRouter()
+    const { user } = useAuthStore()
+    const { items, loading, fetchProgress } = useWatchProgressStore()
 
     useEffect(() => {
-        if (aniList.length === 0) onFetchAni()
-    }, [])
+        if (user?.uid) fetchProgress(user.uid)
+    }, [user?.uid])
 
-    // TODO: 실제 시청 기록으로 교체
-    const history = aniList.slice(10, 16)
-    if (history.length === 0) return null
+    if (!user || loading || items.length === 0) return null
 
     return (
-        <section style={{ padding: '48px 0 0' }}>
+        <section>
             <style>{`
-                .wh-wrap { max-width: 1820px; margin: 0 auto; padding: 0 48px; }
+                .wh-wrap { width: 90%; margin: 0 auto; padding: 48px 0 0; }
                 .wh-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                .wh-title { font-size: 20px; font-weight: 800; color: #fff; margin: 0; }
-                .wh-more { font-size: 13px; color: rgba(255,255,255,0.35); background: none; border: none; cursor: pointer; transition: color .2s; }
+                .wh-title { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.4px; margin: 0; }
+                .wh-more {
+                    font-size: 12px; color: rgba(255,255,255,0.35);
+                    background: none; border: none; cursor: pointer;
+                    display: flex; align-items: center; gap: 3px; transition: color .2s;
+                }
                 .wh-more:hover { color: rgba(255,255,255,0.7); }
-                .wh-list { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
-                .wh-card { cursor: pointer; border-radius: 10px; overflow: hidden; background: #111; border: 1px solid rgba(255,255,255,0.06); transition: transform .2s; }
-                .wh-card:hover { transform: translateY(-3px); }
-                .wh-thumb { position: relative; width: 100%; aspect-ratio: 16/9; }
-                .wh-thumb img { width: 100%; height: 100%; object-fit: cover; }
-                .wh-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.1); }
-                .wh-progress-bar { height: 100%; background: #6c63ff; border-radius: 0 2px 2px 0; }
-                .wh-info { padding: 8px 10px 10px; }
-                .wh-name { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.8); margin: 0 0 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-                .wh-ep { font-size: 11px; color: rgba(255,255,255,0.3); margin: 0; }
+                .wh-more svg { width: 12px; height: 12px; }
+
+                .wh-grid {
+                    display: grid;
+                    grid-template-columns: repeat(5, 1fr);
+                    gap: 12px;
+                }
+
+                .wh-card {
+                    cursor: pointer;
+                    transition: transform .22s cubic-bezier(.25,.46,.45,.94);
+                }
+                .wh-card:hover { transform: translateY(-4px); }
+                .wh-card:hover .wh-img { transform: scale(1.04); }
+                .wh-card:hover .wh-play { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+                .wh-thumb {
+                    width: 100%; aspect-ratio: 16 / 9;
+                    border-radius: 12px; overflow: hidden;
+                    position: relative; background: #111;
+                    margin-bottom: 12px;
+                }
+                .wh-img {
+                    width: 100%; height: 100%;
+                    object-fit: cover; display: block;
+                    transition: transform .3s;
+                }
+                .wh-img-fallback {
+                    width: 100%; height: 100%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 32px; font-weight: 800; color: rgba(255,255,255,0.05);
+                }
+
+                .wh-play {
+                    position: absolute; top: 50%; left: 50%; z-index: 3;
+                    transform: translate(-50%,-50%) scale(0.85);
+                    width: 48px; height: 48px; border-radius: 50%;
+                    background: rgba(0,0,0,0.45);
+                    border: 2px solid rgba(255,255,255,0.6);
+                    display: flex; align-items: center; justify-content: center;
+                    opacity: 0; transition: all .2s; pointer-events: none;
+                }
+                .wh-play svg { width: 16px; height: 16px; fill: #fff; margin-left: 3px; }
+
+                .wh-progress {
+                    position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+                    height: 4px; background: rgba(255,255,255,0.15);
+                }
+                .wh-progress-bar { height: 100%; background: #6c5ce7; }
+
+                .wh-name {
+                    font-size: 15px; font-weight: 700; color: #fff;
+                    overflow: hidden; white-space: normal;
+                    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+                    margin-bottom: 4px; line-height: 1.3;
+                }
+                .wh-ep { font-size: 12px; color: rgba(255,255,255,0.35); line-height: 1.4; }
             `}</style>
+
             <div className="wh-wrap">
                 <div className="wh-head">
-                    <h2 className="wh-title">시청 목록</h2>
-                    <button className="wh-more">전체보기 →</button>
+                    <h2 className="wh-title">이어서 정주행하기</h2>
+                    <button className="wh-more" onClick={() => router.push('/history')}>
+                        전체보기
+                        <svg viewBox="0 0 12 12" fill="none">
+                            <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </button>
                 </div>
-                <div className="wh-list">
-                    {history.map((ani: any, i: number) => (
-                        <div key={ani.id} className="wh-card" onClick={() => router.push(`/anime/${ani.id}`)}>
+
+                <div className="wh-grid">
+                    {items.slice(0, 5).map((item) => (
+                        <div key={item.tmdbId} className="wh-card" onClick={() => router.push(`/anime/${item.tmdbId}`)}>
                             <div className="wh-thumb">
-                                {ani.backdrop_path && (
-                                    <img src={`https://image.tmdb.org/t/p/w500${ani.backdrop_path}`} alt={ani.name} />
-                                )}
+                                {item.backdrop
+                                    ? <img className="wh-img" src={`https://image.tmdb.org/t/p/w780${item.backdrop}`} alt={item.title} />
+                                    : <div className="wh-img-fallback">{item.title[0]}</div>
+                                }
+                                <div className="wh-play">
+                                    <svg viewBox="0 0 12 14"><path d="M1 1l10 6L1 13V1z" /></svg>
+                                </div>
                                 <div className="wh-progress">
-                                    <div className="wh-progress-bar" style={{ width: `${(i + 1) * 15}%` }} />
+                                    <div className="wh-progress-bar" style={{ width: `${item.progress}%` }} />
                                 </div>
                             </div>
-                            <div className="wh-info">
-                                <p className="wh-name">{ani.name}</p>
-                                <p className="wh-ep">{i + 1}화 시청중</p>
-                            </div>
+                            <p className="wh-name">{item.title}</p>
+                            <p className="wh-ep">{item.episode}화 · {item.episodeTitle}</p>
                         </div>
                     ))}
                 </div>

@@ -844,7 +844,7 @@ export default function OstPage() {
     const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
     const [progress, setProgress] = useState(0)
     const [volume, setVolume] = useState(0.8)
-    const [cursor, setCursor] = useState({ x: -100, y: -100, visible: false })
+    const [cursor, setCursor] = useState({ x: -100, y: -100 })
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const tracksRef = useRef<Track[]>([])
@@ -856,17 +856,9 @@ export default function OstPage() {
 
     // 커스텀 커서: sing.png 마우스 추적
     useEffect(() => {
-        const onMove = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY, visible: true })
-        const onLeave = () => setCursor(c => ({ ...c, visible: false }))
-        const onEnter = () => setCursor(c => ({ ...c, visible: true }))
+        const onMove = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY })
         window.addEventListener('mousemove', onMove)
-        document.documentElement.addEventListener('mouseleave', onLeave)
-        document.documentElement.addEventListener('mouseenter', onEnter)
-        return () => {
-            window.removeEventListener('mousemove', onMove)
-            document.documentElement.removeEventListener('mouseleave', onLeave)
-            document.documentElement.removeEventListener('mouseenter', onEnter)
-        }
+        return () => window.removeEventListener('mousemove', onMove)
     }, [])
 
     useEffect(() => {
@@ -974,14 +966,14 @@ export default function OstPage() {
             {/* 커스텀 커서 — 기본 커서에서 10px 떨어져 따라옴 */}
             <div style={{
                 position: 'fixed',
-                left: cursor.x + 10,
-                top: cursor.y + 10,
+                top: 0,
+                left: 0,
                 width: 70,
                 height: 70,
                 pointerEvents: 'none',
                 zIndex: 99999,
-                opacity: cursor.visible ? 1 : 0,
-                transition: 'left .08s ease-out, top .08s ease-out, opacity .15s',
+                transform: `translate(${cursor.x + 10}px, ${cursor.y + 10}px)`,
+                transition: 'transform .12s cubic-bezier(.25,.46,.45,.94)',
             }}>
                 <img src="/images/laftel-icon/sing.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>

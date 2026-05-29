@@ -1,14 +1,14 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 const MOODS = [
-    { id: 'emotional_damage', emoji: '😭', label: '울고 싶어',       sub: '후유증 심한 거 줘',    color: '#6366f1', bg: 'rgba(99,102,241,0.13)',  border: 'rgba(99,102,241,0.3)' },
-    { id: 'action_hype',      emoji: '🔥', label: '소리 지르고 싶어', sub: '폭발하는 전투씬',     color: '#ef4444', bg: 'rgba(239,68,68,0.13)',    border: 'rgba(239,68,68,0.3)' },
-    { id: 'dopamine',         emoji: '⚡', label: '멈출 수가 없어',   sub: '중독성 갑 작품',      color: '#f59e0b', bg: 'rgba(245,158,11,0.13)',   border: 'rgba(245,158,11,0.3)' },
-    { id: 'dark_fantasy',     emoji: '🌑', label: '어두운 거 보고 싶어', sub: '두뇌게임/디스토피아', color: '#8b5cf6', bg: 'rgba(139,92,246,0.13)', border: 'rgba(139,92,246,0.3)' },
-    { id: 'healing',          emoji: '🌿', label: '힐링이 필요해',    sub: '지쳤을 때 보는 애니',  color: '#10b981', bg: 'rgba(16,185,129,0.13)',   border: 'rgba(16,185,129,0.3)' },
-    { id: 'random',           emoji: '🎲', label: '아무거나 줘',      sub: '오늘의 운세',          color: '#94a3b8', bg: 'rgba(148,163,184,0.08)',  border: 'rgba(148,163,184,0.18)' },
+    { id: 'emotional_damage', img: '/images/mood/mood1.png', label: '눈물이 멈추지 않아..', sub: '여운이 감게 남는 후유증 레전드 애니', color: '#6366f1' },
+    { id: 'action_hype', img: '/images/mood/mood2.png', label: '스트레스 풀고 싶어 !!', sub: '화려한 전투씬을 자랑하는 애니', color: '#ef4444' },
+    { id: 'dopamine', img: '/images/mood/mood3.png', label: '어라..? 벌써 새벽 3시?!', sub: '중독성 미쳐서 멈출 수 없는 애니', color: '#f59e0b' },
+    { id: 'dark_fantasy', img: '/images/mood/mood4.png', label: '히키코모리가 되어 볼까..?', sub: '어두움의 태명사! 애니', color: '#8b5cf6' },
+    { id: 'healing', img: '/images/mood/mood5.png', label: '각박한 세상..힐링이 필요해', sub: '마음이 풍실풍실해지는 애니', color: '#10b981' },
+    { id: 'random', img: '/images/mood/mood6.png', label: "애니 가차 Let's Go!", sub: '오늘의 운세에 맞는 애니 추천', color: '#94a3b8' },
 ]
 
 export default function MoodSection() {
@@ -18,124 +18,153 @@ export default function MoodSection() {
     return (
         <section style={{ padding: '56px 0 0' }}>
             <style>{`
-                @keyframes mood-in {
-                    from { opacity: 0; transform: translateY(10px) }
-                    to   { opacity: 1; transform: translateY(0) }
-                }
-                .mood-wrap {
-                    max-width: 1820px;
-                    margin: 0 auto;
-                    padding: 0 48px;
-                }
+                .mood-wrap { width: 90%; margin: 0 auto; }
+
+                .mood-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+                .mood-eyebrow { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.32); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 5px; }
+                .mood-title { font-size: 22px; font-weight: 900; color: #fff; margin: 0; }
+                .mood-more { display: flex; align-items: center; gap: 4px; background: none; border: none; color: rgba(255,255,255,.32); font-size: 13px; cursor: pointer; padding: 0; transition: color .2s; }
+                .mood-more:hover { color: rgba(255,255,255,.7); }
+
                 .mood-grid {
                     display: grid;
                     grid-template-columns: repeat(6, 1fr);
                     gap: 12px;
                 }
+
                 .mood-card {
-                    padding: 24px 20px 22px;
+                    position: relative;
+                    aspect-ratio: 3 / 4;
                     border-radius: 16px;
+                    overflow: hidden;
                     cursor: pointer;
-                    transition: all .22s;
-                    border: 1px solid;
-                    text-align: left;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0;
-                    width: 100%;
-                    box-sizing: border-box;
+                    border: none;
+                    padding: 0;
+                    background: #1a1a22;
+                    transition: transform .22s cubic-bezier(.25,.46,.45,.94);
                 }
-                .mood-card:hover {
-                    transform: translateY(-4px);
+                .mood-card:hover { transform: translateY(-4px); }
+
+                /* 배경 이미지 */
+                .mood-bg {
+                    position: absolute; inset: 0;
+                    width: 100%; height: 100%;
+                    object-fit: cover;
+                    transition: filter .3s, transform .3s;
+                    transform: scale(1);
                 }
-                .mood-emoji {
-                    font-size: 30px;
-                    margin-bottom: 14px;
-                    display: block;
-                    transition: transform .2s;
-                    line-height: 1;
+                .mood-card:hover .mood-bg {
+                    filter: blur(4px) brightness(0.35);
+                    transform: scale(1.06);
                 }
-                .mood-card:hover .mood-emoji {
-                    transform: scale(1.15);
+
+                /* 기본 하단 그라디언트 */
+                .mood-grad {
+                    position: absolute; inset: 0;
+                    background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%);
+                    pointer-events: none;
+                    transition: opacity .3s;
                 }
+                .mood-card:hover .mood-grad { opacity: 0; }
+
+                /* 호버 오버레이 */
+                .mood-overlay {
+                    position: absolute; inset: 0;
+                    background: rgba(0,0,0,0.45);
+                    opacity: 0;
+                    transition: opacity .3s;
+                    pointer-events: none;
+                }
+                .mood-card:hover .mood-overlay { opacity: 1; }
+
+                /* 기본 상태 텍스트 — 하단 */
+                .mood-default {
+                    position: absolute; bottom: 0; left: 0; right: 0;
+                    padding: 16px 16px 18px;
+                    transition: opacity .25s, transform .25s;
+                }
+                .mood-card:hover .mood-default { opacity: 0; transform: translateY(8px); }
+
                 .mood-label {
-                    font-size: 15px;
-                    font-weight: 800;
-                    color: #fff;
-                    margin: 0 0 5px;
-                    line-height: 1.3;
+                    font-size: 15px; font-weight: 800; color: #fff;
+                    line-height: 1.35; margin: 0 0 4px;
+                    text-align: left;
                 }
                 .mood-sub {
-                    font-size: 11px;
-                    color: rgba(255,255,255,.38);
-                    margin: 0 0 0;
-                    line-height: 1.4;
+                    font-size: 11px; color: rgba(255,255,255,.5);
+                    margin: 0; line-height: 1.4; text-align: left;
                 }
-                .mood-cta {
-                    margin-top: 14px;
-                    font-size: 11px;
-                    font-weight: 700;
-                    display: flex;
-                    align-items: center;
-                    gap: 3px;
-                    opacity: 0;
-                    transition: opacity .18s;
+
+                /* 호버 상태 텍스트 — 중앙 */
+                .mood-hover {
+                    position: absolute; inset: 0;
+                    display: flex; flex-direction: column;
+                    align-items: center; justify-content: center;
+                    padding: 20px;
+                    opacity: 0; transform: translateY(6px);
+                    transition: opacity .25s, transform .25s;
+                    pointer-events: none;
                 }
-                .mood-card:hover .mood-cta {
-                    opacity: 1;
+                .mood-card:hover .mood-hover { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+                .mood-hover-label {
+                    font-size: 16px; font-weight: 900; color: #fff;
+                    line-height: 1.35; margin-bottom: 6px; text-align: center;
                 }
+                .mood-hover-sub {
+                    font-size: 12px; color: rgba(255,255,255,.55);
+                    margin-bottom: 20px; text-align: center; line-height: 1.5;
+                }
+                .mood-btn {
+                    padding: 8px 20px; border-radius: 20px;
+                    background: rgba(255,255,255,0.15);
+                    border: 1px solid rgba(255,255,255,0.3);
+                    color: #fff; font-size: 12px; font-weight: 700;
+                    cursor: pointer; transition: background .18s;
+                    backdrop-filter: blur(4px);
+                }
+                .mood-btn:hover { background: rgba(255,255,255,0.25); }
             `}</style>
 
             <div className="mood-wrap">
-                {/* 헤더 */}
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 20 }}>
+                <div className="mood-head">
                     <div>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.32)', letterSpacing: '.08em', textTransform: 'uppercase', margin: '0 0 5px' }}>
-                            감정 기반 추천
-                        </p>
-                        <h2 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0 }}>
-                            오늘 어떤 기분이에요? 🎭
-                        </h2>
+                        <p className="mood-eyebrow">라프텔이 추천하는 감정 맞춤 애니메이션</p>
+                        <h2 className="mood-title">오늘 당신의 덕심을 채워 줄 감정은?</h2>
                     </div>
-                    <button
-                        onClick={() => router.push('/mood')}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'rgba(255,255,255,.32)', fontSize: 13, cursor: 'pointer', padding: 0, transition: 'color .2s' }}
-                        onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.7)'}
-                        onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.32)'}
-                    >
+                    <button className="mood-more" onClick={() => router.push('/mood')}>
                         전체보기
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                     </button>
                 </div>
 
-                {/* 6열 그리드 */}
                 <div className="mood-grid">
-                    {MOODS.map((mood, i) => {
-                        const isHovered = hoveredId === mood.id
-                        return (
-                            <button
-                                key={mood.id}
-                                className="mood-card"
-                                style={{
-                                    background: isHovered ? mood.bg : 'rgba(255,255,255,0.03)',
-                                    borderColor: isHovered ? mood.border : 'rgba(255,255,255,0.07)',
-                                    boxShadow: isHovered ? `0 12px 32px ${mood.bg}` : 'none',
-                                    animation: `mood-in .35s ease ${i * 45}ms both`,
-                                }}
-                                onMouseEnter={() => setHoveredId(mood.id)}
-                                onMouseLeave={() => setHoveredId(null)}
-                                onClick={() => router.push(`/mood?emotion=${mood.id}`)}
-                            >
-                                <span className="mood-emoji">{mood.emoji}</span>
+                    {MOODS.map((mood) => (
+                        <button
+                            key={mood.id}
+                            className="mood-card"
+                            onMouseEnter={() => setHoveredId(mood.id)}
+                            onMouseLeave={() => setHoveredId(null)}
+                            onClick={() => router.push(`/mood?emotion=${mood.id}`)}
+                        >
+                            <img className="mood-bg" src={mood.img} alt={mood.label} />
+                            <div className="mood-grad" />
+                            <div className="mood-overlay" />
+
+                            {/* 기본 — 하단 텍스트 */}
+                            <div className="mood-default">
                                 <p className="mood-label">{mood.label}</p>
                                 <p className="mood-sub">{mood.sub}</p>
-                                <span className="mood-cta" style={{ color: mood.color }}>
-                                    추천 받기
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6"/></svg>
-                                </span>
-                            </button>
-                        )
-                    })}
+                            </div>
+
+                            {/* 호버 — 중앙 텍스트 + 버튼 */}
+                            <div className="mood-hover">
+                                <p className="mood-hover-label">{mood.label}</p>
+                                <p className="mood-hover-sub">{mood.sub}</p>
+                                <span className="mood-btn">보러가기</span>
+                            </div>
+                        </button>
+                    ))}
                 </div>
             </div>
         </section>
