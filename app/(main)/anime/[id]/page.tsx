@@ -12,8 +12,6 @@ import VideoPlayer from '@/components/VideoPlayer'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
-const { saveProgress } = useWatchProgressStore()
-const { user } = useAuthStore()
 
 const GENRE_MAP: Record<number, string> = {
     16: '애니메이션', 10759: '액션·어드벤처', 35: '코미디', 18: '드라마',
@@ -28,7 +26,10 @@ export default function AnimeDetailPage() {
     const numericId = Number(id)
     const searchParams = useSearchParams()
 
-    // store — selector로 구독해야 fetch 완료 후 리렌더 보장됨
+    // ✅ 컴포넌트 안으로 이동
+    const { saveProgress } = useWatchProgressStore()
+    const { user } = useAuthStore()
+
     const onFetchVideo = useAniStore(state => state.onFetchVideo)
     const videoInfo = useAniStore(state => state.aniVideos[numericId])
 
@@ -39,14 +40,12 @@ export default function AnimeDetailPage() {
     const [liked, setLiked] = useState(false)
     const [activeTab, setActiveTab] = useState<'info' | 'cast' | 'similar' | 'seasons'>('seasons')
 
-    // 시즌 관련 state
     const [seasonList, setSeasonList] = useState<any[]>([])
     const [selectedSeason, setSelectedSeason] = useState<number>(1)
     const [episodes, setEpisodes] = useState<any[]>([])
     const [episodeLoading, setEpisodeLoading] = useState(false)
     const [episodeCache, setEpisodeCache] = useState<Record<number, any[]>>({})
 
-    // 모달
     const [modalOpen, setModalOpen] = useState(false)
     const [videoLoading, setVideoLoading] = useState(false)
 
@@ -68,7 +67,6 @@ export default function AnimeDetailPage() {
         }).finally(() => setLoading(false))
     }, [id])
 
-    // 시즌 에피소드 fetch
     useEffect(() => {
         if (activeTab !== 'seasons' || !id || !selectedSeason) return
         if (episodeCache[selectedSeason]) {
@@ -86,21 +84,17 @@ export default function AnimeDetailPage() {
             .finally(() => setEpisodeLoading(false))
     }, [activeTab, selectedSeason, id])
 
-    // 모달 열기
     const openPlayer = useCallback(async () => {
         if (!detail) return
         setModalOpen(true)
 
-        // 이미 store에 있으면 바로 사용 (videoInfo는 selector로 구독 중이므로 자동 리렌더)
         if (useAniStore.getState().aniVideos[numericId]) return
 
-        // 없으면 fetch — 완료되면 videoInfo selector가 자동으로 리렌더 트리거
         setVideoLoading(true)
         await onFetchVideo(numericId, detail.original_name || detail.name)
         setVideoLoading(false)
     }, [detail, numericId, onFetchVideo])
 
-    // ESC 키로 모달 닫기
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setModalOpen(false)
@@ -151,7 +145,6 @@ export default function AnimeDetailPage() {
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white pt-14">
 
-            {/* ── 비디오 모달 ── */}
             {modalOpen && (
                 <div
                     className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm"
@@ -161,7 +154,6 @@ export default function AnimeDetailPage() {
                         className="relative w-full max-w-5xl mx-4"
                         onClick={e => e.stopPropagation()}
                     >
-                        {/* 닫기 버튼 */}
                         <button
                             onClick={() => setModalOpen(false)}
                             className="absolute -top-12 right-0 flex items-center gap-2 text-white/60 hover:text-white text-sm transition-colors"
@@ -172,19 +164,15 @@ export default function AnimeDetailPage() {
                             닫기 (ESC)
                         </button>
 
-                        {/* 영상 영역 */}
                         <div className="w-full aspect-video rounded-2xl overflow-hidden bg-[#0d0d0d] border border-white/[0.06] shadow-[0_32px_80px_rgba(0,0,0,0.8)]">
                             {videoLoading ? (
-                                // 로딩 중
                                 <div className="w-full h-full flex flex-col items-center justify-center gap-4">
                                     <div className="w-10 h-10 border-[3px] border-white/10 border-t-[#6c63ff] rounded-full animate-spin" />
                                     <p className="text-white/30 text-sm">영상 불러오는 중...</p>
                                 </div>
                             ) : videoInfo ? (
-                                // 영상 있음
                                 <VideoPlayer id={numericId} mode="modal" />
                             ) : (
-                                // 영상 없음
                                 <div className="w-full h-full flex flex-col items-center justify-center gap-3">
                                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5">
                                         <circle cx="12" cy="12" r="10" />
@@ -195,7 +183,6 @@ export default function AnimeDetailPage() {
                             )}
                         </div>
 
-                        {/* 작품명 */}
                         <div className="mt-4 flex items-center gap-3">
                             <p className="text-white/80 font-semibold">{detail.name}</p>
                             {videoInfo?.source === 'youtube' && (
@@ -209,7 +196,6 @@ export default function AnimeDetailPage() {
                 </div>
             )}
 
-            {/* 뒤로 버튼 */}
             <button
                 className="fixed top-[70px] left-6 z-[100] flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-white/60 text-[13px] cursor-pointer transition-all hover:text-white hover:bg-black/80"
                 onClick={() => router.back()}
@@ -220,7 +206,6 @@ export default function AnimeDetailPage() {
                 뒤로
             </button>
 
-            {/* 히어로 */}
             <div className="relative w-full h-[520px] overflow-hidden">
                 <div className="absolute inset-0">
                     {backdrop
@@ -272,17 +257,9 @@ export default function AnimeDetailPage() {
                             {detail.original_language && <span className="text-xs text-white/50 px-3 py-1 rounded-full border border-white/12 bg-white/[0.04]">{detail.original_language.toUpperCase()}</span>}
                         </div>
                         <div className="flex gap-2.5">
-                            {/* 재생하기 → 모달 오픈 */}
-                            {/* <button
-                                onClick={openPlayer}
-                                className="flex items-center gap-2 h-[46px] px-7 bg-[#6c63ff] border-none rounded-[10px] text-white text-[15px] font-bold cursor-pointer transition-colors hover:bg-[#5a52e0]"
-                            >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
-                                재생하기
-                            </button> */}
                             <Button
                                 onClick={openPlayer}
-                                className="bg-[#6c63ff] text-white px-7 "
+                                className="bg-[#6c63ff] text-white px-7"
                                 content="재생하기"
                             />
                             <button
@@ -305,10 +282,7 @@ export default function AnimeDetailPage() {
                 </div>
             </div>
 
-            {/* 바디 */}
             <div className="max-w-[1200px] mx-auto px-12 pt-10 pb-20">
-
-                {/* 탭 */}
                 <div className="flex border-b border-white/[0.08] mb-9">
                     {TABS.map(({ key, label }) => (
                         <button
@@ -322,7 +296,6 @@ export default function AnimeDetailPage() {
                     ))}
                 </div>
 
-                {/* 작품 정보 탭 */}
                 {activeTab === 'info' && (
                     <div>
                         {detail.overview && (
@@ -355,7 +328,6 @@ export default function AnimeDetailPage() {
                     </div>
                 )}
 
-                {/* 출연진 탭 */}
                 {activeTab === 'cast' && (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-4">
                         {credits.length === 0 ? (
@@ -375,7 +347,6 @@ export default function AnimeDetailPage() {
                     </div>
                 )}
 
-                {/* 비슷한 작품 탭 */}
                 {activeTab === 'similar' && (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-x-[13px] gap-y-5">
                         {similar.length === 0 ? (
@@ -395,7 +366,6 @@ export default function AnimeDetailPage() {
                     </div>
                 )}
 
-                {/* 시즌 & 에피소드 탭 */}
                 {activeTab === 'seasons' && (
                     <div>
                         {seasonList.length === 0 ? (
@@ -424,13 +394,11 @@ export default function AnimeDetailPage() {
                                                 className="flex gap-4 items-start bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 transition-all hover:bg-[#6c63ff]/[0.07] hover:border-[#6c63ff]/20 cursor-pointer group"
                                                 onClick={openPlayer}
                                             >
-                                                {/* 썸네일 */}
                                                 <div className="relative w-[140px] min-w-[140px] aspect-video rounded-lg overflow-hidden bg-[#1a1a1a] shrink-0">
                                                     {ep.still_path
                                                         ? <img src={`${IMG}/w300${ep.still_path}`} alt={ep.name} loading="lazy" className="w-full h-full object-cover" />
                                                         : <div className="w-full h-full flex items-center justify-center text-[22px] font-black text-white/[0.06]">{ep.episode_number}</div>
                                                     }
-                                                    {/* 재생 오버레이 */}
                                                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
