@@ -34,11 +34,15 @@
 }
 
 .animate-marquee-left {
-  animation: marquee-left 60s linear infinite;
+  animation: marquee-left 150s linear infinite;
 }
 
 .animate-marquee-right {
   animation: marquee-right 30s linear infinite;
+}
+
+.marquee-wrapper:hover .marquee-track {
+  animation-play-state: paused;
 }
 
 body {
@@ -53,6 +57,6 @@ html.dark body {
 }
 
 .inner {
-  max-width: 1820px;
+  max-width: 1770px;
   margin: 0 auto;
 }

@@ -11,7 +11,12 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
     aniDetails: {},
     aniSeasons: {},
 
-    // 기존 전체 fetch (다른 페이지에서 그대로 사용)
+    // 디테일 모달용 state
+    detailModalItem: null,
+    onOpenDetailModal: (item: any) => set({ detailModalItem: item }),
+    onCloseDetailModal: () => set({ detailModalItem: null }),
+
+    // 전체 fetch (기존 유지)
     onFetchAni: async () => {
         let allResults: any[] = [];
         for (let page = 1; page <= 25; page++) {
@@ -22,67 +27,113 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
             if (!data.results?.length) break;
             allResults = [...allResults, ...data.results];
         }
-        set({ aniList: allResults });
+        const unique = Array.from(new Map(allResults.map(a => [a.id, a])).values());
+        set({ aniList: unique });
     },
 
-    // ← 추가: 파티 섹션용 빠른 fetch (1페이지 = 20개만)
-    // 1페이지 → 3페이지로 늘려서 60개 확보
+    // 빠른 fetch (HeroSection / 파티 섹션용)
     onFetchTopAni: async () => {
-        const { aniList } = get()
-        if (aniList.length >= 60) return
+        const { aniList } = get();
+        if (aniList.length >= 60) return;
 
-        let results: any[] = []
+        let results: any[] = [];
         for (let page = 1; page <= 3; page++) {
             const res = await fetch(
                 `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=ko-KR&page=${page}`
-            )
-            const data = await res.json()
-            results = [...results, ...data.results]
+            );
+            const data = await res.json();
+            results = [...results, ...data.results];
         }
-        set({ aniList: results })
+        const unique = Array.from(new Map(results.map(a => [a.id, a])).values());
+        set({ aniList: unique });
     },
 
     onFetchVideo: async (id: number, name: string) => {
         const { aniVideos } = get();
         if (aniVideos[id]) return;
 
+        // 1) TMDB에서 트레일러/티저 수집
         const res = await fetch(
             `https://api.themoviedb.org/3/tv/${id}/videos?api_key=${TMDB_KEY}`
         );
         const data = await res.json();
-        const trailer = data.results?.find(
-            (v: any) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
-        );
 
-        if (trailer) {
-            set((state: any) => ({
-                aniVideos: { ...state.aniVideos, [id]: { source: "tmdb", key: trailer.key } }
-            }));
+        const tmdbCandidates: string[] = (data.results || [])
+            .filter((v: any) =>
+                v.site === "YouTube" &&
+                (v.type === "Trailer" || v.type === "Teaser" || v.type === "Opening Credits")
+            )
+            .map((v: any) => v.key as string);
+
+        // 2) YouTube 폴백: 영어 + 일본어 두 쿼리로 더 많은 후보 확보
+        let ytCandidates: string[] = [];
+        if (YOUTUBE_KEY) {
+            try {
+                const queries = [
+                    `${name} anime official trailer`,
+                    `${name} アニメ 予告`,
+                ];
+                const ytResults = await Promise.all(
+                    queries.map(q =>
+                        fetch(
+                            `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&key=${YOUTUBE_KEY}&type=video&maxResults=5&videoEmbeddable=true`
+                        ).then(r => r.json())
+                    )
+                );
+                ytCandidates = ytResults
+                    .flatMap(d => (d.items || []).map((item: any) => item.id?.videoId))
+                    .filter(Boolean);
+            } catch (e) {
+                console.warn('[useAniStore] YouTube search failed:', e);
+            }
+        }
+
+        // TMDB 우선, 없으면 YouTube
+        const candidates = [
+            ...new Set([...tmdbCandidates, ...ytCandidates])
+        ];
+
+        if (candidates.length === 0) {
+            console.warn(`[useAniStore] No video candidates for id=${id} name=${name}`);
             return;
         }
 
-        const query = encodeURIComponent(`${name} anime trailer`);
-        const ytRes = await fetch(
-            `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&key=${YOUTUBE_KEY}&type=video&maxResults=5&relevanceLanguage=ja`
-        );
-        const ytData = await ytRes.json();
-        const items = ytData.items || [];
+        set((state: any) => ({
+            aniVideos: {
+                ...state.aniVideos,
+                [id]: {
+                    source: tmdbCandidates.length > 0 ? "tmdb" : "youtube",
+                    key: candidates[0],
+                    candidates,
+                },
+            },
+        }));
+    },
 
-        for (const item of items) {
-            const videoId = item.id.videoId;
-            const detailRes = await fetch(
-                `https://www.googleapis.com/youtube/v3/videos?part=status&id=${videoId}&key=${YOUTUBE_KEY}`
-            );
-            const detailData = await detailRes.json();
-            const status = detailData.items?.[0]?.status;
+    // 현재 key 에러 → 다음 candidate로 교체
+    onNextVideo: (id: number) => {
+        const { aniVideos } = get();
+        const current = aniVideos[id];
+        if (!current) return;
 
-            if (status?.embeddable) {
-                set((state: any) => ({
-                    aniVideos: { ...state.aniVideos, [id]: { source: "youtube", key: videoId } }
-                }));
-                return;
-            }
+        const currentIndex = current.candidates.indexOf(current.key);
+        const nextKey = current.candidates[currentIndex + 1];
+        if (!nextKey) {
+            console.warn(`[useAniStore] No more candidates for id=${id}`);
+            return;
         }
+
+        console.log(`[useAniStore] Switching to next video: ${nextKey} (index ${currentIndex + 1})`);
+        set((state: any) => ({
+            aniVideos: {
+                ...state.aniVideos,
+                [id]: {
+                    ...current,
+                    key: nextKey,
+                    source: "youtube",
+                },
+            },
+        }));
     },
 
     onFetchDetail: async (id: number) => {
@@ -94,7 +145,7 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
         );
         const data: AniDetail = await res.json();
         set((state: any) => ({
-            aniDetails: { ...state.aniDetails, [id]: data }
+            aniDetails: { ...state.aniDetails, [id]: data },
         }));
     },
 
@@ -108,7 +159,7 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
         );
         const data: AniSeasonDetail = await res.json();
         set((state: any) => ({
-            aniSeasons: { ...state.aniSeasons, [key]: data }
+            aniSeasons: { ...state.aniSeasons, [key]: data },
         }));
     },
 }));

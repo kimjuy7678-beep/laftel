@@ -14,7 +14,7 @@ const FooterLinks = [
 export default function Footer() {
     return (
         <footer style={{ background: '#0a0a0a', color: '#ededed' }} className='mt-auto'>
-            <div className="inner px-6 py-10">
+            <div style={{ width: '90%', margin: '0 auto', padding: '40px 0' }}>
 
                 <div className="flex items-start justify-between">
                     <div className="flex flex-col gap-2">
