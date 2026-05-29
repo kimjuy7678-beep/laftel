@@ -34,8 +34,11 @@ export default function TagTop10Section() {
     const prevRef = useRef<HTMLButtonElement>(null)
     const nextRef = useRef<HTMLButtonElement>(null)
 
-    const defaultTagIdx = useMemo(() => Math.floor(Math.random() * TAGS.length), [])
-    const [activeTag, setActiveTag] = useState(defaultTagIdx)
+    const [activeTag, setActiveTag] = useState(0)
+
+    useEffect(() => {
+        setActiveTag(Math.floor(Math.random() * TAGS.length))
+    }, []) 
 
     useEffect(() => {
         if (aniList.length === 0) onFetchAni()

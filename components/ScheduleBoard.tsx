@@ -18,90 +18,6 @@ export default function LiveChannelPage() {
     const ch = channels.find(c => c.slug === channel)
     const otherChannels = channels.filter(c => c.slug !== channel)
 
-            <ul>
-                {items.map((item, i) => {
-                    const isCurrent = i === currentIdx
-                    const isPast    = i < currentIdx
-                    const detail    = aniDetails[item.tmdbId]
-                    const posterPath = detail?.poster_path ?? null
-
-                    return (
-                        <li
-                            key={item.tmdbId}
-                            ref={isCurrent ? currentRef : null}
-                            onClick={() => {
-                                if (isCurrent) {
-                                    router.push(`/live/party/dummy-${item.tmdbId}`)
-                                } else if (!isPast) {
-                                    const today = new Date()
-                                    const h = Math.floor(item.minutesFromStart / 60) % 24
-                                    const m = item.minutesFromStart % 60
-                                    today.setHours(h, m, 0, 0)
-                                    if (item.minutesFromStart >= 24 * 60) {
-                                        today.setDate(today.getDate() + 1)
-                                    }
-                                    router.push(`/live/party/dummy-${item.tmdbId}?scheduledAt=${today.toISOString()}`)
-                                }
-                            }}
-                            className={[
-                                'relative flex items-center transition-all duration-200',
-                                i < items.length - 1 ? 'border-b border-white/[0.05]' : '',
-                                isCurrent ? 'gap-5 px-5 py-5' : 'gap-4 px-5 py-3',
-                                isCurrent
-                                    ? 'bg-[#ff6b3d]/[0.08] hover:bg-[#ff6b3d]/[0.12] cursor-pointer'
-                                    : isPast
-                                    ? 'cursor-default opacity-60'
-                                    : 'hover:bg-white/[0.03] cursor-pointer',
-                            ].join(' ')}
-                        >
-                            {isCurrent && (
-                                <span className="absolute left-0 top-4 bottom-4 w-[3px] bg-[#ff6b3d] rounded-r" />
-                            )}
-
-                            <span
-                                className={[
-                                    'font-bold tracking-wider flex-shrink-0 tabular-nums',
-                                    isCurrent
-                                        ? 'text-[#ff6b3d] text-[15px] min-w-[52px]'
-                                        : 'text-[13px] min-w-[46px]',
-                                    !isCurrent && isPast  ? 'text-white/15' : '',
-                                    !isCurrent && !isPast ? 'text-white/35' : '',
-                                ].join(' ')}
-                            >
-                                {item.time}
-                            </span>
-
-                            <div
-                                className={[
-                                    'flex-shrink-0 rounded-lg overflow-hidden bg-white/[0.06] transition-all duration-200',
-                                    isCurrent  ? 'w-[72px] h-[100px]' : 'w-[58px] h-[80px]',
-                                    isPast ? 'opacity-30' : 'opacity-100',
-                                ].join(' ')}
-                            >
-                                {posterPath ? (
-                                    <img
-                                        src={`https://image.tmdb.org/t/p/w154${posterPath}`}
-                                        alt={item.koTitle}
-                                        loading="lazy"
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.currentTarget.style.display = 'none'
-                                            const ph = e.currentTarget.parentElement?.querySelector('[data-ph]') as HTMLElement | null
-                                            if (ph) ph.style.display = 'flex'
-                                        }}
-                                    />
-                                ) : null}
-                                <div
-                                    data-ph=""
-                                    style={{ display: posterPath ? 'none' : 'flex' }}
-                                    className="w-full h-full items-center justify-center text-white/15"
-                                >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                                        <rect x="2" y="5" width="20" height="14" rx="2" />
-                                        <path d="M8 2l4 3 4-3" />
-                                    </svg>
-                                </div>
-                            </div>
     const [messages, setMessages] = useState<any[]>([])
     const [input, setInput] = useState('')
     const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -110,7 +26,6 @@ export default function LiveChannelPage() {
     const [playerHeight, setPlayerHeight] = useState(0)
     const [nowMin, setNowMin] = useState(nowInMinutes)
 
-    // scheduleUtils 기반 편성표
     const allChannels = useMemo(() => buildChannels(getTodaySeed()), [])
     const chSchedule = useMemo(() =>
         allChannels.find(c => c.id === ch?.id),
@@ -122,14 +37,12 @@ export default function LiveChannelPage() {
     )
     const currentItem = chSchedule?.items[currentIdx]
 
-    // 현재 방영 중 애니 detail + video fetch
     useEffect(() => {
         if (!currentItem?.tmdbId) return
         onFetchDetail(currentItem.tmdbId)
         onFetchVideo(currentItem.tmdbId, currentItem.koTitle)
     }, [currentItem?.tmdbId])
 
-    // 다른 채널 현재 방영 중도 fetch
     useEffect(() => {
         allChannels.forEach(sch => {
             const idx = getCurrentIdx(sch.items, nowMin)
@@ -138,7 +51,6 @@ export default function LiveChannelPage() {
         })
     }, [])
 
-    // 1분마다 nowMin 갱신
     useEffect(() => {
         const timer = setInterval(() => setNowMin(nowInMinutes()), 60_000)
         return () => clearInterval(timer)
@@ -186,12 +98,10 @@ export default function LiveChannelPage() {
         </div>
     )
 
-    // 영상 소스 결정: 현재 방영 애니 유튜브 키 → 없으면 채널 기본 videoId
     const currentDetail = currentItem?.tmdbId ? aniDetails[currentItem.tmdbId] : null
     const currentVideo = currentItem?.tmdbId ? aniVideos[currentItem.tmdbId] : null
     const videoKey = currentVideo?.key || (ch as any).videoId
 
-    // 현재 방영 backdrop
     const backdropUrl = currentDetail?.backdrop_path
         ? `https://image.tmdb.org/t/p/w780${currentDetail.backdrop_path}`
         : `https://img.youtube.com/vi/${(ch as any).videoId}/maxresdefault.jpg`
@@ -291,7 +201,7 @@ export default function LiveChannelPage() {
                             </div>
                         </div>
 
-                        {/* 관련 작품 — 현재 채널 편성표 기반 */}
+                        {/* 오늘 편성 작품 */}
                         <div className="mt-8">
                             <h3 className="text-white font-bold text-base mb-4">오늘 편성 작품</h3>
                             <div className="grid grid-cols-6 gap-3">
@@ -303,7 +213,7 @@ export default function LiveChannelPage() {
                                     const isCur = i === currentIdx
 
                                     return (
-                                        <div key={item.tmdbId} className="group cursor-pointer" onClick={() => { }}>
+                                        <div key={item.tmdbId} className="group cursor-pointer">
                                             <div className={`aspect-[3/4] rounded-lg overflow-hidden relative ${isCur ? 'ring-2 ring-[#6c63ff]' : ''}`}>
                                                 {posterUrl
                                                     ? <img src={posterUrl} alt={item.koTitle} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
