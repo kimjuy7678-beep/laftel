@@ -13,9 +13,6 @@ const OVERLAP = 60
 const CARD_W = NUM_W + POSTER_W - OVERLAP
 const NUM_FONT = 220
 
-const FILTERS = ['실시간', '주간', '분기', '역대'] as const
-type Filter = typeof FILTERS[number]
-
 const TAGS = [
     { label: '액션', genres: [10759] },
     { label: 'SF', genres: [10765] },
@@ -34,11 +31,9 @@ const GENRE_MAP: Record<number, string> = {
 export default function TagTop10Section() {
     const { aniList, onFetchAni } = useAniStore()
     const router = useRouter()
-    const [activeFilter, setActiveFilter] = useState<Filter>('실시간')
     const prevRef = useRef<HTMLButtonElement>(null)
     const nextRef = useRef<HTMLButtonElement>(null)
 
-    // 새로고침마다 랜덤 태그 선택
     const defaultTagIdx = useMemo(() => Math.floor(Math.random() * TAGS.length), [])
     const [activeTag, setActiveTag] = useState(defaultTagIdx)
 
@@ -48,32 +43,10 @@ export default function TagTop10Section() {
 
     const tag = TAGS[activeTag]
 
-    const getItems = () => {
-        const filtered = aniList.filter((a: any) =>
-            tag.genres.some((g: number) => a.genre_ids?.includes(g))
-        )
-        switch (activeFilter) {
-            case '실시간':
-                return [...filtered].sort((a: any, b: any) => b.popularity - a.popularity).slice(0, 10)
-            case '주간':
-                return [...filtered].sort((a: any, b: any) => b.vote_count - a.vote_count).slice(0, 10)
-            case '분기': {
-                const sixMonthsAgo = new Date()
-                sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-                return [...filtered]
-                    .filter((a: any) => a.first_air_date && new Date(a.first_air_date) >= sixMonthsAgo)
-                    .sort((a: any, b: any) => b.popularity - a.popularity)
-                    .slice(0, 10)
-            }
-            case '역대':
-                return [...filtered]
-                    .filter((a: any) => a.vote_count > 100)
-                    .sort((a: any, b: any) => b.vote_average - a.vote_average)
-                    .slice(0, 10)
-        }
-    }
-
-    const items = getItems()
+    const items = aniList
+        .filter((a: any) => tag.genres.some((g: number) => a.genre_ids?.includes(g)))
+        .sort((a: any, b: any) => b.popularity - a.popularity)
+        .slice(0, 10)
 
     return (
         <section style={{ padding: '56px 0 80px' }}>
@@ -94,18 +67,6 @@ export default function TagTop10Section() {
                 }
                 .tt-nav-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
 
-                .tt-filters { display: flex; gap: 8px; margin-bottom: 16px; }
-                .tt-filter-btn {
-                    padding: 7px 18px; border-radius: 20px;
-                    border: 1px solid rgba(255,255,255,0.12);
-                    background: transparent;
-                    color: rgba(255,255,255,0.45);
-                    font-size: 13px; font-weight: 600;
-                    cursor: pointer; transition: all .18s;
-                }
-                .tt-filter-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
-                .tt-filter-btn.active { background: #6c5ce7; border-color: #6c5ce7; color: #fff; }
-
                 .tt-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
                 .tt-tag {
                     padding: 6px 16px; border-radius: 20px;
@@ -123,14 +84,14 @@ export default function TagTop10Section() {
                 }
                 .tt-card:hover { transform: translateY(-6px); }
 
-               .tt-rank {
-    position: absolute; left: -20px; bottom: 37px;
-    width: ${NUM_W + 20}px;
-    font-size: ${NUM_FONT}px; font-weight: 900; line-height: 1;
-    color: rgba(255,255,255,0.85); text-align: right;
-    z-index: 3; user-select: none; letter-spacing: -0.06em;
-    text-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
-}
+                .tt-rank {
+                    position: absolute; left: -20px; bottom: 37px;
+                    width: ${NUM_W + 20}px;
+                    font-size: ${NUM_FONT}px; font-weight: 900; line-height: 1;
+                    color: rgba(255,255,255,0.85); text-align: right;
+                    z-index: 3; user-select: none; letter-spacing: -0.06em;
+                    text-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
+                }
 
                 .tt-thumb {
                     position: absolute; right: 0; top: 0;
@@ -149,8 +110,8 @@ export default function TagTop10Section() {
                     padding-top: ${POSTER_H + 14}px;
                     padding-left: ${NUM_W - OVERLAP}px;
                 }
-                .tt-name { font-size: 15px; font-weight: 700; color: #fff; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-bottom: 4px; line-height: 1.3; }
-                .tt-genre { font-size: 11px; color: rgba(255,255,255,0.35); }
+                .tt-name { font-size: 24px; font-weight: 700; color: #fff; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-bottom: 4px; line-height: 1.3; }
+                .tt-genre { font-size: 18px; color: rgba(255,255,255,0.35); }
                 .tt-empty { display: flex; align-items: center; justify-content: center; height: ${POSTER_H}px; color: rgba(255,255,255,0.2); font-size: 14px; }
             `}</style>
 
@@ -158,7 +119,7 @@ export default function TagTop10Section() {
                 <p className="tt-eyebrow">라프텔 서버 터지게 만든 화제의 작품</p>
                 <div className="tt-head">
                     <h2 className="tt-title">
-                        {activeFilter} <span className="tt-title-tag">#{tag.label}</span> TOP 10
+                        주간 <span className="tt-title-tag">#{tag.label}</span> TOP 10
                     </h2>
                     <div className="tt-nav">
                         <button ref={prevRef} className="tt-nav-btn">
@@ -168,18 +129,6 @@ export default function TagTop10Section() {
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
                         </button>
                     </div>
-                </div>
-
-                <div className="tt-filters">
-                    {FILTERS.map(f => (
-                        <button
-                            key={f}
-                            className={`tt-filter-btn${activeFilter === f ? ' active' : ''}`}
-                            onClick={() => setActiveFilter(f)}
-                        >
-                            {f}
-                        </button>
-                    ))}
                 </div>
 
                 <div className="tt-tags">

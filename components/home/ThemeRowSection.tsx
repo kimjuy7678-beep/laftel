@@ -35,7 +35,7 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
             <style>{`
                 .tr-wrap { width: 90%; margin: 0 auto; }
                 .tr-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                .tr-title { font-size: 18px; font-weight: 800; color: #fff; margin: 0; line-height: 1.4; }
+                .tr-title { font-size: 32px; font-weight: 800; color: #fff; margin: 0; line-height: 1.4; }
                 .tr-more {
                     font-size: 12px; color: rgba(255,255,255,0.35);
                     background: none; border: none; cursor: pointer;
@@ -80,7 +80,7 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
 
                 .tr-info { padding: 10px 10px 12px; }
                 .tr-name {
-                    font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.88);
+                    font-size: 25px; font-weight: 600; color: rgba(255,255,255,0.88);
                     margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
                     line-height: 1.4;
                 }

@@ -130,11 +130,11 @@ export default function Top10Section() {
                     padding-left: ${NUM_W - OVERLAP}px;
                 }
                 .t10-name {
-                    font-size: 15px; font-weight: 700; color: #fff;
+                    font-size: 24px; font-weight: 700; color: #fff;
                     overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
                     margin-bottom: 4px; line-height: 1.3;
                 }
-                .t10-tags { font-size: 11px; color: rgba(255,255,255,0.35); }
+                .t10-tags { font-size: 18px; color: rgba(255,255,255,0.35); }
             `}</style>
 
             <div className="t10-wrap">
