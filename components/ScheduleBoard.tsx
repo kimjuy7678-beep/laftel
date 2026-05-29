@@ -18,6 +18,90 @@ export default function LiveChannelPage() {
     const ch = channels.find(c => c.slug === channel)
     const otherChannels = channels.filter(c => c.slug !== channel)
 
+            <ul>
+                {items.map((item, i) => {
+                    const isCurrent = i === currentIdx
+                    const isPast    = i < currentIdx
+                    const detail    = aniDetails[item.tmdbId]
+                    const posterPath = detail?.poster_path ?? null
+
+                    return (
+                        <li
+                            key={item.tmdbId}
+                            ref={isCurrent ? currentRef : null}
+                            onClick={() => {
+                                if (isCurrent) {
+                                    router.push(`/live/party/dummy-${item.tmdbId}`)
+                                } else if (!isPast) {
+                                    const today = new Date()
+                                    const h = Math.floor(item.minutesFromStart / 60) % 24
+                                    const m = item.minutesFromStart % 60
+                                    today.setHours(h, m, 0, 0)
+                                    if (item.minutesFromStart >= 24 * 60) {
+                                        today.setDate(today.getDate() + 1)
+                                    }
+                                    router.push(`/live/party/dummy-${item.tmdbId}?scheduledAt=${today.toISOString()}`)
+                                }
+                            }}
+                            className={[
+                                'relative flex items-center transition-all duration-200',
+                                i < items.length - 1 ? 'border-b border-white/[0.05]' : '',
+                                isCurrent ? 'gap-5 px-5 py-5' : 'gap-4 px-5 py-3',
+                                isCurrent
+                                    ? 'bg-[#ff6b3d]/[0.08] hover:bg-[#ff6b3d]/[0.12] cursor-pointer'
+                                    : isPast
+                                    ? 'cursor-default opacity-60'
+                                    : 'hover:bg-white/[0.03] cursor-pointer',
+                            ].join(' ')}
+                        >
+                            {isCurrent && (
+                                <span className="absolute left-0 top-4 bottom-4 w-[3px] bg-[#ff6b3d] rounded-r" />
+                            )}
+
+                            <span
+                                className={[
+                                    'font-bold tracking-wider flex-shrink-0 tabular-nums',
+                                    isCurrent
+                                        ? 'text-[#ff6b3d] text-[15px] min-w-[52px]'
+                                        : 'text-[13px] min-w-[46px]',
+                                    !isCurrent && isPast  ? 'text-white/15' : '',
+                                    !isCurrent && !isPast ? 'text-white/35' : '',
+                                ].join(' ')}
+                            >
+                                {item.time}
+                            </span>
+
+                            <div
+                                className={[
+                                    'flex-shrink-0 rounded-lg overflow-hidden bg-white/[0.06] transition-all duration-200',
+                                    isCurrent  ? 'w-[72px] h-[100px]' : 'w-[58px] h-[80px]',
+                                    isPast ? 'opacity-30' : 'opacity-100',
+                                ].join(' ')}
+                            >
+                                {posterPath ? (
+                                    <img
+                                        src={`https://image.tmdb.org/t/p/w154${posterPath}`}
+                                        alt={item.koTitle}
+                                        loading="lazy"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none'
+                                            const ph = e.currentTarget.parentElement?.querySelector('[data-ph]') as HTMLElement | null
+                                            if (ph) ph.style.display = 'flex'
+                                        }}
+                                    />
+                                ) : null}
+                                <div
+                                    data-ph=""
+                                    style={{ display: posterPath ? 'none' : 'flex' }}
+                                    className="w-full h-full items-center justify-center text-white/15"
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                                        <path d="M8 2l4 3 4-3" />
+                                    </svg>
+                                </div>
+                            </div>
     const [messages, setMessages] = useState<any[]>([])
     const [input, setInput] = useState('')
     const chatContainerRef = useRef<HTMLDivElement>(null)

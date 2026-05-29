@@ -41,6 +41,10 @@
   animation: marquee-right 30s linear infinite;
 }
 
+.marquee-wrapper:hover .marquee-track {
+  animation-play-state: paused;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
   background: #171717;

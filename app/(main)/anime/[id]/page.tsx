@@ -6,8 +6,9 @@ import { useWatchProgressStore } from '@/store/useWatchProgressStore'
 import { useAuthStore } from '@/store/useAuthStore'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Button from '@/components/Button'
+import VideoPlayer from '@/components/VideoPlayer'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
@@ -25,9 +26,11 @@ export default function AnimeDetailPage() {
     const { id } = useParams()
     const router = useRouter()
     const numericId = Number(id)
+    const searchParams = useSearchParams()
 
-    // store
-    const { aniVideos, onFetchVideo } = useAniStore()
+    // store — selector로 구독해야 fetch 완료 후 리렌더 보장됨
+    const onFetchVideo = useAniStore(state => state.onFetchVideo)
+    const videoInfo = useAniStore(state => state.aniVideos[numericId])
 
     const [detail, setDetail] = useState<any>(null)
     const [credits, setCredits] = useState<any[]>([])
@@ -46,9 +49,6 @@ export default function AnimeDetailPage() {
     // 모달
     const [modalOpen, setModalOpen] = useState(false)
     const [videoLoading, setVideoLoading] = useState(false)
-
-    // 현재 작품 비디오 키
-    const videoInfo = aniVideos[numericId]
 
     useEffect(() => {
         if (!id) return
@@ -86,19 +86,19 @@ export default function AnimeDetailPage() {
             .finally(() => setEpisodeLoading(false))
     }, [activeTab, selectedSeason, id])
 
-    // 모달 열기 — store의 onFetchVideo 활용    
+    // 모달 열기
     const openPlayer = useCallback(async () => {
         if (!detail) return
         setModalOpen(true)
 
-        // 이미 store에 있으면 바로 사용
-        if (aniVideos[numericId]) return
+        // 이미 store에 있으면 바로 사용 (videoInfo는 selector로 구독 중이므로 자동 리렌더)
+        if (useAniStore.getState().aniVideos[numericId]) return
 
-        // 없으면 fetch
+        // 없으면 fetch — 완료되면 videoInfo selector가 자동으로 리렌더 트리거
         setVideoLoading(true)
         await onFetchVideo(numericId, detail.original_name || detail.name)
         setVideoLoading(false)
-    }, [detail, numericId, aniVideos, onFetchVideo])
+    }, [detail, numericId, onFetchVideo])
 
     // ESC 키로 모달 닫기
     useEffect(() => {
@@ -108,6 +108,13 @@ export default function AnimeDetailPage() {
         window.addEventListener('keydown', handler)
         return () => window.removeEventListener('keydown', handler)
     }, [setModalOpen])
+
+    useEffect(() => {
+        if (!detail) return
+        if (searchParams.get('play') === '1') {
+            openPlayer()
+        }
+    }, [detail])
 
     if (loading) return (
         <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -175,12 +182,7 @@ export default function AnimeDetailPage() {
                                 </div>
                             ) : videoInfo ? (
                                 // 영상 있음
-                                <iframe
-                                    className="w-full h-full border-none"
-                                    src={`https://www.youtube.com/embed/${videoInfo.key}?autoplay=1&rel=0`}
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                                    allowFullScreen
-                                />
+                                <VideoPlayer id={numericId} mode="modal" />
                             ) : (
                                 // 영상 없음
                                 <div className="w-full h-full flex flex-col items-center justify-center gap-3">

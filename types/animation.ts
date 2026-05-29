@@ -19,6 +19,7 @@ export interface AniItem {
 export interface AniVideo {
     key: string;
     source: "tmdb" | "youtube";
+    candidates: string[];
 }
 
 export interface AniState {
@@ -40,6 +41,7 @@ export interface AniSeason {
 export interface AniDetail {
     id: number;
     name: string;
+    title: string;
     overview: string;
     poster_path: string;
     backdrop_path: string;

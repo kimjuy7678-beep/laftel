@@ -19,24 +19,32 @@ export default function ScheduleMarquee() {
         }))
     }).filter(item => !item.isPast)
 
-    const doubled = [...allItems, ...allItems, ...allItems]
+    const tripled = [...allItems, ...allItems, ...allItems]
+
+    const handleClick = (item: typeof allItems[0]) => {
+        if (item.isLive) {
+            router.push(`/live/party/dummy-${item.tmdbId}`)
+        } else {
+            // 미래 편성: minutesFromStart 기준으로 시간 계산
+            const today = new Date()
+            const h = Math.floor(item.minutesFromStart / 60) % 24
+            const m = item.minutesFromStart % 60
+            today.setHours(h, m, 0, 0)
+            // 자정 넘기는 경우 (25시 = 다음날 1시)
+            if (item.minutesFromStart >= 24 * 60) {
+                today.setDate(today.getDate() + 1)
+            }
+            router.push(`/live/party/dummy-${item.tmdbId}?scheduledAt=${today.toISOString()}`)
+        }
+    }
 
     return (
-        <div className="w-full overflow-hidden border-t border-b border-white/10 bg-black/30 py-2.5">
-            <div className="flex w-max animate-marquee-left">
-                {doubled.map((item, i) => (
+        <div className="marquee-wrapper w-full overflow-hidden border-t border-b border-white/10 bg-black/30 py-2.5">
+            <div className="marquee-track flex w-max animate-marquee-left">
+                {tripled.map((item, i) => (
                     <div
                         key={i}
-                        onClick={() => {
-                            if (item.isLive) {
-                                router.push(`/live/party/dummy-${item.tmdbId}`)
-                            } else {
-                                const today = new Date()
-                                const [h, m] = item.time.split(':').map(Number)
-                                today.setHours(h, m, 0, 0)
-                                router.push(`/live/party/dummy-${item.tmdbId}?scheduledAt=${today.toISOString()}`)
-                            }
-                        }}
+                        onClick={() => handleClick(item)}
                         className="flex items-center gap-2 px-5 border-r border-white/10 cursor-pointer hover:bg-white/5 transition-colors whitespace-nowrap"
                     >
                         {item.isLive ? (
