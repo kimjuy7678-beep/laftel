@@ -4,6 +4,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/store/StoreHeader";
+import Footer from "@/components/Footer";
+import ScheduleMarquee from "@/components/ScheduleMarquee";
+import { Main } from "next/document";
 
 export default function StoreLayout({
     children,
@@ -22,11 +25,12 @@ export default function StoreLayout({
             <div>
                 {/* 헤더 바 */}
                 <Header />
-
+                <main className="bg-white">{children}</main>
+                <Footer />
 
             </div>
 
-            <main className="bg-white">{children}</main>
+
         </>
     );
 }
