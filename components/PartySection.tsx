@@ -53,7 +53,7 @@ export default function PartySection() {
                     return (
                         <li key={`${ani.id}-${offset}-${idx}`} className="relative">
                             <div
-                                onClick={() => router.push(`/live/party/dummy-${ani.id}`)}
+                                onClick={() => router.push(`/live/party/party-${ani.id}`)}
                                 className="relative overflow-hidden rounded-xl aspect-video bg-[#1a1a2e] cursor-pointer group"
                             >
                                 {imgPath && (
