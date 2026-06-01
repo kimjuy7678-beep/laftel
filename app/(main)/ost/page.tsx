@@ -808,7 +808,6 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                         <WeeklyTop10 tracks={top10} playingId={playingId} onPlay={onPlay} />
                         <RecommendSection tracks={tracks} playingId={playingId} onPlay={onPlay} userName={userName} />
                         <HotAnimeSection hotAnimes={hotAnimes} playingId={playingId} onPlayAnime={onPlayAnime} />
-                        {/* 나머지 태그별 */}
                         {['전투', '감성', '로맨스', '새벽감성', '열혈', '힐링', '오프닝', '엔딩'].map(tag => {
                             const tagged = tracks.filter(t => t.tags.includes(tag))
                             if (!tagged.length) return null
@@ -828,6 +827,9 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                     </>
                 )}
             </div>
+
+            {/* 오른쪽 여백 — 왼쪽 사이드바와 동일한 너비 */}
+            <div style={{ width: sidebarOpen ? 220 : 0, minWidth: sidebarOpen ? 220 : 0, flexShrink: 0, transition: 'all .3s' }} />
         </div>
     )
 }
