@@ -131,7 +131,7 @@ function StoreSearch() {
 
 function MiniProductCard({ product }: { product: Product }) {
     return (
-        <Link href="#" className="block min-w-0">
+        <Link href={`/store/${product.id}`} className="block min-w-0">
             <ImageSlot
                 src={product.imageSrc}
                 alt={product.title}
@@ -208,7 +208,7 @@ function CategoryStrip() {
 
 function TopProductCard({ product, rank }: { product: Product; rank: number }) {
     return (
-        <Link href="#" className="group relative block min-w-0">
+        <Link href={`/store/${product.id}`} className="group relative block min-w-0">
             <div className="relative overflow-hidden rounded-[12px] bg-[#eeeeef]">
                 <ImageSlot
                     src={product.imageSrc}
@@ -230,7 +230,7 @@ function TopProductCard({ product, rank }: { product: Product; rank: number }) {
                 {/* sub: 13px */}
                 <p className="mt-1 text-[13px] font-medium text-[#7865ff]">{product.price}</p>
             </div>
-        </Link>
+        </Link >
     );
 }
 
@@ -253,7 +253,7 @@ function BestTopSection() {
                     </div>
                     {/* all-btn: 16px */}
                     <Link href="#" className="text-[16px] font-semibold text-[#7865ff]">
-                        View All →
+                        더 많은 제품 보러가기 →
                     </Link>
                 </div>
                 <div className="mt-10 grid grid-cols-2 gap-8 md:grid-cols-4">
@@ -270,7 +270,7 @@ function BestTopSection() {
 
 function ArrivalCard({ product }: { product: Product }) {
     return (
-        <Link href="#" className="group block min-w-0">
+        <Link href={`/store/${product.id}`} className="group block min-w-0">
             <div className="relative overflow-hidden rounded-[10px] bg-[#eeeeef]">
                 <ImageSlot
                     src={product.imageSrc}
