@@ -100,6 +100,7 @@ export default function ProfilePage() {
 
     const [step, setStep] = useState<Step>('select')
     const [profiles, setProfiles] = useState<ProfileData[]>([])
+    const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editNickname, setEditNickname] = useState('')
     const [selectedAvatar, setSelectedAvatar] = useState(LAFTEL_AVATARS[0])
@@ -168,7 +169,6 @@ export default function ProfilePage() {
         setStep('edit')
     }
 
-    // 이미지 압축 후 base64로 저장 (Storage 없이)
     const compressImage = (file: File): Promise<string> => {
         return new Promise(resolve => {
             const reader = new FileReader()
@@ -176,8 +176,7 @@ export default function ProfilePage() {
                 const img = new Image()
                 img.onload = () => {
                     const canvas = document.createElement('canvas')
-                    canvas.width = 200
-                    canvas.height = 200
+                    canvas.width = 200; canvas.height = 200
                     const ctx = canvas.getContext('2d')!
                     ctx.drawImage(img, 0, 0, 200, 200)
                     resolve(canvas.toDataURL('image/jpeg', 0.8))
@@ -192,8 +191,7 @@ export default function ProfilePage() {
         if (!user?.uid) return
         setSaving(true)
         try {
-            const finalAvatarUrl = selectedAvatar // base64 그대로 저장
-
+            const finalAvatarUrl = selectedAvatar
             let newProfiles: ProfileData[]
             if (editingId) {
                 newProfiles = profiles.map(p =>
@@ -209,32 +207,24 @@ export default function ProfilePage() {
                     ageLimit: editAgeLimit,
                 }]
             }
-
             await setDoc(doc(db, 'users', user.uid), {
                 profiles: newProfiles,
                 nickname: newProfiles[0].nickname,
                 avatarUrl: newProfiles[0].avatarUrl,
                 updatedAt: new Date().toISOString(),
             }, { merge: true })
-
             setProfiles(newProfiles)
-            const main = newProfiles[0]
-            onLogin({ ...user, name: main.nickname, photoURL: main.avatarUrl })
+            onLogin({ ...user, name: newProfiles[0].nickname, photoURL: newProfiles[0].avatarUrl })
             setStep('select')
-        } catch (e) {
-            console.error(e)
-        } finally {
-            setSaving(false)
-        }
+        } catch (e) { console.error(e) }
+        finally { setSaving(false) }
     }
 
     const saveAgeLimit = async () => {
         if (!user?.uid) return
         setSaving(true)
         try {
-            const newProfiles = profiles.map(p =>
-                p.id === editingId ? { ...p, ageLimit: selectedAge } : p
-            )
+            const newProfiles = profiles.map(p => p.id === editingId ? { ...p, ageLimit: selectedAge } : p)
             await setDoc(doc(db, 'users', user.uid), { profiles: newProfiles }, { merge: true })
             setProfiles(newProfiles)
             setEditAgeLimit(selectedAge)
@@ -295,7 +285,7 @@ export default function ProfilePage() {
                 .drop-zone.dragging { border-color: #6c63ff; background: rgba(108,99,255,.08); }
                 .drop-zone:hover { border-color: rgba(255,255,255,.3); }
                 .profile-card { display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; }
-                .profile-avatar { width: 100px; height: 100px; border-radius: 50%; overflow: hidden; background: #1a1a22; position: relative; transition: transform .2s; }
+                .profile-avatar { width: 100px; height: 100px; border-radius: 50%; overflow: hidden; background: #1a1a22; transition: transform .2s; }
                 .profile-card:hover .profile-avatar { transform: scale(1.05); }
             `}</style>
 
@@ -305,7 +295,7 @@ export default function ProfilePage() {
                     <div style={{ background: '#1a1a22', borderRadius: 16, padding: '28px 24px', maxWidth: 380, width: '100%', border: '1px solid rgba(255,255,255,.1)' }}>
                         <h3 style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 12px' }}>프리미엄 멤버십 안내</h3>
                         <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>
-                            프리미엄 멤버십을 이용하면 총 4개까지 프로필을 추가하고 동시재생 하실 수 있습니다. 프리미엄 멤버십 상품을 구경하시겠어요?
+                            프리미엄 멤버십을 이용하면 총 4개까지 프로필을 추가하고 동시재생 하실 수 있습니다.
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
                             <button onClick={() => setShowPremiumModal(false)} style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>아니요</button>
@@ -327,18 +317,36 @@ export default function ProfilePage() {
                         <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: 0 }}>사용할 프로필을 선택해주세요.</h1>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 32, marginBottom: 48 }}>
-                        {profiles.map(p => (
-                            <div key={p.id} className="profile-card" onClick={() => {
-                                onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl })
-                                router.push('/')
-                            }}>
-                                <div className="profile-avatar" style={{ border: '2px solid #6c63ff' }}>
-                                    <img src={p.avatarUrl} alt={p.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
+                        {profiles.map(p => {
+                            const isSelected = selectedProfileId === p.id
+                            return (
+                                <div key={p.id} className="profile-card" onClick={() => {
+                                    if (isSelected) {
+                                        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl })
+                                        router.push('/')
+                                    } else {
+                                        setSelectedProfileId(p.id)
+                                    }
+                                }}>
+                                    <div className="profile-avatar" style={{
+                                        border: isSelected ? '3px solid #6c63ff' : '2px solid rgba(255,255,255,.15)',
+                                        boxShadow: isSelected ? '0 0 0 4px rgba(108,99,255,.25)' : 'none',
+                                        transition: 'all .2s',
+                                    }}>
+                                        <img src={p.avatarUrl} alt={p.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
+                                    </div>
+                                    <span style={{ color: isSelected ? '#fff' : 'rgba(255,255,255,.55)', fontSize: 14, fontWeight: isSelected ? 700 : 500, transition: 'all .2s' }}>
+                                        {p.nickname}
+                                    </span>
+                                    {isSelected && (
+                                        <span style={{ fontSize: 11, color: '#6c63ff', marginTop: -4, fontWeight: 600 }}>탭하여 입장 →</span>
+                                    )}
                                 </div>
-                                <span style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>{p.nickname}</span>
-                            </div>
-                        ))}
+                            )
+                        })}
+
+                        {/* 새 프로필 */}
                         {profiles.length < 4 && (
                             <div className="profile-card" onClick={() => hasMembership ? openNew() : setShowPremiumModal(true)}>
                                 <div className="profile-avatar" style={{ border: `2px solid ${hasMembership ? 'rgba(108,99,255,.4)' : 'rgba(255,255,255,.1)'}`, background: hasMembership ? 'rgba(108,99,255,.1)' : 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -353,8 +361,12 @@ export default function ProfilePage() {
                             </div>
                         )}
                     </div>
+
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <button onClick={() => profiles[0] && openEdit(profiles[0])}
+                        <button onClick={() => {
+                            const target = profiles.find(p => p.id === selectedProfileId) || profiles[0]
+                            if (target) openEdit(target)
+                        }}
                             style={{ padding: '12px 32px', background: 'none', border: '1px solid rgba(255,255,255,.2)', borderRadius: 10, color: 'rgba(255,255,255,.7)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                             프로필 편집
                         </button>
@@ -404,7 +416,7 @@ export default function ProfilePage() {
                             취소
                         </button>
                         <button onClick={saveProfile} disabled={saving}
-                            style={{ padding: '12px 28px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? .6 : 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            style={{ padding: '12px 28px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? .6 : 1 }}>
                             {saving ? '저장 중...' : '저장'}
                         </button>
                     </div>
@@ -421,7 +433,6 @@ export default function ProfilePage() {
                                 <button key={id} className={`img-tab${imageTab === id ? ' on' : ''}`} onClick={() => setImageTab(id)}>{label}</button>
                             ))}
                         </div>
-
                         {imageTab === 'laftel' && (
                             <div className="custom-scroll" style={{ maxHeight: 380, overflowY: 'auto' }}>
                                 <div className="img-grid">
@@ -433,7 +444,6 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         )}
-
                         {imageTab === 'dicebear' && (
                             <div className="custom-scroll" style={{ maxHeight: 380, overflowY: 'auto' }}>
                                 <div className="img-grid">
@@ -445,7 +455,6 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         )}
-
                         {imageTab === 'custom' && (
                             <>
                                 <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
@@ -475,16 +484,11 @@ export default function ProfilePage() {
                                 </div>
                             </>
                         )}
-
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
                             <button onClick={() => setStep('edit')}
-                                style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>
-                                취소
-                            </button>
+                                style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>취소</button>
                             <button onClick={() => setStep('edit')}
-                                style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                                선택
-                            </button>
+                                style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>선택</button>
                         </div>
                     </div>
                 </div>
