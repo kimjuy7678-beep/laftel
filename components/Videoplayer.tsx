@@ -10,7 +10,7 @@ interface Props {
 
 export default function VideoPlayer({ id, mode, className }: Props) {
     const currentVideo = useAniStore(state => state.aniVideos[id])
-    const onNextVideo  = useAniStore(state => state.onNextVideo)
+    const onNextVideo = useAniStore(state => state.onNextVideo)
 
     // 실제로 iframe에 넣을 key — null이면 렌더 안 함
     const [activeKey, setActiveKey] = useState<string | null>(null)
@@ -65,7 +65,7 @@ export default function VideoPlayer({ id, mode, className }: Props) {
                 if (data.event === 'onStateChange' && data.info === 1) {
                     if (failTimer.current) clearTimeout(failTimer.current)
                 }
-            } catch {}
+            } catch { }
         }
 
         window.addEventListener('message', handler)
