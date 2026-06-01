@@ -37,7 +37,7 @@ export default function EventPage() {
     return (
         <div className="min-h-screen">
             <div className="inner px-6 py-16">
-                <h1 className="text-2xl font-bold mb-6">이벤트</h1>
+                <h1 className="text-2xl font-bold mb-6 text-white">이벤트</h1>
 
                 {/* 필터 탭 */}
                 <div className="flex gap-2 mb-8">
@@ -45,11 +45,10 @@ export default function EventPage() {
                         <button
                             key={f.value}
                             onClick={() => setActiveFilter(f.value)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                                activeFilter === f.value
-                                    ? 'bg-[#6c63ff] text-white'
-                                    : 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10'
-                            }`}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeFilter === f.value
+                                ? 'bg-[#6c63ff] text-white'
+                                : 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10'
+                                }`}
                         >
                             {f.label}
                             {f.value !== "all" && (

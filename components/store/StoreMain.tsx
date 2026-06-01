@@ -27,7 +27,7 @@ type Category = {
 
     name: string;
     imageSrc: string;
-    tone: string;
+
 };
 
 // ─── Typography System ────────────────────────────────────────────────────────
@@ -54,14 +54,14 @@ function toProduct(product: StoreProduct, badge?: string): Product {
 const recentProducts = STORE_PRODUCTS.slice(0, 4).map((p) => toProduct(p));
 
 const categories: Category[] = [
-    { name: "하이큐", imageSrc: "", tone: "bg-[#8f1111]" },
-    { name: "장송의 프리렌", imageSrc: "", tone: "bg-[#f6dd1b]" },
-    { name: "주술회전", imageSrc: "", tone: "bg-[#7d0707]" },
-    { name: "하츠네미쿠", imageSrc: "", tone: "bg-[#26d4d4]" },
-    { name: "귀멸의 칼날", imageSrc: "", tone: "bg-[#ff961f]" },
-    { name: "나의 히어로 아카데미아", imageSrc: "", tone: "bg-[#6b0c18]" },
-    { name: "진격의 거인", imageSrc: "", tone: "bg-[#1bc5c9]" },
-    { name: "에반게리온", imageSrc: "", tone: "bg-[#363326]" },
+    { name: "진격의 거인", imageSrc: "/images/store/m1.png" },
+    { name: "나의 히어로 아카데미아", imageSrc: "/images/store/m2.png" },
+    { name: "귀멸의 말날", imageSrc: "/images/store/m3.png" },
+    { name: "하츠네미쿠", imageSrc: "/images/store/m4.png" },
+    { name: "에반게리온", imageSrc: "/images/store/m5.png" },
+    { name: "하이큐", imageSrc: "/images/store/m6.png" },
+    { name: "장송의 프리렌", imageSrc: "/images/store/m7.png" },
+    { name: "주술회전", imageSrc: "/images/store/m8.png" },
 ];
 
 const topProducts = STORE_PRODUCTS.slice(4, 8).map((p, i) =>
@@ -131,7 +131,7 @@ function StoreSearch() {
 
 function MiniProductCard({ product }: { product: Product }) {
     return (
-        <Link href="#" className="block min-w-0">
+        <Link href={`/store/${product.id}`} className="block min-w-0">
             <ImageSlot
                 src={product.imageSrc}
                 alt={product.title}
@@ -181,7 +181,7 @@ function CategoryStrip() {
                     {categories.map((category, id) => (
                         <Link key={id} href="#" className="flex flex-col items-center gap-3">
                             <div
-                                className={`relative flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full ${category.tone} shadow-[0_8px_20px_rgba(20,16,44,0.22)]`}
+                                className={`relative flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full  shadow-[0_8px_20px_rgba(20,16,44,0.22)]`}
                             >
                                 <ImageSlot
                                     src={category.imageSrc}
@@ -208,7 +208,7 @@ function CategoryStrip() {
 
 function TopProductCard({ product, rank }: { product: Product; rank: number }) {
     return (
-        <Link href="#" className="group relative block min-w-0">
+        <Link href={`/store/${product.id}`} className="group relative block min-w-0">
             <div className="relative overflow-hidden rounded-[12px] bg-[#eeeeef]">
                 <ImageSlot
                     src={product.imageSrc}
@@ -230,7 +230,7 @@ function TopProductCard({ product, rank }: { product: Product; rank: number }) {
                 {/* sub: 13px */}
                 <p className="mt-1 text-[13px] font-medium text-[#7865ff]">{product.price}</p>
             </div>
-        </Link>
+        </Link >
     );
 }
 
@@ -253,7 +253,7 @@ function BestTopSection() {
                     </div>
                     {/* all-btn: 16px */}
                     <Link href="#" className="text-[16px] font-semibold text-[#7865ff]">
-                        View All →
+                        더 많은 제품 보러가기 →
                     </Link>
                 </div>
                 <div className="mt-10 grid grid-cols-2 gap-8 md:grid-cols-4">
@@ -270,7 +270,7 @@ function BestTopSection() {
 
 function ArrivalCard({ product }: { product: Product }) {
     return (
-        <Link href="#" className="group block min-w-0">
+        <Link href={`/store/${product.id}`} className="group block min-w-0">
             <div className="relative overflow-hidden rounded-[10px] bg-[#eeeeef]">
                 <ImageSlot
                     src={product.imageSrc}

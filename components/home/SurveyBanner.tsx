@@ -240,7 +240,7 @@ export default function SurveyBanner() {
         <>
             <section style={{ padding: '48px 0 0' }}>
                 <style>{`
-                    .sb-wrap { width: 90%; margin: 0 auto; }
+                    .sb-wrap { width: 100%; margin: 0 auto; margin-top: -30px; padding-top: 50px;}
                     .sb-inner { position: relative; overflow: hidden;}
                     .sb-bg { width: 100%; height: auto; display: block; }
                     .sb-content {
@@ -252,21 +252,24 @@ export default function SurveyBanner() {
                     .sb-logo { font-size: 36px; font-weight: 900; color: #fff; letter-spacing: 2px; font-style: italic; white-space: nowrap; }
                     .sb-desc { font-size: 18px; font-weight: 700; color: #fff; line-height: 1.4; white-space: nowrap; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
                     .sb-btn {
-                       display: inline-flex; align-items: center;
-    padding: 15px 30px; border-radius: 50px;
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.4);
-    color: #fff; font-size: 24px; font-weight: 600;
-    text-decoration: none; transition: background .2s;
-    backdrop-filter: blur(4px);
-    position: absolute;
-    white-space: nowrap;   
-    top: 200px;
-    right: 210px;
+                        display: inline-flex; align-items: center;
+                        padding: 15px 30px; border-radius: 50px;
+                        background: rgba(255,255,255,0.15);
+                        border: 1px solid rgba(255,255,255,0.4);
+                        color: #fff; font-size: 24px; font-weight: 600;
+                        text-decoration: none; transition: background .2s;
+                        backdrop-filter: blur(4px);
+                        position: absolute;
+                        white-space: nowrap;   
+                        top: 190px;
+                        right: 200px;
                     }
                     .sb-btn:hover { background: rgba(255,255,255,0.5); }
                     .sb-dismiss {
-                        position: absolute; top: 16px; right: 16px; z-index: 2;
+                        position: absolute;
+                        top: 170px;
+                        right: 20px;
+                        z-index: 2;
                         width: 32px; height: 32px; border-radius: 50%;
                         background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
                         color: rgba(255,255,255,0.6); cursor: pointer;

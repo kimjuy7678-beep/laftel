@@ -64,9 +64,9 @@ export default function Top10Section() {
             <style>{`
                 .t10-wrap { width: 90%; margin: 0 auto; }
 
-                .t10-eyebrow { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.32); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
+                .t10-eyebrow { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.32); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
                 .t10-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                .t10-title { font-size: 22px; font-weight: 900; color: #fff; margin: 0; }
+                .t10-title { font-size: 25px; font-weight: 700; color: #fff; margin: 0; }
                 .t10-nav { display: flex; gap: 8px; }
                 .t10-nav-btn {
                     width: 38px; height: 38px; border-radius: 50%;
@@ -83,7 +83,7 @@ export default function Top10Section() {
                     border: 1px solid rgba(255,255,255,0.12);
                     background: transparent;
                     color: rgba(255,255,255,0.45);
-                    font-size: 13px; font-weight: 600;
+                    font-size: 15px; font-weight: 600;
                     cursor: pointer; transition: all .18s;
                 }
                 .t10-filter-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
@@ -128,6 +128,8 @@ export default function Top10Section() {
                     position: relative; z-index: 1;
                     padding-top: ${POSTER_H + 14}px;
                     padding-left: ${NUM_W - OVERLAP}px;
+                    text-align: center;
+                    top: 10px;
                 }
                 .t10-name {
                     font-size: 24px; font-weight: 700; color: #fff;

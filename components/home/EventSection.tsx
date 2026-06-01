@@ -41,7 +41,7 @@ export default function EventSection() {
                 .ev-wrap { width: 90%; margin: 0 auto; }
 
                 .ev-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                .ev-title { font-size: 20px; font-weight: 800; color: #fff; margin: 0; }
+                .ev-title { font-size: 25px; font-weight: 700; color: #fff; margin: 0; }
                 .ev-more { font-size: 12px; color: rgba(255,255,255,.35); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 3px; transition: color .2s; }
                 .ev-more:hover { color: rgba(255,255,255,.7); }
 
@@ -86,12 +86,12 @@ export default function EventSection() {
 
                 .ev-info { padding: 12px 14px 14px; }
                 .ev-name {
-                    font-size: 14px; font-weight: 700; color: rgba(255,255,255,.88);
+                    font-size: 16px; font-weight: 600; color: rgba(255,255,255,.88);
                     margin: 0 0 5px; line-height: 1.4;
                     overflow: hidden;
                     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
                 }
-                .ev-period { font-size: 11px; color: rgba(255,255,255,.3); margin: 0; }
+                .ev-period { font-size: 13px; color: rgba(255,255,255,.3); margin: 0; }
 
                 .ev-loading { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.25); font-size: 13px; height: 200px; }
                 .ev-spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.1); border-top-color: #6c63ff; border-radius: 50%; animation: ev-spin .7s linear infinite; }

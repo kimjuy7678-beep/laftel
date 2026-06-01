@@ -95,8 +95,8 @@ export default function EmailLoginPage() {
             )}
 
             <div className="w-full max-w-[420px] flex flex-col gap-6">
-                <Link href="/login" className="text-center">
-                    <h1 className="font-black text-white text-4xl tracking-widest">LAFTEL</h1>
+                <Link href="/login" className="flex justify-center">
+                    <img src="/images/logo-white.svg" alt="" />
                 </Link>
 
                 <div className="flex bg-white/5 rounded-xl p-1">

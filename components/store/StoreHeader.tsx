@@ -6,8 +6,8 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const StoreMenuList = [
-    { id: 1, title: "전체 굿즈", path: "/store" },
-    { id: 2, title: "예약 굿즈", path: "/store/popular" },
+    { id: 1, title: "전체 굿즈", path: "/store/all" },
+    { id: 2, title: "예약 굿즈", path: "/store/reserve" },
     { id: 3, title: "BEST", path: "/store/best" },
 ];
 
@@ -33,17 +33,17 @@ export default function StoreHeader() {
         <header className="w-full py-[10px] bg-white px-[10px]">
             <div className="w-full h-[55px] flex items-center justify-between bg-[#6B5CE7] rounded-full px-[28px]">
 
-                {/* ── 좌측: 로고 + 브레드크럼 + 네비게이션 ── */}
                 <div className="flex items-center gap-[28px]">
                     {/* 로고 */}
                     <div className="flex items-center gap-[6px]">
                         <Link href="/" className="flex items-center gap-[12px]">
                             <img src="/images/stone.svg" alt="" className="h-7" />
-                            <img src="/images/laftel 3.svg" alt="logo" className="h-5 w-auto" />
+                            <img src="/images/logo-white.svg" alt="logo" className="h-5 w-auto" />
                         </Link>
-                        <span className="text-white font-semibold text-[15px] tracking-wide leading-none">
-                            Store
-                        </span>
+                        <Link href="/store">
+                            <span className="text-white font-[100] text-[20px] tracking-wide leading-none">
+                                Store
+                            </span></Link>
                     </div>
 
                     {/* 브레드크럼 */}
@@ -79,7 +79,10 @@ export default function StoreHeader() {
                         onClick={() => setSearchOpen(true)}
                         className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
                     >
-                        <img src="/images/store/search.svg" alt="검색" className="w-[30px] h-[30px]" />
+                        {/* <img src="/images/store/search.svg" alt="검색" className="w-[30px] h-[30px]" /> */}
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                        </svg>
                     </button>
 
                     {/* 위시리스트 */}
@@ -88,7 +91,9 @@ export default function StoreHeader() {
                         aria-label="위시리스트"
                         className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
                     >
-                        <img src="/images/store/wish.svg" alt="위시리스트" className="w-[30px] h-[30px]" />
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
                     </button>
 
                     {/* 장바구니 */}
@@ -97,10 +102,13 @@ export default function StoreHeader() {
                         aria-label="장바구니"
                         className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
                     >
-                        <img src="/images/store/cart.svg" alt="장바구니" className="w-[30px] h-[30px]" />
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                        </svg>
                     </Link>
 
-                    {/* 구분선 */}
+
                     <div className="w-px h-5 bg-white/20 mx-1" />
 
                     {/* 유저 프로필 */}

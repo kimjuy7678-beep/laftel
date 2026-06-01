@@ -78,7 +78,7 @@ export default function LoginPage() {
             </div>
 
             <div className="w-full max-w-[420px] flex flex-col items-center gap-6 relative z-20">
-                <h1 className="font-black text-white text-4xl tracking-widest">LAFTEL</h1>
+                <img src="/images/logo-white.svg" alt="" />
                 <p className="text-white text-xl font-medium text-center leading-relaxed">
                     동시방영 신작부터 역대 인기작까지<br />
                     한 곳에서 편-안하게!
