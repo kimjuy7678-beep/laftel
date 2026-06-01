@@ -21,33 +21,12 @@ const VALID_COUPONS: Record<string, { type: 'point' | 'basic' | 'premium', value
 }
 
 const notices = [
-    "쿠폰번호는 영문자와 숫자 혼합이며 대소문자 구분없이 입력할 수 있습니다.",
-    "쿠폰마다 등록 가능한 기간이 다를 수 있습니다.",
-    "멤버십 이용 중에는 멤버십 쿠폰을 사용할 수 없습니다.",
-    "쿠폰은 등록 후 환불할 수 없습니다.",
-    "등록한 내역은 MY>이용 내역에서 확인할 수 있습니다.",
-    "관련 문의는 MY>고객센터>1:1문의하기를 이용해주세요.",
-]
-
-const couponIllustrations = [
-    {
-        label: "포인트 쿠폰",
-        color: "#6c63ff",
-        icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
-        desc: "포인트로 애니를\n소장하거나 대여"
-    },
-    {
-        label: "베이직 이용권",
-        color: "#3b82f6",
-        icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>,
-        desc: "FHD 화질로\n무제한 스트리밍"
-    },
-    {
-        label: "프리미엄 이용권",
-        color: "#f59e0b",
-        icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
-        desc: "4인 동시 재생\n프리미엄 혜택"
-    },
+    '쿠폰번호는 영문자와 숫자 혼합이며 대소문자 구분없이 입력할 수 있습니다.',
+    '쿠폰마다 등록 가능한 기간이 다를 수 있습니다.',
+    '멤버십 이용 중에는 멤버십 쿠폰을 사용할 수 없습니다.',
+    '쿠폰은 등록 후 환불할 수 없습니다.',
+    '등록한 내역은 MY > 이용 내역에서 확인할 수 있습니다.',
+    '관련 문의는 MY > 고객센터 > 1:1문의하기를 이용해주세요.',
 ]
 
 export default function CouponPage() {
@@ -65,17 +44,29 @@ export default function CouponPage() {
 
     const handleRegister = async () => {
         if (!code.trim() || !user) return
-        setError('')
-        setSuccess('')
+        setError(''); setSuccess('')
         setLoading(true)
         try {
             const upperCode = code.trim().toUpperCase()
             const coupon = VALID_COUPONS[upperCode]
             if (!coupon) { setError('유효하지 않은 쿠폰번호입니다.'); return }
+
+            // 중복 사용 체크
             const usedRef = doc(db, 'used_coupons', `${user.uid}_${upperCode}`)
             const usedSnap = await getDoc(usedRef)
             if (usedSnap.exists()) { setError('이미 사용한 쿠폰입니다.'); return }
+
+            // 사용 처리
             await setDoc(usedRef, { uid: user.uid, code: upperCode, usedAt: new Date() })
+
+            // 쿠폰 이력 저장
+            await addDoc(collection(db, 'users', user.uid, 'coupon_history'), {
+                code: upperCode,
+                label: coupon.label,
+                type: coupon.type,
+                value: coupon.value,
+                usedAt: new Date(),
+            })
 
             if (coupon.type === 'point') {
                 await chargePoints(user.uid, coupon.value, coupon.label)
@@ -88,11 +79,10 @@ export default function CouponPage() {
                 })
                 setSuccess(`🎉 ${coupon.label} 등록 완료! ${coupon.value.toLocaleString()}P가 충전되었어요.`)
             } else {
-                const memberRef = doc(db, 'users', user.uid)
-                await setDoc(memberRef, {
+                await setDoc(doc(db, 'users', user.uid), {
                     membership: coupon.type,
                     membershipDays: coupon.value,
-                    membershipStartAt: new Date()
+                    membershipStartAt: new Date(),
                 }, { merge: true })
                 await addDoc(collection(db, 'users', user.uid, 'membership_history'), {
                     type: coupon.type,
@@ -110,7 +100,7 @@ export default function CouponPage() {
                 setSuccess(`🎉 ${coupon.label} 등록 완료! 멤버십 혜택을 이용해보세요.`)
             }
             setCode('')
-        } catch (err) {
+        } catch {
             setError('오류가 발생했어요. 다시 시도해주세요.')
         } finally {
             setLoading(false)
@@ -118,55 +108,60 @@ export default function CouponPage() {
     }
 
     return (
-        <div className="min-h-screen pt-20">
-            <div className="inner px-6 py-10 max-w-3xl">
-                <h1 className="text-xl font-bold mb-8">쿠폰 등록</h1>
-                <div className="mb-8">
-                    <p className="text-sm font-medium mb-3">쿠폰번호 입력</p>
+        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingTop: 80, paddingBottom: 80 }}>
+            <style>{`
+              .cp-wrap { width: 90%; margin: 0 auto; }
+                .cp-input { width: 100%; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,.2); outline: none; color: #fff; font-size: 18px; font-weight: 600; padding: 12px 0; letter-spacing: 2px; transition: border-color .2s; box-sizing: border-box; caret-color: #6c63ff; }
+                .cp-input:focus { border-color: #6c63ff; }
+                .cp-input::placeholder { color: rgba(255,255,255,.2); font-weight: 400; letter-spacing: 1px; }
+                .cp-submit { width: 100%; padding: 16px; background: #6c63ff; border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s; }
+                .cp-submit:hover:not(:disabled) { background: #5a52e0; }
+                .cp-submit:disabled { background: rgba(255,255,255,.1); color: rgba(255,255,255,.3); cursor: default; }
+                .cp-notice-item { font-size: 13px; color: rgba(255,255,255,.4); line-height: 1.7; padding-left: 12px; position: relative; }
+                .cp-notice-item::before { content: '-'; position: absolute; left: 0; color: rgba(255,255,255,.25); }
+                .cp-test-btn { font-size: 11px; color: #6c63ff; background: rgba(108,99,255,.1); padding: 4px 10px; border-radius: 6px; border: none; cursor: pointer; font-family: monospace; transition: background .15s; }
+                .cp-test-btn:hover { background: rgba(108,99,255,.2); }
+            `}</style>
+
+            <div className="cp-wrap">
+                <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 40px' }}>쿠폰 등록</h1>
+
+                {/* 입력 */}
+                <div style={{ marginBottom: 32 }}>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', marginBottom: 12 }}>쿠폰번호 입력</p>
                     <input
+                        className="cp-input"
                         type="text"
                         value={code}
-                        onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(''); setSuccess('') }}
-                        onKeyDown={(e) => e.key === 'Enter' && handleRegister()}
+                        onChange={e => { setCode(e.target.value.toUpperCase()); setError(''); setSuccess('') }}
+                        onKeyDown={e => e.key === 'Enter' && handleRegister()}
                         placeholder="ABCD-EF01-G23H"
-                        className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none py-2 text-white placeholder:text-white/30 text-sm transition-colors"
                     />
-                    {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
-                    {success && <p className="text-[#6c63ff] text-xs mt-2">{success}</p>}
+                    {error && <p style={{ fontSize: 13, color: '#f87171', marginTop: 10 }}>{error}</p>}
+                    {success && <p style={{ fontSize: 13, color: '#6c63ff', marginTop: 10 }}>{success}</p>}
                 </div>
-                <div className="grid grid-cols-3 gap-4 mb-10">
-                    {couponIllustrations.map((ill) => (
-                        <div key={ill.label} className="rounded-2xl p-6 flex flex-col items-center gap-3 text-center"
-                            style={{ background: `linear-gradient(135deg, ${ill.color}33, ${ill.color}11)`, border: `1px solid ${ill.color}33` }}>
-                            <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: ill.color }}>{ill.icon}</div>
-                            <div>
-                                <p className="text-white font-bold text-sm">{ill.label}</p>
-                                <p className="text-white/50 text-xs mt-1 whitespace-pre-line">{ill.desc}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <div className="mb-8">
-                    <h2 className="text-sm font-bold mb-3">이용 안내</h2>
-                    <ul className="flex flex-col gap-1.5">
-                        {notices.map((n, i) => (
-                            <li key={i} className="text-xs text-white/40 leading-relaxed">- {n}</li>
-                        ))}
-                    </ul>
-                </div>
-                <button
-                    onClick={handleRegister}
-                    disabled={!code.trim() || loading}
-                    className={`w-full py-4 rounded-xl font-bold text-sm transition-colors ${code.trim() && !loading ? 'bg-[#6c63ff] hover:bg-[#5a52e0] text-white' : 'bg-white/10 text-white/30 cursor-not-allowed'}`}
-                >
+
+                {/* 등록 버튼 */}
+                <button className="cp-submit" onClick={handleRegister} disabled={!code.trim() || loading} style={{ marginBottom: 48 }}>
                     {loading ? '처리 중...' : '등록'}
                 </button>
-                <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
-                    <p className="text-xs text-white/40 mb-2 font-medium">테스트 쿠폰 번호</p>
-                    <div className="flex flex-wrap gap-2">
-                        {Object.keys(VALID_COUPONS).map((c) => (
-                            <button key={c} onClick={() => setCode(c)}
-                                className="text-[11px] text-[#6c63ff] bg-[#6c63ff]/10 px-2 py-1 rounded font-mono hover:bg-[#6c63ff]/20 transition-colors">
+
+                {/* 이용 안내 */}
+                <div style={{ marginBottom: 40 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.6)', marginBottom: 14 }}>이용 안내</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {notices.map((n, i) => (
+                            <p key={i} className="cp-notice-item">{n}</p>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 테스트 쿠폰 */}
+                <div style={{ padding: '16px 20px', background: 'rgba(255,255,255,.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,.08)' }}>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 10, fontWeight: 600 }}>테스트 쿠폰 번호</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {Object.entries(VALID_COUPONS).map(([c, v]) => (
+                            <button key={c} className="cp-test-btn" onClick={() => setCode(c)}>
                                 {c}
                             </button>
                         ))}

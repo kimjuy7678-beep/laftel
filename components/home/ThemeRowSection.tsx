@@ -31,11 +31,11 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
     }
 
     return (
-        <section style={{ padding: '48px 0 0' }}>
+        <section style={{ padding: '80px 0 0' }}>
             <style>{`
                 .tr-wrap { width: 90%; margin: 0 auto; }
                 .tr-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                .tr-title { font-size: 32px; font-weight: 800; color: #fff; margin: 0; line-height: 1.4; }
+                .tr-title { font-size: 25px; font-weight: 800; color: #fff; margin: 0; line-height: 1.4;}
                 .tr-more {
                     font-size: 12px; color: rgba(255,255,255,0.35);
                     background: none; border: none; cursor: pointer;
@@ -53,7 +53,7 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
                     cursor: pointer;
                     border-radius: 10px;
                     overflow: hidden;
-                    background: #111;
+                    // background: #111;
                     transition: transform .22s cubic-bezier(.25,.46,.45,.94);
                 }
                 .tr-card:hover { transform: translateY(-4px); }
@@ -80,7 +80,7 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
 
                 .tr-info { padding: 10px 10px 12px; }
                 .tr-name {
-                    font-size: 25px; font-weight: 600; color: rgba(255,255,255,0.88);
+                    font-size: 18px; font-weight: 600; color: rgba(255,255,255,0.88);
                     margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
                     line-height: 1.4;
                 }
