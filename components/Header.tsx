@@ -192,10 +192,10 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
 
 export default function Header() {
     const user = useAuthStore(s => s.user)
+    const avatarConfig = useAuthStore(s => s.avatarConfig)
     const { onLogout } = useAuthStore()
     const { points, fetchPoints } = usePointStore()
     const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead } = useNotificationStore()
-    const [scrolled, setScrolled] = useState(false)
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [notiOpen, setNotiOpen] = useState(false)
     const [searchOpen, setSearchOpen] = useState(false)
@@ -206,12 +206,6 @@ export default function Header() {
 
     const membership = user?.membership || 'none'
     const memberInfo = membershipConfig[membership] || membershipConfig['none']
-
-    useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 10)
-        window.addEventListener('scroll', handleScroll, { passive: true })
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
 
     useEffect(() => {
         if (user?.uid) {
@@ -256,20 +250,38 @@ export default function Header() {
             {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
             {gradeOpen && <GradeModal onClose={() => setGradeOpen(false)} />}
 
-            <header className={`fixed top-0 left-0 w-full z-[1000] transition-colors duration-300 ${scrolled ? 'bg-black' : 'bg-transparent'}`}>
-                <div style={{ width: '90%', margin: '0 auto' }} className="flex h-[56px] items-center justify-between">
-                    <div className="flex items-center gap-10">
-                        <h1>
-                            <Link href="/"><img src="/images/logo.png" alt="logo" className='h-8 w-auto' /></Link>
-                        </h1>
+            {/* StoreHeader 스타일: py-[10px] wrapper + pill 내부 */}
+            <header className="fixed top-0 left-0 w-full z-[1000] w-full py-[10px] px-[10px]">
+                <div className="w-full h-[55px] flex items-center justify-between px-[28px]">
+
+                    {/* 좌측: 로고 + 네비게이션 */}
+                    <div className="flex items-center gap-[28px]">
+                        {/* 로고 */}
+                        <Link href="/" className="flex items-center gap-[12px]">
+                            <img src="/images/stone.svg" alt="" className="h-7" />
+                            <img src="/images/logo-white.svg" alt="logo" className="h-5 w-auto" />
+                        </Link>
+
+                        {/* 네비게이션 */}
                         <nav>
-                            <ul className="flex gap-6">
+                            <ul className="flex items-center gap-[28px]">
                                 {MenuList.map((menu) => (
-                                    <li key={menu.id} className="relative group">
-                                        <Link href={menu.path} className="flex items-center gap-1 text-sm text-white/90 hover:text-white transition-colors">
+                                    <li key={menu.id} className="relative">
+                                        <Link
+                                            href={menu.path}
+                                            className="flex items-center gap-1.5 text-white/80 hover:text-white text-[14px] font-medium transition-colors duration-200"
+                                        >
                                             {menu.title}
-                                            {menu.live && <span className="inline-flex items-center justify-center px-1.5 h-4 rounded bg-red-500 text-[10px] font-bold text-white animate-pulse">LIVE</span>}
-                                            {menu.badge && <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#6c63ff] text-[10px] font-bold text-white">{menu.badge}</span>}
+                                            {menu.live && (
+                                                <span className="inline-flex items-center justify-center px-1.5 h-4 rounded bg-red-500 text-[10px] font-bold text-white animate-pulse">
+                                                    LIVE
+                                                </span>
+                                            )}
+                                            {menu.badge && (
+                                                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/25 text-[10px] font-bold text-white">
+                                                    {menu.badge}
+                                                </span>
+                                            )}
                                         </Link>
                                     </li>
                                 ))}
@@ -277,35 +289,56 @@ export default function Header() {
                         </nav>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <Link href="/membership" className="text-white/80 hover:text-white transition-colors" aria-label="멤버십">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {/* 우측: 아이콘 + 유저 */}
+                    <div className="flex items-center gap-[8px]">
+
+                        {/* 검색 */}
+                        <button
+                            type="button"
+                            aria-label="검색"
+                            onClick={() => setSearchOpen(true)}
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 text-white"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                            </svg>
+                        </button>
+                        {/* 멤버십 */}
+                        <Link
+                            href="/membership"
+                            aria-label="멤버십"
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 text-white"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
                                 <path d="M13 5v2M13 17v2M13 11v2" />
                             </svg>
                         </Link>
 
-                        <button className="text-white/80 hover:text-white transition-colors" aria-label="검색" onClick={() => setSearchOpen(true)}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                            </svg>
-                        </button>
 
+
+                        {/* 알림 */}
                         <div className="relative" ref={notiRef}>
-                            <button onClick={() => { setNotiOpen(!notiOpen); if (!notiOpen && user?.uid && unreadCount > 0) markAllRead(user.uid) }}
-                                className="relative text-white/80 hover:text-white transition-colors flex items-center h-[56px]" aria-label="알림">
+                            <button
+                                onClick={() => {
+                                    setNotiOpen(!notiOpen)
+                                    if (!notiOpen && user?.uid && unreadCount > 0) markAllRead(user.uid)
+                                }}
+                                aria-label="알림"
+                                className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 text-white"
+                            >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
                                 </svg>
                                 {unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+                                    <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
                                         {unreadCount > 9 ? '9+' : unreadCount}
                                     </span>
                                 )}
                             </button>
 
                             {notiOpen && (
-                                <div className="absolute right-0 top-12 w-[320px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                <div className="absolute right-0 top-[calc(100%+8px)] w-[320px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
                                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                                         <span className="text-sm font-bold text-white">알림</span>
                                         {unreadCount > 0 && (
@@ -341,36 +374,67 @@ export default function Header() {
                             )}
                         </div>
 
+                        {/* 구분선 */}
+                        <div className="w-px h-5 bg-white/20 mx-1" />
+
+                        {/* 유저 프로필 */}
                         {!user ? (
-                            <Link href="/login" className="text-sm text-white/80 hover:text-white transition-colors">로그인</Link>
+                            <Link
+                                href="/login"
+                                className="text-sm text-white/80 hover:text-white transition-colors px-2"
+                            >
+                                로그인
+                            </Link>
                         ) : (
                             <div className="relative" ref={dropdownRef}>
-                                <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 cursor-pointer group h-[56px]">
-                                    <Link href="/profile" onClick={e => e.stopPropagation()}
-                                        className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-full flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-transparent hover:ring-white/40 transition-all duration-200"
-                                        style={{ background: memberInfo.color || '#6c63ff' }}>
-                                        {user?.photoURL ? (
-                                            <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" key={user.photoURL} />
+                                <button
+                                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                                    className="flex items-center gap-[8px] cursor-pointer group h-[55px]"
+                                >
+                                    <div
+                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white/30 group-hover:ring-white/60 transition-all duration-200 shrink-0"
+                                        style={{ background: memberInfo.color || '#5a52e0' }}
+                                    >
+                                        {avatarConfig?.svgDataUrl ? (
+                                            <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
+                                        ) : user.photoURL ? (
+                                            <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" />
                                         ) : (
-                                            <span className="text-white text-xs font-bold">{user?.name?.[0]?.toUpperCase() || '?'}</span>
+                                            <span className="text-white text-xs font-bold">
+                                                {user.name?.[0]?.toUpperCase() || '?'}
+                                            </span>
                                         )}
-                                    </Link>
-                                    <span className="text-sm text-white/90 group-hover:text-white transition-colors">{user.name}</span>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-white/60 transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}>
+                                    </div>
+                                    <span className="text-sm text-white/90 group-hover:text-white transition-colors">
+                                        {user.name}
+                                    </span>
+                                    <svg
+                                        width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" strokeWidth="2"
+                                        className={`text-white/60 transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
+                                    >
                                         <path d="m6 9 6 6 6-6" />
                                     </svg>
                                 </button>
 
                                 {dropdownOpen && (
-                                    <div className="absolute right-0 top-12 w-[300px] bg-[#141420] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                    <div className="absolute right-0 top-[calc(100%+4px)] w-[300px] bg-[#141420] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                        {/* 프로필 헤더 */}
                                         <div className="flex flex-col items-center gap-2 px-5 py-6 border-b border-white/10">
-                                            <div className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden mb-1" style={{ background: memberInfo.color || '#6c63ff' }}>
-                                                {user?.photoURL ? (
-                                                    <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" key={user.photoURL} />
-                                                ) : (
-                                                    <span className="text-white text-xs font-bold">{user?.name?.[0]?.toUpperCase() || '?'}</span>
-                                                )}
-                                            </div>
+                                            <Link href="/profile" onClick={() => setDropdownOpen(false)}>
+                                                <div
+                                                    className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden mb-1 ring-2 ring-white/20 hover:ring-white/40 transition-all"
+                                                    style={{ background: memberInfo.color || '#6c63ff' }}
+                                                >
+                                                    {avatarConfig?.svgDataUrl ? (
+                                                        <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
+                                                    ) : user.photoURL ? (
+                                                        <img src={user.photoURL} alt="프로필" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-white text-2xl font-bold">{user?.name?.[0]?.toUpperCase() || '?'}</span>
+                                                    )}
+                                                </div>
+                                            </Link>
                                             <div className="text-center">
                                                 <Link href="/profile" onClick={() => setDropdownOpen(false)}
                                                     className="text-white font-bold text-sm flex items-center gap-1 justify-center hover:text-white/70 transition-colors cursor-pointer">
@@ -403,6 +467,7 @@ export default function Header() {
                                                 보관함
                                             </Link>
                                         </div>
+                                        {/* 메뉴 리스트 */}
                                         <ul className="py-1">
                                             {DropdownMenu.map((item) => (
                                                 <li key={item.title}>
@@ -411,7 +476,7 @@ export default function Header() {
                                                         rel={item.path.startsWith('http') ? 'noopener noreferrer' : undefined}
                                                         className="flex items-center justify-between px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors">
                                                         <span className="flex items-center gap-3">
-                                                            <span className="text-white/50" style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : undefined }}>
+                                                            <span style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : 'rgba(255,255,255,0.5)' }}>
                                                                 {item.icon}
                                                             </span>
                                                             <span style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : undefined }}>
