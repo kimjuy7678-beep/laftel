@@ -38,7 +38,7 @@ export default function TagTop10Section() {
 
     useEffect(() => {
         setActiveTag(Math.floor(Math.random() * TAGS.length))
-    }, []) 
+    }, [])
 
     useEffect(() => {
         if (aniList.length === 0) onFetchAni()
@@ -56,9 +56,9 @@ export default function TagTop10Section() {
             <style>{`
                 .tt-wrap { width: 90%; margin: 0 auto; }
 
-                .tt-eyebrow { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.32); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
+                .tt-eyebrow { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.32); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
                 .tt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                .tt-title { font-size: 22px; font-weight: 900; color: #fff; margin: 0; white-space: nowrap; }
+                .tt-title { font-size: 25px; font-weight: 700; color: #fff; margin: 0; white-space: nowrap; }
                 .tt-title-tag { color: #9d97ff; }
                 .tt-nav { display: flex; gap: 8px; }
                 .tt-nav-btn {
@@ -112,6 +112,7 @@ export default function TagTop10Section() {
                     position: relative; z-index: 1;
                     padding-top: ${POSTER_H + 14}px;
                     padding-left: ${NUM_W - OVERLAP}px;
+                    text-align: center;
                 }
                 .tt-name { font-size: 24px; font-weight: 700; color: #fff; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-bottom: 4px; line-height: 1.3; }
                 .tt-genre { font-size: 18px; color: rgba(255,255,255,0.35); }

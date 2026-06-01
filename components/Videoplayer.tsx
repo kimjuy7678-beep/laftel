@@ -22,7 +22,7 @@ export default function VideoPlayer({ id, mode, className }: Props) {
         const key = currentVideo?.key
         if (!key) { setActiveKey(null); return }
         setActiveKey(key)
-    }, [currentVideo?.key])
+    }, [currentVideo?.key, id])
 
     // 6초 안전망: 재생이 아예 안 시작되는 경우 다음 후보로
     useEffect(() => {

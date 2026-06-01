@@ -13,13 +13,13 @@ const pointOptions = [
 ]
 
 const payMethods = [
-    { id: "card", label: "카드", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
-    { id: "toss", label: "토스페이", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="#0064FF"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" fill="none"/></svg> },
-    { id: "naverpay", label: "네이버페이", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="#03C75A"><rect width="24" height="24" rx="4"/><text x="5" y="17" fontSize="12" fontWeight="bold" fill="white">N</text></svg> },
-    { id: "transfer", label: "계좌이체", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> },
-    { id: "phone", label: "휴대폰", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg> },
-    { id: "smart", label: "스마트 문상", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> },
-    { id: "culture", label: "컬처랜드 상품권", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> },
+    { id: "card", label: "카드", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg> },
+    { id: "toss", label: "토스페이", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="#0064FF"><circle cx="12" cy="12" r="10" /><path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" fill="none" /></svg> },
+    { id: "naverpay", label: "네이버페이", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="#03C75A"><rect width="24" height="24" rx="4" /><text x="5" y="17" fontSize="12" fontWeight="bold" fill="white">N</text></svg> },
+    { id: "transfer", label: "계좌이체", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg> },
+    { id: "phone", label: "휴대폰", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" /><line x1="12" y1="18" x2="12" y2="18" /></svg> },
+    { id: "smart", label: "스마트 문상", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg> },
+    { id: "culture", label: "컬처랜드 상품권", icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12V22H4V12" /><path d="M22 7H2v5h20V7z" /><path d="M12 22V7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg> },
 ]
 
 const notices = [
@@ -45,118 +45,122 @@ export default function Point() {
         fetchPoints(user.uid)
     }, [user])
 
-   const handleCharge = async () => {
-    if (!user || !selectedOption || !agreed) return
-    setCharging(true)
-    try {
-        await chargePoints(user.uid, selectedOption.amount)
-        setSelectedOption(null)
-        setAgreed(false)
-        alert(`${selectedOption.amount.toLocaleString()} 포인트가 충전되었습니다!`)
-    } catch (err) {
-        console.error(err)
-        alert('충전 중 오류가 발생했어요. 다시 시도해주세요.')
-    } finally {
-        setCharging(false)
+    const handleCharge = async () => {
+        if (!user || !selectedOption || !agreed) return
+        setCharging(true)
+        try {
+            await chargePoints(user.uid, selectedOption.amount)
+            setSelectedOption(null)
+            setAgreed(false)
+            alert(`${selectedOption.amount.toLocaleString()} 포인트가 충전되었습니다!`)
+        } catch {
+            alert('충전 중 오류가 발생했어요. 다시 시도해주세요.')
+        } finally {
+            setCharging(false)
+        }
     }
-}
 
     return (
-        <div className="min-h-screen pt-20">
-            <div className="inner px-6 py-10 max-w-4xl">
-                <h1 className="text-xl font-bold mb-1">내 포인트</h1>
-                <p className="text-sm text-white/50 mb-8">포인트로 애니메이션을 소장하거나 대여할 수 있어요.</p>
+        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingTop: 80, paddingBottom: 80 }}>
+            <style>{`
+                .pt-wrap { width: 90%; margin: 0 auto; }
+                .pt-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.35); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 20px; }
+                .pt-divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: 0 0 48px; }
+                .pt-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: #141420; border-radius: 12px; border: 1px solid rgba(255,255,255,.07); margin-bottom: 8px; }
+                .pt-charge-btn { font-size: 13px; padding: 8px 20px; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; background: none; color: rgba(255,255,255,.7); cursor: pointer; transition: all .18s; white-space: nowrap; }
+                .pt-charge-btn:hover { border-color: #6c63ff; color: #6c63ff; }
+                .pt-notice-item { font-size: 13px; color: rgba(255,255,255,.4); line-height: 1.7; padding-left: 12px; position: relative; }
+                .pt-notice-item::before { content: '-'; position: absolute; left: 0; color: rgba(255,255,255,.25); }
+            `}</style>
 
-                <div className="flex items-center gap-2 mb-6">
-                    <span className="text-base font-bold">내 포인트</span>
-                    <span className="text-[#6c63ff] font-bold">
-                        {loading ? '...' : `${points.toLocaleString()}P`}
-                    </span>
-                </div>
+            <div className="pt-wrap">
+                <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 8px' }}>내 포인트</h1>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,.4)', margin: '0 0 40px' }}>포인트로 애니메이션을 소장하거나 대여할 수 있어요.</p>
 
-                <div className="flex flex-col gap-3 mb-10">
-                    {pointOptions.map((opt) => (
-                        <div
-                            key={opt.amount}
-                            className="flex items-center justify-between px-6 py-5 bg-[#1a1a1a] rounded-xl border border-white/5"
-                        >
-                            <span className="text-sm font-medium">{opt.label}</span>
-                            <button
-                                onClick={() => { setSelectedOption(opt); setAgreed(false) }}
-                                className="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-sm font-medium rounded-lg transition-colors"
-                            >
+                {/* 포인트 잔액 */}
+                <section style={{ marginBottom: 48 }}>
+                    <p className="pt-label">보유 포인트</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', background: '#141420', borderRadius: 14, border: '1px solid rgba(255,255,255,.07)' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                        </svg>
+                        <span style={{ fontSize: 26, fontWeight: 900, color: '#fff' }}>
+                            {loading ? '...' : `${points.toLocaleString()}P`}
+                        </span>
+                    </div>
+                </section>
+
+                <hr className="pt-divider" />
+
+                {/* 충전 옵션 */}
+                <section style={{ marginBottom: 48 }}>
+                    <p className="pt-label">포인트 충전</p>
+                    {pointOptions.map(opt => (
+                        <div key={opt.amount} className="pt-row">
+                            <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{opt.label}</span>
+                            <button className="pt-charge-btn" onClick={() => { setSelectedOption(opt); setAgreed(false) }}>
                                 {opt.price}
                             </button>
                         </div>
                     ))}
-                </div>
+                </section>
 
-                <div>
-                    <h2 className="text-sm font-bold mb-3">포인트 구매 안내</h2>
-                    <ul className="flex flex-col gap-1.5">
+                <hr className="pt-divider" />
+
+                {/* 안내 */}
+                <section>
+                    <p className="pt-label">포인트 구매 안내</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {notices.map((n, i) => (
-                            <li key={i} className="text-xs text-white/40 leading-relaxed flex gap-1">
-                                <span>•</span>{n}
-                            </li>
+                            <p key={i} className="pt-notice-item">{n}</p>
                         ))}
-                    </ul>
-                </div>
+                    </div>
+                </section>
             </div>
 
             {/* 결제 모달 */}
             {selectedOption && (
-                <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center">
-                    <div className="absolute inset-0 bg-black/70" onClick={() => setSelectedOption(null)} />
-                    <div className="relative w-full max-w-[420px] bg-[#111] rounded-t-2xl sm:rounded-2xl overflow-y-auto max-h-[90vh]">
+                <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.75)' }} onClick={() => setSelectedOption(null)} />
+                    <div style={{ position: 'relative', width: '100%', maxWidth: 440, background: '#111', borderRadius: 20, overflow: 'hidden', maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,.08)' }}>
 
-                        {/* 헤더 */}
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-                            <h2 className="font-bold text-lg">결제</h2>
-                            <button onClick={() => setSelectedOption(null)} className="text-white/50 hover:text-white">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                                </svg>
-                            </button>
+                        {/* 모달 헤더 */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
+                            <h2 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: '#fff' }}>결제</h2>
+                            <button onClick={() => setSelectedOption(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>✕</button>
                         </div>
 
-                        <div className="px-5 py-4 flex flex-col gap-5">
+                        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
                             {/* 포인트 정보 */}
-                            <div className="bg-[#1a1a1a] rounded-xl p-4 border border-white/5">
-                                <div className="flex items-center gap-2 mb-1">
+                            <div style={{ background: '#1a1a22', borderRadius: 12, padding: '16px', border: '1px solid rgba(255,255,255,.06)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                                        <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                                     </svg>
-                                    <span className="font-bold text-lg">{selectedOption.amount.toLocaleString()}P</span>
+                                    <span style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{selectedOption.amount.toLocaleString()}P</span>
                                 </div>
-                                <p className="text-white/40 text-xs">라프텔 포인트로 애니메이션을 소장 하거나 대여할 수 있어요!</p>
+                                <p style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', margin: 0 }}>라프텔 포인트로 애니메이션을 소장하거나 대여할 수 있어요!</p>
                             </div>
 
                             {/* 금액 */}
-                            <div className="flex flex-col gap-2 border-b border-white/10 pb-4">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-white/60">판매금액</span>
-                                    <span>{selectedOption.price}</span>
+                            <div style={{ borderBottom: '1px solid rgba(255,255,255,.08)', paddingBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                                    <span style={{ color: 'rgba(255,255,255,.5)' }}>판매금액</span>
+                                    <span style={{ color: '#fff' }}>{selectedOption.price}</span>
                                 </div>
-                                <div className="flex justify-between text-sm font-bold">
-                                    <span className="text-white/60">최종 결제 금액</span>
-                                    <span className="text-[#6c63ff] text-base">{selectedOption.price}</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700 }}>
+                                    <span style={{ color: 'rgba(255,255,255,.5)' }}>최종 결제 금액</span>
+                                    <span style={{ color: '#6c63ff' }}>{selectedOption.price}</span>
                                 </div>
                             </div>
 
                             {/* 결제 수단 */}
                             <div>
-                                <h3 className="font-bold mb-3">결제 수단</h3>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {payMethods.map((method) => (
-                                        <button
-                                            key={method.id}
-                                            onClick={() => setSelectedPay(method.id)}
-                                            className={`flex flex-col items-center gap-2 py-4 rounded-xl border text-xs font-medium transition-colors ${
-                                                selectedPay === method.id
-                                                    ? 'border-[#6c63ff] bg-[#6c63ff]/10 text-white'
-                                                    : 'border-white/10 bg-[#1a1a1a] text-white/60 hover:border-white/30'
-                                            }`}
-                                        >
+                                <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>결제 수단</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                                    {payMethods.map(method => (
+                                        <button key={method.id} onClick={() => setSelectedPay(method.id)}
+                                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px', borderRadius: 12, border: `1px solid ${selectedPay === method.id ? '#6c63ff' : 'rgba(255,255,255,.1)'}`, background: selectedPay === method.id ? 'rgba(108,99,255,.1)' : '#1a1a22', color: selectedPay === method.id ? '#fff' : 'rgba(255,255,255,.5)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all .15s' }}>
                                             {method.icon}
                                             {method.label}
                                         </button>
@@ -165,44 +169,29 @@ export default function Point() {
                             </div>
 
                             {/* 이용 안내 */}
-                            <div className="bg-[#1a1a1a] rounded-xl p-4">
-                                <h3 className="text-xs font-bold mb-2">이용 안내</h3>
-                                <ul className="flex flex-col gap-1.5">
+                            <div style={{ background: '#1a1a22', borderRadius: 12, padding: 16 }}>
+                                <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.5)', margin: '0 0 8px' }}>이용 안내</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {notices.map((n, i) => (
-                                        <li key={i} className="text-[11px] text-white/40 leading-relaxed flex gap-1">
-                                            <span>•</span>{n}
-                                        </li>
+                                        <p key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', margin: 0, lineHeight: 1.6, paddingLeft: 10, position: 'relative' }}>
+                                            <span style={{ position: 'absolute', left: 0 }}>•</span>{n}
+                                        </p>
                                     ))}
-                                </ul>
+                                </div>
                             </div>
 
-                            {/* 동의 체크 */}
-                            <button
-                                onClick={() => setAgreed(!agreed)}
-                                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border transition-colors ${
-                                    agreed ? 'border-[#6c63ff] bg-[#6c63ff]/10' : 'border-white/10 bg-[#1a1a1a]'
-                                }`}
-                            >
-                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${agreed ? 'border-[#6c63ff] bg-[#6c63ff]' : 'border-white/30'}`}>
-                                    {agreed && (
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                                            <polyline points="20,6 9,17 4,12"/>
-                                        </svg>
-                                    )}
+                            {/* 동의 */}
+                            <button onClick={() => setAgreed(!agreed)}
+                                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 16px', borderRadius: 12, border: `1px solid ${agreed ? '#6c63ff' : 'rgba(255,255,255,.1)'}`, background: agreed ? 'rgba(108,99,255,.1)' : '#1a1a22', cursor: 'pointer', transition: 'all .18s' }}>
+                                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${agreed ? '#6c63ff' : 'rgba(255,255,255,.3)'}`, background: agreed ? '#6c63ff' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .18s' }}>
+                                    {agreed && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>}
                                 </div>
-                                <span className="text-xs font-medium">주문 내용 및 유의사항을 확인하였으며 결제에 동의합니다.</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: agreed ? '#fff' : 'rgba(255,255,255,.5)' }}>주문 내용 및 유의사항을 확인하였으며 결제에 동의합니다.</span>
                             </button>
 
                             {/* 결제 버튼 */}
-                            <button
-                                onClick={handleCharge}
-                                disabled={!agreed || charging}
-                                className={`w-full py-4 rounded-xl font-bold text-sm transition-colors ${
-                                    agreed && !charging
-                                        ? 'bg-[#6c63ff] hover:bg-[#5a52e0] text-white'
-                                        : 'bg-white/10 text-white/30 cursor-not-allowed'
-                                }`}
-                            >
+                            <button onClick={handleCharge} disabled={!agreed || charging}
+                                style={{ width: '100%', padding: '15px', borderRadius: 12, border: 'none', background: agreed && !charging ? '#6c63ff' : 'rgba(255,255,255,.1)', color: agreed && !charging ? '#fff' : 'rgba(255,255,255,.3)', fontSize: 15, fontWeight: 700, cursor: agreed && !charging ? 'pointer' : 'default', transition: 'background .2s' }}>
                                 {charging ? '처리 중...' : `${selectedOption.price} 결제하기`}
                             </button>
                         </div>

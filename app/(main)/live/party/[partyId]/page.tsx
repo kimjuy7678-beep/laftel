@@ -247,7 +247,7 @@ export default function PartyRoomPage() {
 
                 {/* 상단 바 */}
                 <div className="flex items-center justify-between py-4 mb-4 border-b border-white/10">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 mt-10">
                         <button
                             onClick={() => router.push('/live')}
                             className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors"

@@ -228,7 +228,7 @@ export default function OstSection() {
                     .ost-wrap { width: 90%; margin: 0 auto; }
                     .ost-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
                     .ost-head-left { display: flex; align-items: center; gap: 12px; }
-                    .ost-title { font-size: 20px; font-weight: 800; color: #fff; margin: 0; }
+                    .ost-title { font-size: 25px; font-weight: 800; color: #fff; margin: 0; }
                     .ost-badge { font-size: 11px; font-weight: 700; color: #9d97ff; background: rgba(108,99,255,0.15); border: 1px solid rgba(108,99,255,0.3); padding: 3px 10px; border-radius: 20px; }
                     .ost-nav { display: flex; gap: 8px; }
                     .ost-nav-btn { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.6); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; }

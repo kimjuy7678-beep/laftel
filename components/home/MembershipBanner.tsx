@@ -7,9 +7,9 @@ export default function MembershipBanner() {
             <style>{`
               .mb-wrap { width: 100%; }
                 .mb-inner {
-                    position: relative; overflow: hidden;
-          
-                
+                    position: relative;
+                    overflow: hidden;
+                    margin-top: -80px; 
                 }
                 .mb-bg {
                     width: 100%; height: auto; padding:100px 0;
@@ -41,8 +41,8 @@ export default function MembershipBanner() {
     backdrop-filter: blur(4px);
     position: absolute;
     white-space: nowrap;   
-    top: 180px;
-    right: 425px;
+    top: 170px;
+    right: 385px;
 }
                 .mb-btn:hover { background: rgba(255,255,255,0.48); }
             `}</style>
