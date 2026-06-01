@@ -42,13 +42,12 @@ export default function LoginPage() {
     const handleGoogleLogin = async () => {
         try {
             await googleLogin()
-            router.push("/")
+            router.push('/profile')
         } catch (err) {
             console.error("구글 로그인 실패:", err)
         }
     }
 
-    // 네이버 로그인
     const handleNaverLogin = () => {
         const CLIENT_ID = process.env.NEXT_PUBLIC_NAVER_CLIENT_ID
         const REDIRECT_URI = encodeURIComponent(`${window.location.origin}/login/naver/callback`)
@@ -60,8 +59,6 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen bg-[#141414] flex items-center justify-center px-4 relative overflow-hidden">
-
-            {/* background marquee */}
             <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute inset-0 bg-black/70 z-10" />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black z-10" />
@@ -80,11 +77,8 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            {/* 로그인 UI */}
             <div className="w-full max-w-[420px] flex flex-col items-center gap-6 relative z-20">
-
                 <h1 className="font-black text-white text-4xl tracking-widest">LAFTEL</h1>
-
                 <p className="text-white text-xl font-medium text-center leading-relaxed">
                     동시방영 신작부터 역대 인기작까지<br />
                     한 곳에서 편-안하게!
@@ -108,14 +102,11 @@ export default function LoginPage() {
                 </div>
 
                 <div className="flex items-center gap-5">
-                    {/* 카카오 */}
                     <Link href="/login/kakao" className="w-[72px] h-[72px] rounded-full bg-[#FEE500] hover:brightness-95 transition-all flex items-center justify-center">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="#3C1E1E">
                             <path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.548 1.516 4.787 3.805 6.116L4.94 20.13a.5.5 0 0 0 .718.543l4.498-2.937A11.6 11.6 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z" />
                         </svg>
                     </Link>
-
-                    {/* 구글 */}
                     <button onClick={handleGoogleLogin} className="w-[72px] h-[72px] rounded-full bg-white hover:brightness-95 transition-all flex items-center justify-center">
                         <svg width="28" height="28" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -124,8 +115,6 @@ export default function LoginPage() {
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
                     </button>
-
-                    {/* 네이버 */}
                     <button onClick={handleNaverLogin} className="w-[72px] h-[72px] rounded-full bg-[#03C75A] hover:brightness-95 transition-all flex items-center justify-center">
                         <span className="text-white font-black text-2xl leading-none">N</span>
                     </button>

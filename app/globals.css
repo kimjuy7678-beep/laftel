@@ -60,7 +60,7 @@
 body {
   font-family: 'Pretendard', Arial, sans-serif;
   background: #171717;
-  color: #ededed;
+  overflow-x: hidden;
 }
 
 html.dark body {

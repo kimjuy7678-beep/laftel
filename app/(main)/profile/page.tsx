@@ -1,623 +1,557 @@
 'use client'
-
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
-import Link from 'next/link'
-import { createAvatar } from '@dicebear/core'
-import * as avataaarsStyle from '@dicebear/avataaars'
+import { db } from '@/firebase/firebase'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
 
-// ── 타입 ──────────────────────────────────────────────────────
-export interface AvatarConfig {
-    top: string
-    topColor: string        // hairColor
-    clothing: string
-    clothingColor: string
-    eyes: string
-    eyebrows: string
-    mouth: string
-    accessories: string
-    accessoriesProbability: number
-    facialHair: string
-    facialHairProbability: number
-    skinColor: string
-    backgroundColor: string
+const LAFTEL_AVATARS = [
+    'https://thumbnail.laftel.net/profiles/default/48363a65-24d6-45a0-9eac-8c1726656c63.png',
+    'https://thumbnail.laftel.net/profiles/default/fb48c8c7-ad22-4aa9-9038-c0637ba7e275.png',
+    'https://thumbnail.laftel.net/profiles/default/b700435b-3ad2-4a31-9b72-3e9ae631dc47.png',
+    'https://thumbnail.laftel.net/profiles/default/58888b41-8ecd-4f4e-a890-24b2023d7f29.png',
+    'https://thumbnail.laftel.net/profiles/default/257801c8-eda4-4401-8672-509080db808b.png',
+    'https://thumbnail.laftel.net/profiles/default/7478566c-4b3c-4a10-a7c0-2f8c05fb2370.jpg',
+    'https://thumbnail.laftel.net/profiles/default/c38a5328-857c-4c12-a404-53d288460e2a.jpg',
+    'https://thumbnail.laftel.net/profiles/default/40028ff2-895a-4606-b759-2674b1cdc18e.jpg',
+    'https://thumbnail.laftel.net/profiles/default/37710afc-0caa-4ea3-bd6d-1c900674141e.jpg',
+    'https://thumbnail.laftel.net/profiles/default/8c6f615f-b949-4ed8-b027-bcf2bee4ea4a.jpg',
+    'https://thumbnail.laftel.net/profiles/default/e31c3b04-8900-4e76-8f15-f02e26dadc26.jpg',
+    'https://thumbnail.laftel.net/profiles/default/35a479a8-8b52-4982-a9e4-ecbff88edb9d.jpg',
+    'https://thumbnail.laftel.net/profiles/default/6b4d0d5d-3d61-4fbc-9196-ffd502e2a283.jpg',
+    'https://thumbnail.laftel.net/profiles/default/3937fe9e-c406-4ea0-8c99-bccc64361191.jpg',
+    'https://thumbnail.laftel.net/profiles/default/ddad1788-ad54-4aad-81fb-f3c96ed082ed.jpg',
+    'https://thumbnail.laftel.net/profiles/default/2c1a3808-2122-4058-9345-fd440acae4be.jpg',
+    'https://thumbnail.laftel.net/profiles/default/85ce3d3d-4b9b-4757-9645-d015416a1c32.jpg',
+    'https://thumbnail.laftel.net/profiles/default/0c227b2e-7c16-47d3-b26c-612a5b56d3cd.jpg',
+    'https://thumbnail.laftel.net/profiles/default/ac999b29-5a77-432d-8a87-229e094babc5.jpg',
+    'https://thumbnail.laftel.net/profiles/default/d8690d29-5bf3-4f6e-b05d-3dbcb56cef02.jpg',
+    'https://thumbnail.laftel.net/profiles/default/ca78fab5-45b5-4ca2-8b2f-b3dbebb39464.jpg',
+    'https://thumbnail.laftel.net/profiles/default/8be7c59d-dcc8-4169-adbf-a8dda54860a8.jpg',
+    'https://thumbnail.laftel.net/profiles/default/5223c8da-b946-413c-b123-d8e087d78da3.jpg',
+    'https://thumbnail.laftel.net/profiles/default/4f1815d3-cf13-4a3a-a5db-91255225add1.jpg',
+    'https://thumbnail.laftel.net/profiles/default/726aa5b9-6a95-4484-82b4-14c79abc0be2.jpg',
+    'https://thumbnail.laftel.net/profiles/default/67dd3fc0-da6f-466d-a206-9c4db3163760.jpg',
+    'https://thumbnail.laftel.net/profiles/default/68beb046-ac03-4f5a-868f-42cd4074037f.jpg',
+    'https://thumbnail.laftel.net/profiles/default/dfefe5b1-33f7-43c9-ab37-90f8db0f72c8.jpg',
+    'https://thumbnail.laftel.net/profiles/default/8e3bdeb8-b3f4-4186-b04e-f89db6a25dc7.jpg',
+    'https://thumbnail.laftel.net/profiles/default/298345b5-7980-48a6-8975-8066de693d95.jpg',
+    'https://thumbnail.laftel.net/profiles/default/85c2ec51-f438-49fd-9707-6966ac181478.png',
+    'https://thumbnail.laftel.net/profiles/default/b424158d-67fd-4fa8-ae99-273b6ec8ced4.png',
+    'https://thumbnail.laftel.net/profiles/default/52efa08d-4ab3-4d31-ac3c-e07985707b0b.png',
+    'https://thumbnail.laftel.net/profiles/default/0aae4d6f-bd2b-4257-baa4-4d5b07ec9280.png',
+    'https://thumbnail.laftel.net/profiles/default/a4bd7f60-f6c7-4efe-9d7f-05d20c4eea88.png',
+    'https://thumbnail.laftel.net/profiles/default/1a8c4e0b-1f98-49fa-975c-09a4000c2bb8.png',
+    'https://thumbnail.laftel.net/profiles/default/e2aecfd5-0746-4b0c-9260-acc20396c2ff.jpg',
+    'https://thumbnail.laftel.net/profiles/default/188fcaf6-9c4d-4d86-ba54-17fae6a72a09.jpg',
+    'https://thumbnail.laftel.net/profiles/default/a69b5244-51ab-4056-905b-17e6bc5d0ba6.jpg',
+    'https://thumbnail.laftel.net/profiles/default/f79cde9a-400b-4ac3-8adc-32fb754c1416.jpg',
+    'https://thumbnail.laftel.net/profiles/default/ec78f435-24fc-4c2d-b73c-1eb87498e812.jpg',
+    'https://thumbnail.laftel.net/profiles/default/d0984acc-ce22-4e55-ac2a-07f040e97590.jpg',
+    'https://thumbnail.laftel.net/profiles/default/990718e0-b231-4a9b-8016-889d6fe2dc4c.jpg',
+    'https://thumbnail.laftel.net/profiles/default/4a9e21bf-9f11-4d16-85c9-2cad1baf3de6.jpg',
+    'https://thumbnail.laftel.net/profiles/default/f4f90aa1-9e62-4780-a178-5de6e72451b0.jpg',
+    'https://thumbnail.laftel.net/profiles/default/f309296f-aa87-4d7c-b358-9f65a8761497.jpg',
+    'https://thumbnail.laftel.net/profiles/default/123a4cec-3eba-4d0e-888c-ee7914e122ca.png',
+    'https://thumbnail.laftel.net/profiles/default/23bc452c-a8e9-4edb-b3ef-cf2affa5f222.png',
+    'https://thumbnail.laftel.net/profiles/default/4ce89efd-a821-488e-a660-cf8098889404.jpg',
+    'https://thumbnail.laftel.net/profiles/default/24b15ea5-1b09-442e-91a2-2065f8d9cf59.jpg',
+    'https://thumbnail.laftel.net/profiles/default/a95a7cff-76fb-4d98-8297-9ba2adcee93d.jpg',
+    'https://thumbnail.laftel.net/profiles/default/3a64821d-c612-4d89-9d31-e41283b56c1a.jpg',
+    'https://thumbnail.laftel.net/profiles/default/ae926747-2ba2-46c4-a64c-46ff45a22bb9.jpg',
+    'https://thumbnail.laftel.net/profiles/default/169763dd-8168-42d5-aa33-5d2a6f27e887.jpg',
+    'https://thumbnail.laftel.net/profiles/default/12af74d2-f62c-4bd2-8e42-8a18656c6ce7.jpg',
+    'https://thumbnail.laftel.net/profiles/default/5fd4dad6-efd1-400f-be81-92c165fc62ec.jpg',
+    'https://thumbnail.laftel.net/profiles/default/8a7dc330-ec1a-4d63-af79-021b918c59f0.jpg',
+    'https://thumbnail.laftel.net/profiles/default/429f38ed-a9d1-475b-b129-84e7ddf64d81.jpg',
+    'https://thumbnail.laftel.net/profiles/default/433bbf3d-4da2-4089-a84a-76a35e27f8d5.jpg',
+    'https://thumbnail.laftel.net/profiles/default/fb121edc-51b6-4307-befc-571f2fbfc395.jpg',
+    'https://thumbnail.laftel.net/profiles/default/15766a3b-b029-45c7-bb42-7a2959c08bb3.jpg',
+    'https://thumbnail.laftel.net/profiles/default/7c38c4d3-92b9-4457-a91e-bc91e7fd58e5.jpg',
+    'https://thumbnail.laftel.net/profiles/default/db35a7ae-1483-4113-9008-ff95d574f7e2.jpg',
+]
+
+const DICEBEAR_AVATARS = Array.from({ length: 20 }, (_, i) =>
+    `https://api.dicebear.com/7.x/thumbs/svg?seed=laftel${i + 1}&backgroundColor=6c63ff,ff6b6b,ffd93d,6bcb77,4d96ff`
+)
+
+const AGE_OPTIONS = [
+    { value: 'ALL', label: 'ALL', desc: 'ALL 연령 콘텐츠만 시청 가능' },
+    { value: '7', label: '7+', desc: '7세 연령 콘텐츠까지 시청 가능' },
+    { value: '12', label: '12+', desc: '12세 연령 콘텐츠까지 시청 가능' },
+    { value: '15', label: '15+', desc: '15세 연령 콘텐츠까지 시청 가능' },
+    { value: '19', label: '19+', desc: '19세 연령 콘텐츠까지 시청 가능' },
+]
+
+type Step = 'select' | 'edit' | 'image' | 'age_pw' | 'age_select'
+type ImageTab = 'laftel' | 'dicebear' | 'custom'
+
+interface ProfileData {
+    id: string
+    nickname: string
+    avatarUrl: string
+    ageLimit: string
 }
 
-const DEFAULT_CONFIG: AvatarConfig = {
-    top: 'shortCurly',
-    topColor: 'brown',
-    clothing: 'hoodie',
-    clothingColor: '6c63ff',
-    eyes: 'default',
-    eyebrows: 'defaultNatural',
-    mouth: 'smile',
-    accessories: 'prescription01',
-    accessoriesProbability: 0,
-    facialHair: 'beardLight',
-    facialHairProbability: 0,
-    skinColor: 'light',
-    backgroundColor: '1a1a2e',
-}
-
-// ── 옵션 데이터 ───────────────────────────────────────────────
-const TABS = [
-    { id: 'hair',       label: '헤어' },
-    { id: 'face',       label: '얼굴' },
-    { id: 'clothing',   label: '의상' },
-    { id: 'extras',     label: '기타' },
-]
-
-const HAIR_STYLES = [
-    { id: 'bigHair',              label: '빅헤어' },
-    { id: 'bob',                  label: '단발' },
-    { id: 'bun',                  label: '번머리' },
-    { id: 'curly',                label: '곱슬' },
-    { id: 'curvy',                label: '웨이브' },
-    { id: 'dreads',               label: '드레드' },
-    { id: 'frida',                label: '프리다' },
-    { id: 'fro',                  label: '아프로' },
-    { id: 'froBand',              label: '아프로밴드' },
-    { id: 'longButNotTooLong',    label: '긴생머리' },
-    { id: 'miaWallace',           label: '미아왈라스' },
-    { id: 'shavedSides',          label: '사이드컷' },
-    { id: 'shortCurly',           label: '숏컬리' },
-    { id: 'shortFlat',            label: '숏플랫' },
-    { id: 'shortRound',           label: '숏라운드' },
-    { id: 'shortWaved',           label: '숏웨이브' },
-    { id: 'sides',                label: '사이드' },
-    { id: 'straight01',           label: '생머리1' },
-    { id: 'straight02',           label: '생머리2' },
-    { id: 'straightAndStrand',    label: '생머리+잔머리' },
-    { id: 'theCaesar',            label: '시저컷' },
-    { id: 'hat',                  label: '모자' },
-    { id: 'winterHat1',           label: '겨울모자1' },
-    { id: 'winterHat02',          label: '겨울모자2' },
-    { id: 'hijab',                label: '히잡' },
-    { id: 'turban',               label: '터번' },
-]
-
-const HAIR_COLORS = [
-    { id: 'auburn',       label: '오번',   hex: '#A55728' },
-    { id: 'black',        label: '검정',   hex: '#2C1B18' },
-    { id: 'blonde',       label: '금발',   hex: '#B58143' },
-    { id: 'blondeGolden', label: '골든',   hex: '#D6B370' },
-    { id: 'brown',        label: '갈색',   hex: '#724133' },
-    { id: 'brownDark',    label: '짙은갈', hex: '#4A312C' },
-    { id: 'pastelPink',   label: '핑크',   hex: '#F59797' },
-    { id: 'platinum',     label: '백금',   hex: '#ECDCBF' },
-    { id: 'red',          label: '빨강',   hex: '#C93305' },
-    { id: 'silverGray',   label: '실버',   hex: '#E8E1E1' },
-]
-
-const SKIN_COLORS = [
-    { id: 'tanned',    label: '태닝',   hex: '#FD9841' },
-    { id: 'yellow',    label: '황색',   hex: '#F8D25C' },
-    { id: 'pale',      label: '창백',   hex: '#FDDBB4' },
-    { id: 'light',     label: '밝음',   hex: '#EDB98A' },
-    { id: 'brown',     label: '갈색',   hex: '#D08B5B' },
-    { id: 'darkBrown', label: '짙은갈', hex: '#AE5D29' },
-    { id: 'black',     label: '다크',   hex: '#614335' },
-]
-
-const EYES_OPTIONS = [
-    { id: 'default',    label: '기본' },
-    { id: 'happy',      label: '행복' },
-    { id: 'closed',     label: '감은눈' },
-    { id: 'hearts',     label: '하트' },
-    { id: 'side',       label: '옆눈' },
-    { id: 'squint',     label: '찡긋' },
-    { id: 'surprised',  label: '놀람' },
-    { id: 'wink',       label: '윙크' },
-    { id: 'winkWacky',  label: '윙크2' },
-    { id: 'xDizzy',     label: '빙글' },
-    { id: 'cry',        label: '눈물' },
-    { id: 'eyeRoll',    label: '눈굴림' },
-]
-
-const EYEBROW_OPTIONS = [
-    { id: 'defaultNatural',       label: '기본' },
-    { id: 'angryNatural',         label: '화남' },
-    { id: 'flatNatural',          label: '일자' },
-    { id: 'frownNatural',         label: '찡그림' },
-    { id: 'raisedExcitedNatural', label: '들뜸' },
-    { id: 'sadConcernedNatural',  label: '슬픔' },
-    { id: 'upDownNatural',        label: '비대칭' },
-    { id: 'unibrowNatural',       label: '일자눈썹' },
-    { id: 'raisedExcited',        label: '들뜸2' },
-    { id: 'sadConcerned',         label: '슬픔2' },
-    { id: 'angry',                label: '화남2' },
-    { id: 'upDown',               label: '비대칭2' },
-]
-
-const MOUTH_OPTIONS = [
-    { id: 'smile',       label: '미소' },
-    { id: 'default',     label: '기본' },
-    { id: 'twinkle',     label: '반짝' },
-    { id: 'tongue',      label: '혀' },
-    { id: 'concerned',   label: '걱정' },
-    { id: 'disbelief',   label: '황당' },
-    { id: 'eating',      label: '먹는중' },
-    { id: 'grimace',     label: '찡그림' },
-    { id: 'sad',         label: '슬픔' },
-    { id: 'screamOpen',  label: '비명' },
-    { id: 'serious',     label: '진지' },
-    { id: 'vomit',       label: '오바이트' },
-]
-
-const CLOTHING_OPTIONS = [
-    { id: 'blazerAndShirt',   label: '블레이저+셔츠' },
-    { id: 'blazerAndSweater', label: '블레이저+스웨터' },
-    { id: 'collarAndSweater', label: '카라+스웨터' },
-    { id: 'graphicShirt',     label: '그래픽티' },
-    { id: 'hoodie',           label: '후디' },
-    { id: 'overall',          label: '오버롤' },
-    { id: 'shirtCrewNeck',    label: '크루넥' },
-    { id: 'shirtScoopNeck',   label: '스쿱넥' },
-    { id: 'shirtVNeck',       label: 'V넥' },
-]
-
-const CLOTHING_COLORS = [
-    { id: '6c63ff', label: '라프텔', hex: '#6c63ff' },
-    { id: 'ff6b6b', label: '레드',   hex: '#ff6b6b' },
-    { id: 'ffd93d', label: '옐로우', hex: '#ffd93d' },
-    { id: '6bcb77', label: '그린',   hex: '#6bcb77' },
-    { id: '4d96ff', label: '블루',   hex: '#4d96ff' },
-    { id: 'ff9f43', label: '오렌지', hex: '#ff9f43' },
-    { id: 'ff88dd', label: '핑크',   hex: '#ff88dd' },
-    { id: 'ffffff', label: '화이트', hex: '#ffffff' },
-    { id: '262626', label: '블랙',   hex: '#262626' },
-]
-
-const ACCESSORIES_OPTIONS = [
-    { id: 'none',           label: '없음',     prob: 0 },
-    { id: 'kurt',           label: '틴트안경', prob: 100 },
-    { id: 'prescription01', label: '뿔테',     prob: 100 },
-    { id: 'prescription02', label: '반뿔테',   prob: 100 },
-    { id: 'round',          label: '동그란',   prob: 100 },
-    { id: 'sunglasses',     label: '선글라스', prob: 100 },
-    { id: 'wayfarers',      label: '웨이파러', prob: 100 },
-    { id: 'eyepatch',       label: '안대',     prob: 100 },
-]
-
-const FACIAL_HAIR_OPTIONS = [
-    { id: 'none',           label: '없음',     prob: 0 },
-    { id: 'beardLight',     label: '가는수염', prob: 100 },
-    { id: 'beardMedium',    label: '중간수염', prob: 100 },
-    { id: 'beardMajestic',  label: '풍성수염', prob: 100 },
-    { id: 'moustacheFancy', label: '콧수염1',  prob: 100 },
-    { id: 'moustacheMagnum',label: '콧수염2',  prob: 100 },
-]
-
-const BG_COLORS = [
-    { id: '0a0a0a', label: '다크',   hex: '#0a0a0a' },
-    { id: '1a1a2e', label: '네이비', hex: '#1a1a2e' },
-    { id: '6c63ff', label: '보라',   hex: '#6c63ff' },
-    { id: '16213e', label: '딥블루', hex: '#16213e' },
-    { id: '2d3436', label: '그레이', hex: '#2d3436' },
-    { id: '6d214f', label: '와인',   hex: '#6d214f' },
-    { id: '1e3799', label: '블루',   hex: '#1e3799' },
-    { id: '0a3d62', label: '틸',     hex: '#0a3d62' },
-    { id: '4a235a', label: '퍼플',   hex: '#4a235a' },
-]
-
-const membershipConfig = {
-    none:    { label: '멤버십 없음', color: 'rgba(255,255,255,0.15)', text: 'rgba(255,255,255,0.4)' },
-    basic:   { label: 'BASIC 회원',  color: '#3b82f6',                text: '#93c5fd' },
-    premium: { label: 'PREMIUM 회원',color: '#f59e0b',                text: '#fcd34d' },
-}
-
-// ── SVG 생성 훅 ───────────────────────────────────────────────
-function useAvatarSvg(config: AvatarConfig) {
-    return useMemo(() => {
-        try {
-            return createAvatar(avataaarsStyle, {
-                seed: 'laftel-' + JSON.stringify(config),
-                top: [config.top as any],
-                hairColor: [config.topColor as any],
-                clothing: [config.clothing as any],
-                clothesColor: [config.clothingColor as any],
-                eyes: [config.eyes as any],
-                eyebrows: [config.eyebrows as any],
-                mouth: [config.mouth as any],
-                accessories: [config.accessories as any],
-                accessoriesProbability: config.accessoriesProbability,
-                facialHair: [config.facialHair as any],
-                facialHairProbability: config.facialHairProbability,
-                skinColor: [config.skinColor as any],
-                backgroundColor: [config.backgroundColor as any],
-                backgroundType: ['solid'],
-                size: 280,
-            }).toString()
-        } catch {
-            return ''
-        }
-    }, [config])
-}
-
-// ── 색상 피커 ─────────────────────────────────────────────────
-function ColorPicker({ colors, value, onChange }: {
-    colors: { id: string; label: string; hex: string }[]
-    value: string
-    onChange: (id: string) => void
-}) {
-    return (
-        <div className="color-row">
-            {colors.map(c => (
-                <button
-                    key={c.id}
-                    title={c.label}
-                    className={`c-dot${value === c.id ? ' on' : ''}`}
-                    style={{ background: c.hex }}
-                    onClick={() => onChange(c.id)}
-                />
-            ))}
-        </div>
-    )
-}
-
-// ── 옵션 그리드 ───────────────────────────────────────────────
-function OptionGrid({ options, value, onChange }: {
-    options: { id: string; label: string }[]
-    value: string
-    onChange: (id: string) => void
-}) {
-    return (
-        <div className="opt-grid">
-            {options.map(o => (
-                <button
-                    key={o.id}
-                    className={`opt-btn${value === o.id ? ' on' : ''}`}
-                    onClick={() => onChange(o.id)}
-                >
-                    {o.label}
-                </button>
-            ))}
-        </div>
-    )
-}
-
-// ── 메인 페이지 ───────────────────────────────────────────────
 export default function ProfilePage() {
-    const { user, setAvatarConfig } = useAuthStore()
+    const { user, onLogin } = useAuthStore()
     const router = useRouter()
-    const [activeTab, setActiveTab] = useState('hair')
-    const [saved, setSaved] = useState(false)
+    const fileRef = useRef<HTMLInputElement>(null)
 
-    const [config, setConfig] = useState<AvatarConfig>(() => {
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('laftel-avatar')
-            if (stored) {
-                try { return JSON.parse(stored) } catch {}
-            }
-        }
-        return DEFAULT_CONFIG
-    })
+    const [step, setStep] = useState<Step>('select')
+    const [profiles, setProfiles] = useState<ProfileData[]>([])
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editNickname, setEditNickname] = useState('')
+    const [selectedAvatar, setSelectedAvatar] = useState(LAFTEL_AVATARS[0])
+    const [editAgeLimit, setEditAgeLimit] = useState('19')
+    const [saving, setSaving] = useState(false)
+    const [showPremiumModal, setShowPremiumModal] = useState(false)
+    const [loading, setLoading] = useState(true)
+    const [imageTab, setImageTab] = useState<ImageTab>('laftel')
+    const [customPreview, setCustomPreview] = useState<string | null>(null)
+    const [isDragging, setIsDragging] = useState(false)
+    const [agePw, setAgePw] = useState('')
+    const [agePwError, setAgePwError] = useState('')
+    const [selectedAge, setSelectedAge] = useState('19')
 
-    const svg = useAvatarSvg(config)
-    const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-
-    const membership = (user?.membership || 'none') as 'none' | 'basic' | 'premium'
-    const memberInfo = membershipConfig[membership]
+    const hasMembership = user?.membership && user.membership !== 'none'
 
     useEffect(() => {
-        if (!user) router.push('/login')
+        if (!user) { router.push('/login'); return }
+        loadProfiles()
     }, [user])
 
-    const update = <K extends keyof AvatarConfig>(key: K, val: AvatarConfig[K]) => {
-        setConfig(prev => ({ ...prev, [key]: val }))
-        setSaved(false)
+    const loadProfiles = async () => {
+        if (!user?.uid) return
+        setLoading(true)
+        try {
+            const snap = await getDoc(doc(db, 'users', user.uid))
+            const data = snap.data()
+            const savedProfiles: ProfileData[] = data?.profiles || []
+            if (savedProfiles.length === 0) {
+                setProfiles([{
+                    id: 'main',
+                    nickname: data?.nickname || user.name || `laftel_${user.uid.slice(-4).toUpperCase()}`,
+                    avatarUrl: data?.avatarUrl || user.photoURL || LAFTEL_AVATARS[0],
+                    ageLimit: data?.ageLimit || '19',
+                }])
+            } else {
+                setProfiles(savedProfiles)
+            }
+        } catch {
+            setProfiles([{
+                id: 'main',
+                nickname: user.name || `laftel_${user.uid?.slice(-4).toUpperCase()}`,
+                avatarUrl: user.photoURL || LAFTEL_AVATARS[0],
+                ageLimit: '19',
+            }])
+        } finally {
+            setLoading(false)
+        }
     }
 
-    const randomize = () => {
-        const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)]
-        const accOpt = pick(ACCESSORIES_OPTIONS)
-        const fhOpt  = pick(FACIAL_HAIR_OPTIONS)
-        setConfig({
-            top:                    (pick(HAIR_STYLES) as any).id,
-            topColor:               (pick(HAIR_COLORS) as any).id,
-            clothing:               (pick(CLOTHING_OPTIONS) as any).id,
-            clothingColor:          (pick(CLOTHING_COLORS) as any).id,
-            eyes:                   (pick(EYES_OPTIONS) as any).id,
-            eyebrows:               (pick(EYEBROW_OPTIONS) as any).id,
-            mouth:                  (pick(MOUTH_OPTIONS) as any).id,
-            accessories:            (accOpt as any).id,
-            accessoriesProbability: (accOpt as any).prob,
-            facialHair:             (fhOpt as any).id,
-            facialHairProbability:  (fhOpt as any).prob,
-            skinColor:              (pick(SKIN_COLORS) as any).id,
-            backgroundColor:        (pick(BG_COLORS) as any).id,
+    const openEdit = (profile: ProfileData) => {
+        setEditingId(profile.id)
+        setEditNickname(profile.nickname)
+        setSelectedAvatar(profile.avatarUrl)
+        setEditAgeLimit(profile.ageLimit)
+        setCustomPreview(null)
+        setStep('edit')
+    }
+
+    const openNew = () => {
+        setEditingId(null)
+        setEditNickname('')
+        setSelectedAvatar(LAFTEL_AVATARS[0])
+        setEditAgeLimit('19')
+        setCustomPreview(null)
+        setStep('edit')
+    }
+
+    // 이미지 압축 후 base64로 저장 (Storage 없이)
+    const compressImage = (file: File): Promise<string> => {
+        return new Promise(resolve => {
+            const reader = new FileReader()
+            reader.onload = e => {
+                const img = new Image()
+                img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    canvas.width = 200
+                    canvas.height = 200
+                    const ctx = canvas.getContext('2d')!
+                    ctx.drawImage(img, 0, 0, 200, 200)
+                    resolve(canvas.toDataURL('image/jpeg', 0.8))
+                }
+                img.src = e.target?.result as string
+            }
+            reader.readAsDataURL(file)
         })
-        setSaved(false)
     }
 
-    const saveConfig = () => {
-        localStorage.setItem('laftel-avatar', JSON.stringify(config))
-        // 헤더/드롭다운 즉시 반영
-        setAvatarConfig({ ...config, svgDataUrl })
-        setSaved(true)
-        setTimeout(() => setSaved(false), 2200)
+    const saveProfile = async () => {
+        if (!user?.uid) return
+        setSaving(true)
+        try {
+            const finalAvatarUrl = selectedAvatar // base64 그대로 저장
+
+            let newProfiles: ProfileData[]
+            if (editingId) {
+                newProfiles = profiles.map(p =>
+                    p.id === editingId
+                        ? { ...p, nickname: editNickname.trim() || p.nickname, avatarUrl: finalAvatarUrl, ageLimit: editAgeLimit }
+                        : p
+                )
+            } else {
+                newProfiles = [...profiles, {
+                    id: `profile_${Date.now()}`,
+                    nickname: editNickname.trim() || `프로필 ${profiles.length + 1}`,
+                    avatarUrl: finalAvatarUrl,
+                    ageLimit: editAgeLimit,
+                }]
+            }
+
+            await setDoc(doc(db, 'users', user.uid), {
+                profiles: newProfiles,
+                nickname: newProfiles[0].nickname,
+                avatarUrl: newProfiles[0].avatarUrl,
+                updatedAt: new Date().toISOString(),
+            }, { merge: true })
+
+            setProfiles(newProfiles)
+            const main = newProfiles[0]
+            onLogin({ ...user, name: main.nickname, photoURL: main.avatarUrl })
+            setStep('select')
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setSaving(false)
+        }
     }
 
-    if (!user) return null
+    const saveAgeLimit = async () => {
+        if (!user?.uid) return
+        setSaving(true)
+        try {
+            const newProfiles = profiles.map(p =>
+                p.id === editingId ? { ...p, ageLimit: selectedAge } : p
+            )
+            await setDoc(doc(db, 'users', user.uid), { profiles: newProfiles }, { merge: true })
+            setProfiles(newProfiles)
+            setEditAgeLimit(selectedAge)
+            setStep('edit')
+        } catch (e) { console.error(e) }
+        finally { setSaving(false) }
+    }
+
+    const handleAgePwNext = () => {
+        if (!agePw.trim()) { setAgePwError('비밀번호를 입력해주세요.'); return }
+        setAgePwError('')
+        setStep('age_select')
+    }
+
+    const processFile = async (file: File) => {
+        const compressed = await compressImage(file)
+        setCustomPreview(compressed)
+        setSelectedAvatar(compressed)
+    }
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault(); setIsDragging(false)
+        const file = e.dataTransfer.files[0]
+        if (file && file.type.startsWith('image/')) processFile(file)
+    }
+
+    if (!user || loading) return (
+        <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+    )
+
+    const editingProfile = profiles.find(p => p.id === editingId)
+    const ageLimitLabel = AGE_OPTIONS.find(a => a.value === editAgeLimit)?.desc || '19세 연령 콘텐츠까지 시청 가능'
 
     return (
-        <>
+        <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
             <style>{`
-                .pp { min-height:100vh; background:#0a0a0a; padding:80px 0 80px; }
-                .pp-inner { max-width:960px; margin:0 auto; padding:0 32px; }
-
-                /* 헤더 */
-                .pp-head { display:flex; align-items:center; gap:10px; margin-bottom:36px; }
-                .pp-back { display:flex; align-items:center; gap:5px; background:none; border:none; color:rgba(255,255,255,.35); font-size:13px; cursor:pointer; padding:0; transition:color .2s; }
-                .pp-back:hover { color:rgba(255,255,255,.7); }
-                .pp-head h1 { font-size:20px; font-weight:700; color:#fff; margin:0; }
-
-                /* 레이아웃 */
-                .pp-layout { display:grid; grid-template-columns:260px 1fr; gap:20px; align-items:start; }
-
-                /* 왼쪽 카드 */
-                .pp-card { background:#111; border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden; }
-                .avatar-area { display:flex; align-items:center; justify-content:center; padding:0; }
-                .avatar-area img { width:100%; height:auto; display:block; border-radius:0; }
-                .pp-card-body { padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; border-top:1px solid rgba(255,255,255,.06); }
-                .pp-name { font-size:16px; font-weight:700; color:#fff; margin:0; }
-                .pp-email { font-size:12px; color:rgba(255,255,255,.3); margin:0; }
-                .pp-badge { font-size:11px; font-weight:700; padding:4px 12px; border-radius:20px; border:1px solid; letter-spacing:.3px; }
-                .pp-btns { display:flex; gap:8px; width:100%; }
-                .btn-random { flex:1; height:38px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:10px; color:rgba(255,255,255,.55); font-size:13px; cursor:pointer; transition:all .18s; }
-                .btn-random:hover { background:rgba(255,255,255,.1); color:#fff; }
-                .btn-save { flex:1; height:38px; background:#6c63ff; border:none; border-radius:10px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:background .18s; }
-                .btn-save:hover { background:#5a52e0; }
-                .btn-save.saved { background:#22c55e; }
-
-                /* 빠른 링크 */
-                .pp-links { display:flex; flex-direction:column; gap:1px; margin-top:12px; }
-                .pp-link { display:flex; align-items:center; justify-content:space-between; padding:11px 16px; border-radius:10px; color:rgba(255,255,255,.45); font-size:13px; text-decoration:none; transition:all .15s; }
-                .pp-link:hover { background:rgba(255,255,255,.05); color:rgba(255,255,255,.8); }
-
-                /* 오른쪽 커스터마이저 */
-                .cust { background:#111; border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden; }
-                .cust-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,.07); }
-                .ctab { flex:1; padding:14px 0; font-size:13px; font-weight:500; color:rgba(255,255,255,.3); background:none; border:none; cursor:pointer; border-bottom:2px solid transparent; transition:all .18s; }
-                .ctab:hover { color:rgba(255,255,255,.6); }
-                .ctab.on { color:#fff; border-bottom-color:#6c63ff; }
-                .cust-body { padding:22px; display:flex; flex-direction:column; gap:22px; overflow-y:auto; max-height:540px; }
-
-                /* 섹션 */
-                .c-sec { display:flex; flex-direction:column; gap:10px; }
-                .c-sec-label { font-size:10.5px; font-weight:700; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:.8px; margin:0; }
-
-                /* 색상 피커 */
-                .color-row { display:flex; flex-wrap:wrap; gap:8px; }
-                .c-dot { width:28px; height:28px; border-radius:50%; cursor:pointer; border:2.5px solid transparent; transition:transform .14s, border-color .14s; flex-shrink:0; outline:none; }
-                .c-dot:hover { transform:scale(1.18); }
-                .c-dot.on { border-color:#fff; box-shadow:0 0 0 1.5px rgba(255,255,255,.25); }
-
-                /* 옵션 그리드 */
-                .opt-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-                .opt-btn { padding:9px 4px; border-radius:8px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03); color:rgba(255,255,255,.4); font-size:11.5px; font-weight:500; cursor:pointer; transition:all .15s; text-align:center; }
-                .opt-btn:hover { border-color:rgba(255,255,255,.2); color:rgba(255,255,255,.75); background:rgba(255,255,255,.06); }
-                .opt-btn.on { border-color:#6c63ff; background:rgba(108,99,255,.2); color:#c4c0ff; }
-
-                /* 토글 */
-                .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:4px 0; }
-                .toggle-label { font-size:12px; color:rgba(255,255,255,.5); }
-                .toggle-sw { width:40px; height:22px; border-radius:11px; background:rgba(255,255,255,.1); border:none; cursor:pointer; position:relative; transition:background .2s; flex-shrink:0; }
-                .toggle-sw.on { background:#6c63ff; }
-                .toggle-knob { width:16px; height:16px; border-radius:50%; background:#fff; position:absolute; top:3px; left:3px; transition:left .2s; pointer-events:none; }
-                .toggle-sw.on .toggle-knob { left:21px; }
-
-                /* 스크롤바 */
-                .cust-body::-webkit-scrollbar { width:4px; }
-                .cust-body::-webkit-scrollbar-track { background:transparent; }
-                .cust-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:2px; }
+                @keyframes spin { to { transform: rotate(360deg) } }
+                @keyframes fade-up { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+                .pf-page { animation: fade-up .3s ease; width: 100%; max-width: 640px; }
+                .pf-box { animation: fade-up .3s ease; width: 100%; max-width: 440px; background: #141420; border-radius: 20px; border: 1px solid rgba(255,255,255,.08); overflow: hidden; }
+                .custom-scroll::-webkit-scrollbar { width: 5px; }
+                .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 10px; }
+                .custom-scroll::-webkit-scrollbar-thumb { background: rgba(108,99,255,.5); border-radius: 10px; }
+                .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(108,99,255,.8); }
+                .img-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 4px 2px; }
+                .img-item { aspect-ratio: 1; border-radius: 50%; overflow: hidden; cursor: pointer; border: 3px solid transparent; transition: border-color .15s, transform .15s; background: #1a1a22; }
+                .img-item:hover { transform: scale(1.06); }
+                .img-item.selected { border-color: #6c63ff; box-shadow: 0 0 0 2px rgba(108,99,255,.3); }
+                .img-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+                .img-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 16px; }
+                .img-tab { flex: 1; padding: 10px 0; font-size: 13px; font-weight: 500; color: rgba(255,255,255,.3); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all .18s; }
+                .img-tab:hover { color: rgba(255,255,255,.6); }
+                .img-tab.on { color: #fff; border-bottom-color: #6c63ff; }
+                .drop-zone { border: 2px dashed rgba(255,255,255,.15); border-radius: 16px; padding: 48px 24px; text-align: center; transition: all .2s; cursor: pointer; }
+                .drop-zone.dragging { border-color: #6c63ff; background: rgba(108,99,255,.08); }
+                .drop-zone:hover { border-color: rgba(255,255,255,.3); }
+                .profile-card { display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; }
+                .profile-avatar { width: 100px; height: 100px; border-radius: 50%; overflow: hidden; background: #1a1a22; position: relative; transition: transform .2s; }
+                .profile-card:hover .profile-avatar { transform: scale(1.05); }
             `}</style>
 
-            <div className="pp">
-                <div className="pp-inner">
-                    <div className="pp-head">
-                        <button className="pp-back" onClick={() => router.back()}>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="m15 18-6-6 6-6"/>
-                            </svg>
-                            뒤로
-                        </button>
-                        <h1>프로필 설정</h1>
-                    </div>
-
-                    <div className="pp-layout">
-                        {/* ── 왼쪽 카드 ── */}
-                        <div>
-                            <div className="pp-card">
-                                <div className="avatar-area">
-                                    {svg && (
-                                        <img
-                                            src={svgDataUrl}
-                                            alt="내 아바타"
-                                            width={260}
-                                            height={260}
-                                        />
-                                    )}
-                                </div>
-                                <div className="pp-card-body">
-                                    <p className="pp-name">{user?.name}</p>
-                                    <p className="pp-email">{user?.email}</p>
-                                    <span
-                                        className="pp-badge"
-                                        style={{ borderColor: memberInfo.color, color: memberInfo.text }}
-                                    >
-                                        {memberInfo.label}
-                                    </span>
-                                    <div className="pp-btns">
-                                        <button className="btn-random" onClick={randomize}>🎲 랜덤</button>
-                                        <button
-                                            className={`btn-save${saved ? ' saved' : ''}`}
-                                            onClick={saveConfig}
-                                        >
-                                            {saved ? '✓ 저장됨' : '저장'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="pp-links">
-                                {[
-                                    { href: '/membership', label: '멤버십 관리' },
-                                    { href: '/point',      label: '내 포인트' },
-                                    { href: '/coupon',     label: '쿠폰 등록' },
-                                    { href: '/history',    label: '이용내역' },
-                                    { href: '/setting',    label: '설정' },
-                                ].map(l => (
-                                    <Link key={l.href} href={l.href} className="pp-link">
-                                        {l.label}
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="m9 18 6-6-6-6"/>
-                                        </svg>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* ── 오른쪽 커스터마이저 ── */}
-                        <div className="cust">
-                            <div className="cust-tabs">
-                                {TABS.map(t => (
-                                    <button
-                                        key={t.id}
-                                        className={`ctab${activeTab === t.id ? ' on' : ''}`}
-                                        onClick={() => setActiveTab(t.id)}
-                                    >
-                                        {t.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="cust-body">
-                                {/* ── 헤어 탭 ── */}
-                                {activeTab === 'hair' && (
-                                    <>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">피부 색상</p>
-                                            <ColorPicker
-                                                colors={SKIN_COLORS}
-                                                value={config.skinColor}
-                                                onChange={v => update('skinColor', v)}
-                                            />
-                                        </div>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">헤어 스타일</p>
-                                            <OptionGrid
-                                                options={HAIR_STYLES}
-                                                value={config.top}
-                                                onChange={v => update('top', v)}
-                                            />
-                                        </div>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">헤어 색상</p>
-                                            <ColorPicker
-                                                colors={HAIR_COLORS}
-                                                value={config.topColor}
-                                                onChange={v => update('topColor', v)}
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* ── 얼굴 탭 ── */}
-                                {activeTab === 'face' && (
-                                    <>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">눈</p>
-                                            <OptionGrid
-                                                options={EYES_OPTIONS}
-                                                value={config.eyes}
-                                                onChange={v => update('eyes', v)}
-                                            />
-                                        </div>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">눈썹</p>
-                                            <OptionGrid
-                                                options={EYEBROW_OPTIONS}
-                                                value={config.eyebrows}
-                                                onChange={v => update('eyebrows', v)}
-                                            />
-                                        </div>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">입</p>
-                                            <OptionGrid
-                                                options={MOUTH_OPTIONS}
-                                                value={config.mouth}
-                                                onChange={v => update('mouth', v)}
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* ── 의상 탭 ── */}
-                                {activeTab === 'clothing' && (
-                                    <>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">의상</p>
-                                            <OptionGrid
-                                                options={CLOTHING_OPTIONS}
-                                                value={config.clothing}
-                                                onChange={v => update('clothing', v)}
-                                            />
-                                        </div>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">의상 색상</p>
-                                            <ColorPicker
-                                                colors={CLOTHING_COLORS}
-                                                value={config.clothingColor}
-                                                onChange={v => update('clothingColor', v)}
-                                            />
-                                        </div>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">배경 색상</p>
-                                            <ColorPicker
-                                                colors={BG_COLORS}
-                                                value={config.backgroundColor}
-                                                onChange={v => update('backgroundColor', v)}
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* ── 기타 탭 ── */}
-                                {activeTab === 'extras' && (
-                                    <>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">악세사리</p>
-                                            <OptionGrid
-                                                options={ACCESSORIES_OPTIONS}
-                                                value={config.accessoriesProbability === 0 ? 'none' : config.accessories}
-                                                onChange={v => {
-                                                    const opt = ACCESSORIES_OPTIONS.find(o => o.id === v)!
-                                                    update('accessories', v === 'none' ? 'prescription01' : v)
-                                                    update('accessoriesProbability', opt.prob)
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="c-sec">
-                                            <p className="c-sec-label">수염</p>
-                                            <OptionGrid
-                                                options={FACIAL_HAIR_OPTIONS}
-                                                value={config.facialHairProbability === 0 ? 'none' : config.facialHair}
-                                                onChange={v => {
-                                                    const opt = FACIAL_HAIR_OPTIONS.find(o => o.id === v)!
-                                                    update('facialHair', v === 'none' ? 'beardLight' : v)
-                                                    update('facialHairProbability', opt.prob)
-                                                }}
-                                            />
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+            {/* 프리미엄 모달 */}
+            {showPremiumModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
+                    <div style={{ background: '#1a1a22', borderRadius: 16, padding: '28px 24px', maxWidth: 380, width: '100%', border: '1px solid rgba(255,255,255,.1)' }}>
+                        <h3 style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 12px' }}>프리미엄 멤버십 안내</h3>
+                        <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>
+                            프리미엄 멤버십을 이용하면 총 4개까지 프로필을 추가하고 동시재생 하실 수 있습니다. 프리미엄 멤버십 상품을 구경하시겠어요?
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                            <button onClick={() => setShowPremiumModal(false)} style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>아니요</button>
+                            <button onClick={() => { setShowPremiumModal(false); router.push('/membership') }} style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>네, 구경할래요</button>
                         </div>
                     </div>
                 </div>
-            </div>
-        </>
+            )}
+
+            {(step === 'age_pw' || step === 'age_select') && (
+                <h1 style={{ fontSize: 32, fontWeight: 900, color: '#6c63ff', letterSpacing: 2, marginBottom: 32, fontStyle: 'italic' }}>LAFTEL</h1>
+            )}
+
+            {/* ── STEP 1: 프로필 선택 ── */}
+            {step === 'select' && (
+                <div className="pf-page">
+                    <div style={{ textAlign: 'center', marginBottom: 48 }}>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.35)', margin: '0 0 10px' }}>프로필 선택</p>
+                        <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: 0 }}>사용할 프로필을 선택해주세요.</h1>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 32, marginBottom: 48 }}>
+                        {profiles.map(p => (
+                            <div key={p.id} className="profile-card" onClick={() => {
+                                onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl })
+                                router.push('/')
+                            }}>
+                                <div className="profile-avatar" style={{ border: '2px solid #6c63ff' }}>
+                                    <img src={p.avatarUrl} alt={p.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
+                                </div>
+                                <span style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>{p.nickname}</span>
+                            </div>
+                        ))}
+                        {profiles.length < 4 && (
+                            <div className="profile-card" onClick={() => hasMembership ? openNew() : setShowPremiumModal(true)}>
+                                <div className="profile-avatar" style={{ border: `2px solid ${hasMembership ? 'rgba(108,99,255,.4)' : 'rgba(255,255,255,.1)'}`, background: hasMembership ? 'rgba(108,99,255,.1)' : 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={hasMembership ? '#9d97ff' : 'rgba(255,255,255,.3)'} strokeWidth="2">
+                                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                </div>
+                                <span style={{ color: hasMembership ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.3)', fontSize: 14 }}>
+                                    새 프로필
+                                    {!hasMembership && <span style={{ display: 'block', fontSize: 11, color: '#6c63ff', marginTop: 2, textAlign: 'center' }}>멤버십 필요</span>}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <button onClick={() => profiles[0] && openEdit(profiles[0])}
+                            style={{ padding: '12px 32px', background: 'none', border: '1px solid rgba(255,255,255,.2)', borderRadius: 10, color: 'rgba(255,255,255,.7)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                            프로필 편집
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── STEP 2: 프로필 편집 ── */}
+            {step === 'edit' && (
+                <div className="pf-page">
+                    <div style={{ textAlign: 'center', marginBottom: 48 }}>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.35)', margin: '0 0 10px' }}>프로필 편집</p>
+                        <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: 0 }}>
+                            {editingId ? '편집할 프로필을 선택해주세요.' : '새 프로필을 만들어주세요.'}
+                        </h1>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, marginBottom: 48 }}>
+                        <div style={{ position: 'relative', cursor: 'pointer', width: 120, height: 120 }} onClick={() => setStep('image')}>
+                            <div style={{ width: 120, height: 120, borderRadius: '50%', overflow: 'hidden', background: '#1a1a22' }}>
+                                <img src={selectedAvatar} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
+                            </div>
+                            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                            </div>
+                        </div>
+                        <div style={{ width: '100%', maxWidth: 360 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,.2)', paddingBottom: 8, marginBottom: 16 }}>
+                                <input value={editNickname} onChange={e => setEditNickname(e.target.value.slice(0, 15))}
+                                    placeholder="닉네임을 입력하세요"
+                                    style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 16, fontWeight: 700 }} />
+                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>{editNickname.length}/15자</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,.08)', cursor: 'pointer' }}
+                                onClick={() => { setAgePw(''); setAgePwError(''); setSelectedAge(editAgeLimit); setStep('age_pw') }}>
+                                <div>
+                                    <p style={{ color: '#fff', fontSize: 14, fontWeight: 600, margin: '0 0 3px' }}>콘텐츠 연령 제한</p>
+                                    <p style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, margin: 0 }}>{ageLimitLabel}</p>
+                                </div>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, maxWidth: 360, margin: '0 auto' }}>
+                        <button onClick={() => setStep('select')}
+                            style={{ padding: '12px 28px', background: 'none', border: '1px solid rgba(255,255,255,.2)', borderRadius: 10, color: 'rgba(255,255,255,.7)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                            취소
+                        </button>
+                        <button onClick={saveProfile} disabled={saving}
+                            style={{ padding: '12px 28px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? .6 : 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {saving ? '저장 중...' : '저장'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── STEP 3: 이미지 선택 ── */}
+            {step === 'image' && (
+                <div style={{ width: '100%', maxWidth: 560, animation: 'fade-up .3s ease' }}>
+                    <div style={{ background: '#141420', borderRadius: 20, padding: '28px 24px', border: '1px solid rgba(255,255,255,.1)' }}>
+                        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 800, margin: '0 0 20px' }}>이미지 선택</h2>
+                        <div className="img-tabs">
+                            {([['laftel', '라프텔 캐릭터'], ['dicebear', '아바타'], ['custom', '직접 업로드']] as [ImageTab, string][]).map(([id, label]) => (
+                                <button key={id} className={`img-tab${imageTab === id ? ' on' : ''}`} onClick={() => setImageTab(id)}>{label}</button>
+                            ))}
+                        </div>
+
+                        {imageTab === 'laftel' && (
+                            <div className="custom-scroll" style={{ maxHeight: 380, overflowY: 'auto' }}>
+                                <div className="img-grid">
+                                    {LAFTEL_AVATARS.map((url, i) => (
+                                        <div key={i} className={`img-item${selectedAvatar === url ? ' selected' : ''}`} onClick={() => setSelectedAvatar(url)}>
+                                            <img src={url} alt="" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {imageTab === 'dicebear' && (
+                            <div className="custom-scroll" style={{ maxHeight: 380, overflowY: 'auto' }}>
+                                <div className="img-grid">
+                                    {DICEBEAR_AVATARS.map((url, i) => (
+                                        <div key={i} className={`img-item${selectedAvatar === url ? ' selected' : ''}`} onClick={() => setSelectedAvatar(url)}>
+                                            <img src={url} alt="" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {imageTab === 'custom' && (
+                            <>
+                                <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+                                    onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f) }} />
+                                <div className={`drop-zone${isDragging ? ' dragging' : ''}`}
+                                    onClick={() => fileRef.current?.click()}
+                                    onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={handleDrop}>
+                                    {customPreview ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                                            <div style={{ width: 100, height: 100, borderRadius: '50%', overflow: 'hidden', border: '3px solid #6c63ff' }}>
+                                                <img src={customPreview} alt="custom" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            </div>
+                                            <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, margin: 0 }}>클릭해서 다른 이미지 선택</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.25)" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                                            </svg>
+                                            <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, margin: '0 0 6px', fontWeight: 600 }}>이미지를 드래그하거나 클릭해서 업로드</p>
+                                            <p style={{ color: 'rgba(255,255,255,.25)', fontSize: 12, margin: 0 }}>PNG, JPG, GIF (자동 압축 적용)</p>
+                                        </>
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
+                            <button onClick={() => setStep('edit')}
+                                style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>
+                                취소
+                            </button>
+                            <button onClick={() => setStep('edit')}
+                                style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                                선택
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── STEP 4: 연령제한 비밀번호 ── */}
+            {step === 'age_pw' && (
+                <div className="pf-box">
+                    <div style={{ padding: '32px 28px 0' }}>
+                        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 800, margin: '0 0 16px' }}>콘텐츠 연령 제한</h2>
+                        <p style={{ color: '#6c63ff', fontSize: 14, fontWeight: 700, margin: '0 0 8px' }}>
+                            {editingProfile?.nickname || editNickname}님의 시청 가능 연령을 변경합니다.
+                        </p>
+                        <p style={{ color: 'rgba(255,255,255,.55)', fontSize: 14, lineHeight: 1.6, margin: '0 0 32px' }}>
+                            설정을 위해 <strong style={{ color: '#fff' }}>계정 비밀번호</strong> 확인이 필요해요.<br />
+                            로그인 시 입력한 계정 비밀번호를 입력해주세요.
+                        </p>
+                        <input type="password" value={agePw} onChange={e => { setAgePw(e.target.value); setAgePwError('') }}
+                            onKeyDown={e => e.key === 'Enter' && handleAgePwNext()}
+                            placeholder="계정 비밀번호를 입력해주세요."
+                            style={{ width: '100%', background: 'none', border: 'none', borderBottom: `1px solid ${agePwError ? '#f87171' : '#6c63ff'}`, outline: 'none', color: '#fff', fontSize: 15, padding: '8px 0', boxSizing: 'border-box', marginBottom: agePwError ? 6 : 40 }} />
+                        {agePwError && <p style={{ color: '#f87171', fontSize: 12, margin: '0 0 28px' }}>{agePwError}</p>}
+                    </div>
+                    <button onClick={handleAgePwNext}
+                        style={{ width: '100%', padding: '18px', background: agePw.trim() ? '#6c63ff' : 'rgba(255,255,255,.1)', border: 'none', color: agePw.trim() ? '#fff' : 'rgba(255,255,255,.3)', fontSize: 16, fontWeight: 700, cursor: agePw.trim() ? 'pointer' : 'default', transition: 'background .2s' }}>
+                        다음
+                    </button>
+                </div>
+            )}
+
+            {/* ── STEP 5: 연령 선택 ── */}
+            {step === 'age_select' && (
+                <div className="pf-box">
+                    <div style={{ padding: '28px 24px 0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+                            <div style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', background: '#1a1a22', flexShrink: 0 }}>
+                                <img src={selectedAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
+                            </div>
+                            <div>
+                                <p style={{ color: '#6c63ff', fontSize: 15, fontWeight: 700, margin: '0 0 2px' }}>{editingProfile?.nickname || editNickname}님의</p>
+                                <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: 0 }}>시청 가능 연령을 선택해 주세요.</p>
+                            </div>
+                        </div>
+                        <div style={{ background: '#1e1e2a', borderRadius: 14, overflow: 'hidden', marginBottom: 28 }}>
+                            {AGE_OPTIONS.map((opt, i) => (
+                                <div key={opt.value} onClick={() => setSelectedAge(opt.value)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderBottom: i < AGE_OPTIONS.length - 1 ? '1px solid rgba(255,255,255,.06)' : 'none', cursor: 'pointer' }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.04)')}
+                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${selectedAge === opt.value ? '#6c63ff' : 'rgba(255,255,255,.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color .15s' }}>
+                                        {selectedAge === opt.value && <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#6c63ff' }} />}
+                                    </div>
+                                    <div>
+                                        <p style={{ color: '#fff', fontSize: 15, fontWeight: 700, margin: '0 0 2px' }}>{opt.label}</p>
+                                        <p style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, margin: 0 }}>{opt.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <button onClick={saveAgeLimit} disabled={saving}
+                        style={{ width: '100%', padding: '18px', background: '#6c63ff', border: 'none', color: '#fff', fontSize: 16, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? .6 : 1 }}>
+                        {saving ? '저장 중...' : '저장'}
+                    </button>
+                </div>
+            )}
+        </div>
     )
 }

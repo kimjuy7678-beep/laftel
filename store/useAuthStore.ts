@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { signInWithPopup, signOut } from "firebase/auth";
 import { auth, googleProvider, db } from "@/firebase/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 interface User {
     email: string | null
@@ -46,20 +46,50 @@ export const useAuthStore = create<AuthStore>()(
         (set, get) => ({
             user: null,
             avatarConfig: null,
+
             onLogin: (user) => set({ user }),
+
             googleLogin: async () => {
-                const result = await signInWithPopup(auth, googleProvider);
-                const { email, displayName, photoURL, uid } = result.user;
-                set({ user: { email, name: displayName, photoURL, uid, membership: 'none', points: 0 } });
+                const result = await signInWithPopup(auth, googleProvider)
+                const { email, displayName, photoURL, uid } = result.user
+
+                const snap = await getDoc(doc(db, 'users', uid))
+                const data = snap.data()
+
+                if (!snap.exists()) {
+                    await setDoc(doc(db, 'users', uid), {
+                        email,
+                        nickname: displayName,
+                        avatarUrl: photoURL,
+                        membership: 'none',
+                        points: 0,
+                        createdAt: new Date().toISOString(),
+                    })
+                }
+
+                set({
+                    user: {
+                        email,
+                        uid,
+                        membership: data?.membership || 'none',
+                        points: data?.points || 0,
+                        name: data?.nickname || displayName,
+                        photoURL: data?.avatarUrl || photoURL,
+                    }
+                })
             },
+
             onLogout: async () => {
-                await signOut(auth);
-                set({ user: null, avatarConfig: null });
+                await signOut(auth)
+                set({ user: null, avatarConfig: null })
             },
+
             setMembership: (type) => set((state) => ({
                 user: state.user ? { ...state.user, membership: type } : null
             })),
+
             setAvatarConfig: (config) => set({ avatarConfig: config }),
+
             addPoints: async (amount) => {
                 const uid = get().user?.uid
                 if (!uid) return

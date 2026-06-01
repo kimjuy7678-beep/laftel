@@ -1,9 +1,10 @@
 "use client"
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { auth } from '@/firebase/firebase'
+import { auth, db } from '@/firebase/firebase'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { useAuthStore } from '@/store/useAuthStore'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
 import Link from 'next/link'
 
 export default function EmailLoginPage() {
@@ -28,24 +29,47 @@ export default function EmailLoginPage() {
         try {
             if (isLogin) {
                 const result = await signInWithEmailAndPassword(auth, email, password)
-               onLogin({
-    email: result.user.email,
-    name: result.user.displayName || email.split('@')[0],
-    photoURL: result.user.photoURL,
-    uid: result.user.uid,  
-})
-                showToast('로그인 완료!')
-                setTimeout(() => router.push('/'), 1000)
-            } else {
-                const result = await createUserWithEmailAndPassword(auth, email, password)
-                await updateProfile(result.user, { displayName: nickname || email.split('@')[0] })
+                const uid = result.user.uid
+
+                const snap = await getDoc(doc(db, 'users', uid))
+                const userData = snap.data()
+
                 onLogin({
                     email: result.user.email,
-                    name: nickname || email.split('@')[0],
+                    name: userData?.nickname || result.user.displayName || email.split('@')[0],
+                    photoURL: userData?.avatarUrl || result.user.photoURL,
+                    uid,
+                    membership: userData?.membership || 'none',
+                    points: userData?.points || 0,
+                })
+                showToast('로그인 완료!')
+                setTimeout(() => router.push('/profile'), 800)
+
+            } else {
+                const result = await createUserWithEmailAndPassword(auth, email, password)
+                const uid = result.user.uid
+                const displayName = nickname || email.split('@')[0]
+
+                await updateProfile(result.user, { displayName })
+                await setDoc(doc(db, 'users', uid), {
+                    email,
+                    nickname: displayName,
+                    avatarUrl: null,
+                    membership: 'none',
+                    points: 0,
+                    createdAt: new Date().toISOString(),
+                })
+
+                onLogin({
+                    email: result.user.email,
+                    name: displayName,
                     photoURL: null,
+                    uid,
+                    membership: 'none',
+                    points: 0,
                 })
                 showToast('회원가입 완료! 환영해요 🎉')
-                setTimeout(() => router.push('/'), 1200)
+                setTimeout(() => router.push('/profile'), 800)
             }
         } catch (err: any) {
             const msg: Record<string, string> = {
@@ -64,16 +88,13 @@ export default function EmailLoginPage() {
 
     return (
         <div className="min-h-screen bg-[#141414] flex items-center justify-center px-4">
-
-            {/* 토스트 */}
             {toast && (
-                <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#6c63ff] text-white text-sm font-medium px-6 py-3 rounded-full shadow-lg animate-fade-in">
+                <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#6c63ff] text-white text-sm font-medium px-6 py-3 rounded-full shadow-lg">
                     {toast}
                 </div>
             )}
 
             <div className="w-full max-w-[420px] flex flex-col gap-6">
-
                 <Link href="/login" className="text-center">
                     <h1 className="font-black text-white text-4xl tracking-widest">LAFTEL</h1>
                 </Link>
@@ -130,7 +151,6 @@ export default function EmailLoginPage() {
                 >
                     {loading ? '처리 중...' : isLogin ? '로그인' : '가입하기'}
                 </button>
-
             </div>
         </div>
     )
