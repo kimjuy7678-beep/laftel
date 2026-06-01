@@ -2,8 +2,9 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
-import { auth } from '@/firebase/firebase'
+import { auth, db } from '@/firebase/firebase'
 import { signInWithCustomToken } from 'firebase/auth'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
 
 export default function NaverCallbackPage() {
     const router = useRouter()
@@ -21,11 +22,8 @@ export default function NaverCallbackPage() {
             return
         }
 
-        // 네이버는 서버사이드 토큰 교환 필요
-        // Firebase Custom Token 방식 or 직접 유저 정보만 저장
         const fetchNaverUser = async () => {
             try {
-                // Next.js API Route로 토큰 교환
                 const res = await fetch('/api/auth/naver', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -34,16 +32,32 @@ export default function NaverCallbackPage() {
                 const data = await res.json()
 
                 if (data.firebaseToken) {
-                    // Firebase Custom Token으로 로그인
                     const result = await signInWithCustomToken(auth, data.firebaseToken)
+                    const uid = result.user.uid
+
+                    const snap = await getDoc(doc(db, 'users', uid))
+                    const userData = snap.data()
+
+                    if (!snap.exists()) {
+                        await setDoc(doc(db, 'users', uid), {
+                            email: result.user.email || data.email,
+                            nickname: data.name || result.user.displayName,
+                            avatarUrl: data.profileImage || result.user.photoURL,
+                            membership: 'none',
+                            points: 0,
+                            createdAt: new Date().toISOString(),
+                        })
+                    }
+
                     onLogin({
-                        uid: result.user.uid,
+                        uid,
                         email: result.user.email || data.email,
-                        name: data.name || result.user.displayName,
-                        photoURL: data.profileImage || result.user.photoURL,
-                        membership: 'none',
+                        name: userData?.nickname || data.name || result.user.displayName,
+                        photoURL: userData?.avatarUrl || data.profileImage || result.user.photoURL,
+                        membership: userData?.membership || 'none',
+                        points: userData?.points || 0,
                     })
-                    router.push('/')
+                    router.push('/profile')
                 } else {
                     throw new Error('토큰 발급 실패')
                 }
