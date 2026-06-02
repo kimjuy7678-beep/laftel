@@ -15,16 +15,35 @@ type Banner = {
 }
 
 const Banners: Banner[] = [
-    { url: "./images/store/StoreBanner1.png", title: "굿즈 컬렉션 OPEN", content: "코트의 열기를 그대로 ⚡\n하이큐 공식 굿즈 지금 만나보세요", button: "지금 바로 확인하기" },
-    { url: "./images/store/StoreBanner2.png", title: "저주급 인기 주술회전 굿즈 컬렉션", content: "품절 전에 꼭 챙겨야 할 주술회전 인기 MD🔥", button: "지금 바로 확인하기" },
-    { url: "./images/store/StoreBanner1.png", title: "굿즈 컬렉션 OPEN", content: "코트의 열기를 그대로 ⚡\n하이큐 공식 굿즈 지금 만나보세요", button: "지금 바로 확인하기" },
-    { url: "./images/store/StoreBanner1.png", title: "굿즈 컬렉션 OPEN", content: "코트의 열기를 그대로 ⚡\n하이큐 공식 굿즈 지금 만나보세요", button: "지금 바로 확인하기" },
-]
-
+    {
+        url: "./images/store/StoreBanner1.png",
+        title: "하이큐 굿즈 컬렉션 OPEN",
+        content: "코트의 열기를 그대로 ⚡\n최애 선수와 함께하는 공식 굿즈",
+        button: "하이큐 굿즈 보러가기",
+    },
+    {
+        url: "./images/store/StoreBanner2.png",
+        title: "주술회전 인기 굿즈 기획전",
+        content: "품절 전에 챙겨야 할 필수 MD 🔥\n지금 가장 인기 있는 주술회전 굿즈",
+        button: "주술회전 굿즈 보러가기",
+    },
+    {
+        url: "./images/store/StoreBanner4.png",
+        title: "하츠네 미쿠 스페셜 컬렉션",
+        content: "전 세계를 사로잡은 버추얼 디바 🎵\n한정판 미쿠 굿즈를 만나보세요",
+        button: "미쿠 굿즈 보러가기",
+    },
+    {
+        url: "./images/store/StoreBanner3.png",
+        title: "귀멸의 칼날 BEST COLLECTION",
+        content: "탄지로부터 무이치로까지 ⚔️\n인기 캐릭터 굿즈 총집합",
+        button: "귀멸 굿즈 보러가기",
+    },
+];
 export default function StoreCarousel() {
     return (
         <div className="w-full pt-[80px]">
-            <div className="max-w-7xl mx-auto px-4">  {/* 가운데 정렬 */}
+            <div className="max-w-[1600px] mx-auto px-4">  {/* 가운데 정렬 */}
                 <div className="relative flex items-center gap-4">
 
                     {/* 커스텀 prev 버튼 */}
@@ -61,13 +80,13 @@ export default function StoreCarousel() {
 
                                         {/* 텍스트 영역 */}
                                         <div className="absolute inset-0 flex flex-col justify-center px-10 gap-3">
-                                            <h1 className="text-white text-3xl font-bold drop-shadow-lg">
+                                            <h1 className="text-white text-4xl font-bold drop-shadow-lg">
                                                 {m.title}
                                             </h1>
                                             <p className="text-white/90 text-base whitespace-pre-line drop-shadow">
                                                 {m.content}
                                             </p>
-                                            <button className="mt-2 w-fit px-5 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-full transition-colors shadow-md">
+                                            <button className="mt-2 w-fit px-5 py-2 bg-[#826cff] hover:bg-violet-600 text-white text-sm font-medium rounded-full transition-colors shadow-md">
                                                 {m.button}
                                             </button>
                                         </div>
