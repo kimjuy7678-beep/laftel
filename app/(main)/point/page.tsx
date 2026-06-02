@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 const pointOptions = [
     { label: "1,000 포인트", amount: 1000, price: "1,000원" },
@@ -52,9 +53,13 @@ export default function Point() {
             await chargePoints(user.uid, selectedOption.amount)
             setSelectedOption(null)
             setAgreed(false)
-            alert(`${selectedOption.amount.toLocaleString()} 포인트가 충전되었습니다!`)
+            toast.success('포인트 충전 완료 ⚡', {
+                description: `${selectedOption.amount.toLocaleString()}P 입금 완료! 어떤 애니 소장할지 골라봐요.`,
+            })
         } catch {
-            alert('충전 중 오류가 발생했어요. 다시 시도해주세요.')
+            toast.error('충전 실패 😭', {
+                description: '결제가 안 됐어요. 카드 정보 확인 후 다시 시도해봐요.',
+            })
         } finally {
             setCharging(false)
         }

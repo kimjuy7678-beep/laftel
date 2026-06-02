@@ -75,27 +75,69 @@ function EventNotifications() {
 function SearchOverlay({ onClose }: { onClose: () => void }) {
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<any[]>([])
+    const [ostResults, setOstResults] = useState<any[]>([])
+    const [trending, setTrending] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
+    const [activeCategory, setActiveCategory] = useState('trending')
+    const [categoryItems, setCategoryItems] = useState<any[]>([])
+    const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
     const inputRef = useRef<HTMLInputElement>(null)
     const router = useRouter()
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const CATS = [
+        { id: 'trending', label: '🔥 인기', genre: null },
+        { id: '16', label: '🎌 애니메이션', genre: 16 },
+        { id: 'action', label: '⚔️ 액션', genre: 10759 },
+        { id: 'romance', label: '💕 로맨스', genre: 10749 },
+        { id: 'fantasy', label: '✨ 판타지', genre: 10765 },
+        { id: 'comedy', label: '😂 개그', genre: 35 },
+        { id: 'drama', label: '😭 드라마', genre: 18 },
+        { id: 'mystery', label: '🌑 미스터리', genre: 9648 },
+    ]
 
     useEffect(() => {
         inputRef.current?.focus()
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
         window.addEventListener('keydown', onKey)
+        loadCategory('trending', null)
+        // 카운트만 백그라운드로
+        Promise.all(CATS.slice(1).map(c =>
+            fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=${c.genre}&with_original_language=ja&language=ko-KR&page=1`)
+                .then(r => r.json()).then(d => ({ id: c.id, count: d.total_results || 0 })).catch(() => ({ id: c.id, count: 0 }))
+        )).then(results => {
+            const counts: Record<string, number> = {}
+            results.forEach(r => { counts[r.id] = r.count })
+            setCategoryCounts(counts)
+        })
         return () => window.removeEventListener('keydown', onKey)
-    }, [onClose])
+    }, [])
 
-    const search = useCallback(async (q: string) => {
-        if (!q.trim()) { setResults([]); return }
+    const loadCategory = async (id: string, genre: number | null) => {
         setLoading(true)
         try {
-            const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&language=ko-KR&page=1`)
-            const data = await res.json()
-            const filtered = (data.results || []).filter((r: any) => r.origin_country?.includes('JP') || r.original_language === 'ja').slice(0, 8)
-            setResults(filtered)
-        } catch { setResults([]) }
+            const url = id === 'trending'
+                ? `https://api.themoviedb.org/3/trending/tv/week?api_key=${TMDB_KEY}&language=ko-KR`
+                : `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=${genre}&with_original_language=ja&language=ko-KR&sort_by=popularity.desc`
+            const data = await fetch(url).then(r => r.json())
+            const list = (data.results || []).filter((r: any) => r.original_language === 'ja')
+            setTrending(list.slice(0, 3))
+            setCategoryItems(list.slice(0, 12))
+        } catch { }
+        finally { setLoading(false) }
+    }
+
+    const search = useCallback(async (q: string) => {
+        if (!q.trim()) { setResults([]); setOstResults([]); return }
+        setLoading(true)
+        try {
+            const [a, o] = await Promise.all([
+                fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&language=ko-KR`).then(r => r.json()),
+                fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q + ' anime ost')}&media=music&genreId=27&limit=3&country=JP`).then(r => r.json()),
+            ])
+            setResults((a.results || []).filter((r: any) => r.origin_country?.includes('JP') || r.original_language === 'ja').slice(0, 8))
+            setOstResults((o.results || []).filter((r: any) => r.previewUrl).slice(0, 3))
+        } catch { }
         finally { setLoading(false) }
     }, [])
 
@@ -106,90 +148,392 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
         debounceRef.current = setTimeout(() => search(v), 320)
     }
 
+    const handleCat = (cat: typeof CATS[0]) => {
+        setActiveCategory(cat.id)
+        setQuery('')
+        loadCategory(cat.id, cat.genre)
+    }
+
     const handleSubmit = () => {
         if (!query.trim()) return
-        onClose()
-        router.push(`/anime/search?q=${encodeURIComponent(query)}`)
+        onClose(); router.push(`/anime/search?q=${encodeURIComponent(query)}`)
     }
+
+    const isSearching = query.trim().length > 0
 
     return (
         <>
             <style>{`
-                .srch-overlay{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);animation:srch-in .18s ease}
-                @keyframes srch-in{from{opacity:0}to{opacity:1}}
-                .srch-box{position:absolute;top:0;left:0;right:0;background:rgba(14,14,14,0.98);border-bottom:1px solid rgba(255,255,255,0.08);padding:20px 40px 0;animation:srch-slide .2s ease}
-                @keyframes srch-slide{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
-                .srch-row{display:flex;align-items:center;gap:14px;max-width:860px;margin:0 auto;height:64px}
-                .srch-input{flex:1;background:none;border:none;outline:none;color:#fff;font-size:22px;font-weight:500;caret-color:#6c63ff}
-                .srch-input::placeholder{color:rgba(255,255,255,0.2)}
-                .srch-btn{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#6c63ff;border:none;color:#fff;cursor:pointer;transition:background .2s;flex-shrink:0}
-                .srch-btn:hover{background:#5a52e0}
-                .srch-close{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;transition:color .2s;flex-shrink:0}
-                .srch-close:hover{color:#fff}
-                .srch-results{max-width:860px;margin:0 auto;padding:12px 0 20px}
-                .srch-hint{font-size:12px;color:rgba(255,255,255,0.2);padding:6px 0 14px;text-align:center}
-                .srch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-                .srch-card{display:flex;align-items:center;gap:11px;padding:10px;border-radius:10px;cursor:pointer;transition:background .15s;border:1px solid transparent}
-                .srch-card:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.08)}
-                .srch-card-thumb{width:44px;height:62px;border-radius:6px;overflow:hidden;background:#1e1e1e;flex-shrink:0}
-                .srch-card-thumb img{width:100%;height:100%;object-fit:cover}
-                .srch-card-np{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:rgba(255,255,255,0.1)}
-                .srch-card-info{flex:1;min-width:0}
-                .srch-card-name{font-size:13px;font-weight:600;color:rgba(255,255,255,0.88);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin:0 0 4px}
-                .srch-card-meta{font-size:11px;color:rgba(255,255,255,0.3);margin:0}
-                .srch-loading{display:flex;align-items:center;justify-content:center;padding:28px 0;gap:8px;color:rgba(255,255,255,0.25);font-size:13px}
-                .srch-spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.1);border-top-color:#6c63ff;border-radius:50%;animation:spin .7s linear infinite}
-                @keyframes spin{to{transform:rotate(360deg)}}
-                .srch-empty{text-align:center;padding:28px 0;font-size:13px;color:rgba(255,255,255,0.22)}
+              
+.so{
+    position:fixed;
+    inset:0;
+    z-index:9999;
+}
+
+.so-bg{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.86);
+    backdrop-filter:blur(18px);
+}
+
+.so-modal{
+    position:absolute;
+    top:70px;
+    left:50%;
+    transform:translateX(-50%);
+
+    width:min(1400px,92vw);
+    height:82vh;
+
+    background:#070811;
+
+    border:1px solid rgba(255,255,255,.05);
+    border-radius:20px;
+
+    overflow:hidden;
+
+    display:flex;
+    flex-direction:column;
+
+    box-shadow:
+    0 40px 120px rgba(0,0,0,.8);
+}
+
+.so-top{
+    height:64px;
+
+    display:flex;
+    align-items:center;
+    gap:12px;
+
+    padding:0 18px;
+
+    border-bottom:1px solid rgba(255,255,255,.05);
+
+    flex-shrink:0;
+}
+
+.so-inp{
+    flex:1;
+
+    background:none;
+    border:none;
+    outline:none;
+
+    color:#fff;
+
+    font-size:14px;
+}
+
+.so-inp::placeholder{
+    color:rgba(255,255,255,.25);
+}
+
+.so-esc-btn{
+    height:28px;
+    padding:0 10px;
+
+    border:none;
+    border-radius:6px;
+
+    background:rgba(255,255,255,.05);
+
+    color:rgba(255,255,255,.5);
+
+    cursor:pointer;
+}
+
+.so-body{
+    flex:1;
+    display:flex;
+    overflow:hidden;
+}
+
+.so-side{
+    width:125px;
+
+    border-right:1px solid rgba(255,255,255,.05);
+
+    padding:14px 0;
+
+    flex-shrink:0;
+}
+
+.so-side-lbl{
+    display:block;
+
+    padding:0 14px 10px;
+
+    font-size:10px;
+    color:rgba(255,255,255,.25);
+}
+
+.so-cat-btn{
+    width:100%;
+
+    height:38px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:0 14px;
+
+    border:none;
+    background:none;
+
+    color:rgba(255,255,255,.45);
+
+    cursor:pointer;
+
+    font-size:12px;
+
+    transition:.15s;
+}
+
+.so-cat-btn:hover{
+    background:rgba(255,255,255,.04);
+    color:#fff;
+}
+
+.so-cat-btn.on{
+    background:rgba(108,99,255,.15);
+
+    color:#fff;
+
+    border-left:2px solid #7d75ff;
+}
+
+.so-right{
+    flex:1;
+    display:flex;
+    overflow:hidden;
+}
+
+.so-posters{
+    width:150px;
+
+    padding:12px;
+
+    border-right:1px solid rgba(255,255,255,.05);
+
+    flex-shrink:0;
+
+    overflow-y:auto;
+}
+
+.so-poster{
+    width:100%;
+
+    aspect-ratio:2/3;
+
+    border-radius:10px;
+
+    overflow:hidden;
+
+    margin-bottom:12px;
+
+    cursor:pointer;
+}
+
+.so-poster img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.so-list{
+    flex:1;
+
+    overflow-y:auto;
+}
+
+.so-list-lbl{
+    display:block;
+
+    padding:18px 18px 10px;
+
+    color:rgba(255,255,255,.25);
+
+    font-size:11px;
+}
+
+.so-row{
+    height:48px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:0 18px;
+
+    cursor:pointer;
+
+    transition:.15s;
+}
+
+.so-row:hover{
+    background:rgba(255,255,255,.04);
+}
+
+.so-row-left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.so-row-thumb{
+    width:28px;
+    height:40px;
+
+    border-radius:4px;
+
+    overflow:hidden;
+}
+
+.so-row-thumb img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.so-row-name{
+    color:#e8e8e8;
+    font-size:13px;
+}
+
+.so-row-year{
+    color:rgba(255,255,255,.25);
+    font-size:11px;
+}
             `}</style>
-            <div className="srch-overlay" onClick={onClose}>
-                <div className="srch-box" onClick={e => e.stopPropagation()}>
-                    <div className="srch-row">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round">
+
+            <div className="so" onClick={onClose}>
+                <div className="so-bg" />
+                <div className="so-modal" onClick={e => e.stopPropagation()}>
+
+                    {/* 검색바 */}
+                    <div className="so-top">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="2" strokeLinecap="round">
                             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                         </svg>
-                        <input ref={inputRef} className="srch-input" value={query} onChange={handleChange}
-                            onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }} placeholder="애니 제목, 장르, 태그로 검색" />
-                        <button className="srch-btn" onClick={handleSubmit}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                            </svg>
-                        </button>
-                        <button className="srch-close" onClick={onClose}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                            </svg>
-                        </button>
+                        <input ref={inputRef} className="so-inp" value={query} onChange={handleChange}
+                            onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
+                            placeholder="애니, OST, 장르 검색..." />
+                        <button className="so-esc-btn" onClick={onClose}>ESC</button>
                     </div>
-                    <div className="srch-results">
-                        {loading ? (
-                            <div className="srch-loading"><div className="srch-spinner" />검색 중...</div>
-                        ) : results.length > 0 ? (
-                            <div className="srch-grid">
-                                {results.map(item => (
-                                    <div key={item.id} className="srch-card" onClick={() => { onClose(); router.push(`/anime/${item.id}`) }}>
-                                        <div className="srch-card-thumb">
-                                            {item.poster_path ? <img src={`${IMG}/w154${item.poster_path}`} alt={item.name} /> : <div className="srch-card-np">{(item.name || '?')[0]}</div>}
-                                        </div>
-                                        <div className="srch-card-info">
-                                            <p className="srch-card-name">{item.name}</p>
-                                            <p className="srch-card-meta">{item.first_air_date?.slice(0, 4) || ''}</p>
-                                        </div>
+
+                    {/* 바디 */}
+                    <div className="so-body">
+                        {/* 카테고리 사이드바 */}
+                        <div className="so-side">
+                            <span className="so-side-lbl">카테고리</span>
+                            {CATS.map(cat => (
+                                <button key={cat.id}
+                                    className={`so-cat-btn ${activeCategory === cat.id && !isSearching ? 'on' : ''}`}
+                                    onClick={() => handleCat(cat)}>
+                                    <span>{cat.label}</span>
+                                    {categoryCounts[cat.id] ? (
+                                        <span className="so-cat-cnt">
+                                            {categoryCounts[cat.id] > 999 ? `${Math.floor(categoryCounts[cat.id] / 1000)}k` : categoryCounts[cat.id]}
+                                        </span>
+                                    ) : null}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* 오른쪽 */}
+                        <div className="so-right">
+                            {loading ? (
+                                <div className="so-loading" style={{ flex: 1 }}><div className="so-spin" />불러오는 중...</div>
+                            ) : isSearching ? (
+                                /* 검색 결과 */
+                                <div className="so-list" style={{ width: '100%' }}>
+                                    {results.length === 0 && ostResults.length === 0 ? (
+                                        <div className="so-empty">검색 결과가 없어요 😢</div>
+                                    ) : (
+                                        <>
+                                            {results.length > 0 && (
+                                                <>
+                                                    <span className="so-list-lbl">애니 {results.length}개</span>
+                                                    {results.map(item => (
+                                                        <div key={item.id} className="so-row"
+                                                            onClick={() => { onClose(); router.push(`/anime/${item.id}`) }}>
+                                                            <div className="so-row-left">
+                                                                <div className="so-row-thumb">
+                                                                    {item.poster_path && <img src={`${IMG}/w92${item.poster_path}`} alt={item.name} />}
+                                                                </div>
+                                                                <span className="so-row-name">{item.name}</span>
+                                                            </div>
+                                                            <span className="so-row-year">{item.first_air_date?.slice(0, 4)}</span>
+                                                        </div>
+                                                    ))}
+                                                </>
+                                            )}
+                                            {ostResults.length > 0 && (
+                                                <>
+                                                    <div className="so-divider" />
+                                                    <span className="so-list-lbl">🎵 OST {ostResults.length}개</span>
+                                                    {ostResults.map((ost: any) => (
+                                                        <div key={ost.trackId} className="so-ost-row"
+                                                            onClick={() => { onClose(); router.push('/ost') }}>
+                                                            <div className="so-ost-img"><img src={ost.artworkUrl100} alt={ost.trackName} /></div>
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <p className="so-ost-title">{ost.trackName}</p>
+                                                                <p className="so-ost-artist">{ost.artistName}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    {/* 포스터 3개 */}
+                                    <div className="so-posters">
+                                        {trending.map(item => (
+                                            <div key={item.id} className="so-poster"
+                                                onClick={() => { onClose(); router.push(`/anime/${item.id}`) }}>
+                                                {item.poster_path
+                                                    ? <img src={`${IMG}/w342${item.poster_path}`} alt={item.name} />
+                                                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, background: '#1a1a22' }}>🎌</div>
+                                                }
+                                                <div className="so-poster-ov">
+                                                    <p className="so-poster-name">{item.name}</p>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        ) : query.trim() ? (
-                            <div className="srch-empty">검색 결과가 없어요</div>
-                        ) : (
-                            <div className="srch-hint">제목을 입력하면 바로 검색됩니다 · Enter로 전체 결과 보기</div>
-                        )}
+
+                                    {/* 리스트 */}
+                                    <div className="so-list">
+                                        <span className="so-list-lbl">{CATS.find(c => c.id === activeCategory)?.label}</span>
+                                        {categoryItems.map(item => (
+                                            <div key={item.id} className="so-row"
+                                                onClick={() => { onClose(); router.push(`/anime/${item.id}`) }}>
+                                                <div className="so-row-left">
+                                                    <div className="so-row-thumb">
+                                                        {item.poster_path && <img src={`${IMG}/w92${item.poster_path}`} alt={item.name} />}
+                                                    </div>
+                                                    <span className="so-row-name">{item.name}</span>
+                                                </div>
+                                                <span className="so-row-year">{item.first_air_date?.slice(0, 4)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
         </>
     )
 }
-
 export default function Header() {
     const user = useAuthStore(s => s.user)
     const avatarConfig = useAuthStore(s => s.avatarConfig)
@@ -200,6 +544,7 @@ export default function Header() {
     const [notiOpen, setNotiOpen] = useState(false)
     const [searchOpen, setSearchOpen] = useState(false)
     const [gradeOpen, setGradeOpen] = useState(false)
+    const [scrolled, setScrolled] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const notiRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
@@ -228,6 +573,12 @@ export default function Header() {
         return () => { document.body.style.overflow = '' }
     }, [searchOpen])
 
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 10)
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [])
+
     const handleLogout = async () => {
         await onLogout()
         setDropdownOpen(false)
@@ -240,7 +591,6 @@ export default function Header() {
         { title: "내 정보", path: "/mypage", sub: undefined, subColor: null, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> },
         { title: "쿠폰 등록", path: "/coupon", sub: undefined, subColor: null, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /></svg> },
         { title: "이용내역", path: "/history", sub: undefined, subColor: null, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /></svg> },
-        { title: "스토어 주문내역", path: "/store/orders", sub: undefined, subColor: null, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /></svg> },
         { title: "공지사항", path: "/notice", sub: undefined, subColor: null, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3z" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg> },
         { title: "고객센터", path: "https://help.laftel.net/hc/ko", sub: undefined, subColor: null, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.63 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.78a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z" /></svg> },
         { title: "설정", path: "/setting", sub: undefined, subColor: null, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></svg> },
@@ -252,7 +602,10 @@ export default function Header() {
             {gradeOpen && <GradeModal onClose={() => setGradeOpen(false)} />}
 
             {/* StoreHeader 스타일: py-[10px] wrapper + pill 내부 */}
-            <header className="fixed top-0 left-0 w-full z-[1000] w-full py-[10px] px-[10px]">
+            <header
+                className="fixed top-0 left-0 w-full z-[1000] transition-colors duration-300"
+                style={{ background: scrolled ? '#000' : 'transparent' }}
+            >
                 <div className="w-full h-[55px] flex items-center justify-between px-[28px]">
 
                     {/* 좌측: 로고 + 네비게이션 */}

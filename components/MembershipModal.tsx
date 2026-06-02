@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useRouter } from 'next/navigation'
 import { db } from '@/firebase/firebase'
 import { doc, setDoc, addDoc, collection } from 'firebase/firestore'
+import { toast } from 'sonner'
 
 type PlanId = 'anime' | 'ost' | 'allinone'
 
@@ -117,10 +118,14 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                 createdAt: new Date(),
             })
             setMembership(currentPlan.id)
-            alert(`🎉 ${currentPlan.name}이 시작되었어요!`)
+            toast.success('멤버십 시작! 🎉', {
+                description: `${currentPlan.name} 개시! 이제 광고 없이 무한 정주행 가능해요.`,
+            })
             onClose()
         } catch {
-            alert('오류가 발생했어요. 다시 시도해주세요.')
+            toast.error('앗, 오류가 났어요 😢', {
+                description: '잠깐 텀 두고 다시 시도해보세요.',
+            })
         } finally {
             setLoadingPlan(null)
         }

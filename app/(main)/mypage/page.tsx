@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { auth, db } from '@/firebase/firebase'
 import { updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { toast } from 'sonner'
 
 interface Card {
     id: string
@@ -62,7 +63,9 @@ export default function MyPage() {
         setLoading(true)
         try {
             await updateEmail(auth.currentUser, newEmail)
-            alert('이메일이 변경되었어요!')
+            toast.success('이메일 변경 완료 ✉️', {
+                description: '새 이메일로 로그인할 수 있어요.',
+            })
             setEmailStep('idle')
             setNewEmail('')
         } catch (err: any) {
