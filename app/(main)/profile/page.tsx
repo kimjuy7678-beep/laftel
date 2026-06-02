@@ -322,7 +322,8 @@ export default function ProfilePage() {
                             return (
                                 <div key={p.id} className="profile-card" onClick={() => {
                                     if (isSelected) {
-                                        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl })
+                                        // onLogin 부분 교체
+                                        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit })
                                         router.push('/')
                                     } else {
                                         setSelectedProfileId(p.id)

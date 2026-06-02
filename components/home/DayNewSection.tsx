@@ -1,6 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
+import { useFilteredAniList } from '@/hook/useFilteredAniList'
 import { useEffect, useState } from 'react'
 import styles from './DayNewSection.module.css'
 import { usePreviewStore } from '@/store/usePreviewStore'
@@ -10,10 +11,12 @@ const today = new Date().getDay()
 const todayIdx = today === 0 ? 6 : today - 1
 
 export default function DayNewSection() {
+    const { onFetchAni, contentRatings } = useAniStore()
     const { setPreviewId } = usePreviewStore()
     const { aniList, onFetchAni } = useAniStore()
     const router = useRouter()
     const [activeDay, setActiveDay] = useState(todayIdx)
+    const aniList = useFilteredAniList()
 
     useEffect(() => {
         if (aniList.length === 0) onFetchAni()
@@ -40,10 +43,15 @@ export default function DayNewSection() {
 
                 <div className={styles.grid}>
                     {dayItems.map((ani: any, idx: number) => {
-                        const vote = ani.vote_average ?? 0
-                        const age = vote >= 8 ? 15 : vote >= 7 ? 12 : 0
-                        const ageClass = age === 15 ? styles.age15 : age === 12 ? styles.age12 : styles.ageAll
-                        const ageLabel = age === 0 ? 'ALL' : age
+                        const ratingStr = contentRatings[ani.id] ?? 'ALL'
+                        const age = ratingStr === 'ALL' ? 0 : Number(ratingStr)
+                        const ageClass =
+                            age === 19 ? styles.age19 :
+                            age === 15 ? styles.age15 :
+                            age === 12 ? styles.age12 :
+                            age === 7 ? styles.age7 :
+                            styles.ageAll
+                        const ageLabel = ratingStr === 'ALL' ? 'ALL' : `${ratingStr}`
                         const isExclusive = idx % 3 === 0
                         const isUp = idx % 2 === 0
 
