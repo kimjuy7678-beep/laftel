@@ -4,14 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
-import { doc, setDoc, getDoc, arrayUnion, arrayRemove } from "firebase/firestore";
-import { db } from "@/firebase/firebase";
-import { toast } from 'sonner'
-
-
-
-
-// ─── Constants ────────────────────────────────────────────────────────────────
+import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
+import StoreSidebar from "@/components/store/StoreSidebar"
 
 const ALL_PRODUCTS = products as StoreProduct[];
 const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
@@ -32,269 +26,9 @@ function parsePrice(priceStr: string): number {
     return isNaN(num) ? 0 : num;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return (
-        <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>
-            {children}
-        </div>
-    );
+    return <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
 }
-
-// ─── StoreSidebar ─────────────────────────────────────────────────────────────
-
-function StoreSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-    return (
-        <>
-            {/* 딤 */}
-            {open && (
-                <div
-                    className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
-                    onClick={onClose}
-                />
-            )}
-            {/* 패널 */}
-            <div className={`fixed left-0 top-0 z-50 h-full w-[420px] overflow-y-auto bg-white shadow-[4px_0_32px_rgba(20,16,44,0.13)] transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-                <div className="px-5 pb-8 pt-6">
-
-                    {/* 헤더 */}
-                    <div className="mb-6 flex items-center justify-between">
-                        <p className="text-[20px] font-extrabold tracking-wider text-[#7865ff]">STORE</p>
-                        <button onClick={onClose} className="text-[#9b94b2] hover:text-[#3d3755]">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    {/* STORE 메뉴 */}
-                    <Link href="/store/all" onClick={onClose}
-                        className="mb-1 flex items-center gap-3 rounded-[10px] bg-[#f0eeff] px-3 py-2.5">
-                        <span className="text-[#7865ff]"><Icon name="grid" size={16} /></span>
-                        <span className="text-[14px] font-semibold text-[#7865ff]">전체 굿즈</span>
-                    </Link>
-                    {STORE_MENU.slice(1).map((m) => (
-                        <Link key={m.label} href={m.path} onClick={onClose}
-                            className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[#7865ff] transition hover:bg-[#f8f6ff]">
-                            <Icon name={m.icon} size={16} />
-                            <span className="text-[14px]">{m.label}</span>
-                        </Link>
-                    ))}
-
-                    {/* 구분선 */}
-                    <div className="my-5 border-t border-[#f0edf8]" />
-
-                    {/* CATEGORY */}
-                    <p className="mb-3 text-[11px] font-extrabold tracking-[0.12em] text-[#7865ff]">CATEGORY</p>
-                    {CATEGORY_MENU.map((c) => (
-                        <Link key={c.label} href={c.path} onClick={onClose}
-                            className="flex items-center gap-3 rounded-[10px] px-3 py-2 transition hover:bg-[#f8f6ff]">
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f0eeff] text-[#7865ff]">
-                                <Icon name={c.icon} size={14} />
-                            </span>
-                            <span className="text-[13px] text-[#3d3755]">{c.label}</span>
-                        </Link>
-                    ))}
-
-                    {/* 구분선 */}
-                    <div className="my-5 border-t border-[#f0edf8]" />
-
-                    {/* 최신 업데이트 */}
-                    <div className="mb-3 flex items-center justify-between">
-                        <p className="text-[13px] font-bold text-[#16121f]">최신업데이트</p>
-                        <div className="flex items-center gap-1">
-                            <span className="rounded-full bg-[#7865ff] px-2 py-0.5 text-[9px] font-bold text-white">NEW</span>
-                            <span className="text-[12px] text-[#9b94b2]">›</span>
-                        </div>
-                    </div>
-                    {RECENT_SERIES.map((s) => (
-                        <Link key={s.label} href="#" onClick={onClose}
-                            className="flex items-center gap-2.5 rounded-[10px] px-2 py-2 transition hover:bg-[#f8f6ff]">
-                            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-[6px] bg-[#e8e4f8]" />
-                            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: s.dot }} />
-                            <span className="flex-1 truncate text-[12px] text-[#3d3755]">{s.label}</span>
-                            <span className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold"
-                                style={{ backgroundColor: s.badgeBg, color: s.badgeColor }}>
-                                {s.badge}
-                            </span>
-                            <span className="text-[11px] text-[#c0bcd0]">›</span>
-                        </Link>
-                    ))}
-
-                    {/* 구분선 */}
-                    <div className="my-5 border-t border-[#f0edf8]" />
-
-                    {/* 시리즈 배너 */}
-                    <Link href="/store" onClick={onClose}
-                        className="flex items-center gap-3 rounded-[14px] bg-[#ede9ff] px-4 py-3 transition hover:bg-[#e0daff]">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#7865ff]">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                                <polygon points="5,3 19,12 5,21" />
-                            </svg>
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-[12px] font-bold text-[#3d2fa0]">전체 시리즈 보러가기</p>
-                            <p className="text-[10px] text-[#7865ff]">236개 시리즈의 모든 굿즈를 확인해보세요.</p>
-                        </div>
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#7865ff] text-[12px] text-white">›</span>
-                    </Link>
-
-                    {/* 이벤트 배너 */}
-                    <Link href="#" onClick={onClose}
-                        className="mt-2.5 flex items-center gap-3 rounded-[14px] bg-[#f5f3ff] px-4 py-3 transition hover:bg-[#ede9ff]">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8e4f8]">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7865ff" strokeWidth="2">
-                                <path d="M20 12v10H4V12" /><path d="M22 7H2v5h20V7z" /><path d="M12 22V7" /><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
-                            </svg>
-                        </div>
-                        <div className="flex-1">
-                            <div className="mb-0.5">
-                                <span className="rounded-full bg-[#e8e4f8] px-2 py-0.5 text-[9px] font-bold text-[#7865ff]">진행중</span>
-                            </div>
-                            <p className="text-[12px] font-bold text-[#3d2fa0]">이벤트 진행 중!</p>
-                            <p className="text-[10px] text-[#7865ff]">다양한 할인과 특별 혜택을 놓치지 마세요</p>
-                        </div>
-                        <span className="text-[12px] text-[#9b94b2]">›</span>
-                    </Link>
-
-                </div>
-            </div>
-        </>
-    );
-}
-
-// ─── WishButton ───────────────────────────────────────────────────────────────
-
-function WishButton({ productId }: { productId: string }) {
-    const { user } = useAuthStore();
-    const [wished, setWished] = useState(false);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (!user?.uid) return;
-        (async () => {
-            const snap = await getDoc(doc(db, "users", user.uid!));
-            const data = snap.data();
-            const wishlist: string[] = data?.wishlist || [];
-            if (wishlist.includes(productId)) setWished(true);
-        })();
-    }, [user?.uid, productId]);
-
-    const toggleWish = async (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!user?.uid) {
-            console.log("🚫 [Wishlist] 로그인이 필요합니다.");
-            toast.error('로그인이 필요해요 🔐', {
-                description: '찜하기는 로그인 후에 사용할 수 있어요.',
-            })
-            return;
-        }
-        setLoading(true);
-        try {
-            const ref = doc(db, "users", user.uid!);
-            if (wished) {
-                await setDoc(ref, { wishlist: arrayRemove(productId) }, { merge: true });
-                setWished(false);
-                console.log(`💔 [Wishlist REMOVE] uid=${user.uid} | productId=${productId}`);
-            } else {
-                await setDoc(ref, { wishlist: arrayUnion(productId) }, { merge: true });
-                setWished(true);
-                console.log(`❤️  [Wishlist ADD] uid=${user.uid} | productId=${productId} | user=${user.name || user.email}`);
-            }
-        } catch (err) {
-            console.error("🔥 [Wishlist ERROR]", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <button onClick={toggleWish} disabled={loading} aria-label="찜하기"
-            className={`flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${wished
-                ? "bg-[#ff4d6d] text-white shadow-[0_2px_8px_rgba(255,77,109,0.45)]"
-                : "bg-white text-[#b0aabb] hover:text-[#ff4d6d] shadow-[0_1px_4px_rgba(0,0,0,0.12)]"}`}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill={wished ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-        </button>
-    );
-}
-
-// ─── CartButton ───────────────────────────────────────────────────────────────
-
-function CartButton({ productId }: { productId: string }) {
-    const { user } = useAuthStore();
-
-    const addToCart = async (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!user?.uid) {
-            console.log("🚫 [Cart] 로그인이 필요합니다.");
-            toast.error('로그인이 필요해요 🔐', {
-                description: '장바구니는 로그인 후에 사용할 수 있어요.',
-            })
-            return;
-        }
-        try {
-            const ref = doc(db, "users", user.uid!);
-            await setDoc(ref, { cart: arrayUnion(productId) }, { merge: true });
-            console.log(`🛒 [Cart ADD] uid=${user.uid} | productId=${productId} | user=${user.name || user.email}`);
-            toast.success('장바구니에 담겼어요 🛒', {
-                description: '결제 전에 다른 것도 더 담아봐요!',
-            })
-        } catch (err) {
-            console.error("🔥 [Cart ERROR]", err);
-        }
-    };
-
-    return (
-        <button onClick={addToCart} aria-label="장바구니 담기"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#b0aabb] shadow-[0_1px_4px_rgba(0,0,0,0.12)] transition-all duration-200 hover:text-[#7865ff]">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-            </svg>
-        </button>
-    );
-}
-
-// ─── ProductCard ──────────────────────────────────────────────────────────────
-
-function ProductCard({ product }: { product: StoreProduct }) {
-    const displayPrice = product.soldout ? "품절" : product.price;
-    const isReserve = product.title.includes("[예약]");
-    const displayTitle = product.title.replace("[예약]", "").trim();
-
-    return (
-        <Link href={`/store/${product.productId}`} className="group block min-w-0">
-            <div className="relative overflow-hidden rounded-[12px] bg-[#eeeeef]">
-                <ImageSlot src={product.thumbnail} alt={product.title}
-                    className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.04]" />
-                {isReserve && (
-                    <span className="absolute left-3 top-3 rounded-full bg-[#ff6b35] px-2.5 py-1 text-[11px] font-bold text-white shadow-[0_2px_8px_rgba(255,107,53,0.4)]">예약</span>
-                )}
-                {product.soldout && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <span className="rounded-full bg-white/90 px-4 py-1.5 text-[13px] font-bold text-[#555]">품절</span>
-                    </div>
-                )}
-                <div className="absolute bottom-3 right-3 flex gap-1.5">
-                    <WishButton productId={product.productId} />
-                    <CartButton productId={product.productId} />
-                </div>
-            </div>
-            <div className="mt-3">
-                <p className="text-[11px] text-[#8a8494]">{product.category}</p>
-                <p className="mt-0.5 line-clamp-2 text-[14px] font-medium leading-[1.4] text-[#17151f]">{displayTitle}</p>
-                <p className={`mt-1.5 text-[15px] font-bold ${product.soldout ? "text-[#aaa]" : "text-[#111018]"}`}>{displayPrice}</p>
-            </div>
-        </Link>
-    );
-}
-
-// ─── Pagination ───────────────────────────────────────────────────────────────
 
 function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
     const groupIndex = Math.floor((current - 1) / PAGE_GROUP);
@@ -309,9 +43,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            {hasPrevGroup && (
-                <button onClick={() => onChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>
-            )}
+            {hasPrevGroup && <button onClick={() => onChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
             {pages.map((p) => (
                 <button key={p} onClick={() => onChange(p)}
                     className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${p === current
@@ -320,9 +52,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                     {p}
                 </button>
             ))}
-            {hasNextGroup && (
-                <button onClick={() => onChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>
-            )}
+            {hasNextGroup && <button onClick={() => onChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
             <button onClick={() => onChange(Math.min(total, current + 1))} disabled={current === total}
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
@@ -330,8 +60,6 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
         </div>
     );
 }
-
-// ─── FilterDropdown ───────────────────────────────────────────────────────────
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 350000;
@@ -341,12 +69,8 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
     selectedColor: string | null; onColor: (v: string | null) => void; onReset: () => void;
 }) {
     const pct = (v: number) => ((v - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
-    const handleMin = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onPriceRange([Math.min(Number(e.target.value), priceRange[1] - 1000), priceRange[1]]);
-    };
-    const handleMax = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onPriceRange([priceRange[0], Math.max(Number(e.target.value), priceRange[0] + 1000)]);
-    };
+    const handleMin = (e: React.ChangeEvent<HTMLInputElement>) => { onPriceRange([Math.min(Number(e.target.value), priceRange[1] - 1000), priceRange[1]]); };
+    const handleMax = (e: React.ChangeEvent<HTMLInputElement>) => { onPriceRange([priceRange[0], Math.max(Number(e.target.value), priceRange[0] + 1000)]); };
     if (!open) return null;
     return (
         <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-[16px] border border-[#e2ddf5] bg-white p-5 shadow-[0_8px_32px_rgba(30,24,70,0.14)]">
@@ -360,9 +84,9 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
                 <div className="absolute inset-0 rounded-full bg-[#e2ddf5]" />
                 <div className="absolute h-full rounded-full bg-[#7865ff]" style={{ left: `${pct(priceRange[0])}%`, right: `${100 - pct(priceRange[1])}%` }} />
                 <input type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000} value={priceRange[0]} onChange={handleMin}
-                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:shadow-[0_2px_6px_rgba(120,101,255,0.4)] [&::-webkit-slider-thumb]:cursor-pointer" />
+                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:cursor-pointer" />
                 <input type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000} value={priceRange[1]} onChange={handleMax}
-                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:shadow-[0_2px_6px_rgba(120,101,255,0.4)] [&::-webkit-slider-thumb]:cursor-pointer" />
+                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:cursor-pointer" />
             </div>
             <div className="my-4 border-t border-[#f0edf8]" />
             <p className="text-[13px] font-semibold text-[#16121f]">색상</p>
@@ -382,8 +106,6 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
         </div>
     );
 }
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function StoreListPage() {
     const { user } = useAuthStore();
@@ -413,9 +135,8 @@ export default function StoreListPage() {
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
     useEffect(() => { setPage(1); }, [search, priceRange, selectedColor, sort]);
-
     useEffect(() => {
-        if (user) console.log("👤 [Auth] 로그인 유저 정보:", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
+        if (user) console.log("👤 [Auth]", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
         else console.log("👻 [Auth] 비로그인 상태");
     }, [user]);
 
@@ -424,16 +145,12 @@ export default function StoreListPage() {
 
     return (
         <div className="min-h-screen bg-white pb-20">
-
             <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-            {/* ── 전체 카테고리 바 ── */}
             <div className="border-b border-[#ebe8ff] bg-white py-3">
                 <Inner>
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="flex items-center gap-2 text-[14px] text-[#3d3755] transition hover:text-[#7865ff]"
-                    >
+                    <button onClick={() => setSidebarOpen(true)}
+                        className="flex items-center gap-2 text-[14px] text-[#3d3755] transition hover:text-[#7865ff]">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                             <line x1="3" y1="6" x2="21" y2="6" />
                             <line x1="3" y1="12" x2="21" y2="12" />
@@ -444,7 +161,6 @@ export default function StoreListPage() {
                 </Inner>
             </div>
 
-            {/* ── 페이지 헤더 ── */}
             <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
                 <Inner>
                     <p className="mb-4 text-[12px] text-[#9b94b2]">
@@ -471,7 +187,6 @@ export default function StoreListPage() {
                 </Inner>
             </div>
 
-            {/* ── 상품 수 + 정렬 ── */}
             <Inner className="mt-8">
                 <div className="flex items-center justify-between">
                     <p className="text-[14px] text-[#6b647a]">총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품</p>
@@ -498,7 +213,6 @@ export default function StoreListPage() {
                 </div>
             </Inner>
 
-            {/* ── 상품 그리드 ── */}
             <Inner className="mt-6">
                 {paginated.length === 0 ? (
                     <div className="flex h-[300px] flex-col items-center justify-center gap-3 text-[15px] text-[#9b94b2]">

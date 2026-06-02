@@ -8,7 +8,7 @@ import { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 import 'swiper/css/effect-fade'
 import { useAniStore } from '@/store/useAniStore'
-import VideoPlayer from './VideoPlayer'
+import VideoPlayer from './Videoplayer'
 
 const heroData = [
     { id: 123249, image: '/images/hero/hero01.png', text: '최애를 향한 광기 어린 열정과  순정남의 금손 재능이 만났을 때, \n 보는 내내 광대 폭발하는 청춘 성장물' },
