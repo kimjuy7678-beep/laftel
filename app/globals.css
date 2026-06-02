@@ -72,3 +72,8 @@ html.dark body {
   max-width: 1770px;
   margin: 0 auto;
 }
+
+[data-sonner-toast] [data-description] {
+  color: rgba(255, 255, 255, 0.75) !important;
+  opacity: 1 !important;
+}

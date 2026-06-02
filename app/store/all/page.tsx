@@ -6,6 +6,7 @@ import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 import { doc, setDoc, getDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from "@/firebase/firebase";
+import { toast } from 'sonner'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -248,7 +249,9 @@ function WishButton({ productId }: { productId: string }) {
         e.stopPropagation();
         if (!user?.uid) {
             console.log("🚫 [Wishlist] 로그인이 필요합니다.");
-            alert("찜하기는 로그인 후 이용할 수 있어요!");
+            toast.error('로그인이 필요해요 🔐', {
+                description: '찜하기는 로그인 후에 사용할 수 있어요.',
+            })
             return;
         }
         setLoading(true);
@@ -292,14 +295,18 @@ function CartButton({ productId }: { productId: string }) {
         e.stopPropagation();
         if (!user?.uid) {
             console.log("🚫 [Cart] 로그인이 필요합니다.");
-            alert("장바구니는 로그인 후 이용할 수 있어요!");
+            toast.error('로그인이 필요해요 🔐', {
+                description: '장바구니는 로그인 후에 사용할 수 있어요.',
+            })
             return;
         }
         try {
             const ref = doc(db, "users", user.uid!);
             await setDoc(ref, { cart: arrayUnion(productId) }, { merge: true });
             console.log(`🛒 [Cart ADD] uid=${user.uid} | productId=${productId} | user=${user.name || user.email}`);
-            alert("장바구니에 담겼어요!");
+            toast.success('장바구니에 담겼어요 🛒', {
+                description: '결제 전에 다른 것도 더 담아봐요!',
+            })
         } catch (err) {
             console.error("🔥 [Cart ERROR]", err);
         }
