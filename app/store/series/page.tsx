@@ -15,9 +15,10 @@ const PAGE_GROUP = 5;
 const SERIES_LIST = ["전체", ...Array.from(new Set(STORE_PRODUCTS.map((p) => p.category)))];
 
 const HERO_SLIDES = [
-    { series: "하이큐", tag: "NEW ARRIVAL", title: "하이큐!!", desc: "새로운 경기를 시작하자!\n공식 굿즈 출시", bg: "#f5f0e8", image: "/images/store/banner/haikyuu.jpg", textColor: "#16121f", tagColor: "#7865ff", btnBorder: "#16121f" },
-    { series: "장송의 프리렌", tag: "FEATURED", title: "장송의 프리렌", desc: "엘프 마법사 프리렌의 여정\n공식 굿즈 모음", bg: "#b8e4f0", image: "/images/store/banner/frieren.jpg", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff" },
-    { series: "귀멸의 칼날", tag: "POPULAR", title: "귀멸의 칼날", desc: "인기 굿즈 신규 입고!\n한정 수량 선착순", bg: "#1a0a0a", image: "/images/store/banner/kimetsu.jpg", textColor: "#fff", tagColor: "#ff6b35", btnBorder: "#fff" },
+    { series: "하이큐", tag: "NEW ARRIVAL", title: "하이큐!!", desc: "배구에 매료되어 중학생 시절 최초이자 마지막 공식전에 출전한 히나타 쇼요\n하지만 '코트 위의 제왕'이라는 별명을 가진 천재 선수 카게야마에게 처참히 패하고 만다.", bg: "#f5a623", image: "/store/product_list/HIQUU.png", textColor: "#fff", tagColor: "#7865ff", btnBorder: "#7865ff" },
+    { series: "용한 소녀", tag: "FEATURED", title: "용한 소녀", desc: "정략결혼을 피해 용궁에서 지상으로 도망친 용왕의 딸 김용만\n성공을 목표로 전교 1등의 꿈을 품고 고등학교에 입학한다.", bg: "#b8e4f0", image: "/store/product_list/GIRL.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff" },
+    { series: "장송의 프리렌", tag: "POPULAR", title: "장송의 프리렌", desc: "엘프 마법사 프리렌의 여정\n공식 굿즈 모음", bg: "#c8a87a", image: "/store/product_list/PRIREN.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff" },
+    { series: "마루는 강쥐", tag: "FEATURED", title: "마루는 강쥐", desc: "우리 집 강아지 마루가 사람이 되었다, 그것도 5살 아이로!!\n마루야~! 또 어디가!!! 유쾌한 이웃들과 우당탕탕 즐거운 마루의 나날들", bg: "#c8e6a0", image: "/store/product_list/MARU.png", textColor: "#16121f", tagColor: "#7865ff", btnBorder: "#7865ff" },
 ];
 
 const COLOR_OPTIONS = [
@@ -46,16 +47,18 @@ function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void })
     const slide = HERO_SLIDES[current];
     return (
         <div className="relative w-full overflow-hidden rounded-[20px]" style={{ backgroundColor: slide.bg, minHeight: 300 }}>
-            <div className="absolute inset-0 transition-all duration-700" style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: "center right" }} />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.25) 55%, transparent 100%)" }} />
-            <div className="relative z-10 flex min-h-[300px] flex-col justify-center px-12 py-12">
+            <div className="absolute inset-0 transition-all duration-700"
+                style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: "center left" }} />
+            <div className="absolute inset-0"
+                style={{ background: "linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)" }} />
+            <div className="relative z-10 flex min-h-[300px] flex-col items-end justify-center px-12 py-12 text-right">
                 <span className="mb-3 text-[12px] font-bold uppercase tracking-widest" style={{ color: slide.tagColor }}>{slide.tag}</span>
                 <h2 className="mb-3 text-[40px] font-extrabold leading-tight" style={{ color: slide.textColor }}>{slide.title}</h2>
-                <p className="mb-8 max-w-[400px] whitespace-pre-line text-[14px] leading-[1.8]" style={{ color: slide.textColor, opacity: 0.85 }}>{slide.desc}</p>
+                <p className="mb-8 max-w-[500px] whitespace-pre-line text-[14px] leading-[1.8]" style={{ color: slide.textColor, opacity: 0.9 }}>{slide.desc}</p>
                 <button onClick={() => onSeriesSelect(slide.series)}
                     className="inline-flex w-fit items-center gap-2 rounded-full border-2 px-7 py-3 text-[14px] font-semibold transition hover:opacity-80"
                     style={{ borderColor: slide.btnBorder, color: slide.textColor }}>
-                    굿즈 보러가기
+                    굿즈보러가기
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
                 </button>
             </div>
