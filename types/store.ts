@@ -52,8 +52,6 @@ export type ProductCategory =
     | "스티커·엽서"
     | "키링";
 
-
-
 import { AniItem, AniVideo, AniDetail, AniSeasonDetail } from "@/types/animation";
 
 export interface AniStoreExtra {
@@ -67,8 +65,8 @@ export interface AniStore {
     aniVideos: Record<number, AniVideo | null>;
     aniDetails: Record<number, AniDetail>;
     aniSeasons: Record<string, AniSeasonDetail>;
+    contentRatings: Record<number, string>;      // 추가
 
-    // 디테일 모달용 state 추가
     detailModalItem: any | null;
     onOpenDetailModal: (item: any) => void;
     onCloseDetailModal: () => void;
@@ -79,4 +77,5 @@ export interface AniStore {
     onFetchDetail: (id: number) => Promise<void>;
     onFetchSeason: (id: number, seasonNumber: number) => Promise<void>;
     onNextVideo: (id: number) => void;
+    onFetchContentRatings: (ids: number[]) => Promise<void>;  // 추가
 }
