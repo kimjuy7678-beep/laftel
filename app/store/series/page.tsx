@@ -1,18 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
+
 import StoreSidebar from "@/components/store/StoreSidebar";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const ALL_PRODUCTS = products as StoreProduct[];
 const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
 const ITEMS_PER_PAGE = 16;
 const PAGE_GROUP = 5;
+const SERIES_LIST = ["전체", ...Array.from(new Set(STORE_PRODUCTS.map((p) => p.category)))];
+
+const HERO_SLIDES = [
+    { series: "하이큐", tag: "NEW ARRIVAL", title: "하이큐!!", desc: "새로운 경기를 시작하자!\n공식 굿즈 출시", bg: "#f5f0e8", image: "/images/store/banner/haikyuu.jpg", textColor: "#16121f", tagColor: "#7865ff", btnBorder: "#16121f" },
+    { series: "장송의 프리렌", tag: "FEATURED", title: "장송의 프리렌", desc: "엘프 마법사 프리렌의 여정\n공식 굿즈 모음", bg: "#b8e4f0", image: "/images/store/banner/frieren.jpg", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff" },
+    { series: "귀멸의 칼날", tag: "POPULAR", title: "귀멸의 칼날", desc: "인기 굿즈 신규 입고!\n한정 수량 선착순", bg: "#1a0a0a", image: "/images/store/banner/kimetsu.jpg", textColor: "#fff", tagColor: "#ff6b35", btnBorder: "#fff" },
+];
 
 const COLOR_OPTIONS = [
     { label: "보라", value: "purple", hex: "#7865ff" },
@@ -23,22 +29,60 @@ const COLOR_OPTIONS = [
     { label: "빨강", value: "red", hex: "#FF2D55" },
 ];
 
-function parsePrice(priceStr: string): number {
-    const num = parseInt(priceStr.replace(/[^0-9]/g, ""), 10);
-    return isNaN(num) ? 0 : num;
+function parsePrice(s: string) { return parseInt(s.replace(/[^0-9]/g, ""), 10) || 0; }
+function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+    return <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void }) {
+    const [current, setCurrent] = useState(0);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const startTimer = () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => setCurrent((v) => (v + 1) % HERO_SLIDES.length), 4000);
+    };
+    useEffect(() => { startTimer(); return () => { if (timerRef.current) clearInterval(timerRef.current); }; }, []);
+    const goTo = (idx: number) => { setCurrent(idx); startTimer(); };
+    const slide = HERO_SLIDES[current];
     return (
-        <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>
-            {children}
+        <div className="relative w-full overflow-hidden rounded-[20px]" style={{ backgroundColor: slide.bg, minHeight: 300 }}>
+            <div className="absolute inset-0 transition-all duration-700" style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: "center right" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.25) 55%, transparent 100%)" }} />
+            <div className="relative z-10 flex min-h-[300px] flex-col justify-center px-12 py-12">
+                <span className="mb-3 text-[12px] font-bold uppercase tracking-widest" style={{ color: slide.tagColor }}>{slide.tag}</span>
+                <h2 className="mb-3 text-[40px] font-extrabold leading-tight" style={{ color: slide.textColor }}>{slide.title}</h2>
+                <p className="mb-8 max-w-[400px] whitespace-pre-line text-[14px] leading-[1.8]" style={{ color: slide.textColor, opacity: 0.85 }}>{slide.desc}</p>
+                <button onClick={() => onSeriesSelect(slide.series)}
+                    className="inline-flex w-fit items-center gap-2 rounded-full border-2 px-7 py-3 text-[14px] font-semibold transition hover:opacity-80"
+                    style={{ borderColor: slide.btnBorder, color: slide.textColor }}>
+                    굿즈 보러가기
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
+            </div>
+            <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 gap-2">
+                {HERO_SLIDES.map((_, i) => (
+                    <button key={i} onClick={() => goTo(i)}
+                        className={`rounded-full transition-all duration-300 ${i === current ? "w-6 h-2.5 bg-[#7865ff]" : "w-2.5 h-2.5 bg-white/50"}`} />
+                ))}
+            </div>
         </div>
     );
 }
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
+function SeriesTab({ selected, onSelect }: { selected: string; onSelect: (s: string) => void }) {
+    return (
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 pr-8" style={{ scrollbarWidth: "none" }}>
+            {SERIES_LIST.map((s) => (
+                <button key={s} onClick={() => onSelect(s)}
+                    className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold transition ${selected === s
+                        ? "bg-[#7865ff] text-white shadow-[0_2px_8px_rgba(120,101,255,0.3)]"
+                        : "bg-white text-[#6b647a] border border-[#e2ddf5] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
+                    {s}
+                </button>
+            ))}
+        </div>
+    );
+}
 
 function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
     const groupIndex = Math.floor((current - 1) / PAGE_GROUP);
@@ -53,9 +97,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            {hasPrevGroup && (
-                <button onClick={() => onChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>
-            )}
+            {hasPrevGroup && <button onClick={() => onChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
             {pages.map((p) => (
                 <button key={p} onClick={() => onChange(p)}
                     className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${p === current
@@ -64,9 +106,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                     {p}
                 </button>
             ))}
-            {hasNextGroup && (
-                <button onClick={() => onChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>
-            )}
+            {hasNextGroup && <button onClick={() => onChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
             <button onClick={() => onChange(Math.min(total, current + 1))} disabled={current === total}
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
@@ -74,8 +114,6 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
         </div>
     );
 }
-
-// ─── FilterDropdown ───────────────────────────────────────────────────────────
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 350000;
@@ -85,12 +123,8 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
     selectedColor: string | null; onColor: (v: string | null) => void; onReset: () => void;
 }) {
     const pct = (v: number) => ((v - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
-    const handleMin = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onPriceRange([Math.min(Number(e.target.value), priceRange[1] - 1000), priceRange[1]]);
-    };
-    const handleMax = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onPriceRange([priceRange[0], Math.max(Number(e.target.value), priceRange[0] + 1000)]);
-    };
+    const handleMin = (e: React.ChangeEvent<HTMLInputElement>) => { onPriceRange([Math.min(Number(e.target.value), priceRange[1] - 1000), priceRange[1]]); };
+    const handleMax = (e: React.ChangeEvent<HTMLInputElement>) => { onPriceRange([priceRange[0], Math.max(Number(e.target.value), priceRange[0] + 1000)]); };
     if (!open) return null;
     return (
         <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-[16px] border border-[#e2ddf5] bg-white p-5 shadow-[0_8px_32px_rgba(30,24,70,0.14)]">
@@ -104,9 +138,9 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
                 <div className="absolute inset-0 rounded-full bg-[#e2ddf5]" />
                 <div className="absolute h-full rounded-full bg-[#7865ff]" style={{ left: `${pct(priceRange[0])}%`, right: `${100 - pct(priceRange[1])}%` }} />
                 <input type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000} value={priceRange[0]} onChange={handleMin}
-                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:shadow-[0_2px_6px_rgba(120,101,255,0.4)] [&::-webkit-slider-thumb]:cursor-pointer" />
+                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:cursor-pointer" />
                 <input type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000} value={priceRange[1]} onChange={handleMax}
-                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:shadow-[0_2px_6px_rgba(120,101,255,0.4)] [&::-webkit-slider-thumb]:cursor-pointer" />
+                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:cursor-pointer" />
             </div>
             <div className="my-4 border-t border-[#f0edf8]" />
             <p className="text-[13px] font-semibold text-[#16121f]">색상</p>
@@ -127,24 +161,29 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
     );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
-export default function StoreListPage() {
+export default function SeriesPage() {
     const { user } = useAuthStore();
+    const [selectedSeries, setSelectedSeries] = useState("전체");
     const [page, setPage] = useState(1);
-    const [search, setSearch] = useState("");
     const [sort, setSort] = useState("인기순");
     const [filterOpen, setFilterOpen] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 300000]);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
+    // URL 파라미터에서 series 읽기
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const series = params.get("series");
+        if (series) setSelectedSeries(series);
+    }, []);
+
     const filtered = STORE_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
-        const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
+        const matchSeries = selectedSeries === "전체" || p.category === selectedSeries;
         const matchPrice = p.soldout || (price >= priceRange[0] && price <= priceRange[1]);
-        const matchColor = !selectedColor || p.title.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "") || p.category.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "");
-        return matchSearch && matchPrice && matchColor;
+        const matchColor = !selectedColor || p.title.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "");
+        return matchSeries && matchPrice && matchColor;
     });
 
     const sorted = [...filtered].sort((a, b) => {
@@ -156,28 +195,27 @@ export default function StoreListPage() {
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    useEffect(() => { setPage(1); }, [search, priceRange, selectedColor, sort]);
-
+    useEffect(() => { setPage(1); }, [selectedSeries, sort, priceRange, selectedColor]);
     useEffect(() => {
-        if (user) console.log("👤 [Auth] 로그인 유저 정보:", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
+        if (user) console.log("👤 [Auth]", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
         else console.log("👻 [Auth] 비로그인 상태");
     }, [user]);
 
     const handleReset = () => { setPriceRange([0, 300000]); setSelectedColor(null); };
     const activeFilterCount = [priceRange[0] > 0 || priceRange[1] < 300000, selectedColor !== null].filter(Boolean).length;
+    const handleSeriesSelect = (s: string) => {
+        setSelectedSeries(s);
+        document.getElementById("series-tab")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
 
     return (
         <div className="min-h-screen bg-white pb-20">
-
             <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-            {/* ── 전체 카테고리 바 ── */}
             <div className="border-b border-[#ebe8ff] bg-white py-3">
                 <Inner>
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="flex items-center gap-2 text-[14px] text-[#3d3755] transition hover:text-[#7865ff]"
-                    >
+                    <button onClick={() => setSidebarOpen(true)}
+                        className="flex items-center gap-2 text-[14px] text-[#3d3755] transition hover:text-[#7865ff]">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                             <line x1="3" y1="6" x2="21" y2="6" />
                             <line x1="3" y1="12" x2="21" y2="12" />
@@ -188,37 +226,36 @@ export default function StoreListPage() {
                 </Inner>
             </div>
 
-            {/* ── 페이지 헤더 ── */}
             <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
                 <Inner>
                     <p className="mb-4 text-[12px] text-[#9b94b2]">
                         <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
                         <span className="mx-1.5">›</span>
-                        <span className="font-medium text-[#7865ff]">전체굿즈</span>
+                        <span className="font-medium text-[#7865ff]">시리즈별</span>
                     </p>
-                    <div className="flex items-end justify-between">
-                        <h1 className="text-[32px] font-bold text-[#16121f]">전체 굿즈</h1>
-                        <div className="flex h-[44px] w-[340px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)]">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]">
-                                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-                                <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
-                            <input className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
-                                placeholder="찾으시는 상품을 검색하세요" value={search} onChange={(e) => setSearch(e.target.value)} />
-                            {search && (
-                                <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                </button>
-                            )}
-                        </div>
+                    <div>
+                        <h1 className="text-[32px] font-bold text-[#16121f]">시리즈 별</h1>
+                        <p className="mt-1 text-[15px] text-[#9b94b2]">좋아하는 애니메이션 굿즈를 찾아보세요!</p>
                     </div>
                 </Inner>
             </div>
 
-            {/* ── 상품 수 + 정렬 ── */}
+            <Inner className="mt-8">
+                <HeroBanner onSeriesSelect={handleSeriesSelect} />
+            </Inner>
+
+            <div id="series-tab" className="sticky top-0 z-20 border-b border-[#ebe8ff] bg-[#f8f6ff] py-4">
+                <Inner>
+                    <SeriesTab selected={selectedSeries} onSelect={handleSeriesSelect} />
+                </Inner>
+            </div>
+
             <Inner className="mt-8">
                 <div className="flex items-center justify-between">
-                    <p className="text-[14px] text-[#6b647a]">총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품</p>
+                    <p className="text-[14px] text-[#6b647a]">
+                        총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품
+                        {selectedSeries !== "전체" && <span className="ml-2 font-semibold text-[#7865ff]">· {selectedSeries}</span>}
+                    </p>
                     <div className="flex items-center gap-2">
                         <div className="relative">
                             <select value={sort} onChange={(e) => setSort(e.target.value)}
@@ -242,7 +279,6 @@ export default function StoreListPage() {
                 </div>
             </Inner>
 
-            {/* ── 상품 그리드 ── */}
             <Inner className="mt-6">
                 {paginated.length === 0 ? (
                     <div className="flex h-[300px] flex-col items-center justify-center gap-3 text-[15px] text-[#9b94b2]">
@@ -250,8 +286,8 @@ export default function StoreListPage() {
                             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                         </svg>
                         검색 결과가 없어요.
-                        {(search || activeFilterCount > 0) && (
-                            <button onClick={() => { setSearch(""); handleReset(); }} className="text-[13px] text-[#7865ff] underline">필터 초기화</button>
+                        {activeFilterCount > 0 && (
+                            <button onClick={handleReset} className="text-[13px] text-[#7865ff] underline">필터 초기화</button>
                         )}
                     </div>
                 ) : (
