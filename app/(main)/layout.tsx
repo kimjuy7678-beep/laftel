@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import QuickMenu from "@/components/QuickMenu";
 import ScheduleMarquee from "@/components/ScheduleMarquee";
+import AnimePreviewModal from "@/components/anime/AnimePreviewModal";
 
 export default function MainLayout({
     children,
@@ -18,6 +19,7 @@ export default function MainLayout({
             </div>
             <Footer />
             <QuickMenu />
+            <AnimePreviewModal />
         </>
     );
 }
