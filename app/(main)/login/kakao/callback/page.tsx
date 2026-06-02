@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { auth, db } from '@/firebase/firebase'
 import { signInWithCustomToken } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { toast } from 'sonner'
 
 export default function KakaoCallbackPage() {
     const router = useRouter()
@@ -55,7 +56,9 @@ export default function KakaoCallbackPage() {
                 }
             } catch (err) {
                 console.error('카카오 로그인 실패:', err)
-                alert('카카오 로그인에 실패했어요.')
+                toast.error('카카오 로그인 실패 😓', {
+                    description: '카카오 계정 연결에 문제가 생겼어요. 다시 시도해봐요.',
+                })
                 router.push('/login')
             }
         }

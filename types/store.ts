@@ -94,6 +94,7 @@ export interface AniStore {
     aniVideos: Record<number, AniVideo | null>;
     aniDetails: Record<number, AniDetail>;
     aniSeasons: Record<string, AniSeasonDetail>;
+    contentRatings: Record<number, string>;      // 추가
 
     // 디테일 모달용 state 추가
     detailModalItem: unknown | null;
@@ -106,4 +107,5 @@ export interface AniStore {
     onFetchDetail: (id: number) => Promise<void>;
     onFetchSeason: (id: number, seasonNumber: number) => Promise<void>;
     onNextVideo: (id: number) => void;
+    onFetchContentRatings: (ids: number[]) => Promise<void>;  // 추가
 }

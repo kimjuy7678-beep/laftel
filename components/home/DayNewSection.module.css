@@ -199,21 +199,28 @@
 }
 
 .ageAll {
-    background: #007a00;
+    background: #00a550;
     color: #fff;
 }
 
-.age12,
-.age15 {
-    background: #ffcf81;
-    border: 1px solid white;
+.age7 {
+    background: #00a550;
+    color: #fff;
+}
+
+.age12 {
+    background: #f5c518;
     color: #1e1e24;
 }
 
-.age19 {
-    background: #333;
+.age15 {
+    background: #ff8c00;
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.age19 {
+    background: #e84040;
+    color: #fff;
 }
 
 .exclusive {
