@@ -5,7 +5,7 @@ import Link from "next/link";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 
-import StoreSidebar from "@/components/store/StoreSidebar";
+import StoreSidebar from "@/components/store/StoreSliaebar";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 
 const ALL_PRODUCTS = products as StoreProduct[];
@@ -20,6 +20,7 @@ const HERO_SLIDES = [
     { series: "장송의 프리렌", tag: "POPULAR", title: "장송의 프리렌", desc: "엘프 마법사 프리렌의 여정\n공식 굿즈 모음", bg: "#c8a87a", image: "/store/product_list/frieren.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff" },
     { series: "마루는 강쥐", tag: "FEATURED", title: "마루는 강쥐", desc: "우리 집 강아지 마루가 사람이 되었다, 그것도 5살 아이로!!\n마루야~! 또 어디가!!! 유쾌한 이웃들과 우당탕탕 즐거운 마루의 나날들", bg: "#c8e6a0", image: "/store/product_list/maru.png", textColor: "#ffffff", tagColor: "#7865ff", btnBorder: "#7865ff" },
 ];
+
 const COLOR_OPTIONS = [
     { label: "보라", value: "purple", hex: "#7865ff" },
     { label: "노랑", value: "yellow", hex: "#FFE135" },
@@ -30,8 +31,9 @@ const COLOR_OPTIONS = [
 ];
 
 function parsePrice(s: string) { return parseInt(s.replace(/[^0-9]/g, ""), 10) || 0; }
+
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
+    return <div className={`mx-auto w-full max-w-[1700px] px-[75px] ${className}`}>{children}</div>;
 }
 
 function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void }) {
@@ -47,14 +49,8 @@ function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void })
     useEffect(() => { startTimer(); return () => { if (timerRef.current) clearInterval(timerRef.current); }; }, []);
 
     const goTo = (idx: number) => { setCurrent(idx); startTimer(); };
-
-    const onMouseDown = (e: React.MouseEvent) => {
-        setIsDragging(false);
-        setStartX(e.clientX);
-    };
-    const onMouseMove = (e: React.MouseEvent) => {
-        if (Math.abs(e.clientX - startX) > 5) setIsDragging(true);
-    };
+    const onMouseDown = (e: React.MouseEvent) => { setIsDragging(false); setStartX(e.clientX); };
+    const onMouseMove = (e: React.MouseEvent) => { if (Math.abs(e.clientX - startX) > 5) setIsDragging(true); };
     const onMouseUp = (e: React.MouseEvent) => {
         const diff = e.clientX - startX;
         if (Math.abs(diff) > 50) {
@@ -73,14 +69,14 @@ function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void })
     const slide = HERO_SLIDES[current];
     return (
         <div className="relative w-full overflow-hidden rounded-[20px] cursor-grab active:cursor-grabbing select-none"
-            style={{ backgroundColor: slide.bg, minHeight: 480 }}
+            style={{ backgroundColor: slide.bg, minHeight: 420 }}
             onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={() => setIsDragging(false)}
             onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
             <div className="absolute inset-0 transition-all duration-700"
                 style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: "center left" }} />
             <div className="absolute inset-0"
                 style={{ background: "linear-gradient(to left, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, transparent 100%)" }} />
-            <div className="relative z-10 flex min-h-[480px] flex-col items-end justify-center px-12 py-12 text-right">
+            <div className="relative z-10 flex min-h-[420px] flex-col items-end justify-center px-12 py-12 text-right">
                 <span className="mb-3 text-[12px] font-bold uppercase tracking-widest" style={{ color: slide.tagColor }}>{slide.tag}</span>
                 <h2 className="mb-3 text-[48px] font-extrabold leading-tight" style={{ color: slide.textColor }}>{slide.title}</h2>
                 <p className="mb-8 max-w-[500px] whitespace-pre-line text-[14px] leading-[1.8]" style={{ color: slide.textColor, opacity: 0.9 }}>{slide.desc}</p>
@@ -120,20 +116,16 @@ function SeriesTab({ selected, onSelect }: { selected: string; onSelect: (s: str
         scrollRef.current.scrollLeft = scrollLeft - (x - startX);
     };
     const onMouseUp = () => setIsDragging(false);
-
     const scrollBy = (dir: "left" | "right") => {
         scrollRef.current?.scrollBy({ left: dir === "left" ? -300 : 300, behavior: "smooth" });
     };
 
     return (
         <div className="relative flex items-center gap-2">
-            {/* 왼쪽 화살표 */}
             <button onClick={() => scrollBy("left")}
                 className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-[#e2ddf5] bg-white text-[#7865ff] shadow-sm transition hover:bg-[#f0eeff]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-
-            {/* 탭 스크롤 영역 */}
             <div ref={scrollRef}
                 className="flex flex-1 items-center gap-1 overflow-x-auto pb-1 cursor-grab active:cursor-grabbing select-none"
                 style={{ scrollbarWidth: "none" }}
@@ -147,8 +139,6 @@ function SeriesTab({ selected, onSelect }: { selected: string; onSelect: (s: str
                     </button>
                 ))}
             </div>
-
-            {/* 오른쪽 화살표 */}
             <button onClick={() => scrollBy("right")}
                 className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-[#e2ddf5] bg-white text-[#7865ff] shadow-sm transition hover:bg-[#f0eeff]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
@@ -244,7 +234,6 @@ export default function SeriesPage() {
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 300000]);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
-    // URL 파라미터에서 series 읽기
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const series = params.get("series");
