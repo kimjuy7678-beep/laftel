@@ -5,7 +5,7 @@ import Link from "next/link";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
-import StoreSidebar from "@/components/store/StoreSidebar"
+import StoreSidebar from "@/components/store/StoreSliaebar"
 
 const ALL_PRODUCTS = products as StoreProduct[];
 const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
