@@ -1,6 +1,11 @@
 "use client"
 import { useEffect, useState } from 'react'
 import PaymentModal from './PaymentModal'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useRouter } from 'next/navigation'
+import { db } from '@/firebase/firebase'
+import { doc, setDoc, addDoc, collection } from 'firebase/firestore'
+import { toast } from 'sonner'
 
 type PlanId = 'anime' | 'ost' | 'allinone'
 

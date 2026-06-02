@@ -16,6 +16,7 @@ interface Card {
     expiry: string
     isDefault: boolean
 }
+import { toast } from 'sonner'
 
 const pointOptions = [
     { label: "1,000 포인트", amount: 1000, price: "1,000원" },
@@ -186,7 +187,9 @@ export default function Point() {
             await chargePoints((user as any).uid, selectedOption.amount)
             setShowSuccess(true)
         } catch {
-            alert('충전 중 오류가 발생했어요. 다시 시도해주세요.')
+            toast.error('충전 실패 😭', {
+                description: '결제가 안 됐어요. 카드 정보 확인 후 다시 시도해봐요.',
+            })
         } finally {
             setCharging(false)
         }

@@ -4,6 +4,7 @@ import { useAniStore } from '@/store/useAniStore'
 import { useFilteredAniList } from '@/hook/useFilteredAniList'
 import { useEffect, useState } from 'react'
 import styles from './DayNewSection.module.css'
+import { usePreviewStore } from '@/store/usePreviewStore'
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일']
 const today = new Date().getDay()
@@ -11,6 +12,8 @@ const todayIdx = today === 0 ? 6 : today - 1
 
 export default function DayNewSection() {
     const { onFetchAni, contentRatings } = useAniStore()
+    const { setPreviewId } = usePreviewStore()
+    const { aniList, onFetchAni } = useAniStore()
     const router = useRouter()
     const [activeDay, setActiveDay] = useState(todayIdx)
     const aniList = useFilteredAniList()
@@ -53,7 +56,7 @@ export default function DayNewSection() {
                         const isUp = idx % 2 === 0
 
                         return (
-                            <div key={ani.id} className={styles.card} onClick={() => router.push(`/anime/${ani.id}`)}>
+                            <div key={ani.id} className={styles.card} onClick={() => setPreviewId(ani.id)}>
                                 {ani.backdrop_path
                                     ? <img className={styles.img} src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} />
                                     : <div className={styles.imgFallback}>{(ani.name || '?')[0]}</div>
