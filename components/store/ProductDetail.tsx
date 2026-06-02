@@ -302,10 +302,10 @@ export function ProductDetail({
             <main className="mx-auto max-w-[1600px] px-6 pt-[88px] pb-24">
 
                 {/* 상단: 이미지 + 정보 */}
-                <div className="flex flex-col gap-10 md:flex-row md:gap-16">
+                <div className="flex flex-col  justify-center md:flex-row md:gap-16 ">
 
                     {/* 왼쪽: 이미지 */}
-                    <div className="flex-shrink-0 md:w-[480px]">
+                    <div className="flex-shrink-0 md:w-[600px]">
                         <div
                             className="relative overflow-hidden rounded-[20px] bg-[#f5f3ff] border border-[#ebe8ff] cursor-zoom-in group"
                             onClick={() => setLightboxOpen(true)}
@@ -341,7 +341,7 @@ export function ProductDetail({
                                 <button
                                     onClick={() => setThumbOffset((o) => Math.max(0, o - 1))}
                                     disabled={thumbOffset === 0}
-                                    className="w-7 h-7 flex-shrink-0 rounded-full border border-[#e0daf7] flex items-center justify-center hover:bg-[#f5f3ff] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                    className="w-7 h-7 flex-shrink-0 rounded-full  flex items-center justify-center hover:bg-[#f5f3ff] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6B5CE7" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                                 </button>
@@ -362,7 +362,7 @@ export function ProductDetail({
                                 <button
                                     onClick={() => setThumbOffset((o) => Math.min(maxThumbOffset, o + 1))}
                                     disabled={thumbOffset >= maxThumbOffset}
-                                    className="w-7 h-7 flex-shrink-0 rounded-full border border-[#e0daf7] flex items-center justify-center hover:bg-[#f5f3ff] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                    className="w-7 h-7 flex-shrink-0 rounded-full  flex items-center justify-center hover:bg-[#f5f3ff] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6B5CE7" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
                                 </button>
@@ -384,7 +384,7 @@ export function ProductDetail({
 
                     {/* 오른쪽: 상품 정보 */}
                     <div className="flex-1 min-w-0 max-w-[460px]">
-                        <Link href="/store" className="inline-block text-[13px] text-[#6B5CE7] hover:underline mb-2">
+                        <Link href={`/store/category/${product.category}`} className="inline-block text-[13px] text-[#6B5CE7] hover:underline mb-2">
                             {product.category}
                         </Link>
 
@@ -500,10 +500,10 @@ export function ProductDetail({
                         )}
 
                         <div className="flex gap-3">
-                            <button disabled={product.soldout} className="flex-1 h-[52px] rounded-[14px] bg-[#6B5CE7] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                            <button disabled={product.soldout} className="flex-1 h-[52px] rounded-[14px] bg-[#826CFF] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                                 {product.soldout ? "품절" : "구매하기"}
                             </button>
-                            <button disabled={product.soldout} className="h-[52px] px-5 rounded-[14px] border-2 border-[#6B5CE7] text-[#6B5CE7] text-[14px] font-bold hover:bg-[#f5f3ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+                            <button disabled={product.soldout} className="h-[52px] px-5 rounded-[14px] border-2 border-[#826CFF] text-[#6B5CE7] text-[14px] font-bold hover:bg-[#f5f3ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
                                     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />

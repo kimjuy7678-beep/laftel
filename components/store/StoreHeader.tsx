@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuthStore } from '@/store/useAuthStore'
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { StoreSearchModal } from "@/components/store/StoreSearch";
 
 const StoreMenuList = [
     { id: 1, title: "전체 굿즈", path: "/store/all" },
@@ -17,7 +17,6 @@ export default function StoreHeader() {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const router = useRouter();
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -31,27 +30,24 @@ export default function StoreHeader() {
 
     return (
         <header className="w-full py-[10px] bg-white px-[10px]">
-            <div className="w-full h-[55px] flex items-center justify-between bg-[#6B5CE7] rounded-full px-[28px]">
+            <StoreSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+            <div className="w-full h-[55px] flex  justify-between bg-[#826CFF] rounded-full px-[28px]">
 
-                <div className="flex items-center gap-[28px]">
+                <div className="flex items-center gap-[42px]">
                     {/* 로고 */}
-                    <div className="flex items-center gap-[6px]">
+                    <div className="flex items-center gap-[12px]">
                         <Link href="/" className="flex items-center gap-[12px]">
                             <img src="/images/stone.svg" alt="" className="h-7" />
                             <img src="/images/logo-white.svg" alt="logo" className="h-5 w-auto" />
                         </Link>
-                        <Link href="/store">
-                            <span className="text-white font-[100] text-[20px] tracking-wide leading-none">
+                        <Link href="/store" className="pt-[7px]">
+                            <span className="text-white/80 hover:text-white font-[300] text-[22px] tracking-wide leading-none ">
                                 Store
-                            </span></Link>
+                            </span>
+                        </Link>
                     </div>
 
-                    {/* 브레드크럼 */}
-                    <div className="flex items-center gap-[6px] text-white/50 text-[12px]">
-                        <span>애니플레이  |</span>
 
-                        <span className="text-white/80">굿즈살래!</span>
-                    </div>
 
                     {/* ── 네비게이션 (왼쪽으로 이동) ── */}
                     <nav>
