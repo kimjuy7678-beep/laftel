@@ -482,67 +482,21 @@ export default function Page() {
                                     <div className="absolute w-1.5 h-1.5 rounded-full bg-violet-300/40" style={{ bottom: -4, right: '20%' }} />
                                 </div>
                                 {/* 안쪽 싸이클 */}
-                                <div className="absolute rounded-full border border-violet-500/15"
+                                {/* <div className="absolute rounded-full border border-violet-500/15"
                                     style={{ width: 128, height: 128, animation: 'spinReverse 5s linear infinite' }}>
                                     <div className="absolute w-2 h-2 rounded-full bg-violet-300/50" style={{ top: -4, right: '25%' }} />
-                                </div>
+                                </div> */}
                                 {/* 뒤 남색 원 */}
                                 <div className="absolute rounded-full bg-[#1e1566]" style={{ width: 108, height: 108, top: 18, left: 8 }} />
                                 {/* 메인 원 */}
                                 <div className="relative rounded-full flex items-center justify-center font-black text-white text-3xl sm:text-4xl"
-                                    style={{ width: 112, height: 112, background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', boxShadow: '0 0 0 4px rgba(109,40,217,0.2), 0 12px 40px rgba(109,40,217,0.6)' }}>
+                                    style={{ width: 112, height: 112, background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', boxShadow: '0 0 0 4px rgba(109,40,217,0.2), 0 12px 40px rgba(21, 0, 78, 0.6)' }}>
                                     {todayLabel}
                                 </div>
                             </div>
 
                             {/* 명대사 — 오늘의 별자리 */}
-                            <div className="w-full flex flex-col items-center">
-                                <style>{`
-                                    @keyframes twinkleA { 0%,100%{opacity:0.95} 50%{opacity:0.3} }
-                                    @keyframes twinkleB { 0%,100%{opacity:0.85} 50%{opacity:0.25} }
-                                    @keyframes twinkleC { 0%,100%{opacity:0.75} 50%{opacity:0.2} }
-                                    @keyframes linePulse { 0%,100%{stroke-opacity:0.6} 50%{stroke-opacity:0.15} }
-                                    .sA{animation:twinkleA 2.4s ease-in-out infinite}
-                                    .sB{animation:twinkleB 1.9s ease-in-out infinite 0.5s}
-                                    .sC{animation:twinkleC 2.8s ease-in-out infinite 1.1s}
-                                    .sD{animation:twinkleA 2.1s ease-in-out infinite 0.3s}
-                                    .sE{animation:twinkleB 2.6s ease-in-out infinite 0.8s}
-                                    .sF{animation:twinkleC 1.8s ease-in-out infinite 1.4s}
-                                    .sG{animation:twinkleA 2.3s ease-in-out infinite 0.7s}
-                                    .sH{animation:twinkleB 2.5s ease-in-out infinite 1.2s}
-                                    .sI{animation:twinkleC 2.0s ease-in-out infinite 0.4s}
-                                    .cl{animation:linePulse 3s ease-in-out infinite}
-                                `}</style>
-                                <svg width="200" viewBox="0 0 160 175" xmlns="http://www.w3.org/2000/svg">
-                                    {[[12, 15], [148, 22], [143, 72], [18, 68], [102, 10], [46, 8], [155, 55], [8, 45]].map(([x, y], i) => (
-                                        <circle key={i} cx={x} cy={y} r="0.8" fill="rgba(167,139,250,0.28)" />
-                                    ))}
-                                    {constellation.lines.map(([a, b]: number[], i: number) => (
-                                        <line key={i} className="cl"
-                                            x1={constellation.stars[a].x} y1={constellation.stars[a].y}
-                                            x2={constellation.stars[b].x} y2={constellation.stars[b].y}
-                                            stroke="rgba(196,181,253,0.9)" strokeWidth="1.2" />
-                                    ))}
-                                    {constellation.stars.map((s: { x: number; y: number; r: number }, i: number) => (
-                                        <circle key={i} className={['sA', 'sB', 'sC', 'sD', 'sE', 'sF', 'sG', 'sH', 'sI'][i % 9]}
-                                            cx={s.x} cy={s.y} r={s.r}
-                                            fill={s.r >= 3 ? 'rgba(255,255,255,0.95)' : s.r >= 2.5 ? 'rgba(216,180,254,0.9)' : 'rgba(167,139,250,0.8)'} />
-                                    ))}
-                                    <text x="80" y="108" textAnchor="middle" fontFamily="sans-serif" fontSize="10" fill="rgba(167,139,250,0.5)" letterSpacing="2">
-                                        {constellation.label} {constellation.name}
-                                    </text>
-                                    <line x1="25" y1="116" x2="135" y2="116" stroke="rgba(139,92,246,0.15)" strokeWidth="0.5" />
-                                    <text x="80" y="133" textAnchor="middle" fontFamily="sans-serif" fontSize="10.5" fill="rgba(255,255,255,0.6)" fontStyle="italic">
-                                        {`"${quote.text.length > 14 ? quote.text.slice(0, 14) : quote.text}`}
-                                    </text>
-                                    <text x="80" y="148" textAnchor="middle" fontFamily="sans-serif" fontSize="10.5" fill="rgba(255,255,255,0.6)" fontStyle="italic">
-                                        {quote.text.length > 14 ? `${quote.text.slice(14, 26)}${quote.text.length > 26 ? '…"' : '"'}` : '"'}
-                                    </text>
-                                    <text x="80" y="166" textAnchor="middle" fontFamily="sans-serif" fontSize="9.5" fill="rgba(167,139,250,0.45)" letterSpacing="2">
-                                        {quote.from}
-                                    </text>
-                                </svg>
-                            </div>
+
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -583,82 +537,12 @@ export default function Page() {
                     <div className="border-t border-white/[0.04]" />
                 </div>
 
-                {/* ── 공지 배너 ─────────────────────────────── */}
-                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
-                    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-amber-400/20"
-                        style={{ background: 'rgba(251,191,36,0.05)' }}>
-                        <span className="text-amber-400/80 text-[13px] shrink-0">📢</span>
-                        <p className="text-[11px] sm:text-[12px] text-white/45 leading-relaxed">
-                            <span className="text-amber-400/70 font-semibold">〈이세계 사정은 사축 하기 나름〉 13화(OVA)</span>
-                            {' '}는 판권사 요청으로 인해{' '}
-                            <span className="text-white/60">2026년 5월 29일</span>
-                            {' '}재오픈될 예정입니다. 서비스 이용에 참고 바랍니다.
-                        </p>
-                    </div>
-                </div>
 
-                {/* ── 최근 업데이트 ─────────────────────────── */}
-                <section className="px-4 sm:px-6 lg:px-8 pt-8 pb-10 max-w-[1400px] mx-auto">
-                    <SectionTitle>최근 업데이트</SectionTitle>
-                    {recentLoading
-                        ? (
-                            <div className="flex gap-4">
-                                <div className="shrink-0 rounded-2xl" style={{ width: 280, aspectRatio: '1/1', background: 'linear-gradient(90deg,#1e1b4b 25%,#2e2a6b 50%,#1e1b4b 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite' }} />
-                                <div className="flex gap-3 overflow-hidden">
-                                    {Array.from({ length: 4 }).map((_, i) => <SkeletonSlide key={i} w={160} />)}
-                                </div>
-                            </div>
-                        )
-                        : recentList.length > 0 && (
-                            <div className="flex items-center gap-4">
-                                {/* 첫번째 카드 — 크게 고정 */}
-                                <Link href={`/anime/${recentList[0].id}`} className="shrink-0 cursor-pointer group block" style={{ width: 280 }}>
-                                    <div className="relative overflow-hidden rounded-2xl" style={{ aspectRatio: '1/1', background: '#1e1b4b' }}>
-                                        {recentList[0].backdrop_path
-                                            ? <img src={`${IMG}/w780${recentList[0].backdrop_path}`} alt={recentList[0].name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                            : recentList[0].poster_path
-                                                ? <img src={`${IMG}/w342${recentList[0].poster_path}`} alt={recentList[0].name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                                : null
-                                        }
-                                        <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }} />
-                                        <div className="absolute inset-0 opacity-30" style={{ background: 'radial-gradient(ellipse at 0% 100%, rgba(109,40,217,0.8) 0%, transparent 60%)' }} />
-                                        <span className={`absolute top-3 left-3 text-[9px] font-bold px-2.5 py-1 rounded-full tracking-widest uppercase z-10 ${recentList[0]._date === 'today' ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'}`}>
-                                            {recentList[0]._date === 'today' ? 'New Today' : 'Yesterday'}
-                                        </span>
-                                        <div className="absolute inset-0 flex flex-col justify-end p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-10"
-                                            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 55%, transparent 100%)' }}>
-                                            <p className="text-white font-bold text-[15px] leading-snug line-clamp-2 mb-1.5">{recentList[0].name}</p>
-                                            <div className="flex flex-wrap gap-1 mb-2">
-                                                {recentList[0].genre_ids.map(g => GENRE_MAP[g]).filter(Boolean).slice(0, 2).map(g => (
-                                                    <span key={g} className="text-[10px] text-white/50 border border-white/15 rounded-full px-2 py-0.5">{g}</span>
-                                                ))}
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-[11px] text-violet-300/70">매주 {todayLabel}요일</p>
-                                                {recentList[0].vote_average > 0 && <span className="text-[12px] font-semibold text-amber-400/90">★ {Math.round(recentList[0].vote_average * 10) / 10}</span>}
-                                            </div>
-                                        </div>
-                                        <div className="absolute bottom-3 left-3 right-3 z-10 group-hover:opacity-0 transition-opacity">
-                                            <p className="text-white font-semibold text-[13px] leading-snug line-clamp-1">{recentList[0].name}</p>
-                                        </div>
-                                    </div>
-                                </Link>
 
-                                {/* 나머지 카드 — 가로 스크롤 */}
-                                <div className="relative flex-1 min-w-0 px-6">
-                                    <ul className="flex items-center gap-3 overflow-x-auto hide-scroll pb-1">
-                                        {recentList.slice(1, 20).map(ani => (
-                                            <RecentCard key={`${ani.id}-${ani._date}`} ani={ani} dayLabel={todayLabel} featured={false} />
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        )
-                    }
-                </section>
+
 
                 {/* ── 요일 탭 + 그리드 ──────────────────────── */}
-                <div style={{ background: 'linear-gradient(160deg, #1a0533 0%, #2d0f5e 30%, #1e0a4a 60%, #120728 100%)' }}>
+                <div style={{ background: 'linear-gradient(160deg, #05010a 0%, #160b29 30%, #040307 90%, #120c1f 80%)' }}>
 
                     {/* 인기 배너 */}
                     {popularAni && (
