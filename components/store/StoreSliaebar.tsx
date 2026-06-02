@@ -6,23 +6,23 @@ import Link from "next/link";
 const STORE_MENU = [
     { label: "전체 굿즈", path: "/store/all", icon: "/store/ham/all.png" },
     { label: "신규 입고", path: "/store/new", icon: "/store/ham/star.png" },
-    { label: "인기 상품", path: "/store/best", icon: "/store/ham/lyra-icon-endocrine.png" },
+    { label: "예약 굿즈", path: "/store/reserve", icon: "/store/ham/lyra-icon-endocrine.png" },
 ];
 
 const CATEGORY_MENU = [
-    { label: "아크릴 스탠드", path: "/store/all?category=acrylic", icon: "/store/ham/lyra-icon-box3838.png" },
-    { label: "클리어 파일", path: "/store/all?category=clearfile", icon: "/store/ham/lyra-icon-file-line.png" },
-    { label: "뱃지·핀", path: "/store/all?category=badge", icon: "/store/ham/lyra-icon-face-id-02.png" },
-    { label: "포스터", path: "/store/all?category=poster", icon: "/store/ham/lyra-icon-letter.png" },
-    { label: "스티커·엽서", path: "/store/all?category=sticker", icon: "/store/ham/lyra-icon-magic-line.png" },
-    { label: "키링", path: "/store/all?category=keyring", icon: "/store/ham/lyra-icon-star-circle.png" },
+    { label: "아크릴 스탠드", path: "/store/category/acrylic", icon: "/store/ham/lyra-icon-box3838.png" },
+    { label: "클리어 파일", path: "/store/category/clearfile", icon: "/store/ham/lyra-icon-file-line.png" },
+    { label: "뱃지·핀", path: "/store/category/badge", icon: "/store/ham/lyra-icon-face-id-02.png" },
+    { label: "포스터", path: "/store/category/poster", icon: "/store/ham/lyra-icon-letter.png" },
+    { label: "스티커·엽서", path: "/store/category/sticker", icon: "/store/ham/lyra-icon-magic-line.png" },
+    { label: "키링", path: "/store/category/keyring", icon: "/store/ham/lyra-icon-star-circle.png" },
 ];
 
 const RECENT_SERIES = [
-    { label: "사카모토 데이즈", series: "사카모토 데이즈", badge: "NEW", badgeColor: "#7865ff", badgeText: "white", dot: "#ff4d6d" },
-    { label: "주술회전", series: "주술회전", badge: "+2", badgeColor: "#e8e4f8", badgeText: "#6b64a0", dot: "#7865ff" },
-    { label: "귀멸의 칼날", series: "귀멸의 칼날", badge: "NEW", badgeColor: "#7865ff", badgeText: "white", dot: "#22c55e" },
-    { label: "나의 히어로 아카데미아", series: "나의 히어로 아카데미아", badge: "+1", badgeColor: "#e8e4f8", badgeText: "#6b64a0", dot: "#f59e0b" },
+    { label: "귀멸의 칼날", series: "귀멸의 칼날", badge: "NEW", badgeColor: "#7865ff", badgeText: "white", dot: "#ff4d6d", img: "/store/ham/ghost.png" },
+    { label: "나의 히어로 아카데미아", series: "나의 히어로 아카데미아", badge: "+1", badgeColor: "#e8e4f8", badgeText: "#6b64a0", dot: "#f59e0b", img: "/store/ham/hero.png" },
+    { label: "사카모토 데이즈", series: "사카모토 데이즈", badge: "NEW", badgeColor: "#7865ff", badgeText: "white", dot: "#22c55e", img: "/store/ham/sakamoto.png" },
+    { label: "주술회전", series: "주술회전", badge: "+2", badgeColor: "#e8e4f8", badgeText: "#6b64a0", dot: "#7865ff", img: "/store/ham/jusule.png" },
 ];
 
 export default function StoreSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -99,7 +99,9 @@ export default function StoreSidebar({ open, onClose }: { open: boolean; onClose
                     {RECENT_SERIES.map((s) => (
                         <Link key={s.label} href={`/store/series?series=${encodeURIComponent(s.series)}`} onClick={onClose}
                             className="flex items-center gap-2.5 rounded-[10px] px-2 py-2 transition hover:bg-[#f8f6ff]">
-                            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-[6px] bg-[#e8e4f8]" />
+                            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[6px] bg-[#e8e4f8]">
+                                <img src={s.img} alt={s.label} className="h-full w-full object-cover" />
+                            </div>
                             <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: s.dot }} />
                             <span className="flex-1 truncate text-[12px] text-[#3d3755]">{s.label}</span>
                             <span className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold"

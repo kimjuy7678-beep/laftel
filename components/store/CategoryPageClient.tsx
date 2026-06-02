@@ -1,4 +1,4 @@
-// app/store/best/page.tsx
+// components/store/CategoryPageClient.tsx
 "use client";
 
 import { useState } from "react";
@@ -8,11 +8,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 import StoreSidebar from "@/components/store/StoreSliaebar";
 
-const ALL_PRODUCTS = (products as StoreProduct[]).filter(p => !p.title.includes("[예약]"));
-
-// 품절 제외 앞에서 48개 → BEST
-const BEST_PRODUCTS = ALL_PRODUCTS.filter(p => !p.soldout).slice(0, 48);
-
+const ALL_PRODUCTS = products as StoreProduct[];
 const ITEMS_PER_PAGE = 16;
 const PAGE_GROUP = 5;
 
@@ -25,7 +21,11 @@ const COLOR_OPTIONS = [
     { label: "빨강", value: "red", hex: "#FF2D55" },
 ];
 
-function parsePrice(s: string) { return parseInt(s.replace(/[^0-9]/g, ""), 10) || 0; }
+function parsePrice(priceStr: string): number {
+    const num = parseInt(priceStr.replace(/[^0-9]/g, ""), 10);
+    return isNaN(num) ? 0 : num;
+}
+
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
 }
@@ -105,9 +105,14 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
     );
 }
 
-const RANK_EMOJI = ["🥇", "🥈", "🥉"];
+type CategoryPageProps = {
+    title: string;
+    keywords: string[];
+    desc?: string;
+};
 
-export default function BestPage() {
+export default function CategoryPageClient({ title, keywords, desc }: CategoryPageProps) {
+    const { user } = useAuthStore();
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState("인기순");
@@ -116,10 +121,14 @@ export default function BestPage() {
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 300000]);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
-    const filtered = BEST_PRODUCTS.filter((p) => {
+    const CATEGORY_PRODUCTS = ALL_PRODUCTS.filter(p =>
+        keywords.some(kw => p.title.toLowerCase().includes(kw.toLowerCase()))
+    );
+
+    const filtered = CATEGORY_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
         const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
-        const matchPrice = price >= priceRange[0] && price <= priceRange[1];
+        const matchPrice = p.soldout || (price >= priceRange[0] && price <= priceRange[1]);
         const matchColor = !selectedColor || p.title.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "");
         return matchSearch && matchPrice && matchColor;
     });
@@ -132,7 +141,6 @@ export default function BestPage() {
 
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-    const globalOffset = (page - 1) * ITEMS_PER_PAGE;
 
     const handleReset = () => { setPriceRange([0, 300000]); setSelectedColor(null); };
     const activeFilterCount = [priceRange[0] > 0 || priceRange[1] < 300000, selectedColor !== null].filter(Boolean).length;
@@ -155,21 +163,19 @@ export default function BestPage() {
                 </Inner>
             </div>
 
-            {/* 헤더 */}
             <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
                 <Inner>
                     <p className="mb-4 text-[12px] text-[#9b94b2]">
                         <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
                         <span className="mx-1.5">›</span>
-                        <span className="font-medium text-[#7865ff]">BEST</span>
+                        <Link href="/store/all" className="hover:text-[#7865ff]">전체굿즈</Link>
+                        <span className="mx-1.5">›</span>
+                        <span className="font-medium text-[#7865ff]">{title}</span>
                     </p>
                     <div className="flex items-end justify-between">
                         <div>
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-[32px] font-bold text-[#16121f]">BEST 굿즈</h1>
-                                <span className="rounded-full bg-[#7865ff] px-3 py-1 text-[12px] font-bold text-white">TOP {BEST_PRODUCTS.length}</span>
-                            </div>
-                            <p className="mt-1 text-[14px] text-[#9b94b2]">가장 많이 사랑받는 인기 굿즈 모음이에요.</p>
+                            <h1 className="text-[32px] font-bold text-[#16121f]">{title}</h1>
+                            {desc && <p className="mt-1 text-[14px] text-[#9b94b2]">{desc}</p>}
                         </div>
                         <div className="flex h-[44px] w-[340px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)]">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]">
@@ -188,66 +194,6 @@ export default function BestPage() {
                 </Inner>
             </div>
 
-
-            {/* TOP 3 하이라이트 */}
-            {page === 1 && search === "" && activeFilterCount === 0 && (
-                <Inner className="mt-8">
-                    <div className="flex gap-4">
-                        {[1, 0, 2].map((i) => {
-                            const p = BEST_PRODUCTS[i];
-                            const isFirst = i === 0;
-                            const medals = [
-                                { emoji: "🥇", color: "#FFB800", bg: "#FFF8E1", label: "1st", shadow: "rgba(255,184,0,0.3)" },
-                                { emoji: "🥈", color: "#9EA7B3", bg: "#F5F6F8", label: "2nd", shadow: "rgba(158,167,179,0.3)" },
-                                { emoji: "🥉", color: "#C87D4A", bg: "#FDF3EC", label: "3rd", shadow: "rgba(200,125,74,0.3)" },
-                            ];
-                            const medal = medals[i];
-                            return (
-                                <Link key={p.productId} href={`/store/${p.productId}`}
-                                    className={`group relative flex-1 overflow-hidden rounded-[20px] border transition-all duration-300 ${isFirst
-                                        ? "border-[#7865ff]/30 shadow-[0_8px_32px_rgba(120,101,255,0.12)] hover:border-[#7865ff] hover:shadow-[0_12px_40px_rgba(120,101,255,0.25)] hover:scale-[1.01]"
-                                        : "border-[#e2ddf5] hover:border-[#7865ff]/50 hover:shadow-[0_8px_24px_rgba(120,101,255,0.15)] hover:scale-[1.01]"} bg-white`}>
-
-                                    {/* 상단 배너 */}
-                                    <div className={`flex items-center gap-4 px-5 py-4 ${isFirst ? "bg-[#f0eeff]" : "bg-[#f8f7fc]"}`}>
-                                        {/* 메달 */}
-                                        <div className="flex flex-col items-center justify-center rounded-[14px] px-3 py-2.5 shrink-0"
-                                            style={{ backgroundColor: medal.bg, boxShadow: `0 4px 12px ${medal.shadow}` }}>
-                                            <span className="text-[28px] leading-none">{medal.emoji}</span>
-                                            <span className="mt-1 text-[11px] font-black tracking-widest" style={{ color: medal.color }}>{medal.label}</span>
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-[11px] text-[#9b94b2]">{p.category}</p>
-                                            <p className={`mt-0.5 font-bold text-[#16121f] line-clamp-2 ${isFirst ? "text-[15px]" : "text-[13px]"}`}>{p.title}</p>
-                                            <p className={`mt-1 font-extrabold ${isFirst ? "text-[17px] text-[#7865ff]" : "text-[14px] text-[#7865ff]"}`}>{p.price}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* 이미지 */}
-                                    <div className={`overflow-hidden bg-[#f3f1ff] ${isFirst ? "aspect-[3/2]" : "aspect-[4/3]"}`}>
-                                        {p.thumbnail && (
-                                            <img
-                                                src={p.thumbnail}
-                                                alt={p.title}
-                                                className="h-full w-full object-cover transition-opacity duration-300"
-                                                onMouseEnter={(e) => {
-                                                    const next = (p as any).detailImages?.[1];
-                                                    if (next) (e.target as HTMLImageElement).src = next;
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    (e.target as HTMLImageElement).src = p.thumbnail;
-                                                }}
-                                            />
-                                        )}
-                                    </div>
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </Inner>
-            )}
-
-            {/* 정렬 */}
             <Inner className="mt-8">
                 <div className="flex items-center justify-between">
                     <p className="text-[14px] text-[#6b647a]">총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품</p>
@@ -274,7 +220,6 @@ export default function BestPage() {
                 </div>
             </Inner>
 
-            {/* 상품 그리드 — 순위 배지 포함 */}
             <Inner className="mt-6">
                 {paginated.length === 0 ? (
                     <div className="flex h-[300px] flex-col items-center justify-center gap-3 text-[15px] text-[#9b94b2]">
@@ -288,19 +233,9 @@ export default function BestPage() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-4 gap-x-6 gap-y-10">
-                        {paginated.map((product, idx) => {
-                            const rank = globalOffset + idx + 1;
-                            return (
-                                <div key={product.productId} className="relative">
-                                    {rank <= 48 && (
-                                        <div className={`absolute left-2 top-2 z-10 flex h-6 min-w-[24px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white shadow ${rank <= 3 ? "bg-[#7865ff]" : "bg-[#b0aabb]"}`}>
-                                            {rank}
-                                        </div>
-                                    )}
-                                    <StoreProductCard product={product} />
-                                </div>
-                            );
-                        })}
+                        {paginated.map((product) => (
+                            <StoreProductCard key={product.productId} product={product} />
+                        ))}
                     </div>
                 )}
                 {totalPages > 1 && <Pagination current={page} total={totalPages} onChange={setPage} />}
