@@ -121,19 +121,38 @@ function SeriesTab({ selected, onSelect }: { selected: string; onSelect: (s: str
     };
     const onMouseUp = () => setIsDragging(false);
 
+    const scrollBy = (dir: "left" | "right") => {
+        scrollRef.current?.scrollBy({ left: dir === "left" ? -300 : 300, behavior: "smooth" });
+    };
+
     return (
-        <div ref={scrollRef}
-            className="flex items-center gap-1 overflow-x-auto pb-1 cursor-grab active:cursor-grabbing select-none"
-            style={{ scrollbarWidth: "none" }}
-            onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
-            {SERIES_LIST.map((s) => (
-                <button key={s} onClick={() => onSelect(s)}
-                    className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold transition ${selected === s
-                        ? "bg-[#7865ff] text-white shadow-[0_2px_8px_rgba(120,101,255,0.3)]"
-                        : "bg-white text-[#6b647a] border border-[#e2ddf5] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
-                    {s}
-                </button>
-            ))}
+        <div className="relative flex items-center gap-2">
+            {/* 왼쪽 화살표 */}
+            <button onClick={() => scrollBy("left")}
+                className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-[#e2ddf5] bg-white text-[#7865ff] shadow-sm transition hover:bg-[#f0eeff]">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
+
+            {/* 탭 스크롤 영역 */}
+            <div ref={scrollRef}
+                className="flex flex-1 items-center gap-1 overflow-x-auto pb-1 cursor-grab active:cursor-grabbing select-none"
+                style={{ scrollbarWidth: "none" }}
+                onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
+                {SERIES_LIST.map((s) => (
+                    <button key={s} onClick={() => onSelect(s)}
+                        className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold transition ${selected === s
+                            ? "bg-[#7865ff] text-white shadow-[0_2px_8px_rgba(120,101,255,0.3)]"
+                            : "bg-white text-[#6b647a] border border-[#e2ddf5] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
+                        {s}
+                    </button>
+                ))}
+            </div>
+
+            {/* 오른쪽 화살표 */}
+            <button onClick={() => scrollBy("right")}
+                className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-[#e2ddf5] bg-white text-[#7865ff] shadow-sm transition hover:bg-[#f0eeff]">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
         </div>
     );
 }
