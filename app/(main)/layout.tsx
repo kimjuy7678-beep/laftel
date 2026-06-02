@@ -8,6 +8,11 @@ import { usePathname } from 'next/navigation'
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import QuickMenu from "@/components/QuickMenu";
+import ScheduleMarquee from "@/components/ScheduleMarquee";
+import AnimePreviewModal from "@/components/anime/AnimePreviewModal";
 
     return (
         <>

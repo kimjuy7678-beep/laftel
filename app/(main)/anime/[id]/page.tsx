@@ -1,113 +1,34 @@
 'use client'
-import OstSectionDetail from '@/components/anime/OstSectionDetail'
-import SeasonSelect from '@/components/anime/SeasonSelect'
-import { useAniStore } from '@/store/useAniStore'
-import { useWatchProgressStore } from '@/store/useWatchProgressStore'
-import { useAuthStore } from '@/store/useAuthStore'
-
-import { useEffect, useState, useCallback } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import Button from '@/components/Button'
-import VideoPlayer from '@/components/VideoPlayer'
-
-const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
-const IMG = 'https://image.tmdb.org/t/p'
-
-const GENRE_MAP: Record<number, string> = {
-    16: '애니메이션', 10759: '액션·어드벤처', 35: '코미디', 18: '드라마',
-    14: '판타지', 10765: 'SF', 9648: '미스터리', 27: '공포',
-    10751: '가족', 10762: '어린이', 10749: '로맨스', 80: '범죄',
-    53: '스릴러', 99: '다큐멘터리',
-}
+import { useState, useEffect } from "react"
+import { useAnimeDetail, IMG, GENRE_MAP } from "./useAnimeDetail"
+import { useEpisodes } from "./useEpisodes"
+import SimilarPreviewModal from "./SimilarPreviewModal"
+import OstSectionDetail from "@/components/anime/OstSectionDetail"
+import SeasonSelect from "@/components/anime/SeasonSelect"
+import Button from "@/components/Button"
+import VideoPlayer from "@/components/VideoPlayer"
 
 export default function AnimeDetailPage() {
-    const { id } = useParams()
-    const router = useRouter()
-    const numericId = Number(id)
-    const searchParams = useSearchParams()
+    const {
+        id, numericId, router,
+        detail, credits, similar, loading,
+        liked, setLiked,
+        activeTab, setActiveTab,
+        modalOpen, setModalOpen,
+        videoLoading, videoInfo,
+        openPlayer,
+    } = useAnimeDetail()
 
-    // ✅ 컴포넌트 안으로 이동
-    const { saveProgress } = useWatchProgressStore()
-    const { user } = useAuthStore()
+    const {
+        seasonList, selectedSeason, setSelectedSeason,
+        episodes, episodeLoading, initSeasons,
+    } = useEpisodes(id as string, activeTab)
 
-    const onFetchVideo = useAniStore(state => state.onFetchVideo)
-    const videoInfo = useAniStore(state => state.aniVideos[numericId])
-
-    const [detail, setDetail] = useState<any>(null)
-    const [credits, setCredits] = useState<any[]>([])
-    const [similar, setSimilar] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [liked, setLiked] = useState(false)
-    const [activeTab, setActiveTab] = useState<'info' | 'cast' | 'similar' | 'seasons'>('seasons')
-
-    const [seasonList, setSeasonList] = useState<any[]>([])
-    const [selectedSeason, setSelectedSeason] = useState<number>(1)
-    const [episodes, setEpisodes] = useState<any[]>([])
-    const [episodeLoading, setEpisodeLoading] = useState(false)
-    const [episodeCache, setEpisodeCache] = useState<Record<number, any[]>>({})
-
-    const [modalOpen, setModalOpen] = useState(false)
-    const [videoLoading, setVideoLoading] = useState(false)
+    const [previewItem, setPreviewItem] = useState<any>(null)
+    const [currentEpisode, setCurrentEpisode] = useState<any>(null)
 
     useEffect(() => {
-        if (!id) return
-        setLoading(true)
-        Promise.all([
-            fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${TMDB_KEY}&language=ko-KR`).then(r => r.json()),
-            fetch(`https://api.themoviedb.org/3/tv/${id}/aggregate_credits?api_key=${TMDB_KEY}&language=ko-KR`).then(r => r.json()),
-            fetch(`https://api.themoviedb.org/3/tv/${id}/similar?api_key=${TMDB_KEY}&language=ko-KR`).then(r => r.json()),
-        ]).then(([det, cred, sim]) => {
-            setDetail(det)
-            setCredits((cred.cast || []).slice(0, 20))
-            setSimilar((sim.results || []).slice(0, 12))
-
-            const validSeasons = (det.seasons || []).filter((s: any) => s.season_number > 0)
-            setSeasonList(validSeasons)
-            if (validSeasons.length > 0) setSelectedSeason(validSeasons[0].season_number)
-        }).finally(() => setLoading(false))
-    }, [id])
-
-    useEffect(() => {
-        if (activeTab !== 'seasons' || !id || !selectedSeason) return
-        if (episodeCache[selectedSeason]) {
-            setEpisodes(episodeCache[selectedSeason])
-            return
-        }
-        setEpisodeLoading(true)
-        fetch(`https://api.themoviedb.org/3/tv/${id}/season/${selectedSeason}?api_key=${TMDB_KEY}&language=ko-KR`)
-            .then(r => r.json())
-            .then(data => {
-                const eps = data.episodes || []
-                setEpisodes(eps)
-                setEpisodeCache(prev => ({ ...prev, [selectedSeason]: eps }))
-            })
-            .finally(() => setEpisodeLoading(false))
-    }, [activeTab, selectedSeason, id])
-
-    const openPlayer = useCallback(async () => {
-        if (!detail) return
-        setModalOpen(true)
-
-        if (useAniStore.getState().aniVideos[numericId]) return
-
-        setVideoLoading(true)
-        await onFetchVideo(numericId, detail.original_name || detail.name)
-        setVideoLoading(false)
-    }, [detail, numericId, onFetchVideo])
-
-    useEffect(() => {
-        const handler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setModalOpen(false)
-        }
-        window.addEventListener('keydown', handler)
-        return () => window.removeEventListener('keydown', handler)
-    }, [setModalOpen])
-
-    useEffect(() => {
-        if (!detail) return
-        if (searchParams.get('play') === '1') {
-            openPlayer()
-        }
+        if (detail) initSeasons(detail)
     }, [detail])
 
     if (loading) return (
@@ -144,14 +65,15 @@ export default function AnimeDetailPage() {
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white pt-14">
+            <SimilarPreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
 
             {modalOpen && (
                 <div
-                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+                    className="fixed inset-0 z-[2100] bg-black"
                     onClick={() => setModalOpen(false)}
                 >
                     <div
-                        className="relative w-full max-w-5xl mx-4"
+                        className="relative w-full h-full"
                         onClick={e => e.stopPropagation()}
                     >
                         <button
@@ -171,7 +93,15 @@ export default function AnimeDetailPage() {
                                     <p className="text-white/30 text-sm">영상 불러오는 중...</p>
                                 </div>
                             ) : videoInfo ? (
-                                <VideoPlayer id={numericId} mode="modal" />
+                                <VideoPlayer
+                                    id={numericId}
+                                    mode="modal"
+                                    title={detail.name}
+                                    episodeNumber={currentEpisode?.episode_number || 1}
+                                    episodeTitle={currentEpisode?.name || episodes[0]?.name || ''}
+                                    onNext={() => setModalOpen(false)}
+                                    onClose={() => { setModalOpen(false); document.body.style.overflow = '' }}
+                                />
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center gap-3">
                                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5">
@@ -352,7 +282,7 @@ export default function AnimeDetailPage() {
                         {similar.length === 0 ? (
                             <p className="text-white/25 text-sm">비슷한 작품이 없어요</p>
                         ) : similar.map((item: any) => (
-                            <div key={item.id} className="cursor-pointer group" onClick={() => router.push(`/anime/${item.id}`)}>
+                            <div key={item.id} className="cursor-pointer group" onClick={() => setPreviewItem(item)}>
                                 <div className="w-full aspect-[2/3] rounded-lg overflow-hidden bg-[#181818] mb-2 transition-transform duration-300 group-hover:scale-[1.03]">
                                     {item.poster_path
                                         ? <img src={`${IMG}/w342${item.poster_path}`} alt={item.name} loading="lazy" className="w-full h-full object-cover" />
@@ -392,7 +322,7 @@ export default function AnimeDetailPage() {
                                             <div
                                                 key={ep.episode_number}
                                                 className="flex gap-4 items-start bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 transition-all hover:bg-[#6c63ff]/[0.07] hover:border-[#6c63ff]/20 cursor-pointer group"
-                                                onClick={openPlayer}
+                                                onClick={() => { setCurrentEpisode(ep); openPlayer() }}
                                             >
                                                 <div className="relative w-[140px] min-w-[140px] aspect-video rounded-lg overflow-hidden bg-[#1a1a1a] shrink-0">
                                                     {ep.still_path
@@ -426,6 +356,6 @@ export default function AnimeDetailPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     )
 }
