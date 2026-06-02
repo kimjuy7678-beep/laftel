@@ -52,11 +52,40 @@ export type ProductCategory =
     | "스티커·엽서"
     | "키링";
 
+export interface StoreMainProduct {
+    id: string;
+    title: string;
+    series?: string;
+    category?: string;
+    price: string;
+    imageSrc: string;
+    badge?: string;
+}
+
+export interface StoreMainSourceProduct {
+    productId: string;
+    category: string;
+    title: string;
+    price: string;
+    thumbnail: string;
+    soldout: boolean;
+}
+
+export interface StoreCategory {
+    name: string;
+    slug: string;
+    imageSrc: string;
+}
+
+export const RECENT_STORE_PRODUCT_IDS_KEY = "laftel:store:recent-product-ids";
+
+
+
 import { AniItem, AniVideo, AniDetail, AniSeasonDetail } from "@/types/animation";
 
 export interface AniStoreExtra {
-    detailModalItem: any | null
-    onOpenDetailModal: (item: any) => void
+    detailModalItem: unknown | null
+    onOpenDetailModal: (item: unknown) => void
     onCloseDetailModal: () => void
 }
 
@@ -67,8 +96,9 @@ export interface AniStore {
     aniSeasons: Record<string, AniSeasonDetail>;
     contentRatings: Record<number, string>;      // 추가
 
-    detailModalItem: any | null;
-    onOpenDetailModal: (item: any) => void;
+    // 디테일 모달용 state 추가
+    detailModalItem: unknown | null;
+    onOpenDetailModal: (item: unknown) => void;
     onCloseDetailModal: () => void;
 
     onFetchAni: () => Promise<void>;

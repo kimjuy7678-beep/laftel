@@ -8,18 +8,8 @@ import { doc, setDoc, getDoc, arrayUnion, arrayRemove } from "firebase/firestore
 import { db } from "@/firebase/firebase";
 import { toast } from 'sonner'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
-type StoreProduct = {
-    productId: string;
-    category: string;
-    title: string;
-    price: string;
-    thumbnail: string;
-    soldout: boolean;
-};
-import StoreSidebar from "@/components/store/StoreSidebar"
-import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
+
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

@@ -13,7 +13,6 @@ const todayIdx = today === 0 ? 6 : today - 1
 export default function DayNewSection() {
     const { onFetchAni, contentRatings } = useAniStore()
     const { setPreviewId } = usePreviewStore()
-    const { aniList, onFetchAni } = useAniStore()
     const router = useRouter()
     const [activeDay, setActiveDay] = useState(todayIdx)
     const aniList = useFilteredAniList()
@@ -47,10 +46,10 @@ export default function DayNewSection() {
                         const age = ratingStr === 'ALL' ? 0 : Number(ratingStr)
                         const ageClass =
                             age === 19 ? styles.age19 :
-                            age === 15 ? styles.age15 :
-                            age === 12 ? styles.age12 :
-                            age === 7 ? styles.age7 :
-                            styles.ageAll
+                                age === 15 ? styles.age15 :
+                                    age === 12 ? styles.age12 :
+                                        age === 7 ? styles.age7 :
+                                            styles.ageAll
                         const ageLabel = ratingStr === 'ALL' ? 'ALL' : `${ratingStr}`
                         const isExclusive = idx % 3 === 0
                         const isUp = idx % 2 === 0
