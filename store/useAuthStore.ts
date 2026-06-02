@@ -11,6 +11,7 @@ interface User {
     uid: string | null
     membership?: 'none' | 'anime' | 'ost' | 'allinone'
     points?: number
+    ageLimit?: string  // 추가
 }
 
 export interface AvatarConfig {
@@ -75,6 +76,7 @@ export const useAuthStore = create<AuthStore>()(
                         points: data?.points || 0,
                         name: data?.nickname || displayName,
                         photoURL: data?.avatarUrl || photoURL,
+                        ageLimit: data?.ageLimit || '19',  // 추가
                     }
                 })
             },

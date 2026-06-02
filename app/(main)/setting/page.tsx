@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { auth, db } from '@/firebase/firebase'
 import { signOut } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { toast } from 'sonner'
 
 export default function Setting() {
     const { user, onLogout } = useAuthStore()
@@ -48,7 +49,9 @@ export default function Setting() {
             await onLogout()
             router.push('/')
         } catch (err: any) {
-            if (err.code === 'auth/requires-recent-login') alert('보안을 위해 다시 로그인 후 시도해주세요.')
+            if (err.code === 'auth/requires-recent-login') toast.error('재로그인 필요 🔐', {
+                description: '보안을 위해 다시 로그인 후 시도해주세요.',
+            })
         }
     }
 

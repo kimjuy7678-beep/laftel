@@ -6,6 +6,7 @@ import { db } from '@/firebase/firebase'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAniStore } from '@/store/useAniStore'
 import { CreatePartyInput } from '@/types/party'
+import { toast } from 'sonner'
 
 export default function CreatePartyPage() {
     const router = useRouter()
@@ -35,19 +36,27 @@ export default function CreatePartyPage() {
 
     const handleSubmit = async () => {
         if (!user) {
-            alert('로그인이 필요해요')
+            toast.error('로그인이 필요해요 🔐', {
+                description: '파티 개설은 로그인 후에 가능해요.',
+            })
             return
         }
         if (!selectedAnime) {
-            alert('애니를 선택해주세요')
+            toast.error('애니를 먼저 골라요 🎌', {
+                description: '어떤 애니 같이 볼지 선택해주세요.',
+            })
             return
         }
         if (!title.trim()) {
-            alert('방 제목을 입력해주세요')
+            toast.error('방 제목이 없어요 📝', {
+                description: '파티방 이름을 입력해줘야 해요.',
+            })
             return
         }
         if (!scheduledAt) {
-            alert('시작 시간을 설정해주세요')
+            toast.error('시작 시간을 설정해주세요 ⏰', {
+                description: '언제 시작할지 알아야 파티원들이 모이죠!',
+            })
             return
         }
 
@@ -81,7 +90,9 @@ export default function CreatePartyPage() {
 
         } catch (err) {
             console.error(err)
-            alert('파티 개설에 실패했어요')
+            toast.error('파티 개설 실패 😢', {
+                description: '서버에 문제가 생겼어요. 잠깐 후 다시 시도해봐요.',
+            })
         } finally {
             setIsSubmitting(false)
         }
@@ -197,11 +208,10 @@ export default function CreatePartyPage() {
                                 <button
                                     key={n}
                                     onClick={() => setMaxAttendees(n)}
-                                    className={`flex-1 py-3 rounded-xl text-sm font-medium border transition-colors ${
-                                        maxAttendees === n
-                                            ? 'bg-white text-black border-white'
-                                            : 'bg-white/5 text-white/60 border-white/10 hover:border-white/30'
-                                    }`}
+                                    className={`flex-1 py-3 rounded-xl text-sm font-medium border transition-colors ${maxAttendees === n
+                                        ? 'bg-white text-black border-white'
+                                        : 'bg-white/5 text-white/60 border-white/10 hover:border-white/30'
+                                        }`}
                                 >
                                     {n}명
                                 </button>

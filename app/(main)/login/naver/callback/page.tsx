@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { auth, db } from '@/firebase/firebase'
 import { signInWithCustomToken } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { toast } from 'sonner'
 
 export default function NaverCallbackPage() {
     const router = useRouter()
@@ -17,7 +18,9 @@ export default function NaverCallbackPage() {
         const savedState = sessionStorage.getItem('naver_state')
 
         if (!code || state !== savedState) {
-            alert('로그인에 실패했어요. 다시 시도해주세요.')
+            toast.error('로그인 실패 😓', {
+                description: '인증 정보가 맞지 않아요. 다시 시도해봐요.',
+            })
             router.push('/login')
             return
         }
@@ -63,7 +66,9 @@ export default function NaverCallbackPage() {
                 }
             } catch (err) {
                 console.error('네이버 로그인 실패:', err)
-                alert('네이버 로그인에 실패했어요.')
+                toast.error('네이버 로그인 실패 😓', {
+                    description: '네이버 계정 연결에 문제가 생겼어요. 다시 시도해봐요.',
+                })
                 router.push('/login')
             }
         }

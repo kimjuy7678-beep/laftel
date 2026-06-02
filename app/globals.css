@@ -72,3 +72,26 @@ html.dark body {
   max-width: 1770px;
   margin: 0 auto;
 }
+
+/* 팝업 스크롤바 */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+
+  [data-sonner-toast] [data-description] {
+    color: rgba(255, 255, 255, 0.75) !important;
+    opacity: 1 !important;
+  }
+}
