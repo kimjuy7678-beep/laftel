@@ -15,12 +15,11 @@ const PAGE_GROUP = 5;
 const SERIES_LIST = ["전체", ...Array.from(new Set(STORE_PRODUCTS.map((p) => p.category)))];
 
 const HERO_SLIDES = [
-    { series: "하이큐", tag: "NEW ARRIVAL", title: "하이큐!!", desc: "배구에 매료되어 중학생 시절 최초이자 마지막 공식전에 출전한 히나타 쇼요\n하지만 '코트 위의 제왕'이라는 별명을 가진 천재 선수 카게야마에게 처참히 패하고 만다.", bg: "#f5a623", image: "/store/product_list/HIQUU.png", textColor: "#fff", tagColor: "#7865ff", btnBorder: "#7865ff" },
-    { series: "용한 소녀", tag: "FEATURED", title: "용한 소녀", desc: "정략결혼을 피해 용궁에서 지상으로 도망친 용왕의 딸 김용만\n성공을 목표로 전교 1등의 꿈을 품고 고등학교에 입학한다.", bg: "#b8e4f0", image: "/store/product_list/GIRL.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff" },
-    { series: "장송의 프리렌", tag: "POPULAR", title: "장송의 프리렌", desc: "엘프 마법사 프리렌의 여정\n공식 굿즈 모음", bg: "#c8a87a", image: "/store/product_list/PRIREN.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff" },
-    { series: "마루는 강쥐", tag: "FEATURED", title: "마루는 강쥐", desc: "우리 집 강아지 마루가 사람이 되었다, 그것도 5살 아이로!!\n마루야~! 또 어디가!!! 유쾌한 이웃들과 우당탕탕 즐거운 마루의 나날들", bg: "#c8e6a0", image: "/store/product_list/MARU.png", textColor: "#16121f", tagColor: "#7865ff", btnBorder: "#7865ff" },
+    { series: "하이큐", tag: "NEW ARRIVAL", title: "하이큐!!", desc: "배구에 매료되어 중학생 시절 최초이자 마지막 공식전에 출전한 히나타 쇼요\n하지만 '코트 위의 제왕'이라는 별명을 가진 천재 선수 카게야마에게 처참히 패하고 만다.", bg: "#f5a623", image: "/store/product_list/haikyuu.png", textColor: "#fff", tagColor: "#7865ff", btnBorder: "#7865ff" },
+    { series: "용한 소녀", tag: "FEATURED", title: "용한 소녀", desc: "정략결혼을 피해 용궁에서 지상으로 도망친 용왕의 딸 김용만\n성공을 목표로 전교 1등의 꿈을 품고 고등학교에 입학한다.", bg: "#b8e4f0", image: "/store/product_list/girl.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff" },
+    { series: "장송의 프리렌", tag: "POPULAR", title: "장송의 프리렌", desc: "엘프 마법사 프리렌의 여정\n공식 굿즈 모음", bg: "#c8a87a", image: "/store/product_list/frieren.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff" },
+    { series: "마루는 강쥐", tag: "FEATURED", title: "마루는 강쥐", desc: "우리 집 강아지 마루가 사람이 되었다, 그것도 5살 아이로!!\n마루야~! 또 어디가!!! 유쾌한 이웃들과 우당탕탕 즐거운 마루의 나날들", bg: "#c8e6a0", image: "/store/product_list/maru.png", textColor: "#16121f", tagColor: "#7865ff", btnBorder: "#7865ff" },
 ];
-
 const COLOR_OPTIONS = [
     { label: "보라", value: "purple", hex: "#7865ff" },
     { label: "노랑", value: "yellow", hex: "#FFE135" },
@@ -37,23 +36,47 @@ function Inner({ children, className = "" }: { children: React.ReactNode; classN
 
 function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void }) {
     const [current, setCurrent] = useState(0);
+    const [dragging, setDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
     const startTimer = () => {
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => setCurrent((v) => (v + 1) % HERO_SLIDES.length), 4000);
     };
     useEffect(() => { startTimer(); return () => { if (timerRef.current) clearInterval(timerRef.current); }; }, []);
+
     const goTo = (idx: number) => { setCurrent(idx); startTimer(); };
+    const onMouseDown = (e: React.MouseEvent) => { setDragging(true); setStartX(e.clientX); };
+    const onMouseUp = (e: React.MouseEvent) => {
+        if (!dragging) return;
+        setDragging(false);
+        const diff = e.clientX - startX;
+        if (diff < -50) goTo((current + 1) % HERO_SLIDES.length);
+        else if (diff > 50) goTo((current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+    };
+    const onTouchStart = (e: React.TouchEvent) => setStartX(e.touches[0].clientX);
+    const onTouchEnd = (e: React.TouchEvent) => {
+        const diff = e.changedTouches[0].clientX - startX;
+        if (diff < -50) goTo((current + 1) % HERO_SLIDES.length);
+        else if (diff > 50) goTo((current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+    };
+
     const slide = HERO_SLIDES[current];
     return (
-        <div className="relative w-full overflow-hidden rounded-[20px]" style={{ backgroundColor: slide.bg, minHeight: 300 }}>
+        <div
+            className="relative w-full overflow-hidden rounded-[20px] cursor-grab active:cursor-grabbing select-none"
+            style={{ backgroundColor: slide.bg, minHeight: 480 }}
+            onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseLeave={() => setDragging(false)}
+            onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+        >
             <div className="absolute inset-0 transition-all duration-700"
                 style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: "center left" }} />
             <div className="absolute inset-0"
-                style={{ background: "linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)" }} />
-            <div className="relative z-10 flex min-h-[300px] flex-col items-end justify-center px-12 py-12 text-right">
+                style={{ background: "linear-gradient(to left, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, transparent 100%)" }} />
+            <div className="relative z-10 flex min-h-[480px] flex-col items-end justify-center px-12 py-12 text-right">
                 <span className="mb-3 text-[12px] font-bold uppercase tracking-widest" style={{ color: slide.tagColor }}>{slide.tag}</span>
-                <h2 className="mb-3 text-[40px] font-extrabold leading-tight" style={{ color: slide.textColor }}>{slide.title}</h2>
+                <h2 className="mb-3 text-[48px] font-extrabold leading-tight" style={{ color: slide.textColor }}>{slide.title}</h2>
                 <p className="mb-8 max-w-[500px] whitespace-pre-line text-[14px] leading-[1.8]" style={{ color: slide.textColor, opacity: 0.9 }}>{slide.desc}</p>
                 <button onClick={() => onSeriesSelect(slide.series)}
                     className="inline-flex w-fit items-center gap-2 rounded-full border-2 px-7 py-3 text-[14px] font-semibold transition hover:opacity-80"
