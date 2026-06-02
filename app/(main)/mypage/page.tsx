@@ -14,6 +14,143 @@ interface Card {
     isDefault: boolean
 }
 
+// 카드 추가 팝업 컴포넌트
+function AddCardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: Card) => void }) {
+    const [cardNumber, setCardNumber] = useState('')
+    const [cardExpiry, setCardExpiry] = useState('')
+    const [cardCvc, setCardCvc] = useState('')
+    const [cardName, setCardName] = useState('')
+    const [cardError, setCardError] = useState('')
+    const [cardLoading, setCardLoading] = useState(false)
+
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+        document.addEventListener('keydown', handleEsc)
+        return () => document.removeEventListener('keydown', handleEsc)
+    }, [onClose])
+
+    const detectBrand = (num: string) => {
+        const n = num.replace(/\s/g, '')
+        if (/^4/.test(n)) return 'VISA'
+        if (/^5[1-5]/.test(n)) return 'Mastercard'
+        if (/^3[47]/.test(n)) return 'AMEX'
+        return '카드'
+    }
+
+    const formatCardNumber = (val: string) => val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
+    const formatExpiry = (val: string) => {
+        const nums = val.replace(/\D/g, '').slice(0, 4)
+        return nums.length >= 3 ? nums.slice(0, 2) + '/' + nums.slice(2) : nums
+    }
+
+    const handleSubmit = async () => {
+        setCardError('')
+        const rawNum = cardNumber.replace(/\s/g, '')
+        if (rawNum.length < 15) { setCardError('카드번호를 올바르게 입력해주세요.'); return }
+        if (cardExpiry.length < 5) { setCardError('유효기간을 올바르게 입력해주세요.'); return }
+        if (cardCvc.length < 3) { setCardError('CVC를 올바르게 입력해주세요.'); return }
+        if (!cardName.trim()) { setCardError('카드 소유자 이름을 입력해주세요.'); return }
+        setCardLoading(true)
+        await new Promise(r => setTimeout(r, 300))
+        const newCard: Card = {
+            id: `card_${Date.now()}`,
+            brand: detectBrand(rawNum),
+            last4: rawNum.slice(-4),
+            expiry: cardExpiry,
+            isDefault: false,
+        }
+        setCardLoading(false)
+        onAdd(newCard)
+    }
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={onClose}
+        >
+            <div
+                className="relative bg-[#111] rounded-2xl w-full max-w-md border border-white/10"
+                onClick={e => e.stopPropagation()}
+            >
+                {/* 헤더 */}
+                <div className="flex items-center justify-between px-7 py-5 border-b border-white/10">
+                    <h3 className="text-lg font-black">카드 등록</h3>
+                    <button
+                        onClick={onClose}
+                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <div className="px-7 py-6 flex flex-col gap-5">
+                    <div>
+                        <p className="text-sm text-white/40 mb-2">카드번호</p>
+                        <input
+                            className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
+                            value={cardNumber}
+                            onChange={e => setCardNumber(formatCardNumber(e.target.value))}
+                            placeholder="0000 0000 0000 0000"
+                            maxLength={19}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-5">
+                        <div>
+                            <p className="text-sm text-white/40 mb-2">유효기간</p>
+                            <input
+                                className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
+                                value={cardExpiry}
+                                onChange={e => setCardExpiry(formatExpiry(e.target.value))}
+                                placeholder="MM/YY"
+                                maxLength={5}
+                            />
+                        </div>
+                        <div>
+                            <p className="text-sm text-white/40 mb-2">CVC</p>
+                            <input
+                                className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
+                                value={cardCvc}
+                                onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                placeholder="000"
+                                maxLength={4}
+                                type="password"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-sm text-white/40 mb-2">카드 소유자 이름</p>
+                        <input
+                            className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
+                            value={cardName}
+                            onChange={e => setCardName(e.target.value)}
+                            placeholder="홍길동"
+                            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                        />
+                    </div>
+                    {cardError && <p className="text-sm text-red-400">{cardError}</p>}
+                    <p className="text-sm text-white/25">🔒 카드번호 뒷 4자리만 저장됩니다.</p>
+                    <div className="flex gap-3 pt-1">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 py-3 rounded-xl border border-white/20 text-white/50 text-base font-bold hover:border-white/40 transition-colors cursor-pointer"
+                        >
+                            취소
+                        </button>
+                        <button
+                            onClick={handleSubmit}
+                            disabled={cardLoading}
+                            className="flex-1 py-3 rounded-xl text-white text-base font-bold transition-colors cursor-pointer hover:opacity-90"
+                            style={{ background: '#6c63ff', opacity: cardLoading ? 0.5 : 1 }}
+                        >
+                            {cardLoading ? '등록 중...' : '카드 등록하기'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 export default function MyPage() {
     const { user } = useAuthStore()
     const router = useRouter()
@@ -30,13 +167,7 @@ export default function MyPage() {
     const [loading, setLoading] = useState(false)
 
     const [cards, setCards] = useState<Card[]>([])
-    const [cardStep, setCardStep] = useState<'idle' | 'form'>('idle')
-    const [cardNumber, setCardNumber] = useState('')
-    const [cardExpiry, setCardExpiry] = useState('')
-    const [cardCvc, setCardCvc] = useState('')
-    const [cardName, setCardName] = useState('')
-    const [cardError, setCardError] = useState('')
-    const [cardLoading, setCardLoading] = useState(false)
+    const [showAddCardModal, setShowAddCardModal] = useState(false)
 
     const provider = auth.currentUser?.providerData?.[0]?.providerId || ''
     const isEmailUser = provider === 'password'
@@ -54,6 +185,30 @@ export default function MyPage() {
             const snap = await getDoc(doc(db, 'users', user.uid))
             if (snap.data()?.cards) setCards(snap.data()!.cards)
         } catch { }
+    }
+
+    const saveCards = async (newCards: Card[]) => {
+        if (!user?.uid) return
+        await setDoc(doc(db, 'users', user.uid), { cards: newCards }, { merge: true })
+        setCards(newCards)
+    }
+
+    const handleAddCard = async (newCard: Card) => {
+        const updatedCards = [...cards, { ...newCard, isDefault: cards.length === 0 }]
+        await saveCards(updatedCards)
+        setShowAddCardModal(false)
+    }
+
+    const handleDeleteCard = async (cardId: string) => {
+        if (!confirm('이 카드를 삭제할까요?')) return
+        const newCards = cards.filter(c => c.id !== cardId)
+        if (newCards.length > 0) newCards[0].isDefault = true
+        await saveCards(newCards)
+    }
+
+    const handleSetDefault = async (cardId: string) => {
+        const newCards = cards.map(c => ({ ...c, isDefault: c.id === cardId }))
+        await saveCards(newCards)
     }
 
     const handleUpdateEmail = async () => {
@@ -98,59 +253,6 @@ export default function MyPage() {
         } finally { setLoading(false) }
     }
 
-    const detectBrand = (num: string) => {
-        const n = num.replace(/\s/g, '')
-        if (/^4/.test(n)) return 'VISA'
-        if (/^5[1-5]/.test(n)) return 'Mastercard'
-        if (/^3[47]/.test(n)) return 'AMEX'
-        return '카드'
-    }
-
-    const formatCardNumber = (val: string) => val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
-    const formatExpiry = (val: string) => {
-        const nums = val.replace(/\D/g, '').slice(0, 4)
-        return nums.length >= 3 ? nums.slice(0, 2) + '/' + nums.slice(2) : nums
-    }
-
-    const handleAddCard = async () => {
-        setCardError('')
-        const rawNum = cardNumber.replace(/\s/g, '')
-        if (rawNum.length < 15) { setCardError('카드번호를 올바르게 입력해주세요.'); return }
-        if (cardExpiry.length < 5) { setCardError('유효기간을 올바르게 입력해주세요.'); return }
-        if (cardCvc.length < 3) { setCardError('CVC를 올바르게 입력해주세요.'); return }
-        if (!cardName.trim()) { setCardError('카드 소유자 이름을 입력해주세요.'); return }
-        setCardLoading(true)
-        try {
-            const newCard: Card = {
-                id: `card_${Date.now()}`,
-                brand: detectBrand(rawNum),
-                last4: rawNum.slice(-4),
-                expiry: cardExpiry,
-                isDefault: cards.length === 0,
-            }
-            const newCards = [...cards, newCard]
-            await setDoc(doc(db, 'users', user!.uid), { cards: newCards }, { merge: true })
-            setCards(newCards)
-            setCardStep('idle')
-            setCardNumber(''); setCardExpiry(''); setCardCvc(''); setCardName('')
-        } catch { setCardError('카드 등록에 실패했어요.') }
-        finally { setCardLoading(false) }
-    }
-
-    const handleDeleteCard = async (cardId: string) => {
-        if (!confirm('이 카드를 삭제할까요?')) return
-        const newCards = cards.filter(c => c.id !== cardId)
-        if (newCards.length > 0) newCards[0].isDefault = true
-        await setDoc(doc(db, 'users', user!.uid), { cards: newCards }, { merge: true })
-        setCards(newCards)
-    }
-
-    const handleSetDefault = async (cardId: string) => {
-        const newCards = cards.map(c => ({ ...c, isDefault: c.id === cardId }))
-        await setDoc(doc(db, 'users', user!.uid), { cards: newCards }, { merge: true })
-        setCards(newCards)
-    }
-
     const brandColor: Record<string, string> = {
         'VISA': '#1a1f71', 'Mastercard': '#eb001b', 'AMEX': '#007bc1', '카드': '#6c63ff',
     }
@@ -160,7 +262,7 @@ export default function MyPage() {
     return (
         <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingTop: 80, paddingBottom: 80 }}>
             <style>{`
-       .mp-wrap { width: 90%; margin: 0 auto; }
+                .mp-wrap { width: 90%; margin: 0 auto; }
                 .mp-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.35); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 20px; }
                 .mp-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
                 .mp-row-title { font-size: 14px; color: rgba(255,255,255,.55); margin: 0 0 4px; }
@@ -280,10 +382,10 @@ export default function MyPage() {
                 <section style={{ marginBottom: 48 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                         <p className="mp-label" style={{ margin: 0 }}>결제수단</p>
-                        <button className="mp-btn" onClick={() => setCardStep(cardStep === 'idle' ? 'form' : 'idle')}>+ 카드 추가</button>
+                        <button className="mp-btn" onClick={() => setShowAddCardModal(true)}>+ 카드 추가</button>
                     </div>
 
-                    {cards.length === 0 && cardStep === 'idle' && (
+                    {cards.length === 0 && (
                         <div style={{ padding: '32px 0', textAlign: 'center', color: 'rgba(255,255,255,.25)', fontSize: 14 }}>
                             등록된 결제수단이 없어요
                         </div>
@@ -306,37 +408,16 @@ export default function MyPage() {
                             </div>
                         </div>
                     ))}
-
-                    {cardStep === 'form' && (
-                        <div className="mp-form">
-                            <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>카드 등록</h3>
-                            <div>
-                                <p className="mp-form-label">카드번호</p>
-                                <input className="mp-input" value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))} placeholder="0000 0000 0000 0000" maxLength={19} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                <div>
-                                    <p className="mp-form-label">유효기간</p>
-                                    <input className="mp-input" value={cardExpiry} onChange={e => setCardExpiry(formatExpiry(e.target.value))} placeholder="MM/YY" maxLength={5} />
-                                </div>
-                                <div>
-                                    <p className="mp-form-label">CVC</p>
-                                    <input className="mp-input" value={cardCvc} onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="000" maxLength={4} type="password" />
-                                </div>
-                            </div>
-                            <div>
-                                <p className="mp-form-label">카드 소유자 이름</p>
-                                <input className="mp-input" value={cardName} onChange={e => setCardName(e.target.value)} placeholder="홍길동" />
-                            </div>
-                            {cardError && <p className="mp-error">{cardError}</p>}
-                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', margin: 0 }}>🔒 카드번호 뒷 4자리만 저장됩니다.</p>
-                            <button className="mp-submit" onClick={handleAddCard} disabled={cardLoading}>
-                                {cardLoading ? '등록 중...' : '카드 등록하기'}
-                            </button>
-                        </div>
-                    )}
                 </section>
             </div>
+
+            {/* 카드 추가 팝업 */}
+            {showAddCardModal && (
+                <AddCardModal
+                    onClose={() => setShowAddCardModal(false)}
+                    onAdd={handleAddCard}
+                />
+            )}
         </div>
     )
 }
