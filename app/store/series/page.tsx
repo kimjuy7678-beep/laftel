@@ -5,7 +5,7 @@ import Link from "next/link";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 
-import StoreSidebar from "@/components/store/StoreSidebar"
+import StoreSidebar from "@/components/store/StoreSliaebar";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 
 const ALL_PRODUCTS = products as StoreProduct[];
@@ -33,7 +33,7 @@ const COLOR_OPTIONS = [
 function parsePrice(s: string) { return parseInt(s.replace(/[^0-9]/g, ""), 10) || 0; }
 
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return <div className={`mx-auto w-full max-w-[1700px] px-[75px] ${className}`}>{children}</div>;
+    return <div className={`mx-auto w-full max-w-[1680px] px-[75px] ${className}`}>{children}</div>;
 }
 
 function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void }) {
@@ -69,14 +69,14 @@ function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void })
     const slide = HERO_SLIDES[current];
     return (
         <div className="relative w-full overflow-hidden rounded-[20px] cursor-grab active:cursor-grabbing select-none"
-            style={{ backgroundColor: slide.bg, minHeight: 420 }}
+            style={{ backgroundColor: slide.bg, minHeight: 560 }}
             onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={() => setIsDragging(false)}
             onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
             <div className="absolute inset-0 transition-all duration-700"
                 style={{ backgroundImage: `url(${slide.image})`, backgroundSize: "cover", backgroundPosition: "center left" }} />
             <div className="absolute inset-0"
                 style={{ background: "linear-gradient(to left, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, transparent 100%)" }} />
-            <div className="relative z-10 flex min-h-[420px] flex-col items-end justify-center px-12 py-12 text-right">
+            <div className="relative z-10 flex min-h-[560px] flex-col items-end justify-center px-12 py-12 text-right">
                 <span className="mb-3 text-[12px] font-bold uppercase tracking-widest" style={{ color: slide.tagColor }}>{slide.tag}</span>
                 <h2 className="mb-3 text-[48px] font-extrabold leading-tight" style={{ color: slide.textColor }}>{slide.title}</h2>
                 <p className="mb-8 max-w-[500px] whitespace-pre-line text-[14px] leading-[1.8]" style={{ color: slide.textColor, opacity: 0.9 }}>{slide.desc}</p>

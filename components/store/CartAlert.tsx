@@ -16,31 +16,31 @@ export default function CartAlert({
 }) {
     const router = useRouter();
     return (
-        <div className="fixed bottom-6 right-6 z-[200] w-[360px] rounded-[20px] border border-white/30 bg-white/80 backdrop-blur-[16px] shadow-[0_8px_32px_rgba(120,101,255,0.18)] p-5">
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[10px] bg-[#f0eeff]">
-                        {thumbnail && <img src={thumbnail} alt={title} className="h-full w-full object-cover" />}
-                    </div>
-                    <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-[#16121f]">장바구니에 성공적으로 담겼습니다 !</p>
-                        <p className="mt-0.5 line-clamp-1 text-[11px] text-[#9b94b2]">{title}</p>
-                        {option && <p className="text-[11px] text-[#9b94b2]">옵션 : {option}</p>}
-                    </div>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/10" onClick={onClose}>
+            <div onClick={e => e.stopPropagation()}
+                className="w-[480px] rounded-[20px] bg-white shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden">
+                {/* 상단 */}
+                <div className="relative px-8 pt-7 pb-5 flex flex-col items-center gap-3">
+                    <button onClick={onClose} className="absolute right-5 top-5 text-[#c0bcd0] hover:text-[#7865ff]">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                    </button>
+                    <span className="rounded-full bg-[#7865ff] px-3 py-1 text-[12px] font-bold text-white">장바구니 담기 완료</span>
+                    <p className="text-[22px] font-bold text-[#16121f] text-center">장바구니에 상품을 성공적으로 담았습니다 !</p>
+                    <p className="text-[13px] text-[#9b94b2] text-center line-clamp-1">{title}</p>
+                    {option && <p className="text-[12px] text-[#b0aabb]">옵션 : {option}</p>}
                 </div>
-                <button onClick={onClose} className="shrink-0 text-[#c0bcd0] hover:text-[#7865ff]">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                </button>
-            </div>
-            <div className="mt-4 flex gap-2">
-                <button onClick={onClose}
-                    className="flex-1 h-[38px] rounded-[10px] border border-[#ddd8f4] text-[12px] text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
-                    쇼핑 계속하기
-                </button>
-                <button onClick={() => { onClose(); router.push("/store/cart"); }}
-                    className="flex-1 h-[38px] rounded-[10px] bg-[#7865ff] text-[12px] font-semibold text-white transition hover:bg-[#6552ee]">
-                    장바구니로 가기
-                </button>
+
+                {/* 버튼 */}
+                <div className="flex border-t border-[#f0edf8]">
+                    <button onClick={onClose}
+                        className="flex-1 h-[56px] text-[15px] font-semibold text-[#6b647a] transition hover:bg-[#f8f6ff] border-r border-[#f0edf8]">
+                        쇼핑 계속하기
+                    </button>
+                    <button onClick={() => { onClose(); router.push("/store/cart"); }}
+                        className="flex-1 h-[56px] text-[15px] font-bold text-white bg-[#7865ff] transition hover:bg-[#6552ee]">
+                        장바구니로 가기
+                    </button>
+                </div>
             </div>
         </div>
     );
