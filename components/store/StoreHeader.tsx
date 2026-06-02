@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuthStore } from '@/store/useAuthStore'
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { StoreSearchModal } from "@/components/store/StoreSearch";
 
 const StoreMenuList = [
     { id: 1, title: "전체 굿즈", path: "/store/all" },
