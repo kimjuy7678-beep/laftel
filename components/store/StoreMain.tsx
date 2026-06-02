@@ -1,34 +1,11 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import products from "@/data/store.json";
-
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type Product = {
-    id: string;
-    title: string;
-    series?: string;
-    category?: string;
-    price: string;
-    imageSrc: string;
-    badge?: string;
-};
-
-type StoreProduct = {
-    productId: string;
-    category: string;
-    title: string;
-    price: string;
-    thumbnail: string;
-    soldout: boolean;
-};
-
-type Category = {
-
-    name: string;
-    imageSrc: string;
-
-};
+import type { StoreCategory, StoreMainProduct, StoreMainSourceProduct } from "@/types/store";
+import { RECENT_STORE_PRODUCT_IDS_KEY } from "@/types/store";
+import { StoreSearchBar } from "@/components/store/StoreSearch";
 
 // ─── Typography System ────────────────────────────────────────────────────────
 // title      : 20px  font-semibold
@@ -37,9 +14,9 @@ type Category = {
 // section sub   : 18px  font-medium
 // all-btn    : 16px  font-semibold
 
-const STORE_PRODUCTS = products as StoreProduct[];
+const STORE_PRODUCTS = products as StoreMainSourceProduct[];
 
-function toProduct(product: StoreProduct, badge?: string): Product {
+function toProduct(product: StoreMainSourceProduct, badge?: string): StoreMainProduct {
     return {
         id: product.productId,
         series: product.category,
@@ -51,17 +28,15 @@ function toProduct(product: StoreProduct, badge?: string): Product {
     };
 }
 
-const recentProducts = STORE_PRODUCTS.slice(0, 4).map((p) => toProduct(p));
-
-const categories: Category[] = [
-    { name: "진격의 거인", imageSrc: "/images/store/m1.png" },
-    { name: "나의 히어로 아카데미아", imageSrc: "/images/store/m2.png" },
-    { name: "귀멸의 말날", imageSrc: "/images/store/m3.png" },
-    { name: "하츠네미쿠", imageSrc: "/images/store/m4.png" },
-    { name: "에반게리온", imageSrc: "/images/store/m5.png" },
-    { name: "하이큐", imageSrc: "/images/store/m6.png" },
-    { name: "장송의 프리렌", imageSrc: "/images/store/m7.png" },
-    { name: "주술회전", imageSrc: "/images/store/m8.png" },
+const categories: StoreCategory[] = [
+    { name: "진격의 거인", slug: "attack-on-titan", imageSrc: "/images/store/m1.png" },
+    { name: "나의 히어로 아카데미아", slug: "my-hero-academia", imageSrc: "/images/store/m2.png" },
+    { name: "귀멸의 칼날", slug: "demon-slayer", imageSrc: "/images/store/m3.png" },
+    { name: "하츠네미쿠", slug: "hatsune-miku", imageSrc: "/images/store/m4.png" },
+    { name: "에반게리온", slug: "evangelion", imageSrc: "/images/store/m5.png" },
+    { name: "하이큐", slug: "haikyu", imageSrc: "/images/store/m6.png" },
+    { name: "장송의 프리렌", slug: "frieren", imageSrc: "/images/store/m7.png" },
+    { name: "주술회전", slug: "jujutsu-kaisen", imageSrc: "/images/store/m8.png" },
 ];
 
 const topProducts = STORE_PRODUCTS.slice(4, 8).map((p, i) =>
@@ -71,6 +46,46 @@ const topProducts = STORE_PRODUCTS.slice(4, 8).map((p, i) =>
 const arrivalProducts = STORE_PRODUCTS.slice(8, 13).map((p, i) =>
     toProduct(p, i === 0 ? "MEGA" : i === 4 ? "HOT" : undefined),
 );
+
+const EMPTY_RECENT_PRODUCTS: StoreMainProduct[] = [];
+let cachedRecentStorage: string | null = null;
+let cachedRecentProducts: StoreMainProduct[] = EMPTY_RECENT_PRODUCTS;
+
+function getRecentProducts() {
+    if (typeof window === "undefined") return EMPTY_RECENT_PRODUCTS;
+
+    try {
+        const stored = window.localStorage.getItem(RECENT_STORE_PRODUCT_IDS_KEY);
+        if (stored === cachedRecentStorage) return cachedRecentProducts;
+
+        const ids = stored ? (JSON.parse(stored) as unknown) : [];
+        if (!Array.isArray(ids)) {
+            cachedRecentStorage = stored;
+            cachedRecentProducts = EMPTY_RECENT_PRODUCTS;
+            return cachedRecentProducts;
+        }
+
+        const productsById = new Map(STORE_PRODUCTS.map((product) => [product.productId, product]));
+        cachedRecentStorage = stored;
+        cachedRecentProducts = ids
+            .filter((id): id is string => typeof id === "string")
+            .map((id) => productsById.get(id))
+            .filter((product): product is StoreMainSourceProduct => Boolean(product))
+            .slice(0, 7)
+            .map((product) => toProduct(product));
+
+        return cachedRecentProducts;
+    } catch {
+        cachedRecentStorage = null;
+        cachedRecentProducts = EMPTY_RECENT_PRODUCTS;
+        return cachedRecentProducts;
+    }
+}
+
+function subscribeRecentProducts(onStoreChange: () => void) {
+    window.addEventListener("storage", onStoreChange);
+    return () => window.removeEventListener("storage", onStoreChange);
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -95,41 +110,9 @@ function Inner({ children, className = "" }: { children: React.ReactNode; classN
     );
 }
 
-// ─── StoreSearch ──────────────────────────────────────────────────────────────
-
-function StoreSearch() {
-    return (
-        <div className="mx-auto mt-10 w-full max-w-[960px] pt-10">
-            {/* Search bar */}
-            <div className="flex h-[56px] items-center rounded-full border border-[#ddd8f4] bg-white px-6 shadow-[0_8px_24px_rgba(30,24,70,0.13)]">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#4f486d]">
-                    <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-                    <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                <input
-                    className="h-full min-w-0 flex-1 bg-transparent px-5 text-[13px] text-[#242130] outline-none placeholder:text-[#8f8a9d]"
-                    placeholder="굿즈 또는 작품명으로 검색해 보세요"
-                />
-                {/* all-btn: 16px */}
-                <button className="border-l border-[#ddd8f4] pl-5 text-[16px] font-semibold uppercase  text-[#7865ff]">
-                    Search
-                </button>
-            </div>
-            {/* sub: 11px */}
-            <p className="mt-3 text-center text-[11px] text-[#6f687d]">
-                Trending:{" "}
-                <span className="text-[#7865ff]">#귀멸의 칼날</span>{" "}
-                <span className="text-[#7865ff]">#마루는 강쥐</span>{" "}
-                <span className="text-[#7865ff]">#하이큐</span>{" "}
-                <span className="text-[#7865ff]">#주술회전</span>
-            </p>
-        </div>
-    );
-}
-
 // ─── MiniProductCard ──────────────────────────────────────────────────────────
 
-function MiniProductCard({ product }: { product: Product }) {
+function MiniProductCard({ product }: { product: StoreMainProduct }) {
     return (
         <Link href={`/store/${product.id}`} className="block min-w-0">
             <ImageSlot
@@ -148,6 +131,14 @@ function MiniProductCard({ product }: { product: Product }) {
 // ─── FeaturedRecent ───────────────────────────────────────────────────────────
 
 function FeaturedRecent() {
+    const recentProducts = useSyncExternalStore(
+        subscribeRecentProducts,
+        getRecentProducts,
+        () => EMPTY_RECENT_PRODUCTS,
+    );
+
+    if (recentProducts.length === 0) return null;
+
     return (
         <section className="mt-10">
             <Inner>
@@ -156,11 +147,11 @@ function FeaturedRecent() {
                         {/* title: 20px */}
                         <h2 className="text-[20px] font-semibold text-[#14111c]">최근본상품</h2>
                         {/* all-btn: 16px */}
-                        <Link href="#" className="text-[16px] font-semibold text-[#7865ff]">
+                        <Link href="/store" className="text-[16px] font-semibold text-[#7865ff]">
                             더보기
                         </Link>
                     </div>
-                    <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 max-w-[680px]">
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-7">
                         {recentProducts.map((product) => (
                             <MiniProductCard key={product.id} product={product} />
                         ))}
@@ -178,8 +169,8 @@ function CategoryStrip() {
         <section className="mt-20">
             <Inner>
                 <div className="grid grid-cols-4 gap-8 sm:grid-cols-8">
-                    {categories.map((category, id) => (
-                        <Link key={id} href="#" className="flex flex-col items-center gap-3">
+                    {categories.map((category) => (
+                        <Link key={category.slug} href={`/store/category/${category.slug}`} className="flex flex-col items-center gap-3">
                             <div
                                 className={`relative flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full  shadow-[0_8px_20px_rgba(20,16,44,0.22)]`}
                             >
@@ -206,7 +197,7 @@ function CategoryStrip() {
 
 // ─── TopProductCard ───────────────────────────────────────────────────────────
 
-function TopProductCard({ product, rank }: { product: Product; rank: number }) {
+function TopProductCard({ product, rank }: { product: StoreMainProduct; rank: number }) {
     return (
         <Link href={`/store/${product.id}`} className="group relative block min-w-0">
             <div className="relative overflow-hidden rounded-[12px] bg-[#eeeeef]">
@@ -268,7 +259,7 @@ function BestTopSection() {
 
 // ─── ArrivalCard ─────────────────────────────────────────────────────────────
 
-function ArrivalCard({ product }: { product: Product }) {
+function ArrivalCard({ product }: { product: StoreMainProduct }) {
     return (
         <Link href={`/store/${product.id}`} className="group block min-w-0">
             <div className="relative overflow-hidden rounded-[10px] bg-[#eeeeef]">
@@ -367,38 +358,7 @@ function CollectionBanner() {
 export default function StoreBanner() {
     return (
         <div className="inner">
-            {/* Hero Banner */}
-            <section>
-                {/* <Inner className="relative">
-                    <button
-                        type="button"
-                        aria-label="이전 배너"
-                        className="absolute left-[75px] top-1/2 z-10 hidden h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#9b9b9b] text-2xl font-light text-white shadow-lg md:flex"
-                    >
-                        ‹
-                    </button>
-
-                 
-                    <div className="overflow-hidden rounded-[12px] bg-[#eeeeef] shadow-[0_14px_32px_rgba(17,14,36,0.14)]">
-                        <ImageSlot src="" alt="Store main banner" className="aspect-[3/1] w-full object-cover" />
-                    </div>
-
-                    <button
-                        type="button"
-                        aria-label="다음 배너"
-                        className="absolute right-[75px] top-1/2 z-10 hidden h-12 w-12 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#9b9b9b] text-2xl font-light text-white shadow-lg md:flex"
-                    >
-                        ›
-                    </button>
-
-                    <StoreSearch />
-                </Inner> */}
-                <>
-                    <StoreSearch />
-                </>
-
-            </section>
-
+            <StoreSearchBar />
             <FeaturedRecent />
             <CategoryStrip />
             <BestTopSection />

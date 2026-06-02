@@ -41,8 +41,8 @@ export default function MembershipBanner() {
     backdrop-filter: blur(4px);
     position: absolute;
     white-space: nowrap;   
-    top: 170px;
-    right: 385px;
+    top: 195px;
+    right: 470px;
 }
                 .mb-btn:hover { background: rgba(255,255,255,0.48); }
             `}</style>

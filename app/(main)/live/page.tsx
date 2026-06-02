@@ -7,6 +7,7 @@ import ScheduleBoard from '@/components/ScheduleBoard'
 import { useEffect, useMemo, useState } from 'react'
 import { buildChannels, getCurrentIdx, getTodaySeed, nowInMinutes } from '@/utils/scheduleUtils'
 import { useAniStore } from '@/store/useAniStore'
+import ScheduleMarquee from '@/components/ScheduleMarquee'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 
@@ -108,6 +109,9 @@ export default function LivePage() {
                 <MyPartySection />
                 <PartySection />
                 <ScheduleBoard />
+                <div className="fixed bottom-0 left-0 z-50 w-full bg-[#000]">
+                    <ScheduleMarquee />
+                </div>
             </div>
         </div>
     )

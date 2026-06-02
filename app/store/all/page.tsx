@@ -1,28 +1,21 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 import { doc, setDoc, getDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from "@/firebase/firebase";
+import { toast } from 'sonner'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
-type StoreProduct = {
-    productId: string;
-    category: string;
-    title: string;
-    price: string;
-    thumbnail: string;
-    soldout: boolean;
-};
+
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ALL_PRODUCTS = products as StoreProduct[];
 const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 16;
 const PAGE_GROUP = 5;
 
 const COLOR_OPTIONS = [
@@ -34,67 +27,12 @@ const COLOR_OPTIONS = [
     { label: "빨강", value: "red", hex: "#FF2D55" },
 ];
 
-const STORE_MENU = [
-    { label: "전체 굿즈", path: "/store/all", icon: "grid" },
-    { label: "신규 입고", path: "/store/new", icon: "sparkle" },
-    { label: "인기 상품", path: "/store/best", icon: "fire" },
-    { label: "한정판", path: "/store/limited", icon: "star" },
-    { label: "위시리스트", path: "/store/wishlist", icon: "heart" },
-];
-
-const CATEGORY_MENU = [
-    { label: "아크릴 스탠드", path: "/store/all?category=acrylic", icon: "box" },
-    { label: "클리어 파일", path: "/store/all?category=clearfile", icon: "file" },
-    { label: "뱃지·핀", path: "/store/all?category=badge", icon: "badge" },
-    { label: "포스터", path: "/store/all?category=poster", icon: "image" },
-    { label: "스티커·엽서", path: "/store/all?category=sticker", icon: "tag" },
-    { label: "키링", path: "/store/all?category=keyring", icon: "key" },
-];
-
-const RECENT_SERIES = [
-    { label: "사카모토 데이즈", badge: "NEW", badgeBg: "#7865ff", badgeColor: "white", dot: "#ff4d6d" },
-    { label: "주술회전", badge: "+2", badgeBg: "#e8e4f8", badgeColor: "#6b64a0", dot: "#7865ff" },
-    { label: "귀멸의 칼날", badge: "NEW", badgeBg: "#7865ff", badgeColor: "white", dot: "#22c55e" },
-    { label: "나의 히어로 아카데미아", badge: "+1", badgeBg: "#e8e4f8", badgeColor: "#6b64a0", dot: "#f59e0b" },
-];
-
 function parsePrice(priceStr: string): number {
     const num = parseInt(priceStr.replace(/[^0-9]/g, ""), 10);
     return isNaN(num) ? 0 : num;
 }
 
-// ─── SVG 아이콘 ───────────────────────────────────────────────────────────────
-
-function Icon({ name, size = 16 }: { name: string; size?: number }) {
-    const icons: Record<string, React.ReactNode> = {
-        grid: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
-        sparkle: <><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z" /><path d="M19 16l.75 2.25L22 19l-2.25.75L19 22l-.75-2.25L16 19l2.25-.75z" /></>,
-        fire: <path d="M12 2c0 0-5 4-5 9a5 5 0 0010 0c0-3-2-6-2-6s-1 2-2 2c-1 0-1-5-1-5z" />,
-        star: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />,
-        heart: <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />,
-        box: <><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></>,
-        file: <><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></>,
-        badge: <><circle cx="12" cy="12" r="10" /><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32" /></>,
-        image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></>,
-        tag: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></>,
-        key: <><circle cx="7.5" cy="15.5" r="5.5" /><path d="M21 2l-9.6 9.6" /><path d="M15.5 7.5l3 3L22 7l-3-3" /></>,
-    };
-    return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            {icons[name]}
-        </svg>
-    );
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function ImageSlot({ src, alt, className }: { src: string; alt: string; className: string }) {
-    if (!src) return <div className={`${className} bg-[#eeeeef]`} aria-label={alt} />;
-    return (
-        <div className={className} role="img" aria-label={alt}
-            style={{ backgroundImage: `url(${src})`, backgroundPosition: "center", backgroundSize: "cover" }} />
-    );
-}
 
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
@@ -248,7 +186,9 @@ function WishButton({ productId }: { productId: string }) {
         e.stopPropagation();
         if (!user?.uid) {
             console.log("🚫 [Wishlist] 로그인이 필요합니다.");
-            alert("찜하기는 로그인 후 이용할 수 있어요!");
+            toast.error('로그인이 필요해요 🔐', {
+                description: '찜하기는 로그인 후에 사용할 수 있어요.',
+            })
             return;
         }
         setLoading(true);
@@ -292,14 +232,18 @@ function CartButton({ productId }: { productId: string }) {
         e.stopPropagation();
         if (!user?.uid) {
             console.log("🚫 [Cart] 로그인이 필요합니다.");
-            alert("장바구니는 로그인 후 이용할 수 있어요!");
+            toast.error('로그인이 필요해요 🔐', {
+                description: '장바구니는 로그인 후에 사용할 수 있어요.',
+            })
             return;
         }
         try {
             const ref = doc(db, "users", user.uid!);
             await setDoc(ref, { cart: arrayUnion(productId) }, { merge: true });
             console.log(`🛒 [Cart ADD] uid=${user.uid} | productId=${productId} | user=${user.name || user.email}`);
-            alert("장바구니에 담겼어요!");
+            toast.success('장바구니에 담겼어요 🛒', {
+                description: '결제 전에 다른 것도 더 담아봐요!',
+            })
         } catch (err) {
             console.error("🔥 [Cart ERROR]", err);
         }
@@ -359,7 +303,6 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
     const hasPrevGroup = groupStart > 1;
     const hasNextGroup = groupEnd < total;
-
     return (
         <div className="mt-16 flex items-center justify-center gap-2">
             <button onClick={() => onChange(Math.max(1, current - 1))} disabled={current === 1}
@@ -367,8 +310,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
             {hasPrevGroup && (
-                <button onClick={() => onChange(groupStart - 1)}
-                    className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>
+                <button onClick={() => onChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>
             )}
             {pages.map((p) => (
                 <button key={p} onClick={() => onChange(p)}
@@ -379,8 +321,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                 </button>
             ))}
             {hasNextGroup && (
-                <button onClick={() => onChange(groupEnd + 1)}
-                    className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>
+                <button onClick={() => onChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>
             )}
             <button onClick={() => onChange(Math.min(total, current + 1))} disabled={current === total}
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
@@ -396,12 +337,8 @@ const PRICE_MIN = 0;
 const PRICE_MAX = 350000;
 
 function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor, onReset }: {
-    open: boolean;
-    priceRange: [number, number];
-    onPriceRange: (v: [number, number]) => void;
-    selectedColor: string | null;
-    onColor: (v: string | null) => void;
-    onReset: () => void;
+    open: boolean; priceRange: [number, number]; onPriceRange: (v: [number, number]) => void;
+    selectedColor: string | null; onColor: (v: string | null) => void; onReset: () => void;
 }) {
     const pct = (v: number) => ((v - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
     const handleMin = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -410,25 +347,18 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
     const handleMax = (e: React.ChangeEvent<HTMLInputElement>) => {
         onPriceRange([priceRange[0], Math.max(Number(e.target.value), priceRange[0] + 1000)]);
     };
-
     if (!open) return null;
-
     return (
         <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-[16px] border border-[#e2ddf5] bg-white p-5 shadow-[0_8px_32px_rgba(30,24,70,0.14)]">
             <p className="text-[13px] font-semibold text-[#16121f]">가격별로 보기</p>
             <div className="mt-3 flex items-center gap-2">
-                <div className="flex h-[30px] flex-1 items-center justify-center rounded-[8px] border border-[#ddd8f4] bg-[#faf9ff] text-[11px] font-medium text-[#3d3755]">
-                    ₩{priceRange[0].toLocaleString()}
-                </div>
+                <div className="flex h-[30px] flex-1 items-center justify-center rounded-[8px] border border-[#ddd8f4] bg-[#faf9ff] text-[11px] font-medium text-[#3d3755]">₩{priceRange[0].toLocaleString()}</div>
                 <span className="text-[10px] text-[#c0bcd0]">—</span>
-                <div className="flex h-[30px] flex-1 items-center justify-center rounded-[8px] border border-[#ddd8f4] bg-[#faf9ff] text-[11px] font-medium text-[#3d3755]">
-                    ₩{priceRange[1].toLocaleString()}
-                </div>
+                <div className="flex h-[30px] flex-1 items-center justify-center rounded-[8px] border border-[#ddd8f4] bg-[#faf9ff] text-[11px] font-medium text-[#3d3755]">₩{priceRange[1].toLocaleString()}</div>
             </div>
             <div className="relative mt-4 h-[6px] w-full">
                 <div className="absolute inset-0 rounded-full bg-[#e2ddf5]" />
-                <div className="absolute h-full rounded-full bg-[#7865ff]"
-                    style={{ left: `${pct(priceRange[0])}%`, right: `${100 - pct(priceRange[1])}%` }} />
+                <div className="absolute h-full rounded-full bg-[#7865ff]" style={{ left: `${pct(priceRange[0])}%`, right: `${100 - pct(priceRange[1])}%` }} />
                 <input type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000} value={priceRange[0]} onChange={handleMin}
                     className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:shadow-[0_2px_6px_rgba(120,101,255,0.4)] [&::-webkit-slider-thumb]:cursor-pointer" />
                 <input type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000} value={priceRange[1]} onChange={handleMax}
@@ -441,17 +371,12 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
                     <button key={c.value} onClick={() => onColor(selectedColor === c.value ? null : c.value)} title={c.label}
                         className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-all hover:scale-110 ${selectedColor === c.value ? "ring-2 ring-offset-2 ring-[#7865ff]" : ""}`}
                         style={{ backgroundColor: c.hex }}>
-                        {selectedColor === c.value && (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
-                        )}
+                        {selectedColor === c.value && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>}
                     </button>
                 ))}
             </div>
-            <button onClick={onReset}
-                className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-[#ddd8f4] py-2 text-[12px] text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
-                </svg>
+            <button onClick={onReset} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-[#ddd8f4] py-2 text-[12px] text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
                 초기화
             </button>
         </div>
@@ -472,13 +397,9 @@ export default function StoreListPage() {
 
     const filtered = STORE_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
-        const matchSearch =
-            p.title.toLowerCase().includes(search.toLowerCase()) ||
-            p.category.toLowerCase().includes(search.toLowerCase());
+        const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
         const matchPrice = p.soldout || (price >= priceRange[0] && price <= priceRange[1]);
-        const matchColor = !selectedColor ||
-            p.title.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "") ||
-            p.category.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "");
+        const matchColor = !selectedColor || p.title.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "") || p.category.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "");
         return matchSearch && matchPrice && matchColor;
     });
 
@@ -494,26 +415,16 @@ export default function StoreListPage() {
     useEffect(() => { setPage(1); }, [search, priceRange, selectedColor, sort]);
 
     useEffect(() => {
-        if (user) {
-            console.log("👤 [Auth] 로그인 유저 정보:", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
-        } else {
-            console.log("👻 [Auth] 비로그인 상태");
-        }
+        if (user) console.log("👤 [Auth] 로그인 유저 정보:", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
+        else console.log("👻 [Auth] 비로그인 상태");
     }, [user]);
 
-    const handleReset = () => {
-        setPriceRange([0, 300000]);
-        setSelectedColor(null);
-    };
-
-    const activeFilterCount = [
-        priceRange[0] > 0 || priceRange[1] < 300000,
-        selectedColor !== null,
-    ].filter(Boolean).length;
+    const handleReset = () => { setPriceRange([0, 300000]); setSelectedColor(null); };
+    const activeFilterCount = [priceRange[0] > 0 || priceRange[1] < 300000, selectedColor !== null].filter(Boolean).length;
 
     return (
         <div className="min-h-screen bg-white pb-20">
-            {/* 사이드바 */}
+
             <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
             {/* ── 전체 카테고리 바 ── */}
@@ -548,17 +459,11 @@ export default function StoreListPage() {
                                 <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
                                 <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                             </svg>
-                            <input
-                                className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
-                                placeholder="찾으시는 상품을 검색하세요"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
+                            <input className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
+                                placeholder="찾으시는 상품을 검색하세요" value={search} onChange={(e) => setSearch(e.target.value)} />
                             {search && (
                                 <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path d="M18 6L6 18M6 6l12 12" />
-                                    </svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                 </button>
                             )}
                         </div>
@@ -569,36 +474,22 @@ export default function StoreListPage() {
             {/* ── 상품 수 + 정렬 ── */}
             <Inner className="mt-8">
                 <div className="flex items-center justify-between">
-                    <p className="text-[14px] text-[#6b647a]">
-                        총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품
-                    </p>
+                    <p className="text-[14px] text-[#6b647a]">총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품</p>
                     <div className="flex items-center gap-2">
                         <div className="relative">
                             <select value={sort} onChange={(e) => setSort(e.target.value)}
                                 className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
-                                <option>인기순</option>
-                                <option>신상품순</option>
-                                <option>낮은 가격순</option>
-                                <option>높은 가격순</option>
+                                <option>인기순</option><option>신상품순</option><option>낮은 가격순</option><option>높은 가격순</option>
                             </select>
-                            <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
                         </div>
                         <div className="relative">
                             <button onClick={() => setFilterOpen((v) => !v)}
-                                className={`relative flex h-[38px] items-center gap-1.5 rounded-[8px] border px-3 text-[13px] font-medium transition ${activeFilterCount > 0 || filterOpen
-                                    ? "border-[#7865ff] bg-[#f0eeff] text-[#7865ff]"
-                                    : "border-[#ddd8f4] bg-white text-[#3d3755] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
-                                </svg>
+                                className={`relative flex h-[38px] items-center gap-1.5 rounded-[8px] border px-3 text-[13px] font-medium transition ${activeFilterCount > 0 || filterOpen ? "border-[#7865ff] bg-[#f0eeff] text-[#7865ff]" : "border-[#ddd8f4] bg-white text-[#3d3755] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
+                                <img src="/store/product_list/lyra-icon-Icon_filter_hor_outline.png" alt=""
+                                    className="h-[15px] w-[15px] object-contain opacity-50" />
                                 필터
-                                {activeFilterCount > 0 && (
-                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#7865ff] text-[10px] font-bold text-white">
-                                        {activeFilterCount}
-                                    </span>
-                                )}
+                                {activeFilterCount > 0 && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#7865ff] text-[10px] font-bold text-white">{activeFilterCount}</span>}
                             </button>
                             <FilterDropdown open={filterOpen} priceRange={priceRange} onPriceRange={setPriceRange}
                                 selectedColor={selectedColor} onColor={setSelectedColor} onReset={handleReset} />
@@ -616,21 +507,17 @@ export default function StoreListPage() {
                         </svg>
                         검색 결과가 없어요.
                         {(search || activeFilterCount > 0) && (
-                            <button onClick={() => { setSearch(""); handleReset(); }} className="text-[13px] text-[#7865ff] underline">
-                                필터 초기화
-                            </button>
+                            <button onClick={() => { setSearch(""); handleReset(); }} className="text-[13px] text-[#7865ff] underline">필터 초기화</button>
                         )}
                     </div>
                 ) : (
                     <div className="grid grid-cols-4 gap-x-6 gap-y-10">
                         {paginated.map((product) => (
-                            <ProductCard key={product.productId} product={product} />
+                            <StoreProductCard key={product.productId} product={product} />
                         ))}
                     </div>
                 )}
-                {totalPages > 1 && (
-                    <Pagination current={page} total={totalPages} onChange={setPage} />
-                )}
+                {totalPages > 1 && <Pagination current={page} total={totalPages} onChange={setPage} />}
             </Inner>
         </div>
     );
