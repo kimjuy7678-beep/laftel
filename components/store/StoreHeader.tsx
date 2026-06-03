@@ -160,7 +160,7 @@ export default function StoreHeader() {
                                         마이페이지
                                     </Link>
                                     <Link
-                                        href="/store/orders"
+                                        href="/store/prodile"
                                         onClick={() => setDropdownOpen(false)}
                                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
                                     >

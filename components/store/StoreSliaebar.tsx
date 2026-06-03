@@ -58,7 +58,7 @@ export default function StoreSidebar({ open, onClose }: { open: boolean; onClose
                     <Link href="/store/series" onClick={onClose}
                         className="mb-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition hover:bg-[#f8f6ff]">
                         <span className="flex h-7 w-7 items-center justify-center">
-                            <img src="/store/ham/star.png" alt="" className="h-5 w-5 object-contain" />
+                            <img src="/store/ham/seri.png" alt="" className="h-5 w-5 object-contain" />
                         </span>
                         <span className="text-[14px] text-[#7865ff]">시리즈별</span>
                         <span className="ml-auto rounded-full bg-[#7865ff] px-2 py-0.5 text-[10px] font-bold text-white">NEW</span>
