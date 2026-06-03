@@ -20,7 +20,8 @@ const MENU_TOP = [
 const MENU_BOTTOM = [
     { label: "배송지 관리", path: "/store/profile/address", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg> },
     { label: "결제 수단 관리", path: "/store/profile/payment", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg> },
-    { label: "회원 정보 관리", path: "/store/profile/account", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> },
+    // 회원 정보 관리 → OTT 마이페이지로 외부 이동
+    { label: "회원 정보 관리", path: "/mypage", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>, external: true },
     { label: "알림 설정", path: "/store/profile/notify", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg> },
 ];
 
@@ -75,21 +76,26 @@ function BenefitModal({ onClose }: { onClose: () => void }) {
                     <p className="mt-1 text-[14px] text-white/80">월간 혜택 안내</p>
                 </div>
                 <div className="mx-6 mb-6 rounded-[16px] border border-[#ebe8ff] bg-white px-6 py-5 flex flex-col gap-7">
-                    {MEMBERSHIP_BENEFITS.map((m) => (
-                        <div key={m.key} className="flex items-start gap-4">
-                            <div className="shrink-0 rounded-[14px] px-5 py-3 text-[18px] font-extrabold min-w-[100px] text-center"
-                                style={{ backgroundColor: m.bg, color: m.color }}>
-                                {m.label}
-                            </div>
-                            <ul className="flex flex-col gap-1.5 pt-1">
-                                {m.benefits.map((b, i) => (
-                                    <li key={i} className="flex items-center gap-2 text-[14px] text-[#6b647a]">
-                                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: m.color }} />
-                                        {b}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                    {MENU_BOTTOM.map((m) => (
+                        (m as any).external
+                            ? (
+                                <a key={m.path} href={m.path}
+                                    className="flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition text-[#3d3755] hover:bg-[#f0eeff]">
+                                    {m.icon}
+                                    {m.label}
+                                    {/* 외부 이동 표시 아이콘 */}
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-auto opacity-30">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                        <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                                    </svg>
+                                </a>
+                            )
+                            : (
+                                <Link key={m.path} href={m.path}
+                                    className={`flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition ${isActive(m.path) ? "bg-[#7865ff] text-white font-semibold" : "text-[#3d3755] hover:bg-[#f0eeff]"}`}>
+                                    {m.icon}{m.label}
+                                </Link>
+                            )
                     ))}
                 </div>
             </div>
