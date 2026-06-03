@@ -1,9 +1,8 @@
-// page.jsx 전체 교체
-
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
+import CalendarModal from './CalendarModal'
 
 interface AniItem {
     id: number
@@ -59,19 +58,6 @@ function getWeekDates() {
     })
 }
 
-function getWeekPreviewDates() {
-    const today = new Date()
-    const jsDay = today.getDay()
-    const diff = jsDay === 0 ? -6 : 1 - jsDay
-    const monday = new Date(today)
-    monday.setDate(today.getDate() + diff)
-    // 화~일 (index 1~6)
-    return Array.from({ length: 6 }, (_, i) => {
-        const d = new Date(monday); d.setDate(monday.getDate() + i + 1)
-        return { date: d.toISOString().slice(0, 10), dayIdx: i + 1 }
-    })
-}
-
 async function fetchAniByDate(date: string, pages = 2): Promise<AniItem[]> {
     let results: AniItem[] = []
     for (let page = 1; page <= pages; page++) {
@@ -84,11 +70,9 @@ async function fetchAniByDate(date: string, pages = 2): Promise<AniItem[]> {
     return results
 }
 
-// ─── 피처드 카드 (왼쪽 대형) ───────────────────────
 function FeaturedCard({ ani }: { ani: AniItem }) {
     const backdrop = ani.backdrop_path ? `${IMG}/w780${ani.backdrop_path}` : null
     const poster = ani.poster_path ? `${IMG}/w342${ani.poster_path}` : null
-    const score = Math.round(ani.vote_average * 10) / 10
     const genres = ani.genre_ids.map(g => GENRE_MAP[g]).filter(Boolean).slice(0, 3)
 
     return (
@@ -96,43 +80,21 @@ function FeaturedCard({ ani }: { ani: AniItem }) {
             className="relative block rounded-2xl overflow-hidden cursor-pointer group shrink-0"
             style={{ width: 360, aspectRatio: '3/4', background: '#1a1530' }}>
             {(backdrop || poster)
-                ? <img
-                    src={backdrop || poster || ''}
-                    alt={ani.name}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                : <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-6xl font-black text-white/10">{ani.name[0]}</span>
-                </div>
+                ? <img src={backdrop || poster || ''} alt={ani.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                : <div className="absolute inset-0 flex items-center justify-center"><span className="text-6xl font-black text-white/10">{ani.name[0]}</span></div>
             }
-            {/* 그라데이션 오버레이 */}
-            <div className="absolute inset-0"
-                style={{ background: 'linear-gradient(to top, rgba(10,8,20,0.98) 0%, rgba(10,8,20,0.5) 45%, rgba(10,8,20,0.15) 100%)' }} />
-
-            {/* NEW 뱃지 */}
-            <span className="absolute top-4 left-4 text-[11px] font-bold tracking-widest px-3 py-1 rounded-full bg-violet-600 text-white z-10">
-                NEW
-            </span>
-
-            {/* 하단 정보 */}
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(10,8,20,0.98) 0%, rgba(10,8,20,0.5) 45%, rgba(10,8,20,0.15) 100%)' }} />
+            <span className="absolute top-4 left-4 text-[11px] font-bold tracking-widest px-3 py-1 rounded-full bg-violet-600 text-white z-10">NEW</span>
             <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
                 {genres.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
-                        {genres.map(g => (
-                            <span key={g} className="text-[11px] text-white/60 border border-white/20 rounded-full px-2.5 py-0.5">
-                                {g}
-                            </span>
-                        ))}
+                        {genres.map(g => <span key={g} className="text-[11px] text-white/60 border border-white/20 rounded-full px-2.5 py-0.5">{g}</span>)}
                     </div>
                 )}
                 <p className="text-white font-black text-[22px] leading-tight mb-2">{ani.name}</p>
-                <p className="text-white/50 text-[12px] leading-relaxed line-clamp-2 mb-4">
-                    {ani.overview || '줄거리 정보가 없습니다.'}
-                </p>
-                <button
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-[13px] font-semibold border-none cursor-pointer transition-all"
-                    style={{ background: 'linear-gradient(135deg,#7c3aed,#5b21b6)' }}
-                >
+                <p className="text-white/50 text-[12px] leading-relaxed line-clamp-2 mb-4">{ani.overview || '줄거리 정보가 없습니다.'}</p>
+                <button className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-[13px] font-semibold border-none cursor-pointer transition-all"
+                    style={{ background: 'linear-gradient(135deg,#7c3aed,#5b21b6)' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
                     지금 보기
                 </button>
@@ -141,7 +103,6 @@ function FeaturedCard({ ani }: { ani: AniItem }) {
     )
 }
 
-// ─── 우측 작은 카드 ─────────────────────────────────
 function SmallCard({ ani }: { ani: AniItem }) {
     const poster = ani.poster_path ? `${IMG}/w342${ani.poster_path}` : null
     const score = Math.round(ani.vote_average * 10) / 10
@@ -153,11 +114,8 @@ function SmallCard({ ani }: { ani: AniItem }) {
             style={{ width: 148, background: '#1a1530' }}>
             <div className="relative overflow-hidden rounded-xl" style={{ aspectRatio: '2/3' }}>
                 {poster
-                    ? <img src={poster} alt={ani.name} loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    : <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-2xl font-black text-white/10">{ani.name[0]}</span>
-                    </div>
+                    ? <img src={poster} alt={ani.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    : <div className="w-full h-full flex items-center justify-center"><span className="text-2xl font-black text-white/10">{ani.name[0]}</span></div>
                 }
                 <div className="absolute inset-0 flex flex-col justify-end p-2.5 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"
                     style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)' }}>
@@ -168,11 +126,7 @@ function SmallCard({ ani }: { ani: AniItem }) {
                         </div>
                     )}
                 </div>
-                {score > 0 && (
-                    <span className="absolute bottom-2 left-2.5 text-[10px] font-semibold text-amber-400/90 group-hover:opacity-0 transition-opacity">
-                        ★ {score}
-                    </span>
-                )}
+                {score > 0 && <span className="absolute bottom-2 left-2.5 text-[10px] font-semibold text-amber-400/90 group-hover:opacity-0 transition-opacity">★ {score}</span>}
                 <span className="absolute top-2 left-2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-600 text-white tracking-wider">NEW</span>
             </div>
             <p className="mt-1.5 px-0.5 text-[11px] font-medium leading-snug line-clamp-1 text-white/55">{ani.name}</p>
@@ -181,46 +135,6 @@ function SmallCard({ ani }: { ani: AniItem }) {
     )
 }
 
-// ─── 이번주 미리보기 바 아이템 ───────────────────────
-function WeekPreviewItem({ dayIdx, date, items, isToday }: {
-    dayIdx: number; date: string; items: AniItem[]; isToday: boolean
-}) {
-    const d = DAYS[dayIdx]
-    const thumb = items[0]?.poster_path ? `${IMG}/w92${items[0].poster_path}` : null
-    const thumb2 = items[1]?.poster_path ? `${IMG}/w92${items[1].poster_path}` : null
-
-    return (
-        <div className="flex-1 min-w-[120px] flex flex-col items-center gap-2 py-4 px-2 relative">
-            {isToday && (
-                <div className="absolute inset-0 rounded-xl border border-violet-500/40 bg-violet-500/5 pointer-events-none" />
-            )}
-            <div className="flex flex-col items-center gap-0.5 mb-1">
-                <span className={`text-[11px] font-bold tracking-widest ${isToday ? 'text-violet-400' : 'text-white/30'}`}>
-                    {d.eng}
-                </span>
-                <span className={`text-[18px] font-black ${isToday ? 'text-white' : 'text-white/40'}`}>
-                    {d.label}
-                </span>
-                <span className="text-[10px] text-white/20">{date.slice(5)}</span>
-            </div>
-            {/* 썸네일 2장 겹치기 */}
-            <div className="relative h-14 w-14">
-                {thumb2 && (
-                    <img src={thumb2} alt="" className="absolute top-1 left-1 w-12 h-12 object-cover rounded-lg opacity-50" style={{ transform: 'rotate(3deg)' }} />
-                )}
-                {thumb
-                    ? <img src={thumb} alt="" className="absolute top-0 left-0 w-12 h-12 object-cover rounded-lg shadow-lg" />
-                    : <div className="absolute top-0 left-0 w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center">
-                        <span className="text-white/20 text-xs">-</span>
-                    </div>
-                }
-            </div>
-            <span className="text-[11px] text-white/40">신작 {items.length}개</span>
-        </div>
-    )
-}
-
-// ─── 스켈레톤 ──────────────────────────────────────
 function SkeletonSmall() {
     return (
         <li className="shrink-0" style={{ width: 148 }}>
@@ -244,8 +158,7 @@ export default function Page() {
     const [initialized, setInitialized] = useState(false)
     const [tabCache, setTabCache] = useState<Record<number, AniItem[]>>({})
     const [tabLoading, setTabLoading] = useState(false)
-    const [weekPreview, setWeekPreview] = useState<Record<number, AniItem[]>>({})
-    const [weekPreviewDates, setWeekPreviewDates] = useState<{ date: string; dayIdx: number }[]>([])
+    const [showCalendar, setShowCalendar] = useState(false)
 
     const scrollRef = useRef<HTMLUListElement>(null)
 
@@ -253,11 +166,9 @@ export default function Page() {
         weekDates.current = getWeekDates()
         todayTabIdxRef.current = jsDateDayToTabIdx(new Date().getDay())
         setActiveDay(todayTabIdxRef.current)
-        setWeekPreviewDates(getWeekPreviewDates())
         setInitialized(true)
     }, [])
 
-    // 현재 탭 데이터 로드
     useEffect(() => {
         if (!initialized) return
         if (tabCache[activeDay] !== undefined) return
@@ -271,24 +182,13 @@ export default function Page() {
         load()
     }, [activeDay, initialized])
 
-    // 이번주 미리보기 로드 (화~일)
-    useEffect(() => {
-        if (!initialized || weekPreviewDates.length === 0) return
-        const load = async () => {
-            const results: Record<number, AniItem[]> = {}
-            await Promise.all(
-                weekPreviewDates.map(async ({ date, dayIdx }) => {
-                    const list = await fetchAniByDate(date, 1)
-                    results[dayIdx] = list
-                })
-            )
-            setWeekPreview(results)
-        }
-        load()
-    }, [initialized, weekPreviewDates])
-
     const scroll = (dir: 'left' | 'right') => {
         scrollRef.current?.scrollBy({ left: dir === 'left' ? -400 : 400, behavior: 'smooth' })
+    }
+
+    const handleCalendarSelect = (dateStr: string) => {
+        const d = new Date(dateStr)
+        setActiveDay(jsDateDayToTabIdx(d.getDay()))
     }
 
     const tabList = tabCache[activeDay] ?? []
@@ -307,18 +207,15 @@ export default function Page() {
             <div className="pt-14 min-h-screen text-white" style={{ background: '#0d0b1a' }}>
 
                 {/* ── 상단 헤더 배너 ─────────────────────── */}
-                <div className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #1a0f3a 0%, #0d0b1a 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    {/* 배경 데코 */}
+                <div className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #030108 0%, #0d0b1a 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <div className="absolute inset-0 pointer-events-none">
                         <div className="absolute top-0 right-0 w-[500px] h-[300px] opacity-20"
                             style={{ background: 'radial-gradient(ellipse at 100% 0%, #7c3aed 0%, transparent 60%)' }} />
                     </div>
-                    <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-10 flex items-end gap-8">
-                        <div>
-                            <p className="text-violet-400/70 text-[12px] font-bold tracking-[0.3em] uppercase mb-2">업데이트는 매일, 설렘은 매주</p>
-                            <h1 className="text-white font-black text-4xl sm:text-5xl tracking-tight mb-3">요일별 업데이트</h1>
-                            <p className="text-white/40 text-[15px]">새롭게 공개되는 작품을 요일별로 확인해보세요!</p>
-                        </div>
+                    <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                        <p className="text-violet-400/70 text-[12px] font-bold tracking-[0.3em] uppercase mb-2">업데이트는 매일, 설렘은 매주</p>
+                        <h1 className="text-white font-black text-4xl sm:text-5xl tracking-tight mb-3">요일별 업데이트</h1>
+                        <p className="text-white/40 text-[15px]">새롭게 공개되는 작품을 요일별로 확인해보세요!</p>
                     </div>
 
                     {/* ── 요일 탭 바 ─────────────────────────── */}
@@ -334,7 +231,6 @@ export default function Page() {
                                         className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-5 relative border-none cursor-pointer transition-all duration-200 bg-transparent"
                                         style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.35)' }}
                                     >
-                                        {/* 아이콘 원 */}
                                         <div className="w-9 h-9 rounded-full flex items-center justify-center text-[16px] font-bold transition-all duration-200"
                                             style={{
                                                 background: isActive ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'rgba(255,255,255,0.05)',
@@ -344,20 +240,17 @@ export default function Page() {
                                         </div>
                                         <span className="text-[14px] font-black tracking-wide">{d.label}</span>
                                         <span className="text-[10px] font-bold tracking-[0.15em] opacity-60">{d.eng}</span>
-                                        {/* 오늘 점 */}
-                                        {isToday && (
-                                            <span className="absolute top-3 right-[calc(50%-18px)] w-1.5 h-1.5 rounded-full bg-violet-400" />
-                                        )}
-                                        {/* 활성 인디케이터 */}
-                                        {isActive && (
-                                            <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full"
-                                                style={{ background: 'linear-gradient(90deg,#7c3aed,#a78bfa)' }} />
-                                        )}
+                                        {isToday && <span className="absolute top-3 right-[calc(50%-18px)] w-1.5 h-1.5 rounded-full bg-violet-400" />}
+                                        {isActive && <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full" style={{ background: 'linear-gradient(90deg,#7c3aed,#a78bfa)' }} />}
                                     </button>
                                 )
                             })}
+
                             {/* 전체 일정 버튼 */}
-                            <button className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-5 border-none cursor-pointer bg-transparent text-white/25 hover:text-white/50 transition-colors">
+                            <button
+                                onClick={() => setShowCalendar(true)}
+                                className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-5 border-none cursor-pointer bg-transparent text-white/25 hover:text-white/50 transition-colors"
+                            >
                                 <div className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10" style={{ background: 'rgba(255,255,255,0.03)' }}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
@@ -372,19 +265,11 @@ export default function Page() {
 
                 {/* ── 메인 콘텐츠 영역 ───────────────────────── */}
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-                    {/* 요일 타이틀 + 부제 */}
                     <div className="flex items-center gap-3 mb-6">
-                        <h2 className="text-white font-black text-2xl sm:text-3xl">
-                            {DAYS[activeDay]?.label}요일 업데이트
-                        </h2>
-                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-violet-600/80 text-white tracking-widest">
-                            {DAYS[activeDay]?.eng}
-                        </span>
+                        <h2 className="text-white font-black text-2xl sm:text-3xl">{DAYS[activeDay]?.label}요일 업데이트</h2>
+                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-violet-600/80 text-white tracking-widest">{DAYS[activeDay]?.eng}</span>
                         {activeDay === todayIdx && (
-                            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-violet-400/40 text-violet-300/80 bg-violet-500/10 tracking-widest">
-                                오늘 날짜
-                            </span>
+                            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-violet-400/40 text-violet-300/80 bg-violet-500/10 tracking-widest">오늘 날짜</span>
                         )}
                         <div className="flex-1" />
                         <button className="text-[13px] text-white/40 hover:text-white/70 flex items-center gap-1 transition-colors border-none bg-transparent cursor-pointer">
@@ -394,62 +279,42 @@ export default function Page() {
                     </div>
                     <p className="text-white/40 text-[14px] mb-8 -mt-4">{DAY_SUBTITLES[activeDay]}</p>
 
-                    {/* 피처드 카드 + 오늘 새로 공개된 작품 */}
                     <div className="flex gap-6 items-start">
-
-                        {/* 왼쪽: 피처드 */}
                         <div className="shrink-0">
                             {tabLoading
                                 ? <SkeletonFeatured />
                                 : featured
                                     ? <FeaturedCard ani={featured} />
-                                    : <div className="rounded-2xl flex items-center justify-center text-white/20 text-sm shrink-0"
-                                        style={{ width: 360, aspectRatio: '3/4', background: '#1a1530' }}>
-                                        방영 정보 없음
-                                    </div>
+                                    : <div className="rounded-2xl flex items-center justify-center text-white/20 text-sm shrink-0" style={{ width: 360, aspectRatio: '3/4', background: '#1a1530' }}>방영 정보 없음</div>
                             }
                         </div>
 
-                        {/* 오른쪽: 헤더 + 스크롤 카드 */}
                         <div className="flex-1 min-w-0 flex flex-col" style={{ alignSelf: 'stretch' }}>
-                            {/* 헤더 */}
                             <div className="flex items-center gap-2 mb-4">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-violet-400">
                                     <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
                                 </svg>
                                 <span className="text-white font-bold text-[15px]">오늘 새로 공개된 작품</span>
-                                <span className="text-[12px] text-white/40 font-bold px-2 py-0.5 rounded-full bg-white/5">
-                                    {tabLoading ? '…' : rest.length}
-                                </span>
+                                <span className="text-[12px] text-white/40 font-bold px-2 py-0.5 rounded-full bg-white/5">{tabLoading ? '…' : rest.length}</span>
                                 <div className="flex-1" />
-                                {/* 스크롤 버튼 */}
-                                <button onClick={() => scroll('left')}
-                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer">
+                                <button onClick={() => scroll('left')} className="w-7 h-7 rounded-full flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                                 </button>
-                                <button onClick={() => scroll('right')}
-                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer">
+                                <button onClick={() => scroll('right')} className="w-7 h-7 rounded-full flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
                                 </button>
                             </div>
 
-                            {/* 카드 2행 그리드 스크롤 */}
                             <div className="flex-1 overflow-hidden">
                                 {tabLoading ? (
                                     <ul ref={scrollRef} className="flex gap-3 overflow-x-auto hide-scroll pb-2 flex-wrap" style={{ maxHeight: 480 }}>
                                         {Array.from({ length: 8 }).map((_, i) => <SkeletonSmall key={i} />)}
                                     </ul>
                                 ) : rest.length === 0 ? (
-                                    <div className="flex items-center justify-center h-full text-white/20 text-sm py-16">
-                                        방영 정보가 없어요
-                                    </div>
+                                    <div className="flex items-center justify-center h-full text-white/20 text-sm py-16">방영 정보가 없어요</div>
                                 ) : (
                                     <ul ref={scrollRef} className="grid gap-3 overflow-x-auto hide-scroll pb-2"
-                                        style={{
-                                            gridTemplateRows: 'repeat(2, auto)',
-                                            gridAutoFlow: 'column',
-                                            gridAutoColumns: '148px',
-                                        }}>
+                                        style={{ gridTemplateRows: 'repeat(2, auto)', gridAutoFlow: 'column', gridAutoColumns: '148px' }}>
                                         {rest.slice(0, 12).map(ani => <SmallCard key={ani.id} ani={ani} />)}
                                     </ul>
                                 )}
@@ -457,31 +322,15 @@ export default function Page() {
                         </div>
                     </div>
                 </div>
-
-                {/* ── 이번 주 업데이트 미리보기 바 ───────────── */}
-                <div style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(15,10,35,0.8) 100%)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center gap-4 py-4 border-b border-white/[0.04]">
-                            <div className="shrink-0">
-                                <p className="text-white font-black text-[15px]">이번 주 업데이트 미리보기</p>
-                                <p className="text-white/30 text-[12px]">다음 업데이트를 놓치지 마세요!</p>
-                            </div>
-                            <div className="flex-1 flex overflow-x-auto hide-scroll divide-x divide-white/[0.05]">
-                                {weekPreviewDates.map(({ dayIdx, date }) => (
-                                    <WeekPreviewItem
-                                        key={dayIdx}
-                                        dayIdx={dayIdx}
-                                        date={date}
-                                        items={weekPreview[dayIdx] ?? []}
-                                        isToday={dayIdx === todayIdx}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
+
+            {/* ── 캘린더 모달 ───────────────────────────── */}
+            {showCalendar && (
+                <CalendarModal
+                    onClose={() => setShowCalendar(false)}
+                    onSelectDate={handleCalendarSelect}
+                />
+            )}
         </>
     )
 }
