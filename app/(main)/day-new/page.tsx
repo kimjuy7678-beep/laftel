@@ -1,3 +1,5 @@
+// page.jsx 전체 교체
+
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
@@ -18,8 +20,13 @@ const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
 
 const DAYS = [
-    { id: 0, label: '월' }, { id: 1, label: '화' }, { id: 2, label: '수' },
-    { id: 3, label: '목' }, { id: 4, label: '금' }, { id: 5, label: '토' }, { id: 6, label: '일' },
+    { id: 0, label: '월', eng: 'MON', icon: '✦' },
+    { id: 1, label: '화', eng: 'TUE', icon: '◐' },
+    { id: 2, label: '수', eng: 'WED', icon: '◈' },
+    { id: 3, label: '목', eng: 'THU', icon: '◉' },
+    { id: 4, label: '금', eng: 'FRI', icon: '✸' },
+    { id: 5, label: '토', eng: 'SAT', icon: '◎' },
+    { id: 6, label: '일', eng: 'SUN', icon: '☁' },
 ]
 
 const GENRE_MAP: Record<number, string> = {
@@ -28,51 +35,15 @@ const GENRE_MAP: Record<number, string> = {
     10765: 'SF·판타지', 10762: '어린이',
 }
 
-const QUOTES = [
-    { text: "강해지고 싶다면, 먼저 자신을 믿어라.", from: "— 귀멸의 칼날" },
-    { text: "포기하는 건 죽는 것보다 무서운 일이야.", from: "— 나루토" },
-    { text: "이 세계는 잔인하지. 하지만 그래서 아름다워.", from: "— 진격의 거인" },
-    { text: "사람은 언제 죽는가? 사람들에게 잊혀졌을 때.", from: "— 원피스" },
-    { text: "꿈을 꾸는 걸 멈추는 순간, 진짜 죽는 거야.", from: "— 블리치" },
-    { text: "괜찮아. 왜냐하면 내가 여기 있으니까.", from: "— 나의 히어로 아카데미아" },
-    { text: "후회하지 않으려면, 지금 이 순간을 살아야 해.", from: "— 소드 아트 온라인" },
-    { text: "강함이란 남을 이기는 것이 아니라, 어제의 자신을 이기는 것.", from: "— 드래곤볼" },
-    { text: "혼자라서 무서운 게 아니야. 중요한 걸 잃는 게 무서운 거야.", from: "— 페어리 테일" },
-    { text: "세상이 어떻게 되든, 나는 내 친구를 지킨다.", from: "— 헌터x헌터" },
-    { text: "살아있다는 건, 누군가에게 영향을 준다는 거야.", from: "— 코드 기아스" },
-    { text: "눈물을 흘려도 괜찮아. 그게 살아있다는 증거니까.", from: "— 클라나드" },
+const DAY_SUBTITLES = [
+    '셀레는 한 주의 시작! 새로운 이야기가 찾아옵니다.',
+    '화요일의 지루함, 애니로 날려버려!',
+    '수요일의 힘! 주중 반환점 애니와 함께',
+    '목요일도 버텨! 주말이 코앞이야',
+    '불금엔 애니메이션과 함께 달려!',
+    '토요일 정주행 시작! 오늘은 몇 편?',
+    '일요일엔 느긋하게 애니 한 편 어때?',
 ]
-
-// 별자리 별 좌표 (12개, 각 별자리 고유 패턴)
-const CONSTELLATIONS: Record<string, { name: string; label: string; stars: { x: number; y: number; r: number }[]; lines: [number, number][] }> = {
-    aries: { name: '양자리', label: '♈', stars: [{ x: 50, y: 30, r: 3 }, { x: 70, y: 45, r: 2.5 }, { x: 95, y: 38, r: 3.5 }, { x: 115, y: 28, r: 2 }, { x: 130, y: 42, r: 2.5 }], lines: [[0, 1], [1, 2], [2, 3], [3, 4]] },
-    taurus: { name: '황소자리', label: '♉', stars: [{ x: 40, y: 55, r: 2 }, { x: 55, y: 40, r: 2.5 }, { x: 75, y: 30, r: 3.5 }, { x: 100, y: 35, r: 2 }, { x: 120, y: 25, r: 2.5 }, { x: 80, y: 55, r: 2 }], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [2, 5], [5, 0]] },
-    gemini: { name: '쌍둥이자리', label: '♊', stars: [{ x: 40, y: 20, r: 3.5 }, { x: 45, y: 40, r: 2 }, { x: 50, y: 60, r: 2.5 }, { x: 50, y: 78, r: 2 }, { x: 110, y: 20, r: 3 }, { x: 115, y: 40, r: 2 }, { x: 115, y: 60, r: 2.5 }, { x: 112, y: 78, r: 2 }, { x: 78, y: 50, r: 1.5 }], lines: [[0, 1], [1, 2], [2, 3], [4, 5], [5, 6], [6, 7], [1, 8], [5, 8]] },
-    cancer: { name: '게자리', label: '♋', stars: [{ x: 60, y: 25, r: 2.5 }, { x: 45, y: 50, r: 2 }, { x: 80, y: 55, r: 3.5 }, { x: 115, y: 50, r: 2 }, { x: 100, y: 25, r: 2.5 }], lines: [[0, 2], [1, 2], [2, 3], [2, 4]] },
-    leo: { name: '사자자리', label: '♌', stars: [{ x: 50, y: 70, r: 3.5 }, { x: 40, y: 50, r: 2.5 }, { x: 55, y: 30, r: 2 }, { x: 80, y: 22, r: 3 }, { x: 105, y: 28, r: 2 }, { x: 120, y: 50, r: 2.5 }, { x: 105, y: 65, r: 2 }, { x: 75, y: 72, r: 2.5 }], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 0]] },
-    virgo: { name: '처녀자리', label: '♍', stars: [{ x: 45, y: 25, r: 2 }, { x: 65, y: 18, r: 2.5 }, { x: 90, y: 22, r: 3.5 }, { x: 110, y: 35, r: 2 }, { x: 120, y: 55, r: 2.5 }, { x: 90, y: 65, r: 2 }, { x: 65, y: 58, r: 2.5 }, { x: 45, y: 68, r: 2 }], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 1], [6, 7]] },
-    libra: { name: '천칭자리', label: '♎', stars: [{ x: 45, y: 65, r: 2.5 }, { x: 80, y: 70, r: 3.5 }, { x: 115, y: 65, r: 2.5 }, { x: 80, y: 40, r: 2 }, { x: 55, y: 25, r: 2 }, { x: 105, y: 25, r: 2 }], lines: [[0, 1], [1, 2], [1, 3], [3, 4], [3, 5]] },
-    scorpio: { name: '전갈자리', label: '♏', stars: [{ x: 35, y: 30, r: 2.5 }, { x: 55, y: 25, r: 3.5 }, { x: 75, y: 30, r: 2 }, { x: 90, y: 42, r: 2.5 }, { x: 100, y: 55, r: 2 }, { x: 105, y: 68, r: 2.5 }, { x: 118, y: 75, r: 2 }, { x: 125, y: 65, r: 2 }, { x: 130, y: 55, r: 1.5 }], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8]] },
-    sagittarius: { name: '사수자리', label: '♐', stars: [{ x: 50, y: 70, r: 2.5 }, { x: 70, y: 55, r: 2 }, { x: 60, y: 35, r: 2.5 }, { x: 80, y: 25, r: 3.5 }, { x: 100, y: 35, r: 2 }, { x: 120, y: 55, r: 2.5 }, { x: 105, y: 70, r: 2 }, { x: 90, y: 50, r: 2 }], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 1], [1, 7], [7, 3]] },
-    capricorn: { name: '염소자리', label: '♑', stars: [{ x: 40, y: 30, r: 2.5 }, { x: 65, y: 22, r: 3.5 }, { x: 90, y: 30, r: 2.5 }, { x: 115, y: 40, r: 2 }, { x: 120, y: 60, r: 2.5 }, { x: 95, y: 70, r: 2 }, { x: 65, y: 68, r: 2.5 }, { x: 40, y: 55, r: 2 }], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 0], [0, 6]] },
-    aquarius: { name: '물병자리', label: '♒', stars: [{ x: 35, y: 40, r: 2.5 }, { x: 60, y: 30, r: 2 }, { x: 80, y: 38, r: 3.5 }, { x: 105, y: 30, r: 2 }, { x: 125, y: 40, r: 2.5 }, { x: 50, y: 60, r: 2 }, { x: 75, y: 55, r: 2.5 }, { x: 100, y: 62, r: 2 }], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [5, 6], [6, 7], [2, 6]] },
-    pisces: { name: '물고기자리', label: '♓', stars: [{ x: 35, y: 35, r: 3 }, { x: 50, y: 22, r: 2 }, { x: 65, y: 30, r: 2.5 }, { x: 80, y: 50, r: 2 }, { x: 95, y: 30, r: 2.5 }, { x: 110, y: 22, r: 2 }, { x: 125, y: 35, r: 3 }, { x: 80, y: 65, r: 1.5 }], lines: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [0, 7], [6, 7]] },
-}
-
-function getConstellationByDate(month: number, day: number): string {
-    if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'aries'
-    if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'taurus'
-    if ((month === 5 && day >= 21) || (month === 6 && day <= 21)) return 'gemini'
-    if ((month === 6 && day >= 22) || (month === 7 && day <= 22)) return 'cancer'
-    if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'leo'
-    if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'virgo'
-    if ((month === 9 && day >= 23) || (month === 10 && day <= 23)) return 'libra'
-    if ((month === 10 && day >= 24) || (month === 11 && day <= 21)) return 'scorpio'
-    if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'sagittarius'
-    if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'capricorn'
-    if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'aquarius'
-    return 'pisces'
-}
 
 function jsDateDayToTabIdx(jsDay: number) { return jsDay === 0 ? 6 : jsDay - 1 }
 
@@ -88,21 +59,17 @@ function getWeekDates() {
     })
 }
 
-function getYesterday() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10) }
-function getToday() { return new Date().toISOString().slice(0, 10) }
-
-function seededShuffle<T>(arr: T[], seed: number): T[] {
-    const a = [...arr]; let s = seed
-    for (let i = a.length - 1; i > 0; i--) {
-        s = (s * 1664525 + 1013904223) & 0xffffffff
-        const j = Math.abs(s) % (i + 1);[a[i], a[j]] = [a[j], a[i]]
-    }
-    return a
-}
-
-function dateSeed() {
-    const d = new Date()
-    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()
+function getWeekPreviewDates() {
+    const today = new Date()
+    const jsDay = today.getDay()
+    const diff = jsDay === 0 ? -6 : 1 - jsDay
+    const monday = new Date(today)
+    monday.setDate(today.getDate() + diff)
+    // 화~일 (index 1~6)
+    return Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(monday); d.setDate(monday.getDate() + i + 1)
+        return { date: d.toISOString().slice(0, 10), dayIdx: i + 1 }
+    })
 }
 
 async function fetchAniByDate(date: string, pages = 2): Promise<AniItem[]> {
@@ -111,312 +78,186 @@ async function fetchAniByDate(date: string, pages = 2): Promise<AniItem[]> {
         const url = `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=16&with_original_language=ja&air_date.gte=${date}&air_date.lte=${date}&sort_by=popularity.desc&language=ko-KR&page=${page}`
         const res = await fetch(url)
         const data = await res.json()
-        if (data.status_message) console.error('TMDB error:', data.status_message)
         if (!data.results?.length) break
         results = [...results, ...data.results]
     }
     return results
 }
 
-// ─── 호버 패널 ─────────────────────────────────────
-function HoverPanel({ ani }: { ani: AniItem }) {
+// ─── 피처드 카드 (왼쪽 대형) ───────────────────────
+function FeaturedCard({ ani }: { ani: AniItem }) {
     const backdrop = ani.backdrop_path ? `${IMG}/w780${ani.backdrop_path}` : null
-    const genres = ani.genre_ids.map(g => GENRE_MAP[g]).filter(Boolean).slice(0, 2)
+    const poster = ani.poster_path ? `${IMG}/w342${ani.poster_path}` : null
+    const score = Math.round(ani.vote_average * 10) / 10
+    const genres = ani.genre_ids.map(g => GENRE_MAP[g]).filter(Boolean).slice(0, 3)
+
     return (
-        <div
-            className="absolute top-0 left-1/2 w-60 rounded-2xl overflow-hidden z-[200] border border-white/[0.08]"
-            style={{
-                transform: 'translateX(-50%)',
-                animation: 'panelIn 0.18s cubic-bezier(0.34,1.4,0.64,1)',
-                background: 'rgba(18,18,24,0.96)',
-                backdropFilter: 'blur(20px)',
-                boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
-            }}
-        >
-            {backdrop
-                ? <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                    <img src={backdrop} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 40%, rgba(18,18,24,0.98))' }} />
+        <Link href={`/anime/${ani.id}`}
+            className="relative block rounded-2xl overflow-hidden cursor-pointer group shrink-0"
+            style={{ width: 360, aspectRatio: '3/4', background: '#1a1530' }}>
+            {(backdrop || poster)
+                ? <img
+                    src={backdrop || poster || ''}
+                    alt={ani.name}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                : <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-6xl font-black text-white/10">{ani.name[0]}</span>
                 </div>
-                : <div className="w-full" style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }} />
             }
-            <div className="px-4 pb-4 pt-2.5">
-                <p className="text-[13px] font-semibold text-white/90 leading-snug mb-2">{ani.name}</p>
+            {/* 그라데이션 오버레이 */}
+            <div className="absolute inset-0"
+                style={{ background: 'linear-gradient(to top, rgba(10,8,20,0.98) 0%, rgba(10,8,20,0.5) 45%, rgba(10,8,20,0.15) 100%)' }} />
+
+            {/* NEW 뱃지 */}
+            <span className="absolute top-4 left-4 text-[11px] font-bold tracking-widest px-3 py-1 rounded-full bg-violet-600 text-white z-10">
+                NEW
+            </span>
+
+            {/* 하단 정보 */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
                 {genres.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
+                    <div className="flex flex-wrap gap-1.5 mb-3">
                         {genres.map(g => (
-                            <span key={g} className="text-[10px] text-violet-300/70 border border-violet-400/20 rounded-full px-2 py-0.5 tracking-wide">
+                            <span key={g} className="text-[11px] text-white/60 border border-white/20 rounded-full px-2.5 py-0.5">
                                 {g}
                             </span>
                         ))}
                     </div>
                 )}
-                <p className="text-[11px] text-white/35 leading-relaxed mb-3">
-                    {ani.overview ? ani.overview.slice(0, 75) + (ani.overview.length > 75 ? '…' : '') : '줄거리 정보가 없습니다.'}
+                <p className="text-white font-black text-[22px] leading-tight mb-2">{ani.name}</p>
+                <p className="text-white/50 text-[12px] leading-relaxed line-clamp-2 mb-4">
+                    {ani.overview || '줄거리 정보가 없습니다.'}
                 </p>
-                <div className="flex gap-2">
-                    <button className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-xl text-white text-[12px] font-medium border-none cursor-pointer transition-all"
-                        style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>재생
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all cursor-pointer">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                    </button>
-                </div>
+                <button
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-[13px] font-semibold border-none cursor-pointer transition-all"
+                    style={{ background: 'linear-gradient(135deg,#7c3aed,#5b21b6)' }}
+                >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
+                    지금 보기
+                </button>
             </div>
-        </div>
+        </Link>
     )
 }
 
-// ─── 카드 공통 훅 ──────────────────────────────────
-function useHover() {
-    const [hovered, setHovered] = useState(false)
-    const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const onEnter = () => { timer.current = setTimeout(() => setHovered(true), 160) }
-    const onLeave = () => { if (timer.current) clearTimeout(timer.current); setHovered(false) }
-    return { hovered, onEnter, onLeave }
-}
-
-// ─── 슬라이드 카드 ─────────────────────────────────
-function SlideCard({ ani, w }: { ani: AniItem; w: number }) {
+// ─── 우측 작은 카드 ─────────────────────────────────
+function SmallCard({ ani }: { ani: AniItem }) {
     const poster = ani.poster_path ? `${IMG}/w342${ani.poster_path}` : null
     const score = Math.round(ani.vote_average * 10) / 10
     const genres = ani.genre_ids.map(g => GENRE_MAP[g]).filter(Boolean).slice(0, 2)
+
     return (
-        <Link href={`/anime/${ani.id}`} className="relative cursor-pointer group shrink-0 block" style={{ width: w }}>
-            <div className="relative overflow-hidden rounded-xl" style={{ width: w, aspectRatio: '2/3', background: '#1e1b4b' }}>
+        <Link href={`/anime/${ani.id}`}
+            className="relative block rounded-xl overflow-hidden cursor-pointer group shrink-0"
+            style={{ width: 148, background: '#1a1530' }}>
+            <div className="relative overflow-hidden rounded-xl" style={{ aspectRatio: '2/3' }}>
                 {poster
-                    ? <img src={poster} alt={ani.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    : <div className="w-full h-full flex items-center justify-center"><span className="text-3xl font-black text-white/10">{ani.name[0]}</span></div>
+                    ? <img src={poster} alt={ani.name} loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    : <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-2xl font-black text-white/10">{ani.name[0]}</span>
+                    </div>
                 }
-                {/* 내부 오버레이 */}
-                <div className="absolute inset-0 flex flex-col justify-end p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"
+                <div className="absolute inset-0 flex flex-col justify-end p-2.5 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"
                     style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)' }}>
-                    <p className="text-white text-[11px] font-semibold leading-snug line-clamp-2 mb-1">{ani.name}</p>
+                    <p className="text-white text-[10px] font-semibold leading-snug line-clamp-2 mb-1">{ani.name}</p>
                     {genres.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-1">
+                        <div className="flex flex-wrap gap-1">
                             {genres.map(g => <span key={g} className="text-[9px] text-white/50 border border-white/15 rounded-full px-1.5 py-0.5">{g}</span>)}
                         </div>
                     )}
-                    {score > 0 && <span className="text-[10px] font-semibold text-amber-400/90">★ {score}</span>}
                 </div>
-                {/* 평소 점수 뱃지 */}
                 {score > 0 && (
-                    <span className="absolute bottom-2 left-2.5 text-[11px] font-semibold text-amber-400/90 group-hover:opacity-0 transition-opacity">
+                    <span className="absolute bottom-2 left-2.5 text-[10px] font-semibold text-amber-400/90 group-hover:opacity-0 transition-opacity">
                         ★ {score}
                     </span>
                 )}
+                <span className="absolute top-2 left-2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-600 text-white tracking-wider">NEW</span>
             </div>
-            <p className="mt-2 text-[11px] font-medium leading-snug line-clamp-1 text-white/50" style={{ width: w }}>{ani.name}</p>
+            <p className="mt-1.5 px-0.5 text-[11px] font-medium leading-snug line-clamp-1 text-white/55">{ani.name}</p>
+            <p className="text-[10px] text-white/25 mt-0.5">{ani.first_air_date?.slice(0, 10) || ''}</p>
         </Link>
     )
 }
 
-// ─── 최근 업데이트 카드 ────────────────────────────
-function RecentCard({ ani, dayLabel, featured = false }: { ani: AniItem & { _date?: string }; dayLabel: string; featured?: boolean }) {
-    const poster = ani.poster_path ? `${IMG}/w342${ani.poster_path}` : null
-    const backdrop = ani.backdrop_path ? `${IMG}/w780${ani.backdrop_path}` : null
-    const score = Math.round(ani.vote_average * 10) / 10
-    const isToday = ani._date === 'today'
-    const genres = ani.genre_ids.map(g => GENRE_MAP[g]).filter(Boolean).slice(0, 2)
+// ─── 이번주 미리보기 바 아이템 ───────────────────────
+function WeekPreviewItem({ dayIdx, date, items, isToday }: {
+    dayIdx: number; date: string; items: AniItem[]; isToday: boolean
+}) {
+    const d = DAYS[dayIdx]
+    const thumb = items[0]?.poster_path ? `${IMG}/w92${items[0].poster_path}` : null
+    const thumb2 = items[1]?.poster_path ? `${IMG}/w92${items[1].poster_path}` : null
 
     return (
-        <Link href={`/anime/${ani.id}`} className="relative cursor-pointer group shrink-0 w-[160px] sm:w-[180px] md:w-[200px] block">
-            <div
-                className="relative overflow-hidden rounded-xl"
-                style={{
-                    aspectRatio: '1/1',
-                    background: '#1e1b4b',
-                    boxShadow: featured ? '0 0 0 2px rgba(139,92,246,0.8), 0 8px 32px rgba(109,40,217,0.4)' : 'none',
-                }}
-            >
-                {/* 이미지 — featured는 backdrop 우선 */}
-                {featured && backdrop
-                    ? <img src={backdrop} alt={ani.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    : poster
-                        ? <img src={poster} alt={ani.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                        : <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl font-black text-white/10">{ani.name[0]}</span></div>
-                }
-
-                {/* featured 전용 보라 글로우 */}
-                {featured && <div className="absolute inset-0 opacity-30" style={{ background: 'radial-gradient(ellipse at 0% 100%, rgba(109,40,217,0.8) 0%, transparent 60%)' }} />}
-
-                {/* 기본 그라데이션 */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                {/* 뱃지 */}
-                <span className={`absolute top-2 left-2 text-[9px] font-bold px-2 py-0.5 rounded-full tracking-wider z-10 ${isToday ? 'bg-violet-500 text-white' : 'bg-white/10 text-white/50'}`}>
-                    {isToday ? 'TODAY' : 'YEST'}
+        <div className="flex-1 min-w-[120px] flex flex-col items-center gap-2 py-4 px-2 relative">
+            {isToday && (
+                <div className="absolute inset-0 rounded-xl border border-violet-500/40 bg-violet-500/5 pointer-events-none" />
+            )}
+            <div className="flex flex-col items-center gap-0.5 mb-1">
+                <span className={`text-[11px] font-bold tracking-widest ${isToday ? 'text-violet-400' : 'text-white/30'}`}>
+                    {d.eng}
                 </span>
-
-                {/* 기본 정보 */}
-                <div className="absolute bottom-0 left-0 right-0 p-2.5 z-10 group-hover:opacity-0 transition-opacity duration-200">
-                    {score > 0 && <span className="text-[11px] font-semibold text-amber-400/90">★ {score}</span>}
-                </div>
-
-                {/* 호버 오버레이 */}
-                <div className="absolute inset-0 flex flex-col justify-end p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-10"
-                    style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 60%, transparent 100%)' }}>
-                    <p className="text-white text-[11px] font-semibold leading-snug line-clamp-2 mb-1">{ani.name}</p>
-                    {featured && genres.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-1">
-                            {genres.map(g => <span key={g} className="text-[9px] text-white/45 border border-white/15 rounded-full px-1.5 py-0.5">{g}</span>)}
-                        </div>
-                    )}
-                    <p className="text-[9px] text-violet-300/60 tracking-wide">매주 {dayLabel}요일</p>
-                </div>
+                <span className={`text-[18px] font-black ${isToday ? 'text-white' : 'text-white/40'}`}>
+                    {d.label}
+                </span>
+                <span className="text-[10px] text-white/20">{date.slice(5)}</span>
             </div>
-            <p className="mt-2 text-[11px] font-medium leading-snug line-clamp-1 text-white/55">{ani.name}</p>
-            <p className="text-[10px] text-violet-400/50 mt-0.5 tracking-wide">매주 {dayLabel}요일</p>
-        </Link>
-    )
-}
-
-// ─── 그리드 카드 ───────────────────────────────────
-function GridCard({ ani }: { ani: AniItem }) {
-    const poster = ani.poster_path ? `${IMG}/w342${ani.poster_path}` : null
-    const score = Math.round(ani.vote_average * 10) / 10
-    const genres = ani.genre_ids.map(g => GENRE_MAP[g]).filter(Boolean).slice(0, 2)
-    return (
-        <Link href={`/anime/${ani.id}`} className="relative cursor-pointer group overflow-hidden rounded-xl block" style={{ aspectRatio: '2/3', background: '#1e1b4b' }}>
-            {poster
-                ? <img src={poster} alt={ani.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                : <div className="absolute inset-0 flex items-center justify-center"><span className="text-4xl font-black text-white/10">{ani.name[0]}</span></div>
-            }
-            {/* 호버 오버레이 — 카드 내부에서만 */}
-            <div className="absolute inset-0 flex flex-col justify-end p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"
-                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)' }}>
-                <p className="text-white text-[12px] font-semibold leading-snug line-clamp-2 mb-1.5">{ani.name}</p>
-                {genres.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-1.5">
-                        {genres.map(g => <span key={g} className="text-[9px] text-white/50 border border-white/15 rounded-full px-1.5 py-0.5">{g}</span>)}
-                    </div>
+            {/* 썸네일 2장 겹치기 */}
+            <div className="relative h-14 w-14">
+                {thumb2 && (
+                    <img src={thumb2} alt="" className="absolute top-1 left-1 w-12 h-12 object-cover rounded-lg opacity-50" style={{ transform: 'rotate(3deg)' }} />
                 )}
-                {score > 0 && <span className="text-[11px] font-semibold text-amber-400/90">★ {score}</span>}
+                {thumb
+                    ? <img src={thumb} alt="" className="absolute top-0 left-0 w-12 h-12 object-cover rounded-lg shadow-lg" />
+                    : <div className="absolute top-0 left-0 w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center">
+                        <span className="text-white/20 text-xs">-</span>
+                    </div>
+                }
             </div>
-        </Link>
+            <span className="text-[11px] text-white/40">신작 {items.length}개</span>
+        </div>
     )
 }
 
 // ─── 스켈레톤 ──────────────────────────────────────
-function SkeletonSlide({ w }: { w: number }) {
+function SkeletonSmall() {
     return (
-        <li className="shrink-0" style={{ width: w }}>
-            <div className="rounded-xl" style={{ width: w, aspectRatio: '2/3', background: 'linear-gradient(90deg,#1e1b4b 25%,#2e2a6b 50%,#1e1b4b 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite' }} />
-            <div className="mt-2 h-2.5 rounded-full" style={{ width: w * 0.65, background: 'linear-gradient(90deg,#1e1b4b 25%,#2e2a6b 50%,#1e1b4b 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite' }} />
+        <li className="shrink-0" style={{ width: 148 }}>
+            <div className="rounded-xl" style={{ width: 148, aspectRatio: '2/3', background: 'linear-gradient(90deg,#1e1b4b 25%,#2e2a6b 50%,#1e1b4b 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite' }} />
+            <div className="mt-1.5 h-2.5 rounded-full" style={{ width: 100, background: 'linear-gradient(90deg,#1e1b4b 25%,#2e2a6b 50%,#1e1b4b 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite' }} />
         </li>
     )
 }
 
-function SkeletonGrid() {
+function SkeletonFeatured() {
     return (
-        <li>
-            <div className="w-full rounded-xl" style={{ aspectRatio: '2/3', background: 'linear-gradient(90deg,rgba(255,255,255,0.06) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.06) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite' }} />
-        </li>
+        <div className="rounded-2xl shrink-0" style={{ width: 360, aspectRatio: '3/4', background: 'linear-gradient(90deg,#1e1b4b 25%,#2e2a6b 50%,#1e1b4b 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite' }} />
     )
 }
 
-// ─── 스크롤 버튼 ───────────────────────────────────
-function ScrollBtn({ dir, onClick }: { dir: 'left' | 'right'; onClick: () => void }) {
-    return (
-        <button onClick={onClick}
-            className="hidden md:flex absolute top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full items-center justify-center cursor-pointer transition-all border border-violet-500/30 bg-violet-950/60 hover:bg-violet-600/70 hover:border-violet-400/60 text-violet-400/60 hover:text-white"
-            style={{ [dir === 'left' ? 'left' : 'right']: -20 }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d={dir === 'left' ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6'} />
-            </svg>
-        </button>
-    )
-}
-
-// ─── 섹션 타이틀 ───────────────────────────────────
-function SectionTitle({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-white font-black text-xl sm:text-2xl tracking-tight flex items-center gap-1.5">
-                <span style={{ display: 'inline-block', animation: 'wiggle 1.2s ease-in-out infinite' }}>🔔</span>
-                {children}
-                <span className="text-violet-400">!</span>
-            </h2>
-            <span className="text-[11px] font-semibold tracking-widest uppercase px-2.5 py-1 rounded-full border border-violet-400/30 text-violet-300/80 bg-violet-500/10">
-                어제 · 오늘
-            </span>
-        </div>
-    )
-}
-
-// ─── 메인 ──────────────────────────────────────────
 export default function Page() {
     const weekDates = useRef<string[]>([])
     const todayTabIdxRef = useRef(0)
-    const seed = useRef(0)
 
     const [activeDay, setActiveDay] = useState(0)
     const [initialized, setInitialized] = useState(false)
     const [tabCache, setTabCache] = useState<Record<number, AniItem[]>>({})
     const [tabLoading, setTabLoading] = useState(false)
-    const [todayList, setTodayList] = useState<AniItem[]>([])
-    const [todayLoading, setTodayLoading] = useState(true)
-    const [recentList, setRecentList] = useState<(AniItem & { _date: string })[]>([])
-    const [recentLoading, setRecentLoading] = useState(true)
-    const [popularAni, setPopularAni] = useState<AniItem | null>(null)
-    const [quote, setQuote] = useState(QUOTES[0])
-    const [constellation, setConstellation] = useState(CONSTELLATIONS['pisces'])
+    const [weekPreview, setWeekPreview] = useState<Record<number, AniItem[]>>({})
+    const [weekPreviewDates, setWeekPreviewDates] = useState<{ date: string; dayIdx: number }[]>([])
 
-    const todayScrollRef = useRef<HTMLUListElement>(null)
-    const recentScrollRef = useRef<HTMLUListElement>(null)
+    const scrollRef = useRef<HTMLUListElement>(null)
 
-    // 클라이언트에서만 Date 계산
     useEffect(() => {
         weekDates.current = getWeekDates()
         todayTabIdxRef.current = jsDateDayToTabIdx(new Date().getDay())
-        seed.current = dateSeed()
         setActiveDay(todayTabIdxRef.current)
-        setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)])
-        const now = new Date()
-        setConstellation(CONSTELLATIONS[getConstellationByDate(now.getMonth() + 1, now.getDate())])
+        setWeekPreviewDates(getWeekPreviewDates())
         setInitialized(true)
     }, [])
 
-    const scroll = (ref: React.RefObject<HTMLUListElement | null>, dir: 'left' | 'right') => {
-        ref.current?.scrollBy({ left: dir === 'left' ? -400 : 400, behavior: 'smooth' })
-    }
-
-    useEffect(() => {
-        if (!initialized) return
-        const load = async () => {
-            setTodayLoading(true)
-            try {
-                const list = await fetchAniByDate(weekDates.current[todayTabIdxRef.current], 3)
-                setTodayList(list)
-                const sorted = [...list].sort((a, b) => b.vote_average - a.vote_average)
-                setPopularAni(sorted[0] || null)
-            } finally { setTodayLoading(false) }
-        }
-        load()
-    }, [initialized])
-
-    useEffect(() => {
-        if (!initialized) return
-        const load = async () => {
-            setRecentLoading(true)
-            try {
-                const [todayItems, yestItems] = await Promise.all([
-                    fetchAniByDate(getToday(), 2),
-                    fetchAniByDate(getYesterday(), 2),
-                ])
-                const merged = [
-                    ...todayItems.map(a => ({ ...a, _date: 'today' })),
-                    ...yestItems
-                        .filter(a => !todayItems.find(t => t.id === a.id))
-                        .map(a => ({ ...a, _date: 'yesterday' })),
-                ]
-                setRecentList(merged)
-            } finally { setRecentLoading(false) }
-        }
-        load()
-    }, [initialized])
-
+    // 현재 탭 데이터 로드
     useEffect(() => {
         if (!initialized) return
         if (tabCache[activeDay] !== undefined) return
@@ -430,179 +271,213 @@ export default function Page() {
         load()
     }, [activeDay, initialized])
 
+    // 이번주 미리보기 로드 (화~일)
+    useEffect(() => {
+        if (!initialized || weekPreviewDates.length === 0) return
+        const load = async () => {
+            const results: Record<number, AniItem[]> = {}
+            await Promise.all(
+                weekPreviewDates.map(async ({ date, dayIdx }) => {
+                    const list = await fetchAniByDate(date, 1)
+                    results[dayIdx] = list
+                })
+            )
+            setWeekPreview(results)
+        }
+        load()
+    }, [initialized, weekPreviewDates])
+
+    const scroll = (dir: 'left' | 'right') => {
+        scrollRef.current?.scrollBy({ left: dir === 'left' ? -400 : 400, behavior: 'smooth' })
+    }
+
     const tabList = tabCache[activeDay] ?? []
-    const todayLabel = DAYS[todayTabIdxRef.current]?.label || '오늘'
+    const featured = tabList[0] || null
+    const rest = tabList.slice(1)
+    const todayIdx = todayTabIdxRef.current
 
     return (
         <>
             <style>{`
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                @keyframes spinReverse { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
-                @keyframes wiggle {
-                    0%, 100% { transform: rotate(-8deg) scale(1); }
-                    25% { transform: rotate(8deg) scale(1.15); }
-                    50% { transform: rotate(-5deg) scale(1.05); }
-                    75% { transform: rotate(6deg) scale(1.1); }
-                }
-                @keyframes panelIn {
-                    from { opacity:0; transform:translateX(-50%) scale(.95) translateY(4px); }
-                    to   { opacity:1; transform:translateX(-50%) scale(1)   translateY(0); }
-                }
                 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
                 .hide-scroll::-webkit-scrollbar { display:none }
                 .hide-scroll { -ms-overflow-style:none; scrollbar-width:none }
-                .tab-btn::before, .tab-btn::after {
-                    content: '';
-                    position: absolute;
-                    left: 0; right: 0;
-                    height: 1px;
-                    background: rgba(255,255,255,0.07);
-                    transition: background 0.25s;
-                }
-                .tab-btn::before { top: 0; }
-                .tab-btn::after  { bottom: 0; }
-                .tab-btn:hover::before, .tab-btn:hover::after {
-                    background: rgba(255,255,255,0.45);
-                }
             `}</style>
 
-            <div className="pt-14 min-h-screen bg-[#0a0910] dark:bg-[#0a0910] text-white transition-colors">
+            <div className="pt-14 min-h-screen text-white" style={{ background: '#0d0b1a' }}>
 
-                {/* ── Today's Pick ─────────────────────────── */}
-                <section className="px-4 sm:px-6 lg:px-8 pt-10 pb-10 max-w-[1400px] mx-auto">
-                    <div className="flex items-start gap-6 sm:gap-10">
-
-                        {/* 요일 원형 + 명대사 */}
-                        <div className="shrink-0 flex flex-col items-center gap-5" style={{ width: 160 }}>
-                            <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
-                                {/* 바깥 싸이클 */}
-                                <div className="absolute rounded-full border border-violet-400/20"
-                                    style={{ width: 156, height: 156, animation: 'spin 8s linear infinite' }}>
-                                    <div className="absolute w-2.5 h-2.5 rounded-full bg-violet-400/60" style={{ top: -5, left: '50%', transform: 'translateX(-50%)' }} />
-                                    <div className="absolute w-1.5 h-1.5 rounded-full bg-violet-300/40" style={{ bottom: -4, right: '20%' }} />
-                                </div>
-                                {/* 안쪽 싸이클 */}
-                                {/* <div className="absolute rounded-full border border-violet-500/15"
-                                    style={{ width: 128, height: 128, animation: 'spinReverse 5s linear infinite' }}>
-                                    <div className="absolute w-2 h-2 rounded-full bg-violet-300/50" style={{ top: -4, right: '25%' }} />
-                                </div> */}
-                                {/* 뒤 남색 원 */}
-                                <div className="absolute rounded-full bg-[#1e1566]" style={{ width: 108, height: 108, top: 18, left: 8 }} />
-                                {/* 메인 원 */}
-                                <div className="relative rounded-full flex items-center justify-center font-black text-white text-3xl sm:text-4xl"
-                                    style={{ width: 112, height: 112, background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', boxShadow: '0 0 0 4px rgba(109,40,217,0.2), 0 12px 40px rgba(21, 0, 78, 0.6)' }}>
-                                    {todayLabel}
-                                </div>
-                            </div>
-
-                            {/* 명대사 — 오늘의 별자리 */}
-
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                            <div className="mb-5">
-                                <span className="text-[11px] font-bold tracking-[0.25em] uppercase text-violet-400/50 block mb-2">Today's Pick</span>
-                                <p className="text-white font-black text-2xl sm:text-3xl leading-tight tracking-tight">
-                                    {todayLabel}요일 방영
-                                    <span className="text-white/30 font-light text-xl sm:text-2xl ml-2">애니메이션</span>
-                                </p>
-                                <p className="text-[14px] sm:text-[15px] text-violet-300/70 mt-2 font-semibold">
-                                    {[
-                                        '월욜병 퇴치엔 애니메이션이 최고!',
-                                        '화요일의 지루함, 애니로 날려버려!',
-                                        '수요일의 힘! 주중 반환점 애니와 함께',
-                                        '목요일도 버텨! 주말이 코앞이야',
-                                        '불금엔 애니메이션과 함께 달려! 🔥',
-                                        '토요일 정주행 시작! 오늘은 몇 편?',
-                                        '일요일엔 느긋하게 애니 한 편 어때?',
-                                    ][todayTabIdxRef.current]}
-                                </p>
-                            </div>
-                            <div className="relative px-6">
-                                <ScrollBtn dir="left" onClick={() => scroll(todayScrollRef, 'left')} />
-                                <ul ref={todayScrollRef} className="flex gap-3 overflow-x-auto hide-scroll pb-1">
-                                    {todayLoading
-                                        ? Array.from({ length: 6 }).map((_, i) => <SkeletonSlide key={i} w={200} />)
-                                        : todayList.slice(0, 8).map(ani => <SlideCard key={ani.id} ani={ani} w={200} />)
-                                    }
-                                </ul>
-                                <ScrollBtn dir="right" onClick={() => scroll(todayScrollRef, 'right')} />
-                            </div>
+                {/* ── 상단 헤더 배너 ─────────────────────── */}
+                <div className="relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #1a0f3a 0%, #0d0b1a 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    {/* 배경 데코 */}
+                    <div className="absolute inset-0 pointer-events-none">
+                        <div className="absolute top-0 right-0 w-[500px] h-[300px] opacity-20"
+                            style={{ background: 'radial-gradient(ellipse at 100% 0%, #7c3aed 0%, transparent 60%)' }} />
+                    </div>
+                    <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-10 flex items-end gap-8">
+                        <div>
+                            <p className="text-violet-400/70 text-[12px] font-bold tracking-[0.3em] uppercase mb-2">업데이트는 매일, 설렘은 매주</p>
+                            <h1 className="text-white font-black text-4xl sm:text-5xl tracking-tight mb-3">요일별 업데이트</h1>
+                            <p className="text-white/40 text-[15px]">새롭게 공개되는 작품을 요일별로 확인해보세요!</p>
                         </div>
                     </div>
-                </section>
 
-                {/* 섹션 구분선 */}
-                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="border-t border-white/[0.04]" />
+                    {/* ── 요일 탭 바 ─────────────────────────── */}
+                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex overflow-x-auto hide-scroll border-t border-white/[0.06]">
+                            {DAYS.map(d => {
+                                const isActive = activeDay === d.id
+                                const isToday = d.id === todayIdx
+                                return (
+                                    <button
+                                        key={d.id}
+                                        onClick={() => setActiveDay(d.id)}
+                                        className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-5 relative border-none cursor-pointer transition-all duration-200 bg-transparent"
+                                        style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.35)' }}
+                                    >
+                                        {/* 아이콘 원 */}
+                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-[16px] font-bold transition-all duration-200"
+                                            style={{
+                                                background: isActive ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'rgba(255,255,255,0.05)',
+                                                color: isActive ? '#fff' : 'rgba(255,255,255,0.35)',
+                                            }}>
+                                            {d.icon}
+                                        </div>
+                                        <span className="text-[14px] font-black tracking-wide">{d.label}</span>
+                                        <span className="text-[10px] font-bold tracking-[0.15em] opacity-60">{d.eng}</span>
+                                        {/* 오늘 점 */}
+                                        {isToday && (
+                                            <span className="absolute top-3 right-[calc(50%-18px)] w-1.5 h-1.5 rounded-full bg-violet-400" />
+                                        )}
+                                        {/* 활성 인디케이터 */}
+                                        {isActive && (
+                                            <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full"
+                                                style={{ background: 'linear-gradient(90deg,#7c3aed,#a78bfa)' }} />
+                                        )}
+                                    </button>
+                                )
+                            })}
+                            {/* 전체 일정 버튼 */}
+                            <button className="flex-1 min-w-[80px] flex flex-col items-center gap-1.5 py-5 border-none cursor-pointer bg-transparent text-white/25 hover:text-white/50 transition-colors">
+                                <div className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                </div>
+                                <span className="text-[12px] font-semibold">전체 일정</span>
+                                <span className="text-[10px] font-bold tracking-[0.15em] opacity-60">캘린더 보기</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
+                {/* ── 메인 콘텐츠 영역 ───────────────────────── */}
+                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+                    {/* 요일 타이틀 + 부제 */}
+                    <div className="flex items-center gap-3 mb-6">
+                        <h2 className="text-white font-black text-2xl sm:text-3xl">
+                            {DAYS[activeDay]?.label}요일 업데이트
+                        </h2>
+                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-violet-600/80 text-white tracking-widest">
+                            {DAYS[activeDay]?.eng}
+                        </span>
+                        {activeDay === todayIdx && (
+                            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-violet-400/40 text-violet-300/80 bg-violet-500/10 tracking-widest">
+                                오늘 날짜
+                            </span>
+                        )}
+                        <div className="flex-1" />
+                        <button className="text-[13px] text-white/40 hover:text-white/70 flex items-center gap-1 transition-colors border-none bg-transparent cursor-pointer">
+                            전체 보기
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+                        </button>
+                    </div>
+                    <p className="text-white/40 text-[14px] mb-8 -mt-4">{DAY_SUBTITLES[activeDay]}</p>
 
+                    {/* 피처드 카드 + 오늘 새로 공개된 작품 */}
+                    <div className="flex gap-6 items-start">
 
-
-                {/* ── 요일 탭 + 그리드 ──────────────────────── */}
-                <div style={{ background: 'linear-gradient(160deg, #05010a 0%, #160b29 30%, #040307 90%, #120c1f 80%)' }}>
-
-                    {/* 인기 배너 */}
-                    {popularAni && (
-                        <div className="flex justify-center pt-4 pb-2 px-4">
-                            <div className="flex items-center gap-0">
-                                <img src="/images/daynow_emoji.png" alt="" className="w-24 h-24 sm:w-28 sm:h-28 object-contain shrink-0 relative z-10 -mr-1" style={{ filter: 'drop-shadow(0 4px 20px rgba(139,92,246,0.5))' }} />
-                                <div className="relative">
-                                    <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-3 rotate-45"
-                                        style={{ background: 'rgba(255,255,255,0.07)', borderLeft: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)' }} />
-                                    <div className="relative rounded-2xl rounded-l-none px-7 sm:px-9 py-3 border border-white/[0.08] border-l-0"
-                                        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(139,92,246,0.08) 100%)', backdropFilter: 'blur(24px)' }}>
-                                        <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-violet-300/40 mb-1">Today's Popular</p>
-                                        <p className="text-[14px] sm:text-[16px] font-medium text-white/80 whitespace-nowrap">
-                                            오늘 가장 인기있는 애니는{' '}
-                                            <span className="text-violet-300 font-bold">"{popularAni.name}"</span>
-                                            {' '}<span className="text-white/70">입니다</span>
-                                            {popularAni.vote_average > 0 && (
-                                                <span className="ml-3 text-[11px] text-amber-400/60 font-semibold">★ {Math.round(popularAni.vote_average * 10) / 10} · 오늘의 추천</span>
-                                            )}
-                                        </p>
+                        {/* 왼쪽: 피처드 */}
+                        <div className="shrink-0">
+                            {tabLoading
+                                ? <SkeletonFeatured />
+                                : featured
+                                    ? <FeaturedCard ani={featured} />
+                                    : <div className="rounded-2xl flex items-center justify-center text-white/20 text-sm shrink-0"
+                                        style={{ width: 360, aspectRatio: '3/4', background: '#1a1530' }}>
+                                        방영 정보 없음
                                     </div>
-                                </div>
+                            }
+                        </div>
+
+                        {/* 오른쪽: 헤더 + 스크롤 카드 */}
+                        <div className="flex-1 min-w-0 flex flex-col" style={{ alignSelf: 'stretch' }}>
+                            {/* 헤더 */}
+                            <div className="flex items-center gap-2 mb-4">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-violet-400">
+                                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+                                </svg>
+                                <span className="text-white font-bold text-[15px]">오늘 새로 공개된 작품</span>
+                                <span className="text-[12px] text-white/40 font-bold px-2 py-0.5 rounded-full bg-white/5">
+                                    {tabLoading ? '…' : rest.length}
+                                </span>
+                                <div className="flex-1" />
+                                {/* 스크롤 버튼 */}
+                                <button onClick={() => scroll('left')}
+                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
+                                </button>
+                                <button onClick={() => scroll('right')}
+                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
+                                </button>
+                            </div>
+
+                            {/* 카드 2행 그리드 스크롤 */}
+                            <div className="flex-1 overflow-hidden">
+                                {tabLoading ? (
+                                    <ul ref={scrollRef} className="flex gap-3 overflow-x-auto hide-scroll pb-2 flex-wrap" style={{ maxHeight: 480 }}>
+                                        {Array.from({ length: 8 }).map((_, i) => <SkeletonSmall key={i} />)}
+                                    </ul>
+                                ) : rest.length === 0 ? (
+                                    <div className="flex items-center justify-center h-full text-white/20 text-sm py-16">
+                                        방영 정보가 없어요
+                                    </div>
+                                ) : (
+                                    <ul ref={scrollRef} className="grid gap-3 overflow-x-auto hide-scroll pb-2"
+                                        style={{
+                                            gridTemplateRows: 'repeat(2, auto)',
+                                            gridAutoFlow: 'column',
+                                            gridAutoColumns: '148px',
+                                        }}>
+                                        {rest.slice(0, 12).map(ani => <SmallCard key={ani.id} ani={ani} />)}
+                                    </ul>
+                                )}
                             </div>
                         </div>
-                    )}
-                    {/* 탭 */}
-                    <div className="tabs-wrap max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex overflow-x-auto hide-scroll">
-                            {DAYS.map(d => (
-                                <button key={d.id} onClick={() => setActiveDay(d.id)}
-                                    className={[
-                                        'tab-btn flex-1 min-w-[40px] py-4 text-[13px] font-semibold border-none cursor-pointer transition-all duration-200 relative whitespace-nowrap bg-transparent tracking-wide',
-                                        activeDay === d.id ? 'text-white' : 'text-white/35 hover:text-white/60',
-                                    ].join(' ')}
-                                >
-                                    {d.label}
-                                    {activeDay === d.id && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-white/70 rounded-full" />}
-                                    {d.id === todayTabIdxRef.current && <span className="absolute top-2.5 right-[calc(50%-12px)] w-1 h-1 rounded-full bg-violet-400/70" />}
-                                </button>
-                            ))}
-                        </div>
                     </div>
+                </div>
 
-                    {/* 그리드 */}
-                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
-                        <ul className="list-none m-0 p-0 grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                            {tabLoading
-                                ? Array.from({ length: 10 }).map((_, i) => <SkeletonGrid key={i} />)
-                                : tabList.length === 0
-                                    ? (
-                                        <li className="col-span-full flex flex-col items-center justify-center py-24 gap-3">
-                                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-white/10">
-                                                <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" />
-                                            </svg>
-                                            <p className="text-[12px] text-white/20 tracking-wider">방영 정보가 없어요</p>
-                                        </li>
-                                    )
-                                    : tabList.map(ani => <GridCard key={ani.id} ani={ani} />)
-                            }
-                        </ul>
+                {/* ── 이번 주 업데이트 미리보기 바 ───────────── */}
+                <div style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(15,10,35,0.8) 100%)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center gap-4 py-4 border-b border-white/[0.04]">
+                            <div className="shrink-0">
+                                <p className="text-white font-black text-[15px]">이번 주 업데이트 미리보기</p>
+                                <p className="text-white/30 text-[12px]">다음 업데이트를 놓치지 마세요!</p>
+                            </div>
+                            <div className="flex-1 flex overflow-x-auto hide-scroll divide-x divide-white/[0.05]">
+                                {weekPreviewDates.map(({ dayIdx, date }) => (
+                                    <WeekPreviewItem
+                                        key={dayIdx}
+                                        dayIdx={dayIdx}
+                                        date={date}
+                                        items={weekPreview[dayIdx] ?? []}
+                                        isToday={dayIdx === todayIdx}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
