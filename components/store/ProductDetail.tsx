@@ -5,6 +5,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { arrayUnion, doc, setDoc } from "firebase/firestore";
+import { db } from "@/firebase/firebase";
+import { useAuthStore } from "@/store/useAuthStore";
+import CartAlert from "@/components/store/CartAlert";
+import LoginAlert from "@/components/store/LoginAlert";
 import type { StoreProduct } from "../../store/useStore"; // API 응답 → 정규화된 타입
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
@@ -49,6 +54,10 @@ const NOTICES = [
         body: "라프텔 공식 스토어(store.laftel.net) 외 피싱 사이트 이용으로 피해가 발생하지 않도록 주의해 주세요.",
     },
 ];
+
+function seriesHref(series: string) {
+    return `/store/series?series=${encodeURIComponent(series)}`;
+}
 
 // ─── productdetail 파싱 ───────────────────────────────────────────────────────
 type SpecRow = { label: string; value: string; highlight?: boolean; warn?: boolean };
@@ -267,7 +276,11 @@ export function ProductDetail({
     const [thumbOffset, setThumbOffset] = useState(0);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [selectedOption, setSelectedOption] = useState("");
+    const [showLogin, setShowLogin] = useState(false);
+    const [showCart, setShowCart] = useState(false);
+    const [cartLoading, setCartLoading] = useState(false);
     const swiperRef = useRef<HTMLDivElement>(null);
+    const { user } = useAuthStore();
 
     const handlePrev = () => setActiveImg((i) => (i - 1 + images.length) % images.length);
     const handleNext = () => setActiveImg((i) => (i + 1) % images.length);
@@ -292,9 +305,35 @@ export function ProductDetail({
     const optionValues = getOptionValues(product);
     const showOptionSelect = optionValues.length > 0 || product.title.includes("선택");
     const showSwiper = related.length > 5;
+    const displayTitle = product.title.replace("[예약]", "").trim();
+    const cartOption = selectedOption || optionValues[0];
+
+    const addToCart = async () => {
+        if (!user?.uid) {
+            setShowLogin(true);
+            return;
+        }
+
+        setCartLoading(true);
+        try {
+            await setDoc(doc(db, "users", user.uid), { cart: arrayUnion(product.productId) }, { merge: true });
+            setShowCart(true);
+        } finally {
+            setCartLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-white">
+            {showLogin && <LoginAlert onClose={() => setShowLogin(false)} />}
+            {showCart && (
+                <CartAlert
+                    title={displayTitle}
+                    thumbnail={product.thumbnail}
+                    option={cartOption}
+                    onClose={() => setShowCart(false)}
+                />
+            )}
             {lightboxOpen && (
                 <Lightbox images={images} startIndex={activeImg} onClose={() => setLightboxOpen(false)} />
             )}
@@ -302,7 +341,7 @@ export function ProductDetail({
             <main className="mx-auto max-w-[1600px] px-6 pt-[88px] pb-24">
 
                 {/* 상단: 이미지 + 정보 */}
-                <div className="flex flex-col  justify-center md:flex-row md:gap-16 ">
+                <div className="flex flex-col justify-center md:flex-row md:gap-24 xl:gap-36">
 
                     {/* 왼쪽: 이미지 */}
                     <div className="flex-shrink-0 md:w-[600px]">
@@ -384,7 +423,7 @@ export function ProductDetail({
 
                     {/* 오른쪽: 상품 정보 */}
                     <div className="flex-1 min-w-0 max-w-[460px]">
-                        <Link href={`/store/category/${product.category}`} className="inline-block text-[13px] text-[#6B5CE7] hover:underline mb-2">
+                        <Link href={seriesHref(product.category)} className="inline-block text-[13px] text-[#6B5CE7] hover:underline mb-2">
                             {product.category}
                         </Link>
 
@@ -473,7 +512,7 @@ export function ProductDetail({
                         {!product.soldout && (
                             <div className="flex items-center gap-4 mb-6">
                                 <span className="text-[13px] text-[#aaa] w-[90px]">수량</span>
-                                <div className="flex items-center border border-[#e0daf7] rounded-xl overflow-hidden">
+                                <div className="flex items-center border border-[#e0daf7] rounded-full overflow-hidden">
                                     <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-[#f5f3ff] transition-colors text-[#555]">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /></svg>
                                     </button>
@@ -500,15 +539,20 @@ export function ProductDetail({
                         )}
 
                         <div className="flex gap-3">
-                            <button disabled={product.soldout} className="flex-1 h-[52px] rounded-[14px] bg-[#826CFF] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                            <button disabled={product.soldout} className="flex-1 h-[52px] rounded-full bg-[#826CFF] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                                 {product.soldout ? "품절" : "구매하기"}
                             </button>
-                            <button disabled={product.soldout} className="h-[52px] px-5 rounded-[14px] border-2 border-[#826CFF] text-[#6B5CE7] text-[14px] font-bold hover:bg-[#f5f3ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={addToCart}
+                                disabled={product.soldout || cartLoading}
+                                className="h-[52px] px-5 rounded-full border-2 border-[#826CFF] text-[#6B5CE7] text-[14px] font-bold hover:bg-[#f5f3ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
                                     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                                 </svg>
-                                장바구니
+                                {cartLoading ? "담는 중" : "장바구니"}
                             </button>
                         </div>
                     </div>
@@ -563,7 +607,7 @@ export function ProductDetail({
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-[22px] font-bold text-[#111018]">연관상품</h2>
                             <div className="flex items-center gap-3">
-                                <Link href="/store" className="text-[13px] text-[#6B5CE7] hover:underline flex items-center gap-1">
+                                <Link href={seriesHref(product.category)} className="text-[13px] text-[#6B5CE7] hover:underline flex items-center gap-1">
                                     전체보기
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                                 </Link>
