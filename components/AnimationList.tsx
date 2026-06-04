@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
 import { AniItem } from '@/types/animation'
-import VideoPlayer from './Videoplayer'
+import VideoPlayer from './VideoPlayer'
 
 const GENRE_MAP: Record<number, string> = {
     16: '애니', 10759: '액션', 35: '코미디', 18: '드라마',

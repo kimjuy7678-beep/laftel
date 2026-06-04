@@ -1,10 +1,10 @@
 'use client'
-import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
 import { useEffect, useRef, useState } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation } from 'swiper/modules'
 import 'swiper/css'
+import { usePreviewStore } from '@/store/usePreviewStore'
 
 const POSTER_W = 340
 const POSTER_H = 510
@@ -24,7 +24,7 @@ const GENRE_MAP: Record<number, string> = {
 
 export default function Top10Section() {
     const { aniList, onFetchAni } = useAniStore()
-    const router = useRouter()
+    const { setPreviewId } = usePreviewStore()
     const prevRef = useRef<HTMLButtonElement>(null)
     const nextRef = useRef<HTMLButtonElement>(null)
     const [activeFilter, setActiveFilter] = useState<Filter>('실시간')
@@ -189,7 +189,7 @@ export default function Top10Section() {
                                     <div
                                         className="t10-card"
                                         style={{ height: POSTER_H + 60 }}
-                                        onClick={() => router.push(`/anime/${ani.id}`)}
+                                        onClick={() => setPreviewId(ani.id)}
                                     >
                                         <span className="t10-rank">{i + 1}</span>
                                         <div className="t10-thumb">
@@ -209,6 +209,6 @@ export default function Top10Section() {
                     </Swiper>
                 </div>
             </div>
-        </section>
+        </section >
     )
 }

@@ -1107,70 +1107,7 @@
         }
       ]
     },
-    {
-      "tmdbId": 91239,
-      "title": "Spy x Family",
-      "koTitle": "스파이 패밀리",
-      "emotionCluster": "healing",
-      "emotions": [
-        "따뜻함",
-        "개그",
-        "가족",
-        "힐링",
-        "귀여움"
-      ],
-      "recommendationLabels": [
-        "아냐 보러 보는 애니",
-        "가족 힐링물 1순위",
-        "지친 날 보기 딱 좋음"
-      ],
-      "moods": [
-        "스파이",
-        "가족",
-        "개그",
-        "힐링",
-        "귀여움"
-      ],
-      "tasteDNA": {
-        "storyImmersion": 80,
-        "emotionalDamage": 55,
-        "visualImpact": 85,
-        "rewatchability": 88,
-        "dopamine": 92
-      },
-      "userTypes": [
-        "힐링 추구형",
-        "캐릭터 과몰입형",
-        "감성 몰입형"
-      ],
-      "communityInsights": {
-        "commonReactions": [
-          "아냐가 너무 귀엽다",
-          "로이드 아빠 됩니다",
-          "요르 누나 팬 됨"
-        ],
-        "beginnerTips": [
-          "아냐 짤 알고 가기",
-          "가볍게 즐기면 됨"
-        ],
-        "recommendedEpisodes": [
-          "Episode 1",
-          "Episode 9"
-        ]
-      },
-      "legendaryScenes": [
-        {
-          "episode": 1,
-          "timestamp": "15:00",
-          "label": "🌸 아냐 첫 등장"
-        },
-        {
-          "episode": 9,
-          "timestamp": "19:00",
-          "label": "😭 로이드 아빠 됨"
-        }
-      ]
-    },
+    
     {
       "tmdbId": 203737,
       "title": "Oshi no Ko",

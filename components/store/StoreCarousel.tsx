@@ -43,7 +43,7 @@ const Banners: Banner[] = [
 export default function StoreCarousel() {
     return (
         <div className="w-full pt-[80px]">
-            <div className="max-w-[1600px] mx-auto px-4">  {/* 가운데 정렬 */}
+            <div className="max-w-[1770px] mx-auto px-4">  {/* 가운데 정렬 */}
                 <div className="relative flex items-center gap-4">
 
                     {/* 커스텀 prev 버튼 */}
