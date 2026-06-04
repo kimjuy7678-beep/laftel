@@ -9,7 +9,7 @@ import StoreSidebar from "@/components/store/StoreSliaebar";
 import FilterDropdown from "@/components/store/FilterDropdown";
 
 const ALL_PRODUCTS = products as StoreProduct[];
-const ITEMS_PER_PAGE = 16;
+const ITEMS_PER_PAGE = 20;
 const PAGE_GROUP = 5;
 
 function parsePrice(priceStr: string): number {
@@ -194,7 +194,7 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-4 gap-x-6 gap-y-10">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
                         {paginated.map((product) => (
                             <StoreProductCard key={product.productId} product={product} />
                         ))}

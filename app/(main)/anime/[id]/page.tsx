@@ -7,7 +7,7 @@ import SimilarPreviewModal from "./SimilarPreviewModal"
 import OstSectionDetail from "@/components/anime/OstSectionDetail"
 import SeasonSelect from "@/components/anime/SeasonSelect"
 import Button from "@/components/Button"
-import VideoPlayer from "@/components/Videoplayer"
+import VideoPlayer from "@/components/VideoPlayer"
 import EpisodeComments from "@/components/anime/Episodecomments"
 import Header from "@/components/Header"
 

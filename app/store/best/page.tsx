@@ -7,7 +7,7 @@ import StoreProductCard from "@/components/store/StoreProductCard";
 import StoreSidebar from "@/components/store/StoreSliaebar";
 import { BEST_PRODUCT_LIMIT, BEST_PRODUCTS } from "@/lib/storeBestRanking";
 
-const ITEMS_PER_PAGE = 16;
+const ITEMS_PER_PAGE = 20;
 const PAGE_GROUP = 5;
 const BEST_RANK_BY_ID = new Map(BEST_PRODUCTS.map((product, index) => [product.productId, index + 1]));
 
@@ -278,7 +278,7 @@ export default function BestPage() {
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-4 gap-x-6 gap-y-10">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
                         {paginated.map((product) => {
                             const rank = BEST_RANK_BY_ID.get(product.productId);
                             return (
