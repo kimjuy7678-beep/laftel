@@ -45,7 +45,7 @@ function seriesHref(series: string) {
 }
 
 function characterHref(series: string, character: string) {
-    return `/store/series?series=${encodeURIComponent(series)}&character=${encodeURIComponent(character)}`;
+    return `/store/series?series=${encodeURIComponent(series)}&search=${encodeURIComponent(character)}`;
 }
 
 const topProducts = BEST_PRODUCTS.slice(0, 5).map((p, i) =>
@@ -242,7 +242,7 @@ function TopProductCard({ product, rank }: { product: StoreMainProduct; rank: nu
 
 function BestTopSection() {
     return (
-        <section className="mt-24 bg-[#fafafa] py-20">
+        <section className="relative left-1/2 mt-24 w-screen -translate-x-1/2 bg-[#fafafa] py-20">
             <Inner>
                 <div className="mb-3 flex items-end justify-between">
                     <div>
@@ -277,10 +277,13 @@ function CharacterCard({ character }: { character: (typeof characterCollections)
         <Link href={characterHref(character.series, character.keyword)} className="group block min-w-0">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[14px] border border-[#ebe8ff] bg-[#f5f3ff]">
                 <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.04]"
+                    className="absolute inset-0 bg-cover transition-transform duration-300 group-hover:scale-[1.04]"
                     role="img"
                     aria-label={character.name}
-                    style={{ backgroundImage: `url(${character.imageSrc})` }}
+                    style={{
+                        backgroundImage: `url(${character.imageSrc})`,
+                        backgroundPosition: "center top",
+                    }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                 <span

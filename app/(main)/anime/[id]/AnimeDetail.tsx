@@ -4,7 +4,7 @@ import { useAnimeDetail, IMG, GENRE_MAP } from "@/app/(main)/anime/[id]/useAnime
 import { useEpisodes } from "@/app/(main)/anime/[id]/useEpisodes"
 import { usePreviewStore } from "@/store/usePreviewStore"
 import SimilarPreviewModal from "@/app/(main)/anime/[id]/SimilarPreviewModal"
-import VideoPlayer from "@/components/Videoplayer"
+import VideoPlayer from "@/components/VideoPlayer"
 import EpisodeComments from "./Episodecomments"
 import EpisodeSidebar from "./Episodesidebar"
 import EpisodeInfo from "./EpisodeInfo"

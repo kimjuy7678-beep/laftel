@@ -9,13 +9,29 @@ import StoreSidebar from "@/components/store/StoreSliaebar";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 import FilterDropdown from "@/components/store/FilterDropdown";
 
+<<<<<<< HEAD
 const ALL_PRODUCTS = products as StoreProduct[];
 const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
 const ITEMS_PER_PAGE = 16;
+=======
+type SeriesProduct = StoreProduct & { productdetail?: string[] };
+
+const ALL_PRODUCTS = products as SeriesProduct[];
+const STORE_PRODUCTS = ALL_PRODUCTS;
+const ITEMS_PER_PAGE = 20;
+>>>>>>> origin/main
 const PAGE_GROUP = 5;
 const SERIES_LIST = ["전체", ...Array.from(new Set(STORE_PRODUCTS.map((p) => p.category)))];
 
 function parsePrice(s: string) { return parseInt(s.replace(/[^0-9]/g, ""), 10) || 0; }
+
+function getProductSearchText(product: SeriesProduct) {
+    return [
+        product.title,
+        product.category,
+        ...(product.productdetail ?? []),
+    ].join(" ").toLowerCase();
+}
 
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return <div className={`mx-auto w-full max-w-[1680px] px-[75px] ${className}`}>{children}</div>;
@@ -103,10 +119,20 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
 
 const PRICE_INITIAL: [number, number] = [0, 300000];
 
-function SeriesPageInner() {
-    const searchParams = useSearchParams();
+function SeriesPageInner({
+    initialSeries,
+    initialSearch,
+}: {
+    initialSeries: string;
+    initialSearch: string;
+}) {
     const { user } = useAuthStore();
+<<<<<<< HEAD
     const [selectedSeries, setSelectedSeries] = useState(() => searchParams.get("series") ?? "전체");
+=======
+    const [selectedSeries, setSelectedSeries] = useState(initialSeries);
+    const [search, setSearch] = useState(initialSearch);
+>>>>>>> origin/main
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState("인기순");
     const [filterOpen, setFilterOpen] = useState(false);
@@ -114,6 +140,7 @@ function SeriesPageInner() {
     const [priceRange, setPriceRange] = useState<[number, number]>(PRICE_INITIAL);
     const [onlyInStock, setOnlyInStock] = useState(false);
 
+<<<<<<< HEAD
     useEffect(() => {
         const series = searchParams.get("series");
         setSelectedSeries(series ?? "전체");
@@ -125,6 +152,16 @@ function SeriesPageInner() {
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
         const matchStock = !onlyInStock || !p.soldout;
         return matchSeries && matchPrice && matchStock;
+=======
+    const filtered = STORE_PRODUCTS.filter((p) => {
+        const price = parsePrice(p.price);
+        const matchSeries = selectedSeries === "전체" || p.category === selectedSeries;
+        const normalizedSearch = search.trim().toLowerCase();
+        const matchSearch = !normalizedSearch || getProductSearchText(p).includes(normalizedSearch);
+        const matchPrice = price >= priceRange[0] && price <= priceRange[1];
+        const matchStock = !onlyInStock || !p.soldout;
+        return matchSeries && matchSearch && matchPrice && matchStock;
+>>>>>>> origin/main
     });
 
     const sorted = [...filtered].sort((a, b) => {
@@ -136,21 +173,51 @@ function SeriesPageInner() {
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    useEffect(() => { setPage(1); }, [selectedSeries, sort, priceRange, onlyInStock]);
     useEffect(() => {
         if (user) console.log("👤 [Auth]", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
         else console.log("👻 [Auth] 비로그인 상태");
     }, [user]);
 
-    const handleReset = () => { setPriceRange(PRICE_INITIAL); setOnlyInStock(false); };
+    const handleReset = () => {
+        setSearch("");
+        setPriceRange(PRICE_INITIAL);
+        setOnlyInStock(false);
+        setPage(1);
+    };
     const activeFilterCount = [
         priceRange[0] > PRICE_INITIAL[0] || priceRange[1] < PRICE_INITIAL[1],
         onlyInStock,
     ].filter(Boolean).length;
+    const hasActiveCriteria = activeFilterCount > 0 || search.trim().length > 0;
 
     const handleSeriesSelect = (s: string) => {
         setSelectedSeries(s);
+<<<<<<< HEAD
+=======
+        setSearch("");
+        setPage(1);
+>>>>>>> origin/main
         document.getElementById("series-tab")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value);
+        setPage(1);
+    };
+
+    const handleSortChange = (value: string) => {
+        setSort(value);
+        setPage(1);
+    };
+
+    const handlePriceRange = (range: [number, number]) => {
+        setPriceRange(range);
+        setPage(1);
+    };
+
+    const handleOnlyInStock = (value: boolean) => {
+        setOnlyInStock(value);
+        setPage(1);
     };
 
     return (
@@ -178,9 +245,32 @@ function SeriesPageInner() {
                         <span className="mx-1.5">›</span>
                         <span className="font-medium text-[#7865ff]">시리즈별</span>
                     </p>
-                    <div>
-                        <h1 className="text-[32px] font-bold text-[#16121f]">시리즈 별</h1>
-                        <p className="mt-1 text-[15px] text-[#9b94b2]">좋아하는 애니메이션 굿즈를 찾아보세요!</p>
+                    <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <h1 className="text-[32px] font-bold text-[#16121f]">시리즈 별</h1>
+                            <p className="mt-1 text-[15px] text-[#9b94b2]">좋아하는 애니메이션 굿즈를 찾아보세요!</p>
+                        </div>
+                        <div className="flex h-[44px] w-full items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)] md:w-[340px]">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]">
+                                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                                <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            <input
+                                value={search}
+                                onChange={(e) => handleSearchChange(e.target.value)}
+                                placeholder="찾으시는 상품을 검색하세요"
+                                className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
+                            />
+                            {search && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleSearchChange("")}
+                                    className="text-[#b0aabb] transition hover:text-[#7865ff]"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </Inner>
             </div>
@@ -192,15 +282,24 @@ function SeriesPageInner() {
             </div>
 
             <Inner className="mt-8">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <p className="text-[14px] text-[#6b647a]">
                         총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품
                         {selectedSeries !== "전체" && <span className="ml-2 font-semibold text-[#7865ff]">· {selectedSeries}</span>}
+<<<<<<< HEAD
+=======
+                        {search.trim() && <span className="ml-2 font-semibold text-[#7865ff]">· {search.trim()}</span>}
+>>>>>>> origin/main
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <div className="relative">
+<<<<<<< HEAD
                             <select value={sort} onChange={(e) => setSort(e.target.value)}
                                 className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
+=======
+                            <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
+                                className="h-[38px] w-full appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer sm:w-auto">
+>>>>>>> origin/main
                                 <option>인기순</option><option>신상품순</option><option>낮은 가격순</option><option>높은 가격순</option>
                             </select>
                             <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
@@ -216,9 +315,9 @@ function SeriesPageInner() {
                             <FilterDropdown
                                 open={filterOpen}
                                 priceRange={priceRange}
-                                onPriceRange={setPriceRange}
+                                onPriceRange={handlePriceRange}
                                 onlyInStock={onlyInStock}
-                                onOnlyInStock={setOnlyInStock}
+                                onOnlyInStock={handleOnlyInStock}
                                 onReset={handleReset}
                             />
                         </div>
@@ -233,12 +332,12 @@ function SeriesPageInner() {
                             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                         </svg>
                         검색 결과가 없어요.
-                        {activeFilterCount > 0 && (
-                            <button onClick={handleReset} className="text-[13px] text-[#7865ff] underline">필터 초기화</button>
+                        {hasActiveCriteria && (
+                            <button onClick={handleReset} className="text-[13px] text-[#7865ff] underline">검색/필터 초기화</button>
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-4 gap-x-6 gap-y-10">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
                         {paginated.map((product) => (
                             <StoreProductCard key={product.productId} product={product} />
                         ))}
@@ -250,10 +349,24 @@ function SeriesPageInner() {
     );
 }
 
+function SeriesPageSearchBoundary() {
+    const searchParams = useSearchParams();
+    const initialSeries = searchParams.get("series") ?? "전체";
+    const initialSearch = searchParams.get("search") ?? searchParams.get("character") ?? "";
+
+    return (
+        <SeriesPageInner
+            key={`${initialSeries}:${initialSearch}`}
+            initialSeries={initialSeries}
+            initialSearch={initialSearch}
+        />
+    );
+}
+
 export default function SeriesPage() {
     return (
         <Suspense fallback={null}>
-            <SeriesPageInner />
+            <SeriesPageSearchBoundary />
         </Suspense>
     );
 }

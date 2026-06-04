@@ -365,7 +365,7 @@ function NewSection({ tracks, playingId, onPlay, visible }: {
     return (
         <section style={{ marginBottom: 56, display: visible ? 'block' : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                <span style={{ fontSize: 26, fontWeight: 800, padding: '3px 10px', color: '#fff' }}>방금 공개된 OST</span>
+                <span style={{ fontSize: 24, fontWeight: 800, padding: '3px 10px', color: '#fff' }}>방금 공개된 OST</span>
             </div>
             <div style={{
                 display: 'grid',
@@ -736,7 +736,7 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
             )}
 
             {/* 메인 콘텐츠 */}
-            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', paddingLeft: 10 }}>
                 {/* 검색 + 필터 토글 */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 24, alignItems: 'center' }}>
                     <button onClick={() => setSidebarOpen(v => !v)}
