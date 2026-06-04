@@ -37,7 +37,7 @@ interface HotAnime {
     name: string
     poster: string
     track: Track | null
-    tracks: Track[]  // 해당 애니의 전체 검색 트랙 목록
+    tracks: Track[]
 }
 
 function classifyTrack(item: any): { type: Track['type']; tags: string[] } {
@@ -93,7 +93,6 @@ async function fetchItunesAnime(term: string, limit = 50): Promise<Track[]> {
     } catch { return [] }
 }
 
-// 신곡 섹션 — 각기 다른 애니 OST 9곡
 async function fetchNewReleases(): Promise<Track[]> {
     const queries = [
         '紅蓮華 LiSA 鬼滅の刃',
@@ -115,8 +114,6 @@ async function fetchNewReleases(): Promise<Track[]> {
     return tracks
 }
 
-// 화제의 애니 OST - 고정 리스트 + TMDB 병행
-// 포스터는 TMDB, 트랙은 iTunes 검색
 const HOT_ANIME_LIST = [
     { name: '呪術廻戦', query: '呪術廻戦 ost' },
     { name: '鬼滅の刃', query: '鬼滅の刃 ost' },
@@ -151,7 +148,6 @@ const HOT_ANIME_LIST = [
 ]
 
 async function fetchHotAnimeOst(): Promise<HotAnime[]> {
-    // TMDB 포스터 가져오기
     const tmdbPosters: Record<string, string> = {}
     try {
         if (TMDB_KEY) {
@@ -166,17 +162,9 @@ async function fetchHotAnimeOst(): Promise<HotAnime[]> {
         }
     } catch { }
 
-    // 각 애니마다 iTunes 트랙 검색 (병렬, 최대 5곡)
     const results = await Promise.all(
         HOT_ANIME_LIST.map(async (anime, idx) => {
             const tracks = await fetchItunesAnime(anime.query, 10)
-            // 포스터: TMDB 매칭 시도 → 없으면 첫 트랙 커버
-            const lname = anime.name.toLowerCase()
-            const poster =
-                tmdbPosters[lname] ||
-                Object.keys(tmdbPosters).find(k => k.includes(lname.split(' ')[0]))?.split(':')[0] ||
-                (tracks[0]?.cover || '')
-            // TMDB에서 해당 애니 포스터 찾기
             const tmdbPoster = Object.entries(tmdbPosters).find(([k]) =>
                 k.includes(anime.name.toLowerCase().split(' ')[0]) ||
                 anime.name.toLowerCase().includes(k.split(' ')[0])
@@ -363,30 +351,22 @@ function TrackRow({ track, index, isPlaying, onPlay }: { track: Track; index: nu
     )
 }
 
-// ── 신곡 섹션 UI: 왼쪽 큰 카드 1개 + 오른쪽 2행×4열 ──────────
-function NewSection({ tracks, playingId, onPlay }: { tracks: Track[]; playingId: string | null; onPlay: (t: Track) => void }) {
+// ── 신곡 섹션 ──────────────────────────────────────────────────
+function NewSection({ tracks, playingId, onPlay, visible }: {
+    tracks: Track[]
+    playingId: string | null
+    onPlay: (t: Track) => void
+    visible: boolean   // ← 추가
+}) {
     const main = tracks[0]
-    const subs = tracks.slice(1, 7) // 6개 → 3열×2행
+    const subs = tracks.slice(1, 7)
     if (!main) return null
     const GAP = 25
-    /*
-     * 그리드: 5열 × 2행
-     * 큰 카드: col 1~2, row 1~2 (2×2 정사각형 블록)
-     * 작은 카드 6개: col 3~5, row 1~2 (각각 정사각형)
-     *
-     * 각 열 너비를 W라 하면:
-     *   큰 카드 = 2W+GAP 너비, 2W+GAP 높이 → 정사각형
-     *   작은 카드 = W 너비, W 높이 → 정사각형
-     * gridAutoRows를 vw 기반으로 계산:
-     *   전체 컨테이너 ≈ 100% - 96px(패딩) - 220px(사이드바)
-     *   5열이므로 한 칸 ≈ (container - 4*GAP) / 5
-     */
     return (
-        <section style={{ marginBottom: 56 }}>
+        <section style={{ marginBottom: 56, display: visible ? 'block' : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
                 <span style={{ fontSize: 26, fontWeight: 800, padding: '3px 10px', color: '#fff' }}>방금 공개된 OST</span>
             </div>
-            {/* aspectRatio 5/2 → 5열 기준 각 셀이 정사각형이 되는 비율 */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(5, 1fr)',
@@ -394,18 +374,13 @@ function NewSection({ tracks, playingId, onPlay }: { tracks: Track[]; playingId:
                 gap: GAP,
                 aspectRatio: '5/2',
             }}>
-                {/* 큰 카드: 2열×2행 span */}
                 <div
                     onClick={() => main.previewUrl && onPlay(main)}
                     style={{
-                        gridColumn: '1 / 3',
-                        gridRow: '1 / 3',
-                        borderRadius: 20,
-                        overflow: 'hidden',
+                        gridColumn: '1 / 3', gridRow: '1 / 3',
+                        borderRadius: 20, overflow: 'hidden',
                         cursor: main.previewUrl ? 'pointer' : 'default',
-                        position: 'relative',
-                        background: '#111',
-                        transition: 'transform .25s',
+                        position: 'relative', background: '#111', transition: 'transform .25s',
                     }}
                     onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.02)'}
                     onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
@@ -425,19 +400,14 @@ function NewSection({ tracks, playingId, onPlay }: { tracks: Track[]; playingId:
                         <p style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', margin: 0 }}>{main.animeName} · {main.artist}</p>
                     </div>
                 </div>
-
-                {/* 작은 카드 6개: 3~5열, 1~2행 */}
                 {subs.map(t => (
                     <div
                         key={t.id}
                         onClick={() => t.previewUrl && onPlay(t)}
                         style={{
-                            borderRadius: 14,
-                            overflow: 'hidden',
+                            borderRadius: 14, overflow: 'hidden',
                             cursor: t.previewUrl ? 'pointer' : 'default',
-                            position: 'relative',
-                            background: '#111',
-                            transition: 'transform .2s',
+                            position: 'relative', background: '#111', transition: 'transform .2s',
                         }}
                         onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.04)'}
                         onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
@@ -455,11 +425,16 @@ function NewSection({ tracks, playingId, onPlay }: { tracks: Track[]; playingId:
     )
 }
 
-// ── 주간 TOP 10: 사진2 디자인 (앨범 우상단 + 숫자 좌하단 걸침 + 파란 테두리) ──
-function WeeklyTop10({ tracks, playingId, onPlay }: { tracks: Track[]; playingId: string | null; onPlay: (t: Track) => void }) {
+// ── 주간 TOP 10 ────────────────────────────────────────────────
+function WeeklyTop10({ tracks, playingId, onPlay, visible }: {
+    tracks: Track[]
+    playingId: string | null
+    onPlay: (t: Track) => void
+    visible: boolean   // ← 추가
+}) {
     if (!tracks.length) return null
     return (
-        <section style={{ marginBottom: 60, overflow: 'hidden' }}>
+        <section style={{ marginBottom: 60, display: visible ? 'block' : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
                 <span style={{ fontSize: 18 }}>🎵</span>
                 <h2 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>라프텔Music 주간 TOP 10</h2>
@@ -473,71 +448,50 @@ function WeeklyTop10({ tracks, playingId, onPlay }: { tracks: Track[]; playingId
                 {tracks.map((t, i) => {
                     const playing = playingId === t.id
                     return (
-                        <SwiperSlide key={t.id} style={{ width: 340 }}>
+                        <SwiperSlide key={t.id} style={{ width: 280 }}>
                             <div
                                 onClick={() => onPlay(t)}
                                 style={{ cursor: 'pointer', transition: 'transform .25s' }}
                                 onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-6px)'}
                                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
-                                {/*
-                                  레이아웃:
-                                  - 전체 컨테이너 340px
-                                  - 숫자: 왼쪽 0~40px 영역, 앨범 좌하단 기준으로 밖으로 삐져나옴
-                                  - 앨범: 오른쪽 40~340 = 300x300
-                                */}
-                                <div style={{ position: 'relative', width: 340, height: 340 }}>
-                                    {/* 앨범 커버 — 오른쪽 300x300 */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        right: 0,
-                                        top: 0,
-                                        width: 300,
-                                        height: 300,
-                                        borderRadius: 14,
-                                        overflow: 'hidden',
-                                        background: '#1a1a1a',
-                                        border: `3px solid ${playing ? '#6c63ff' : 'transparent'}`,
-                                        boxShadow: playing
-                                            ? '0 0 20px rgba(108,99,255,.55), 0 8px 24px rgba(0,0,0,.8)'
-                                            : '0 8px 24px rgba(0,0,0,.8)',
-                                        transition: 'border-color .2s, box-shadow .2s',
-                                        zIndex: 1,
-                                    }}>
-                                        {t.cover
-                                            ? <img src={t.cover} alt={t.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🎵</div>
-                                        }
-                                        {playing && (
-                                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(108,99,255,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
-                                                    {[5, 12, 8, 10].map((h, j) => (
-                                                        <div key={j} style={{ width: 3, height: h, background: '#fff', borderRadius: 2, animation: 'eq .5s ease-in-out infinite alternate', animationDelay: `${j * 0.1}s` }} />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {/* 순위 숫자 — 앨범 좌하단 기준으로 왼쪽 밖에 배치 */}
+                                {/* 앨범 커버 — 정사각형, 숫자 좌하단 안에 배치 */}
+                                {/* 앨범 커버 — 숫자 오버레이 포함, 슬라이드 밖으로 절대 안 나감 */}
+                                <div style={{
+                                    position: 'relative', width: 280, height: 280, borderRadius: 14,
+                                    overflow: 'hidden', background: '#1a1a1a',
+                                    border: `3px solid ${playing ? '#6c63ff' : 'transparent'}`,
+                                    boxShadow: playing
+                                        ? '0 0 20px rgba(108,99,255,.55), 0 8px 24px rgba(0,0,0,.8)'
+                                        : '0 8px 24px rgba(0,0,0,.8)',
+                                    transition: 'border-color .2s, box-shadow .2s',
+                                }}>
+                                    {t.cover
+                                        ? <img src={t.cover} alt={t.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🎵</div>
+                                    }
+                                    {/* 하단 그라디언트 + 숫자 */}
+                                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 50%)' }} />
                                     <span style={{
-                                        position: 'absolute',
-                                        left: 0,
-                                        bottom: 0,
-                                        fontSize: 100,
-                                        fontWeight: 900,
-                                        lineHeight: 1,
-                                        color: playing ? '#6c63ff' : '#fff',
-                                        zIndex: 2,
-                                        textShadow: '0 2px 20px rgba(0,0,0,.9)',
-                                        userSelect: 'none',
-                                        pointerEvents: 'none',
-                                        transition: 'color .2s',
-                                        letterSpacing: '-4px',
+                                        position: 'absolute', left: 10, bottom: 0,
+                                        fontSize: 88, fontWeight: 900, lineHeight: 1,
+                                        color: playing ? '#a5a0ff' : '#fff',
+                                        textShadow: '0 2px 12px rgba(0,0,0,.9)',
+                                        userSelect: 'none', pointerEvents: 'none',
+                                        transition: 'color .2s', letterSpacing: '-4px',
                                     }}>
                                         {i + 1}
                                     </span>
+                                    {playing && (
+                                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(108,99,255,.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
+                                                {[5, 12, 8, 10].map((h, j) => (
+                                                    <div key={j} style={{ width: 3, height: h, background: '#fff', borderRadius: 2, animation: 'eq .5s ease-in-out infinite alternate', animationDelay: `${j * 0.1}s` }} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                {/* 텍스트: 앨범 오른쪽 300px 기준, right:0 정렬 */}
-                                <div style={{ paddingLeft: 40 }}>
+                                <div style={{ paddingLeft: 30 }}>
                                     <p style={{ fontSize: 13, fontWeight: 700, color: playing ? '#a5a0ff' : 'rgba(255,255,255,.85)', margin: '8px 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.title}</p>
                                     <p style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.animeName}</p>
                                 </div>
@@ -550,14 +504,18 @@ function WeeklyTop10({ tracks, playingId, onPlay }: { tracks: Track[]; playingId
     )
 }
 
-function isPlayingFn(id: string, playingId: string | null) { return playingId === id }
-
 // ── 취향저격 ──────────────────────────────────────────────────
-function RecommendSection({ tracks, playingId, onPlay, userName }: { tracks: Track[]; playingId: string | null; onPlay: (t: Track) => void; userName: string }) {
+function RecommendSection({ tracks, playingId, onPlay, userName, visible }: {
+    tracks: Track[]
+    playingId: string | null
+    onPlay: (t: Track) => void
+    userName: string
+    visible: boolean   // ← 추가
+}) {
     const picks = useMemo(() => [...tracks].sort(() => Math.random() - 0.5).slice(0, 21), [tracks.length])
     if (!picks.length) return null
     return (
-        <section style={{ marginBottom: 48, overflow: 'hidden' }}>
+        <section style={{ marginBottom: 48, display: visible ? 'block' : 'none' }}>
             <div style={{ marginBottom: 20 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>
                     <span style={{ color: '#9d97ff' }}>"{userName}"</span> 님 취향저격 🎵
@@ -582,19 +540,21 @@ function RecommendSection({ tracks, playingId, onPlay, userName }: { tracks: Tra
     )
 }
 
-// ── 화제의 애니메이션 OST: 클릭 시 해당 애니 트랙 재생 ────────
+// ── 화제의 애니메이션 OST ─────────────────────────────────────
 function HotAnimeSection({
     hotAnimes,
     playingId,
     onPlayAnime,
+    visible,   // ← 추가
 }: {
     hotAnimes: HotAnime[]
     playingId: string | null
     onPlayAnime: (anime: HotAnime) => void
+    visible: boolean
 }) {
     if (!hotAnimes.length) return null
     return (
-        <section style={{ marginBottom: 48, overflow: 'hidden' }}>
+        <section style={{ marginBottom: 48, display: visible ? 'block' : 'none' }}>
             <div style={{ marginBottom: 20 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>화제의 애니메이션 OST</h2>
             </div>
@@ -610,12 +570,8 @@ function HotAnimeSection({
                                 onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-6px)'}
                                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
                                 <div style={{
-                                    width: 180,
-                                    height: 255,
-                                    borderRadius: 14,
-                                    overflow: 'hidden',
-                                    background: '#1a1a1a',
-                                    marginBottom: 10,
+                                    width: 180, height: 255, borderRadius: 14,
+                                    overflow: 'hidden', background: '#1a1a1a', marginBottom: 10,
                                     position: 'relative',
                                     border: `3px solid ${isActive ? '#6c63ff' : 'transparent'}`,
                                     boxShadow: isActive ? '0 0 20px rgba(108,99,255,.45), 0 8px 24px rgba(0,0,0,.6)' : '0 8px 24px rgba(0,0,0,.6)',
@@ -625,7 +581,6 @@ function HotAnimeSection({
                                         ? <img src={anime.poster} alt={anime.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🎌</div>
                                     }
-                                    {/* 재생 중 오버레이 */}
                                     {isActive && (
                                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(108,99,255,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
@@ -635,7 +590,6 @@ function HotAnimeSection({
                                             </div>
                                         </div>
                                     )}
-                                    {/* 하단 배지: 해당 애니 첫 트랙 타입 표시 */}
                                     {anime.tracks.length > 0 && (
                                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px', background: 'linear-gradient(to top, rgba(0,0,0,.95), transparent)' }}>
                                             <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: '#6c63ff', color: '#fff' }}>
@@ -660,7 +614,7 @@ function HotAnimeSection({
     )
 }
 
-// ── OST 탭 (사이드바 필터 포함) ────────────────────────────────
+// ── OST 탭 ────────────────────────────────────────────────────
 function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, userName }: {
     tracks: Track[]
     playingId: string | null
@@ -675,6 +629,9 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
     const [sidebarOpen, setSidebarOpen] = useState(true)
     const [activeType, setActiveType] = useState('전체')
 
+    // sidebarOpen이 false일 때 스와이퍼 섹션도 함께 숨김
+    const swipersVisible = sidebarOpen
+
     const top10 = useMemo(() => {
         if (!tracks.length) return []
         return [...tracks].sort((a, b) => (b.popularity || b.duration || 0) - (a.popularity || a.duration || 0)).slice(0, 10)
@@ -683,7 +640,6 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
     const allTags = ['전체', '오프닝', '엔딩', 'BGM', '전투', '감성', '로맨스', '새벽감성', '열혈', '힐링']
     const typeFilters = ['전체', 'OP', 'ED', 'BGM', 'OST']
 
-    // 각 타입/태그별 정확한 카운트
     const typeCounts = useMemo(() => ({
         '전체': tracks.length,
         'OP': tracks.filter(t => t.type === 'op').length,
@@ -716,10 +672,11 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
     const isFiltering = search || activeTag !== '전체' || activeType !== '전체'
 
     return (
-        <div style={{ display: 'flex', gap: 0 }}>
-            {/* 사이드바 필터 */}
-            <div style={{ width: sidebarOpen ? 220 : 0, minWidth: sidebarOpen ? 220 : 0, overflow: 'hidden', transition: 'all .3s', flexShrink: 0 }}>
-                <div style={{ width: 220, paddingRight: 24 }}>
+        <div style={{ display: 'flex', gap: 0, alignItems: 'flex-start', width: '100%' }}>
+
+            {/* 사이드바 필터 — sidebarOpen 토글 */}
+            {sidebarOpen && (
+                <div style={{ width: 280, marginRight: 28, position: 'sticky', top: 55, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 55px)', overflowY: 'auto', zIndex: 20, flexShrink: 0, background: '#0a0a0a' }}>
                     <div style={{ marginBottom: 24 }}>
                         <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em', margin: '0 0 10px' }}>타입</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -776,15 +733,26 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* 메인 콘텐츠 */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                 {/* 검색 + 필터 토글 */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 24, alignItems: 'center' }}>
                     <button onClick={() => setSidebarOpen(v => !v)}
-                        style={{ width: 36, height: 36, borderRadius: 8, background: sidebarOpen ? 'rgba(108,99,255,.15)' : 'rgba(255,255,255,.06)', border: `1px solid ${sidebarOpen ? 'rgba(108,99,255,.3)' : 'rgba(255,255,255,.1)'}`, color: sidebarOpen ? '#9d97ff' : 'rgba(255,255,255,.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .2s' }}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                        style={{
+                            width: 36, height: 36, borderRadius: 8,
+                            background: sidebarOpen ? 'rgba(108,99,255,.15)' : 'rgba(255,255,255,.06)',
+                            border: `1px solid ${sidebarOpen ? 'rgba(108,99,255,.3)' : 'rgba(255,255,255,.1)'}`,
+                            color: sidebarOpen ? '#9d97ff' : 'rgba(255,255,255,.5)',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0, transition: 'all .2s',
+                        }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                            <line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
                     </button>
                     <div style={{ position: 'relative', flex: 1 }}>
                         <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.3)', pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
@@ -804,10 +772,32 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                     </div>
                 ) : (
                     <>
-                        <NewSection tracks={newTracks} playingId={playingId} onPlay={onPlay} />
-                        <WeeklyTop10 tracks={top10} playingId={playingId} onPlay={onPlay} />
-                        <RecommendSection tracks={tracks} playingId={playingId} onPlay={onPlay} userName={userName} />
-                        <HotAnimeSection hotAnimes={hotAnimes} playingId={playingId} onPlayAnime={onPlayAnime} />
+                        {/* ↓ visible prop으로 사이드바와 동기화 */}
+                        <NewSection
+                            tracks={newTracks}
+                            playingId={playingId}
+                            onPlay={onPlay}
+                            visible={swipersVisible}
+                        />
+                        <WeeklyTop10
+                            tracks={top10}
+                            playingId={playingId}
+                            onPlay={onPlay}
+                            visible={swipersVisible}
+                        />
+                        <RecommendSection
+                            tracks={tracks}
+                            playingId={playingId}
+                            onPlay={onPlay}
+                            userName={userName}
+                            visible={swipersVisible}
+                        />
+                        <HotAnimeSection
+                            hotAnimes={hotAnimes}
+                            playingId={playingId}
+                            onPlayAnime={onPlayAnime}
+                            visible={swipersVisible}
+                        />
                         {['전투', '감성', '로맨스', '새벽감성', '열혈', '힐링', '오프닝', '엔딩'].map(tag => {
                             const tagged = tracks.filter(t => t.tags.includes(tag))
                             if (!tagged.length) return null
@@ -827,9 +817,6 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                     </>
                 )}
             </div>
-
-            {/* 오른쪽 여백 — 왼쪽 사이드바와 동일한 너비 */}
-            <div style={{ width: sidebarOpen ? 220 : 0, minWidth: sidebarOpen ? 220 : 0, flexShrink: 0, transition: 'all .3s' }} />
         </div>
     )
 }
@@ -856,7 +843,6 @@ export default function OstPage() {
     const getPlayableTracks = useCallback(() => tracksRef.current.filter(t => t.previewUrl), [])
     useEffect(() => { if (audioRef.current) audioRef.current.volume = volume }, [volume])
 
-    // 커스텀 커서: sing.png 마우스 추적
     useEffect(() => {
         const onMove = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY })
         window.addEventListener('mousemove', onMove)
@@ -926,11 +912,8 @@ export default function OstPage() {
         }
     }, [stopAudio, volume, getPlayableTracks])
 
-    // 화제의 애니메이션 클릭 핸들러: 해당 애니 tracks[0] 재생
     const handlePlayAnime = useCallback((anime: HotAnime) => {
         if (!anime.tracks.length) return
-        // 이미 이 애니 트랙 재생 중이면 정지
-        const isThisAnimePlaying = anime.tracks.some(t => t.id === (tracksRef.current.find(x => x.id === playingId)?.id || null))
         const firstPlayable = anime.tracks.find(t => t.previewUrl)
         if (firstPlayable) startPlay(firstPlayable)
     }, [startPlay, playingId])
@@ -965,52 +948,49 @@ export default function OstPage() {
 
     return (
         <>
-            {/* 커스텀 커서 — 기본 커서에서 10px 떨어져 따라옴 */}
             <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: 70,
-                height: 70,
-                pointerEvents: 'none',
-                zIndex: 99999,
+                position: 'fixed', top: 0, left: 0, width: 70, height: 70,
+                pointerEvents: 'none', zIndex: 99999,
                 transform: `translate(${cursor.x + 10}px, ${cursor.y + 10}px)`,
                 transition: 'transform .12s cubic-bezier(.25,.46,.45,.94)',
             }}>
                 <img src="/images/laftel-icon/sing.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingTop: 56, paddingBottom: currentTrack ? 96 : 0 }}>
+
+            <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: currentTrack ? 96 : 0 }}>
                 <style>{`
-                    .ost-header{padding:0 48px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;background:linear-gradient(160deg,rgba(108,99,255,.08) 0%,transparent 60%)}
-                                                                                .ost-loading-bar{height:3px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
-                    .ost-loading-bar::after{content:'';position:absolute;left:-40%;width:40%;height:100%;background:linear-gradient(to right,transparent,#6c63ff,transparent);animation:ost-shimmer 1.2s infinite}
-                    @keyframes ost-shimmer{to{left:100%}}
-                    @keyframes eq{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
-                `}</style>
+                .ost-loading-bar{height:3px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
+                .ost-loading-bar::after{content:'';position:absolute;left:-40%;width:40%;height:100%;background:linear-gradient(to right,transparent,#6c63ff,transparent);animation:ost-shimmer 1.2s infinite}
+                @keyframes ost-shimmer{to{left:100%}}
+                @keyframes eq{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
+                @keyframes spin{to{transform:rotate(360deg)}}
+            `}</style>
 
-                <div className="ost-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0' }}>
+                <div style={{ paddingTop: 64 }}>
+                    <div style={{ width: '90%', margin: '0 auto', borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0' }}>
                         <span style={{ fontSize: 18 }}>🎵</span>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>OST</span>
+                        <h1 className="text-2xl font-bold" style={{ color: '#fff', margin: 0 }}>OST</h1>
                         <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'rgba(108,99,255,.2)', color: '#9d97ff' }}>{tracks.length}</span>
+                        {loading && (
+                            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'rgba(255,255,255,.3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                {loadCount}곡 로드 중...
+                            </span>
+                        )}
                     </div>
-                    {loading && <span style={{ marginLeft: 'auto', fontSize: 12, color: 'rgba(255,255,255,.3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'ost-shimmer 1s linear infinite' }} />
-                        {loadCount}곡 로드 중...
-                    </span>}
-                </div>
-                {loading && <div className="ost-loading-bar" />}
+                    {loading && <div className="ost-loading-bar" />}
 
-                <div style={{ padding: '28px 48px 60px' }}>
-                    <OstTab
-                        tracks={tracks}
-                        playingId={playingId}
-                        onPlay={handlePlay}
-                        onPlayAnime={handlePlayAnime}
-                        newTracks={newTracks}
-                        hotAnimes={hotAnimes}
-                        userName={userName}
-                    />
+                    <div style={{ width: '90%', margin: '0 auto', paddingTop: 28, paddingBottom: 60 }}>
+                        <OstTab
+                            tracks={tracks}
+                            playingId={playingId}
+                            onPlay={handlePlay}
+                            onPlayAnime={handlePlayAnime}
+                            newTracks={newTracks}
+                            hotAnimes={hotAnimes}
+                            userName={userName}
+                        />
+                    </div>
                 </div>
             </div>
 

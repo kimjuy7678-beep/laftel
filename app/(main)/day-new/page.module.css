@@ -1,0 +1,273 @@
+.page {
+    min-height: 100vh;
+    padding-top: 56px;
+    color: #fff;
+}
+
+/* ── 헤더 ─────────────────────────────────────────── */
+.pageHeader {
+    padding: 28px 0 0;
+}
+.pageHeaderInner {
+    width: 90%;
+    margin: 0 auto;
+}
+.pageTitle {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 16px;
+    letter-spacing: -0.4px;
+}
+
+/* ── 요일 탭 ──────────────────────────────────────── */
+.tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.tab {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .18s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+}
+.tab:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+.tabActive { background: #6c5ce7; border-color: #6c5ce7; color: #fff; }
+.tabToday::after {
+    content: '';
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #a78bfa;
+    border: 1.5px solid #0a0a0a;
+}
+.tabToday.tabActive::after { background: #fff; }
+
+.calBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    padding: 0 14px;
+    height: 34px;
+    border-radius: 17px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+}
+.calBtn:hover { background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.3); }
+
+/* ── 콘텐츠 ───────────────────────────────────────── */
+.content {
+    width: 90%;
+    margin: 0 auto;
+    padding-bottom: 80px;
+}
+
+/* ══ 7열 통합 그리드 ══════════════════════════════════
+   히어로 2개: 각각 span 3 + span 4 (= 7열 꽉 채움)
+   나머지 카드: 각 1열
+   모든 카드 aspect-ratio: 3/4 세로형
+*/
+.mainGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+/* 히어로 첫번째: 3칸 */
+.heroFirst {
+    grid-column: span 3;
+}
+/* 히어로 두번째: 4칸 */
+.heroSecond {
+    grid-column: span 4;
+}
+
+/* 공통 카드 */
+.card {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1e1e24;
+    aspect-ratio: 3 / 4;
+    cursor: pointer;
+    transition: transform .2s ease;
+}
+.card:hover { transform: translateY(-3px); }
+.card:hover .cardImg { transform: scale(1.05); }
+.card:hover .cardPlay { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+.cardImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .3s;
+}
+.cardFallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 800;
+    color: rgba(255,255,255,.05);
+}
+.cardGradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.88) 0%, rgba(0,0,0,.1) 55%, transparent 75%);
+    pointer-events: none;
+}
+.cardPlay {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%) scale(.85);
+    z-index: 3;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(108,92,231,.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all .2s;
+    pointer-events: none;
+}
+.cardPlay svg { width: 11px; height: 11px; fill: #fff; margin-left: 2px; }
+
+.cardBottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    z-index: 2;
+    padding: 10px 10px 12px;
+}
+/* 히어로 카드는 이름 크게 */
+.heroFirst .cardBottom,
+.heroSecond .cardBottom {
+    padding: 14px 16px 18px;
+}
+
+.cardName {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 3px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+.heroFirst .cardName,
+.heroSecond .cardName {
+    font-size: 18px;
+    margin-bottom: 6px;
+}
+
+.cardTags {
+    font-size: 11px;
+    color: rgba(255,255,255,.45);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.heroFirst .cardTags,
+.heroSecond .cardTags {
+    font-size: 13px;
+}
+.cardTags span { white-space: nowrap; }
+.sep { color: rgba(255,255,255,.2); }
+
+/* 뱃지 */
+.badgeUp {
+    position: absolute;
+    top: 8px; left: 8px;
+    z-index: 2;
+    background: #e84040;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    line-height: 1.6;
+}
+.badgeEx {
+    position: absolute;
+    top: 8px; right: 8px;
+    z-index: 2;
+    background: rgba(108,92,231,.85);
+    color: #d0ccff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(157,151,255,.25);
+    line-height: 1.6;
+}
+
+/* 연령 등급 */
+.age {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    font-size: 8px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+.ageAll { background: #00a550; color: #fff; }
+.age7   { background: #00a550; color: #fff; }
+.age12  { background: #f5c518; color: #1e1e24; }
+.age15  { background: #ff8c00; color: #fff; }
+.age19  { background: #e84040; color: #fff; }
+
+/* 스켈레톤 */
+.skeleton {
+    border-radius: 8px;
+    aspect-ratio: 3 / 4;
+    background: linear-gradient(90deg,#1a1a2e 25%,#252545 50%,#1a1a2e 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+}
+.skeletonHero3 {
+    grid-column: span 3;
+    border-radius: 8px;
+    aspect-ratio: 3 / 4;
+    background: linear-gradient(90deg,#1a1a2e 25%,#252545 50%,#1a1a2e 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+}
+.skeletonHero4 {
+    grid-column: span 4;
+    border-radius: 8px;
+    aspect-ratio: 3 / 4;
+    background: linear-gradient(90deg,#1a1a2e 25%,#252545 50%,#1a1a2e 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+}
+
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
