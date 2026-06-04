@@ -5,7 +5,7 @@ import Link from "next/link";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 
-import StoreSidebar from "@/components/store/StoreSidebar"
+import StoreSidebar from "@/components/store/StoreSliaebar"
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 
 const ALL_PRODUCTS = products as StoreProduct[];

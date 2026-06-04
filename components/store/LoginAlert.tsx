@@ -24,9 +24,9 @@ export default function LoginAlert({ onClose }: { onClose: () => void }) {
     }, []);
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#ede9ff]/80" onClick={onClose}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center " onClick={onClose}>
             <div onClick={e => e.stopPropagation()}
-                className="w-[560px] rounded-[24px] border border-[#c8bfff]/40 bg-white/85 backdrop-blur-[20px] shadow-[0_12px_48px_rgba(120,101,255,0.25)] px-10 py-10 flex flex-col items-center gap-5">
+                className="w-[560px] rounded-[24px] border border-[#c8bfff]/40 bg-[#E6E2FF]/60 backdrop-blur-[12px] backdrop-blur-[20px] shadow-[0_12px_48px_rgba(120,101,255,0.25)] px-10 py-10 flex flex-col items-center gap-5">
                 <span className="rounded-full bg-[#7865ff] px-4 py-1.5 text-[13px] font-bold text-white">로그인이 필요합니다 !</span>
                 <div className="text-center">
                     <p className="text-[26px] font-bold text-[#16121f]">해당 기능은 로그인 후 이용하실 수 있습니다</p>
