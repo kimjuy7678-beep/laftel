@@ -8,26 +8,25 @@ import { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 import 'swiper/css/effect-fade'
 import { useAniStore } from '@/store/useAniStore'
-import VideoPlayer from './Videoplayer'
 
 const heroData = [
-    { id: 123249, image: '/images/hero/hero01.png', text: '최애를 향한 광기 어린 열정과  순정남의 금손 재능이 만났을 때, \n 보는 내내 광대 폭발하는 청춘 성장물' },
-    { id: 105248, image: '/images/hero/hero02.png', text: '달까지 달리는 도파민 급행 열차, \n 엔딩곡 듣는 순간 가슴이 웅장해지다 못해 찢어지는 작품' },
-    { id: 75214, image: '/images/hero/hero03.png', text: '빛과 연출을 갈아 넣은 영상미의 정점, \n 편지 한 장에 담긴 진심이 가슴을 울리는 인생 명작' },
-    { id: 95479, image: '/images/hero/hero04.png', text: '작화진의 영혼을 갈아 만든 눈호강 액션, \n 고죠 사토루 얼굴이 서사 그 자체!' },
-    { id: 271607, image: '/images/hero/hero05.png', text: '순정만화 찢고 나온 역대급 비주얼, \n 서툴러서 더 설레는 맑고 고결한 로맨스의 정석' },
+    { id: 123249, image: '/images/hero/hero01.png', video: '/videos/hero01.mp4', text: '최애를 향한 광기 어린 열정과  순정남의 금손 재능이 만났을 때, \n 보는 내내 광대 폭발하는 청춘 성장물' },
+    { id: 105248, image: '/images/hero/hero02.png', video: '/videos/hero02.mp4', text: '달까지 달리는 도파민 급행 열차, \n 엔딩곡 듣는 순간 가슴이 웅장해지다 못해 찢어지는 작품' },
+    { id: 75214,  image: '/images/hero/hero03.png', video: '/videos/hero03.mp4', text: '빛과 연출을 갈아 넣은 영상미의 정점, \n 편지 한 장에 담긴 진심이 가슴을 울리는 인생 명작' },
+    { id: 95479,  image: '/images/hero/hero04.png', video: '/videos/hero04.mp4', text: '작화진의 영혼을 갈아 만든 눈호강 액션, \n 고죠 사토루 얼굴이 서사 그 자체!' },
+    { id: 271607, image: '/images/hero/hero05.png', video: '/videos/hero05.mp4', text: '순정만화 찢고 나온 역대급 비주얼, \n 서툴러서 더 설레는 맑고 고결한 로맨스의 정석' },
 ]
 
 export default function HeroSection() {
     const router = useRouter()
-    const { aniList, onFetchTopAni, onFetchVideo } = useAniStore()
+    const { aniList, onFetchTopAni } = useAniStore()
 
     const [playingId, setPlayingId] = useState<number | null>(null)
     const [activeIndex, setActiveIndex] = useState(0)
-    const [hasVideo, setHasVideo] = useState<Record<number, boolean>>({})
 
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const swiperRef = useRef<SwiperType | null>(null)
+    const isHoveringRef = useRef(false)
 
     useEffect(() => {
         onFetchTopAni()
@@ -44,25 +43,24 @@ export default function HeroSection() {
 
     const heroes = heroData.map(item => {
         const matched = aniList.find(ani => ani.id === item.id)
-        return { ...matched, id: item.id, image: item.image, text: item.text }
+        return { ...matched, id: item.id, image: item.image, video: item.video, text: item.text }
     })
 
-    const activeHeroId = heroes[activeIndex]?.id
+    const startVideoTimer = (id: number) => {
+        if (hoverTimer.current) clearTimeout(hoverTimer.current)
+        hoverTimer.current = setTimeout(() => {
+            const currentId = heroData[swiperRef.current?.realIndex ?? 0]?.id
+            if (currentId === id) setPlayingId(id)
+        }, 1000)
+    }
 
-    const handleMouseEnter = async (id: number, name: string) => {
-        if (hasVideo[id] === false) return
-
-        hoverTimer.current = setTimeout(async () => {
-            try {
-                await onFetchVideo(id, name)
-                setPlayingId(id)
-            } catch {
-                setHasVideo(prev => ({ ...prev, [id]: false }))
-            }
-        }, 400)
+    const handleMouseEnter = (id: number) => {
+        isHoveringRef.current = true
+        startVideoTimer(id)
     }
 
     const handleMouseLeave = () => {
+        isHoveringRef.current = false
         if (hoverTimer.current) clearTimeout(hoverTimer.current)
         setPlayingId(null)
     }
@@ -77,13 +75,20 @@ export default function HeroSection() {
             <Swiper
                 modules={[Autoplay, EffectFade]}
                 effect="fade"
-                loop={false}
+                loop={true}
                 autoplay={{ delay: 7000, disableOnInteraction: false }}
                 onSwiper={swiper => { swiperRef.current = swiper }}
                 onSlideChange={swiper => {
-                    setActiveIndex(swiper.activeIndex)
                     setPlayingId(null)
                     if (hoverTimer.current) clearTimeout(hoverTimer.current)
+                }}
+                onSlideChangeTransitionEnd={swiper => {
+                    const realIndex = swiper.realIndex
+                    setActiveIndex(realIndex)
+                    if (isHoveringRef.current) {
+                        const id = heroData[realIndex]?.id
+                        if (id) startVideoTimer(id)
+                    }
                 }}
                 className="w-full h-full"
             >
@@ -91,33 +96,36 @@ export default function HeroSection() {
                     if (!hero?.id) return null
                     const name = (hero as any).name || ''
                     const isActive = i === activeIndex
-                    const isPlaying = playingId === hero.id && isActive
+                    const isPlaying = playingId === hero.id
 
                     return (
                         <SwiperSlide key={hero.id}>
                             <div
-                                className="relative w-full h-full"
-                                onMouseEnter={() => isActive && handleMouseEnter(hero.id!, name)}
-                                onMouseLeave={() => isActive && handleMouseLeave()}
+                                className="relative w-full h-full overflow-hidden"
+                                onMouseEnter={() => handleMouseEnter(hero.id!)}
+                                onMouseLeave={() => handleMouseLeave()}
                             >
+                                {/* 이미지는 항상 보임 */}
                                 <img
                                     src={hero.image}
                                     alt={name}
-                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700
-                                               ${isPlaying ? 'opacity-0' : 'opacity-100'}`}
+                                    className="absolute inset-0 w-full h-full object-cover"
                                 />
 
+                                {/* 영상이 준비되면 이미지 위에 덮음 */}
                                 {isPlaying && (
-                                    <VideoPlayer
+                                    <video
                                         key={hero.id}
-                                        id={hero.id}
-                                        mode="background"
-                                        className="absolute inset-0 w-full h-full scale-[1.2] pointer-events-none"
+                                        src={hero.video}
+                                        autoPlay
+                                        muted
+                                        loop
+                                        playsInline
+                                        className="absolute inset-0 w-full h-full object-cover scale-[1.2] pointer-events-none z-10"
                                     />
                                 )}
 
                                 <div className={`transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-
                                     {isPlaying && (
                                         <button
                                             onClick={handleCloseVideo}

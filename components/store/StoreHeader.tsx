@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useAuthStore } from '@/store/useAuthStore'
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { StoreSearchModal } from "@/components/store/StoreSearch";
+import NotificationGNB from "@/components/store/NotificationGNB";
+import HeaderLoginAlert from "@/components/store/HeaderLoginAlert";
 
 const StoreMenuList = [
     { id: 1, title: "전체 굿즈", path: "/store/all" },
@@ -14,8 +17,10 @@ const StoreMenuList = [
 export default function StoreHeader() {
     const { user } = useAuthStore();
     const avatarConfig = useAuthStore(s => s.avatarConfig);
+    const router = useRouter();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
+    const [loginAlertOpen, setLoginAlertOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -28,9 +33,15 @@ export default function StoreHeader() {
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
+    const guardedLink = (path: string) => {
+        if (!user) { setLoginAlertOpen(true); return; }
+        router.push(path);
+    };
+
     return (
         <header className="w-full py-[10px] bg-white px-[10px]">
             <StoreSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+            {loginAlertOpen && <HeaderLoginAlert onClose={() => setLoginAlertOpen(false)} />}
             <div className="w-full h-[55px] flex  justify-between bg-[#826CFF] rounded-full px-[28px]">
 
                 <div className="flex items-center gap-[42px]">
@@ -46,8 +57,6 @@ export default function StoreHeader() {
                             </span>
                         </Link>
                     </div>
-
-
 
                     {/* ── 네비게이션 (왼쪽으로 이동) ── */}
                     <nav>
@@ -75,35 +84,25 @@ export default function StoreHeader() {
                         onClick={() => setSearchOpen(true)}
                         className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
                     >
-                        {/* <img src="/images/store/search.svg" alt="검색" className="w-[30px] h-[30px]" /> */}
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                         </svg>
                     </button>
 
-                    {/* 위시리스트 */}
-                    <Link
-                        href="/store/profile/wishlist"
-                        aria-label="위시리스트"
-                        className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
-                    </Link>
+                    {/* 알림 (하트 자리 → 종으로 교체) */}
+                    <NotificationGNB />
 
                     {/* 장바구니 */}
-                    <Link
-                        href="/store/cart"
+                    <button
                         aria-label="장바구니"
+                        onClick={() => guardedLink("/store/cart")}
                         className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
                             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                         </svg>
-                    </Link>
-
+                    </button>
 
                     <div className="w-px h-5 bg-white/20 mx-1" />
 
@@ -159,16 +158,28 @@ export default function StoreHeader() {
                                         </svg>
                                         마이페이지
                                     </Link>
+                                    {/* 위시리스트 */}
                                     <Link
-                                        href="/store/prodile"
+                                        href="/store/profile/wishlist"
                                         onClick={() => setDropdownOpen(false)}
                                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
                                     >
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" />
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                                         </svg>
-                                        주문내역
+                                        위시리스트
                                     </Link>
+                                    <Link
+                                        href="/store/profile/inquiry"
+                                        onClick={() => setDropdownOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                        </svg>
+                                        문의내역
+                                    </Link>
+
                                     <div className="border-t border-white/10 mt-1 pt-1">
                                         <Link
                                             href="/"

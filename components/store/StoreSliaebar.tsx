@@ -123,8 +123,7 @@ export default function StoreSidebar({ open, onClose }: { open: boolean; onClose
                         </div>
                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#7865ff] text-[12px] text-white">›</span>
                     </Link>
-
-                    <Link href="#" onClick={onClose}
+                    <Link href="/event" onClick={onClose}
                         className="mt-2.5 flex items-center gap-3 rounded-[14px] bg-[#f5f3ff] px-4 py-3 transition hover:bg-[#ede9ff]">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8e4f8]">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7865ff" strokeWidth="2">
