@@ -37,7 +37,7 @@ export default function PartySection() {
 
     return (
         <section>
-            <div className="relative flex flex-col gap-1 mb-5 pt-10">
+            <div className="relative flex flex-col gap-1 mb-5 pt-20">
                 <h2 className="text-xl font-bold text-white">Party Now</h2>
                 <p className="text-sm text-white/60">지금 이 순간, 혼자 보기엔 아쉬우니까</p>
                 <Link href="/live/create" className="absolute right-0 px-8 py-2 bg-white/10 hover:bg-white/20 transition-colors rounded-xl text-sm text-white font-medium">
