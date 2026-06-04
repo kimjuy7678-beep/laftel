@@ -4,10 +4,9 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState, useEffect } from "react";
-import { doc, setDoc, onSnapshot } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/firebase/firebase";
+import { useState, useEffect } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/firebase/firebase";
 
 const MENU_TOP = [
     { label: "구매목록", path: "/store/profile", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg> },
@@ -60,7 +59,9 @@ const MEMBERSHIP_BENEFITS = [
     },
 ];
 
-function BenefitModal({ onClose }: { onClose: () => void }) {
+function BenefitModal({ membership, onClose }: { membership: string; onClose: () => void }) {
+    const current = MEMBERSHIP_BENEFITS.find((b) => b.key === membership) ?? MEMBERSHIP_BENEFITS[0];
+
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30" onClick={onClose}>
             <div onClick={e => e.stopPropagation()}
@@ -75,27 +76,41 @@ function BenefitModal({ onClose }: { onClose: () => void }) {
                     <p className="text-[22px] font-extrabold text-white tracking-wide">LAFTEL MEMBERSHIP</p>
                     <p className="mt-1 text-[14px] text-white/80">월간 혜택 안내</p>
                 </div>
-                <div className="mx-6 mb-6 rounded-[16px] border border-[#ebe8ff] bg-white px-6 py-5 flex flex-col gap-7">
-                    {MENU_BOTTOM.map((m) => (
-                        (m as any).external
-                            ? (
-                                <a key={m.path} href={m.path}
-                                    className="flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition text-[#3d3755] hover:bg-[#f0eeff]">
-                                    {m.icon}
-                                    {m.label}
-                                    {/* 외부 이동 표시 아이콘 */}
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-auto opacity-30">
-                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                                        <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-                                    </svg>
-                                </a>
-                            )
-                            : (
-                                <Link key={m.path} href={m.path}
-                                    className={`flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition ${isActive(m.path) ? "bg-[#7865ff] text-white font-semibold" : "text-[#3d3755] hover:bg-[#f0eeff]"}`}>
-                                    {m.icon}{m.label}
-                                </Link>
-                            )
+                <div className="mx-6 mb-4 rounded-[12px] px-5 py-4 flex items-center gap-3"
+                    style={{ backgroundColor: current.bg }}>
+                    <span className="rounded-full px-3 py-1 text-[12px] font-extrabold text-white"
+                        style={{ backgroundColor: current.color }}>
+                        {current.label}
+                    </span>
+                    <p className="text-[13px] font-semibold text-[#16121f]">현재 내 등급</p>
+                </div>
+                <div className="mx-6 mb-6 flex flex-col gap-4">
+                    {MEMBERSHIP_BENEFITS.map((b) => (
+                        <div
+                            key={b.key}
+                            className={`rounded-[12px] border px-5 py-4 transition ${b.key === membership ? "border-[#7865ff] shadow-[0_0_0_1px_#7865ff]" : "border-[#ebe8ff]"}`}
+                            style={{ backgroundColor: b.bg }}
+                        >
+                            <div className="mb-3 flex items-center gap-2">
+                                <span className="rounded-full px-3 py-0.5 text-[11px] font-extrabold text-white"
+                                    style={{ backgroundColor: b.color }}>
+                                    {b.label}
+                                </span>
+                                {b.key === membership && (
+                                    <span className="text-[11px] font-semibold text-[#7865ff]">✓ 현재 등급</span>
+                                )}
+                            </div>
+                            <ul className="flex flex-col gap-1.5">
+                                {b.benefits.map((item) => (
+                                    <li key={item} className="flex items-center gap-2 text-[13px] text-[#3d3755]">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={b.color} strokeWidth="2.5">
+                                            <path d="M20 6L9 17l-5-5" />
+                                        </svg>
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     ))}
                 </div>
             </div>
@@ -104,10 +119,8 @@ function BenefitModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function ProfileStoreLayout({ children }: { children: React.ReactNode }) {
-    const { user, onLogin } = useAuthStore();
+    const { user } = useAuthStore();
     const pathname = usePathname();
-    const fileRef = useRef<HTMLInputElement>(null);
-    const [uploading, setUploading] = useState(false);
     const [benefitOpen, setBenefitOpen] = useState(false);
     const [livePoints, setLivePoints] = useState<number>(user?.points ?? 0);
     const [liveCoupons, setLiveCoupons] = useState<number>(0);
@@ -130,23 +143,14 @@ export default function ProfileStoreLayout({ children }: { children: React.React
     const isActive = (path: string) =>
         path === "/store/profile" ? pathname === "/store/profile" : pathname.startsWith(path);
 
-    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !user?.uid) return;
-        setUploading(true);
-        try {
-            const storageRef = ref(storage, `avatars/${user.uid}`);
-            await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(storageRef);
-            await setDoc(doc(db, "users", user.uid), { avatarUrl: url }, { merge: true });
-            onLogin({ ...user, photoURL: url });
-        } catch (err) { console.error(err); }
-        finally { setUploading(false); }
-    };
-
     return (
         <div className="min-h-screen bg-[#fafafa]">
-            {benefitOpen && <BenefitModal onClose={() => setBenefitOpen(false)} />}
+            {benefitOpen && (
+                <BenefitModal
+                    membership={user?.membership ?? "none"}
+                    onClose={() => setBenefitOpen(false)}
+                />
+            )}
 
             <div className="mx-auto max-w-[1200px] px-6 py-10">
                 {/* 인사말 */}
@@ -160,21 +164,11 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                 {/* 프로필 카드 */}
                 <div className="mb-6 rounded-[16px] bg-[#ede9ff] px-8 py-6">
                     <div className="flex items-center gap-6">
-                        <div className="relative shrink-0">
-                            <div className="h-[80px] w-[80px] overflow-hidden rounded-full bg-[#c8c0f0]">
-                                {user?.photoURL
-                                    ? <img src={user.photoURL} alt="프로필" className="h-full w-full object-cover" />
-                                    : <div className="flex h-full w-full items-center justify-center text-[28px] font-bold text-[#7865ff]">{user?.name?.[0] ?? "?"}</div>
-                                }
-                            </div>
-                            <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                                className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-[#7865ff] text-white shadow">
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                            </button>
-                            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                        <div className="h-[80px] w-[80px] overflow-hidden rounded-full bg-[#c8c0f0] shrink-0">
+                            {user?.photoURL
+                                ? <img src={user.photoURL} alt="프로필" className="h-full w-full object-cover" />
+                                : <div className="flex h-full w-full items-center justify-center text-[28px] font-bold text-[#7865ff]">{user?.name?.[0] ?? "?"}</div>
+                            }
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
@@ -216,10 +210,24 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                             ))}
                             <div className="my-3 border-t border-[#f0edf8]" />
                             {MENU_BOTTOM.map((m) => (
-                                <Link key={m.path} href={m.path}
-                                    className={`flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition ${isActive(m.path) ? "bg-[#7865ff] text-white font-semibold" : "text-[#3d3755] hover:bg-[#f0eeff]"}`}>
-                                    {m.icon}{m.label}
-                                </Link>
+                                (m as any).external
+                                    ? (
+                                        <a key={m.path} href={m.path}
+                                            className="flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition text-[#3d3755] hover:bg-[#f0eeff]">
+                                            {m.icon}
+                                            {m.label}
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-auto opacity-30">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                                <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                                            </svg>
+                                        </a>
+                                    )
+                                    : (
+                                        <Link key={m.path} href={m.path}
+                                            className={`flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition ${isActive(m.path) ? "bg-[#7865ff] text-white font-semibold" : "text-[#3d3755] hover:bg-[#f0eeff]"}`}>
+                                            {m.icon}{m.label}
+                                        </Link>
+                                    )
                             ))}
                             <div className="my-3 border-t border-[#f0edf8]" />
                             <button onClick={() => setBenefitOpen(true)}

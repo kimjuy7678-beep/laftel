@@ -3,18 +3,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import products from "@/data/store.json";
-import { useAuthStore } from "@/store/useAuthStore";
-import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
+import StoreProductCard from "@/components/store/StoreProductCard";
 import StoreSidebar from "@/components/store/StoreSliaebar";
-
-const ALL_PRODUCTS = (products as StoreProduct[]).filter(p => !p.title.includes("[예약]"));
-
-// 품절 제외 앞에서 48개 → BEST
-const BEST_PRODUCTS = ALL_PRODUCTS.filter(p => !p.soldout).slice(0, 48);
+import { BEST_PRODUCT_LIMIT, BEST_PRODUCTS } from "@/lib/storeBestRanking";
 
 const ITEMS_PER_PAGE = 16;
 const PAGE_GROUP = 5;
+const BEST_RANK_BY_ID = new Map(BEST_PRODUCTS.map((product, index) => [product.productId, index + 1]));
 
 const COLOR_OPTIONS = [
     { label: "보라", value: "purple", hex: "#7865ff" },
@@ -105,8 +100,6 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
     );
 }
 
-const RANK_EMOJI = ["🥇", "🥈", "🥉"];
-
 export default function BestPage() {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
@@ -132,8 +125,6 @@ export default function BestPage() {
 
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-    const globalOffset = (page - 1) * ITEMS_PER_PAGE;
-
     const handleReset = () => { setPriceRange([0, 300000]); setSelectedColor(null); };
     const activeFilterCount = [priceRange[0] > 0 || priceRange[1] < 300000, selectedColor !== null].filter(Boolean).length;
 
@@ -167,7 +158,7 @@ export default function BestPage() {
                         <div>
                             <div className="flex items-center gap-3">
                                 <h1 className="text-[32px] font-bold text-[#16121f]">BEST 굿즈</h1>
-                                <span className="rounded-full bg-[#7865ff] px-3 py-1 text-[12px] font-bold text-white">TOP {BEST_PRODUCTS.length}</span>
+                                <span className="rounded-full bg-[#7865ff] px-3 py-1 text-[12px] font-bold text-white">TOP {BEST_PRODUCT_LIMIT}</span>
                             </div>
                             <p className="mt-1 text-[14px] text-[#9b94b2]">가장 많이 사랑받는 인기 굿즈 모음이에요.</p>
                         </div>
@@ -231,7 +222,7 @@ export default function BestPage() {
                                                 alt={p.title}
                                                 className="h-full w-full object-cover transition-opacity duration-300"
                                                 onMouseEnter={(e) => {
-                                                    const next = (p as any).detailImages?.[1];
+                                                    const next = p.detailImages?.[1];
                                                     if (next) (e.target as HTMLImageElement).src = next;
                                                 }}
                                                 onMouseLeave={(e) => {
@@ -288,11 +279,11 @@ export default function BestPage() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-4 gap-x-6 gap-y-10">
-                        {paginated.map((product, idx) => {
-                            const rank = globalOffset + idx + 1;
+                        {paginated.map((product) => {
+                            const rank = BEST_RANK_BY_ID.get(product.productId);
                             return (
                                 <div key={product.productId} className="relative">
-                                    {rank <= 48 && (
+                                    {rank && rank <= BEST_PRODUCT_LIMIT && (
                                         <div className={`absolute left-2 top-2 z-10 flex h-6 min-w-[24px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white shadow ${rank <= 3 ? "bg-[#7865ff]" : "bg-[#b0aabb]"}`}>
                                             {rank}
                                         </div>

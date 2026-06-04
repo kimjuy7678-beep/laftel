@@ -277,7 +277,7 @@ export default function LiveChannelPage() {
                                 <h3 className="text-white font-bold text-base mb-4">관련 작품</h3>
                                 <div className="grid grid-cols-6 gap-3">
                                     {relatedAnime.map((ani) => (
-                                        <div key={ani.id} className="group cursor-pointer">
+                                        <div key={ani.id} className="group cursor-pointer" onClick={() => router.push(`/anime/${ani.id}`)}>
                                             <div className="aspect-[3/4] rounded-lg overflow-hidden relative">
                                                 <img
                                                     src={`https://image.tmdb.org/t/p/w300${ani.poster_path}`}

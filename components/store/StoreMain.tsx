@@ -2,10 +2,11 @@
 
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
-import products from "@/data/store.json";
 import type { StoreCategory, StoreMainProduct, StoreMainSourceProduct } from "@/types/store";
 import { RECENT_STORE_PRODUCT_IDS_KEY } from "@/types/store";
 import { StoreSearchBar } from "@/components/store/StoreSearch";
+import { BEST_PRODUCTS } from "@/lib/storeBestRanking";
+import products from "@/data/store.json";
 
 // ─── Typography System ────────────────────────────────────────────────────────
 // title      : 20px  font-semibold
@@ -39,13 +40,25 @@ const categories: StoreCategory[] = [
     { name: "주술회전", slug: "jujutsu-kaisen", imageSrc: "/images/store/m8.png" },
 ];
 
-const topProducts = STORE_PRODUCTS.slice(4, 8).map((p, i) =>
+function seriesHref(series: string) {
+    return `/store/series?series=${encodeURIComponent(series)}`;
+}
+
+function characterHref(series: string, character: string) {
+    return `/store/series?series=${encodeURIComponent(series)}&character=${encodeURIComponent(character)}`;
+}
+
+const topProducts = BEST_PRODUCTS.slice(0, 5).map((p, i) =>
     toProduct(p, i === 0 ? "HOT" : i === 2 ? "NEW" : undefined),
 );
 
-const arrivalProducts = STORE_PRODUCTS.slice(8, 13).map((p, i) =>
-    toProduct(p, i === 0 ? "MEGA" : i === 4 ? "HOT" : undefined),
-);
+const characterCollections = [
+    { name: "히나타 쇼요", keyword: "히나타", series: "하이큐", imageSrc: "/images/store/characters/hinata.png", accent: "#f5a623" },
+    { name: "고죠 사토루", keyword: "고죠", series: "주술회전", imageSrc: "/images/store/characters/gojo.png", accent: "#74b9ff" },
+    { name: "카마도 탄지로", keyword: "탄지로", series: "귀멸의 칼날", imageSrc: "/images/store/characters/tanjiro.png", accent: "#2fbf71" },
+    { name: "프리렌", keyword: "프리렌", series: "장송의 프리렌", imageSrc: "/images/store/characters/frieren.png", accent: "#c8a87a" },
+    { name: "하츠네 미쿠", keyword: "미쿠", series: "하츠네미쿠", imageSrc: "/images/store/characters/miku.png", accent: "#31c7c7" },
+];
 
 const EMPTY_RECENT_PRODUCTS: StoreMainProduct[] = [];
 let cachedRecentStorage: string | null = null;
@@ -170,7 +183,7 @@ function CategoryStrip() {
             <Inner>
                 <div className="grid grid-cols-4 gap-8 sm:grid-cols-8">
                     {categories.map((category) => (
-                        <Link key={category.slug} href={`/store/category/${category.slug}`} className="flex flex-col items-center gap-3">
+                        <Link key={category.slug} href={seriesHref(category.name)} className="flex flex-col items-center gap-3">
                             <div
                                 className={`relative flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full  shadow-[0_8px_20px_rgba(20,16,44,0.22)]`}
                             >
@@ -235,19 +248,19 @@ function BestTopSection() {
                     <div>
                         {/* section title: 32px */}
                         <h2 className="text-[32px] font-bold leading-none tracking-wide text-[#16121f]">
-                            BEST-TOP 10
+                            BEST-TOP 50
                         </h2>
                         {/* section sub: 18px */}
                         <p className="mt-2 text-[18px] font-medium text-[#8a8494]">
-                            지금 가장 많이 찾는 인기 상품
+                            팬들이 가장 사랑한 굿즈
                         </p>
                     </div>
                     {/* all-btn: 16px */}
-                    <Link href="#" className="text-[16px] font-semibold text-[#7865ff]">
-                        더 많은 제품 보러가기 →
+                    <Link href="/store/best" className="text-[16px] font-semibold text-[#7865ff]">
+                        베스트 굿즈 전체보기 →
                     </Link>
                 </div>
-                <div className="mt-10 grid grid-cols-2 gap-8 md:grid-cols-4">
+                <div className="mt-10 grid grid-cols-2 gap-8 md:grid-cols-5">
                     {topProducts.map((product, index) => (
                         <TopProductCard key={product.id} product={product} rank={index + 1} />
                     ))}
@@ -257,40 +270,35 @@ function BestTopSection() {
     );
 }
 
-// ─── ArrivalCard ─────────────────────────────────────────────────────────────
+// ─── CharacterSection ────────────────────────────────────────────────────────
 
-function ArrivalCard({ product }: { product: StoreMainProduct }) {
+function CharacterCard({ character }: { character: (typeof characterCollections)[number] }) {
     return (
-        <Link href={`/store/${product.id}`} className="group block min-w-0">
-            <div className="relative overflow-hidden rounded-[10px] bg-[#eeeeef]">
-                <ImageSlot
-                    src={product.imageSrc}
-                    alt={product.title}
-                    className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+        <Link href={characterHref(character.series, character.keyword)} className="group block min-w-0">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[14px] border border-[#ebe8ff] bg-[#f5f3ff]">
+                <div
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.04]"
+                    role="img"
+                    aria-label={character.name}
+                    style={{ backgroundImage: `url(${character.imageSrc})` }}
                 />
-                {product.badge && (
-                    <span className="absolute left-3 top-3 rounded-full bg-[#8b75ff] px-2.5 py-1 text-[11px] font-bold uppercase text-white">
-                        {product.badge}
-                    </span>
-                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <span
+                    className="absolute left-4 top-4 rounded-full px-3 py-1 text-[11px] font-bold text-white"
+                    style={{ backgroundColor: character.accent }}
+                >
+                    {character.series}
+                </span>
+                <div className="absolute bottom-4 left-4 right-4">
+                    <p className="text-[22px] font-bold leading-tight text-white">{character.name}</p>
+                    <p className="mt-1 text-[12px] font-semibold text-white/75">굿즈 모아보기</p>
+                </div>
             </div>
-            {/* sub: 11px */}
-            <p className="mt-4 text-[11px] text-[#77727f]">{product.series}</p>
-            {/* title: 20px */}
-            <p className="mt-1 line-clamp-2 text-[20px] font-semibold leading-[1.3] text-[#111018]">
-                {product.title}
-            </p>
-            {/* sub: 11px */}
-            <p className="mt-1 text-[11px] uppercase tracking-[0.08em] text-[#7f7a8c]">{product.category}</p>
-            {/* sub: 13px */}
-            <p className="mt-2 text-[13px] font-bold text-[#111018]">{product.price}</p>
         </Link>
     );
 }
 
-// ─── NewArrivalsSection ───────────────────────────────────────────────────────
-
-function NewArrivalsSection() {
+function CharacterCollectionSection() {
     return (
         <section className="py-20">
             <Inner>
@@ -298,21 +306,21 @@ function NewArrivalsSection() {
                     <div>
                         {/* section title: 32px */}
                         <h2 className="text-[32px] font-bold leading-none text-[#15121d]">
-                            NEW ARRIVALS FOR POPULAR SERIES
+                            최애를 만나러 가는길
                         </h2>
                         {/* section sub: 18px */}
                         <p className="mt-2 text-[18px] font-medium text-[#8a8494]">
-                            멈추지 않는 신규 드랍과 시리즈별 신상품
+                            좋아하는 캐릭터의 굿즈만 골라서 만나보세요
                         </p>
                     </div>
                     {/* all-btn: 16px */}
-                    <Link href="#" className="text-[16px] font-semibold text-[#7865ff]">
-                        View All →
+                    <Link href="/store/series" className="text-[16px] font-semibold text-[#7865ff]">
+                        전체 시리즈 보기 →
                     </Link>
                 </div>
                 <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
-                    {arrivalProducts.map((product) => (
-                        <ArrivalCard key={product.id} product={product} />
+                    {characterCollections.map((character) => (
+                        <CharacterCard key={character.name} character={character} />
                     ))}
                 </div>
             </Inner>
@@ -362,7 +370,7 @@ export default function StoreBanner() {
             <FeaturedRecent />
             <CategoryStrip />
             <BestTopSection />
-            <NewArrivalsSection />
+            <CharacterCollectionSection />
             <CollectionBanner />
         </div>
     );
