@@ -1,208 +1,505 @@
+/* ── 페이지 ───────────────────────────────────────── */
 .page {
     min-height: 100vh;
-    padding-top: 56px;
+    padding-top: 64px;
+    /* 56px → 64px */
+    background: rgb(10, 10, 10);
     color: #fff;
 }
 
-/* ── 헤더 ─────────────────────────────────────────── */
-.pageHeader {
-    padding: 28px 0 0;
+.section {
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
-.pageHeaderInner {
+
+.section:last-child {
+    border-bottom: none;
+}
+
+.inner {
     width: 90%;
     margin: 0 auto;
 }
-.pageTitle {
-    font-size: 22px;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 16px;
-    letter-spacing: -0.4px;
-}
 
-/* ── 요일 탭 ──────────────────────────────────────── */
-.tabs {
+/* ── 섹션 헤더 ────────────────────────────────────── */
+.sectionHead {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
     margin-bottom: 20px;
 }
-.tab {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(255,255,255,0.15);
-    background: transparent;
-    color: rgba(255,255,255,0.45);
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all .18s;
+
+.daysectionHead {
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    position: relative;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    margin-bottom: 20px;
 }
-.tab:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
-.tabActive { background: #6c5ce7; border-color: #6c5ce7; color: #fff; }
-.tabToday::after {
-    content: '';
-    position: absolute;
-    top: 2px; right: 2px;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #a78bfa;
-    border: 1.5px solid #0a0a0a;
+
+.sectionTitle {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin: 10px 0 40px;
+    letter-spacing: -0.3px;
 }
-.tabToday.tabActive::after { background: #fff; }
+
+.sectionTitleAccent {
+    color: #6c5ce7;
+}
 
 .calBtn {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-left: 8px;
     padding: 0 14px;
-    height: 34px;
-    border-radius: 17px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.04);
-    color: rgba(255,255,255,0.5);
+    height: 32px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.45);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all .18s;
 }
-.calBtn:hover { background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.3); }
 
-/* ── 콘텐츠 ───────────────────────────────────────── */
-.content {
-    width: 90%;
-    margin: 0 auto;
-    padding-bottom: 80px;
+.calBtn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* ══ 7열 통합 그리드 ══════════════════════════════════
-   히어로 2개: 각각 span 3 + span 4 (= 7열 꽉 채움)
-   나머지 카드: 각 1열
-   모든 카드 aspect-ratio: 3/4 세로형
-*/
-.mainGrid {
+
+/* ══ BLOCK 1: 요일별 신작 ══════════════════════════ */
+.dayTabs {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 28px;
 }
 
-/* 히어로 첫번째: 3칸 */
-.heroFirst {
-    grid-column: span 3;
-}
-/* 히어로 두번째: 4칸 */
-.heroSecond {
-    grid-column: span 4;
-}
-
-/* 공통 카드 */
-.card {
+.dayTab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.35);
     position: relative;
-    border-radius: 8px;
+    transition: color .18s;
+}
+
+.dayTab:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.dayTabActive {
+    color: #fff;
+}
+
+.dayTabActive::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #6c5ce7;
+    border-radius: 2px 2px 0 0;
+}
+
+.dayTabToday .dayTabLabel::after {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #9d97ff;
+    margin-left: 4px;
+    vertical-align: middle;
+    margin-bottom: 1px;
+}
+
+.dayTabLabel {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+}
+
+.dayGrid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px 15px;
+    align-items: start;
+    /* 추가 */
+}
+
+.dayCard {
+    cursor: pointer;
+    align-self: start;
+}
+
+.dayCard:hover .dayImg {
+    transform: scale(1.04);
+}
+
+.dayThumb {
+    position: relative;
+    border-radius: 6px;
     overflow: hidden;
     background: #1e1e24;
+    width: 100%;
     aspect-ratio: 3 / 4;
-    cursor: pointer;
-    transition: transform .2s ease;
+    margin-bottom: 6px;
 }
-.card:hover { transform: translateY(-3px); }
-.card:hover .cardImg { transform: scale(1.05); }
-.card:hover .cardPlay { opacity: 1; transform: translate(-50%,-50%) scale(1); }
 
-.cardImg {
+/* ★ 핵심 — absolute로 컨테이너 고정 */
+.dayImg {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
     transition: transform .3s;
 }
-.cardFallback {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    font-weight: 800;
-    color: rgba(255,255,255,.05);
-}
-.cardGradient {
+
+.dayFallback {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,.88) 0%, rgba(0,0,0,.1) 55%, transparent 75%);
-    pointer-events: none;
-}
-.cardPlay {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%,-50%) scale(.85);
-    z-index: 3;
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: rgba(108,92,231,.88);
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    transition: all .2s;
-    pointer-events: none;
-}
-.cardPlay svg { width: 11px; height: 11px; fill: #fff; margin-left: 2px; }
-
-.cardBottom {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    z-index: 2;
-    padding: 10px 10px 12px;
-}
-/* 히어로 카드는 이름 크게 */
-.heroFirst .cardBottom,
-.heroSecond .cardBottom {
-    padding: 14px 16px 18px;
+    font-size: 20px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, .06);
 }
 
-.cardName {
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
-    margin: 0 0 3px;
+.dayName {
+    font-size: 16px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, .75);
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
     line-height: 1.3;
+    padding: 7px 0 7px;
 }
-.heroFirst .cardName,
-.heroSecond .cardName {
-    font-size: 18px;
+
+
+.daySkeleton {
+    border-radius: 6px;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: linear-gradient(90deg, #141420 25%, #1e1e30 50%, #141420 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
     margin-bottom: 6px;
 }
 
-.cardTags {
-    font-size: 11px;
-    color: rgba(255,255,255,.45);
+/* ══ BLOCK 2: 오늘 업데이트 ════════════════════════ */
+.todayLayout {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 15px;
+    align-items: stretch;
+}
+
+.featuredWrap {
+    grid-column: span 2;
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+}
+
+.featuredCard {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #1e1e24;
+    width: 100%;
+    flex: 1;
+    cursor: pointer;
+    min-height: 0;
+}
+
+.featuredCard:hover .featuredImg {
+    transform: scale(1.04);
+}
+
+.featuredCard:hover .featuredBottom {
+    opacity: 1;
+}
+
+.featuredCard:hover .featuredGradient {
+    opacity: 1;
+}
+
+/* ★ 핵심 */
+.featuredImg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .35s;
+}
+
+.featuredFallback {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, .05);
 }
-.heroFirst .cardTags,
-.heroSecond .cardTags {
-    font-size: 13px;
-}
-.cardTags span { white-space: nowrap; }
-.sep { color: rgba(255,255,255,.2); }
 
-/* 뱃지 */
+.featuredGradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, .95) 0%, rgba(0, 0, 0, .3) 50%, transparent 70%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .25s ease;
+}
+
+.featuredBottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    padding: 16px 16px 20px;
+    opacity: 0;
+    transition: opacity .25s ease;
+}
+
+.featuredGenres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.genreTag {
+    font-size: 10px;
+    color: rgba(255, 255, 255, .6);
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 12px;
+    padding: 2px 8px;
+}
+
+.featuredName {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 8px;
+    line-height: 1.3;
+}
+
+.featuredDesc {
+    font-size: 12px;
+    color: rgba(255, 255, 255, .45);
+    line-height: 1.6;
+    margin: 0 0 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.watchBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: none;
+    background: #6c5ce7;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .18s;
+}
+
+.watchBtn:hover {
+    background: #7d6ff0;
+}
+
+.featuredSkeleton {
+    border-radius: 10px;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: linear-gradient(90deg, #141420 25%, #1e1e30 50%, #141420 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+}
+
+.restGrid {
+    grid-column: span 4;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 15px;
+    align-content: stretch;
+}
+
+.restCard {
+    cursor: pointer;
+    display: flex;
+    /* 추가 */
+    flex-direction: column;
+    /* 추가 */
+}
+
+.restCard:hover .restImg {
+    transform: scale(1.04);
+}
+
+.restCard:hover .restOverlay {
+    opacity: 1;
+}
+
+.restThumb {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1e1e24;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    /* unset → 3/4 복구 */
+    flex: 1;
+}
+
+.restName {
+    font-size: 18px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, .75);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin-top: 10px;
+}
+
+/* ★ 핵심 */
+.restImg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .3s;
+}
+
+.restFallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, .06);
+}
+
+/* 호버 오버레이 */
+.restOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient(to top, rgba(0, 0, 0, .97) 0%, rgba(0, 0, 0, .6) 55%, rgba(0, 0, 0, .15) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 12px;
+    opacity: 0;
+    transition: opacity .25s ease;
+}
+
+.restOverlayGenres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-bottom: 6px;
+}
+
+.restOverlayTag {
+    font-size: 9px;
+    color: rgba(255, 255, 255, .55);
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 8px;
+    padding: 1px 5px;
+}
+
+.restOverlayName {
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 5px;
+    line-height: 1.3;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.restOverlayDesc {
+    font-size: 10px;
+    color: rgba(255, 255, 255, .4);
+    line-height: 1.5;
+    margin: 0 0 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.restOverlayBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 16px;
+    border: none;
+    background: #6c5ce7;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    width: fit-content;
+    transition: background .18s;
+}
+
+.restOverlayBtn:hover {
+    background: #7d6ff0;
+}
+
+.restSkeleton {
+    border-radius: 8px;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: linear-gradient(90deg, #141420 25%, #1e1e30 50%, #141420 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+}
+
+/* ── 공통 뱃지 ────────────────────────────────────── */
 .badgeUp {
     position: absolute;
-    top: 8px; left: 8px;
-    z-index: 2;
+    top: 7px;
+    left: 7px;
+    z-index: 3;
     background: #e84040;
     color: #fff;
     font-size: 10px;
@@ -211,63 +508,137 @@
     border-radius: 3px;
     line-height: 1.6;
 }
-.badgeEx {
+
+.badgeSel {
     position: absolute;
-    top: 8px; right: 8px;
-    z-index: 2;
-    background: rgba(108,92,231,.85);
+    top: 7px;
+    right: 7px;
+    z-index: 3;
+    background: rgba(108, 92, 231, .85);
     color: #d0ccff;
     font-size: 9px;
     font-weight: 700;
-    padding: 1px 6px;
+    padding: 1px 5px;
     border-radius: 3px;
-    border: 1px solid rgba(157,151,255,.25);
+    border: 1px solid rgba(157, 151, 255, .25);
     line-height: 1.6;
 }
 
-/* 연령 등급 */
+/* ── 연령 등급 ────────────────────────────────────── */
 .age {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px; height: 16px;
+    width: 15px;
+    height: 15px;
     border-radius: 50%;
-    font-size: 8px;
+    font-size: 7px;
     font-weight: 800;
     flex-shrink: 0;
 }
-.ageAll { background: #00a550; color: #fff; }
-.age7   { background: #00a550; color: #fff; }
-.age12  { background: #f5c518; color: #1e1e24; }
-.age15  { background: #ff8c00; color: #fff; }
-.age19  { background: #e84040; color: #fff; }
 
-/* 스켈레톤 */
-.skeleton {
-    border-radius: 8px;
-    aspect-ratio: 3 / 4;
-    background: linear-gradient(90deg,#1a1a2e 25%,#252545 50%,#1a1a2e 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.6s infinite;
+.ageAll {
+    background: #00a550;
+    color: #fff;
 }
-.skeletonHero3 {
-    grid-column: span 3;
-    border-radius: 8px;
-    aspect-ratio: 3 / 4;
-    background: linear-gradient(90deg,#1a1a2e 25%,#252545 50%,#1a1a2e 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.6s infinite;
+
+.age7 {
+    background: #00a550;
+    color: #fff;
 }
-.skeletonHero4 {
-    grid-column: span 4;
-    border-radius: 8px;
-    aspect-ratio: 3 / 4;
-    background: linear-gradient(90deg,#1a1a2e 25%,#252545 50%,#1a1a2e 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.6s infinite;
+
+.age12 {
+    background: #f5c518;
+    color: #1e1e24;
+}
+
+.age15 {
+    background: #ff8c00;
+    color: #fff;
+}
+
+.age19 {
+    background: #e84040;
+    color: #fff;
+}
+
+/* ── 더보기 버튼 ──────────────────────────────────── */
+.moreWrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+}
+
+.moreBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 28px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+}
+
+.moreBtn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 @keyframes shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* ── 인기 배너 ────────────────────────────────────── */
+.popularBanner {
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.12) 0%, rgba(108, 92, 231, 0.04) 100%);
+    border-top: 1px solid rgba(108, 92, 231, 0.2);
+    border-bottom: 1px solid rgba(108, 92, 231, 0.2);
+    overflow: hidden;
+    margin: 70px 0;
+}
+
+.popularInner {
+    display: flex;
+    align-items: center;
+    height: 150px;
+}
+
+.popularChar {
+    height: 100px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+    margin-top: -20px;
+    filter: drop-shadow(0 4px 12px rgba(108, 92, 231, 0.4));
+}
+
+.popularBubble {
+    display: flex;
+    align-items: center;
+    margin-left: 16px;
+}
+
+.popularText {
+    font-size: 24px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    padding-left: 30;
+    line-height: 1.4;
+}
+
+.popularTitle {
+    color: #9d97ff;
+    font-weight: 800;
 }
