@@ -44,15 +44,23 @@ export const usePointStore = create<PointStore>((set) => ({
     chargePoints: async (uid, amount, label = '포인트 충전') => {
         const ref = doc(db, "users", uid)
         await setDoc(ref, { points: increment(amount) }, { merge: true })
-        await addDoc(collection(db, "users", uid, "point_history"), {
-            amount, type: 'charge', label, createdAt: new Date(),
+
+        // point_history → pointHistory 로 통일 (스토어 내역 페이지와 맞춤)
+        await addDoc(collection(db, "users", uid, "pointHistory"), {
+            amount,
+            type: 'earn',       // 스토어 내역 페이지에서 type === 'earn' 으로 색상 분기
+            description: label, // 스토어 내역 페이지에서 r.description 으로 읽음
+            label,
+            createdAt: new Date(),
         })
+
         await saveNotification(uid, {
             type: 'point',
             title: '포인트 충전 완료',
             body: `${amount.toLocaleString()}P가 충전되었어요.`,
             link: '/point',
         })
+
         set((state) => ({ points: state.points + amount }))
     },
 
