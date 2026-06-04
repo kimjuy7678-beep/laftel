@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useWatchlistStore, WatchlistTab } from '@/store/useWatchlistStore'
 import LoginAlert from '../store/LoginAlert'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { db } from '@/firebase/firebase'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
@@ -36,6 +38,16 @@ export default function AnimePreviewModal() {
     const [paying, setPaying] = useState(false)
     const [payMethod, setPayMethod] = useState<'laftel' | 'card' | 'kakao' | 'naver' | 'phone'>('laftel')
     const [paidTotal, setPaidTotal] = useState(0)
+
+    const [cards, setCards] = useState<{ id: string, brand: string, last4: string, expiry: string }[]>([])
+    const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+    const [showAddCard, setShowAddCard] = useState(false)
+    const [cardNumber, setCardNumber] = useState('')
+    const [cardExpiry, setCardExpiry] = useState('')
+    const [cardCvc, setCardCvc] = useState('')
+    const [cardName, setCardName] = useState('')
+    const [cardError, setCardError] = useState('')
+    const [cardLoading, setCardLoading] = useState(false)
 
     useEffect(() => {
         if (!previewId) { setDetail(null); setEpisodes([]); setSimilar([]); return }
@@ -80,6 +92,10 @@ export default function AnimePreviewModal() {
         return () => window.removeEventListener('keydown', handler)
     }, [])
 
+    useEffect(() => {
+        if (showPayment) loadCards()
+    }, [showPayment])
+
     const RENT_OPTIONS = [
         { days: 2, price: 500 },
         { days: 7, price: 700 },
@@ -90,6 +106,59 @@ export default function AnimePreviewModal() {
         ? (RENT_OPTIONS.find(o => o.days === rentDays)?.price ?? 700)
         : 1500
     const totalPrice = selectedEpisodes.size * pricePerEp
+
+    const loadCards = async () => {
+        if (!user?.uid) return
+        try {
+            const snap = await getDoc(doc(db, 'users', user.uid))
+            const data = snap.data()
+            if (data?.cards) {
+                setCards(data.cards)
+                const def = data.cards.find((c: any) => c.isDefault)
+                if (def) setSelectedCardId(def.id)
+            }
+        } catch { }
+    }
+
+    const detectBrand = (num: string) => {
+        const n = num.replace(/\s/g, '')
+        if (/^4/.test(n)) return 'VISA'
+        if (/^5[1-5]/.test(n)) return 'Mastercard'
+        return '카드'
+    }
+
+    const formatCardNumber = (val: string) => val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
+    const formatExpiry = (val: string) => {
+        const nums = val.replace(/\D/g, '').slice(0, 4)
+        return nums.length >= 3 ? nums.slice(0, 2) + '/' + nums.slice(2) : nums
+    }
+
+    const handleAddCard = async () => {
+        setCardError('')
+        const rawNum = cardNumber.replace(/\s/g, '')
+        if (rawNum.length < 15) { setCardError('카드번호를 올바르게 입력해주세요.'); return }
+        if (cardExpiry.length < 5) { setCardError('유효기간을 올바르게 입력해주세요.'); return }
+        if (cardCvc.length < 3) { setCardError('CVC를 올바르게 입력해주세요.'); return }
+        if (!cardName.trim()) { setCardError('카드 소유자 이름을 입력해주세요.'); return }
+        if (!user?.uid) return
+        setCardLoading(true)
+        try {
+            const newCard = {
+                id: `card_${Date.now()}`,
+                brand: detectBrand(rawNum),
+                last4: rawNum.slice(-4),
+                expiry: cardExpiry,
+                isDefault: cards.length === 0,
+            }
+            const newCards = [...cards, newCard]
+            await setDoc(doc(db, 'users', user.uid), { cards: newCards }, { merge: true })
+            setCards(newCards)
+            setSelectedCardId(newCard.id)
+            setShowAddCard(false)
+            setCardNumber(''); setCardExpiry(''); setCardCvc(''); setCardName('')
+        } catch { setCardError('카드 등록에 실패했어요.') }
+        finally { setCardLoading(false) }
+    }
 
     if (!previewId) return null
 
@@ -465,7 +534,7 @@ export default function AnimePreviewModal() {
             {
                 showPayment && (
                     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={() => { if (!paying) setShowPayment(false) }}>
-                        <div className="bg-[#1a1a1a] rounded-2xl w-[380px] border border-white/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="bg-[#1a1a1a] rounded-2xl w-[380px] border border-white/10 overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
                                 <h2 className="text-white font-bold text-lg">라프텔 페이</h2>
                                 {!paying && (
@@ -489,32 +558,99 @@ export default function AnimePreviewModal() {
                                     <span className="text-white font-bold">총 결제금액</span>
                                     <span className="text-[var(--main)] font-bold text-base">{totalPrice.toLocaleString()}원</span>
                                 </div>
-                                <div className="flex flex-col gap-2">
-                                    <p className="text-white/50 text-sm">결제 수단 선택</p>
-                                    {[
-                                        { id: 'laftel', label: '라프텔 페이', sub: '등록된 카드로 간편결제' },
-                                        { id: 'card', label: '신용/체크카드', sub: '카드 번호 직접 입력' },
-                                        { id: 'kakao', label: '카카오페이', sub: 'kakao.com' },
-                                        { id: 'naver', label: '네이버페이', sub: 'pay.naver.com' },
-                                        { id: 'phone', label: '휴대폰 결제', sub: '통신사 소액결제' },
-                                    ].map(m => (
-                                        <div
-                                            key={m.id}
-                                            onClick={() => setPayMethod(m.id as any)}
-                                            className={`flex items-center justify-between px-4 py-3 rounded-xl border cursor-pointer transition-all ${payMethod === m.id ? 'border-[var(--main)] bg-[var(--main)]/10' : 'border-white/10 hover:border-white/30'}`}
-                                        >
-                                            <div>
-                                                <p className="text-white text-sm font-semibold">{m.label}</p>
-                                                <p className="text-white/40 text-xs">{m.sub}</p>
+
+                                {payMethod === 'laftel' && (
+                                    <div className="flex flex-col gap-2">
+                                        <p className="text-white/50 text-xs">등록된 결제수단</p>
+                                        {cards.length === 0 ? (
+                                            <p className="text-white/30 text-sm">등록된 카드가 없어요</p>
+                                        ) : cards.map(card => (
+                                            <div
+                                                key={card.id}
+                                                onClick={() => setSelectedCardId(card.id)}
+                                                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedCardId === card.id ? 'border-[var(--main)] bg-[var(--main)]/10' : 'border-white/10 hover:border-white/30'}`}
+                                            >
+                                                <div className="w-10 h-7 rounded bg-[var(--main)]/20 border border-[var(--main)]/30 flex items-center justify-center">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--main)" strokeWidth="2">
+                                                        <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" />
+                                                    </svg>
+                                                </div>
+                                                <span className="text-white text-sm font-semibold">{card.brand} **** {card.last4}</span>
                                             </div>
-                                            {payMethod === m.id && (
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--main)" strokeWidth="2.5">
-                                                    <polyline points="20,6 9,17 4,12" />
-                                                </svg>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                        {!showAddCard && (
+                                            <button
+                                                onClick={() => setShowAddCard(true)}
+                                                className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-white/20 text-white/40 hover:text-white/60 transition-all text-sm"
+                                            >
+                                                <span className="text-lg">+</span> 카드 추가
+                                            </button>
+                                        )}
+                                        {showAddCard && (
+                                            <div className="rounded-xl p-4 border border-white/10 bg-white/[0.03] flex flex-col gap-4">
+                                                <p className="text-white text-sm font-bold">카드 등록</p>
+                                                <div>
+                                                    <p className="text-xs text-white/40 mb-1">카드번호</p>
+                                                    <input
+                                                        className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-sm py-2 text-white placeholder-white/25"
+                                                        value={cardNumber}
+                                                        onChange={e => setCardNumber(formatCardNumber(e.target.value))}
+                                                        placeholder="0000 0000 0000 0000"
+                                                        maxLength={19}
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <p className="text-xs text-white/40 mb-1">유효기간</p>
+                                                        <input
+                                                            className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-sm py-2 text-white placeholder-white/25"
+                                                            value={cardExpiry}
+                                                            onChange={e => setCardExpiry(formatExpiry(e.target.value))}
+                                                            placeholder="MM/YY"
+                                                            maxLength={5}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-white/40 mb-1">CVC</p>
+                                                        <input
+                                                            className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-sm py-2 text-white placeholder-white/25"
+                                                            value={cardCvc}
+                                                            onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                                            placeholder="000"
+                                                            maxLength={4}
+                                                            type="password"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-white/40 mb-1">카드 소유자 이름</p>
+                                                    <input
+                                                        className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-sm py-2 text-white placeholder-white/25"
+                                                        value={cardName}
+                                                        onChange={e => setCardName(e.target.value)}
+                                                        placeholder="홍길동"
+                                                    />
+                                                </div>
+                                                {cardError && <p className="text-xs text-red-400">{cardError}</p>}
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => { setShowAddCard(false); setCardError('') }}
+                                                        className="flex-1 py-2 rounded-xl border border-white/20 text-white/50 text-sm hover:text-white transition-colors"
+                                                    >
+                                                        취소
+                                                    </button>
+                                                    <button
+                                                        onClick={handleAddCard}
+                                                        disabled={cardLoading}
+                                                        className="flex-1 py-2 rounded-xl bg-[var(--main)] text-white text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                                    >
+                                                        {cardLoading ? '등록 중...' : '등록'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {payMethod === 'laftel' && (
                                     <div className="flex flex-col gap-2">
@@ -546,7 +682,7 @@ export default function AnimePreviewModal() {
                             </div>
                             <div className="px-6 pb-6">
                                 <button
-                                    disabled={(payMethod === 'laftel' && password.length < 6) || paying}
+                                    disabled={(payMethod === 'laftel' && (password.length < 6 || !selectedCardId)) || paying}
                                     onClick={async () => {
                                         setPaying(true)
                                         setPaidTotal(totalPrice)
