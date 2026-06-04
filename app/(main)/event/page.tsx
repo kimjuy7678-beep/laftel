@@ -35,75 +35,76 @@ export default function EventPage() {
         : events.filter((e) => e.status === activeFilter)
 
     return (
-        <div className="min-h-screen">
-            <div className="inner px-6 py-16">
-                <h1 className="text-2xl font-bold mb-6 text-white">이벤트</h1>
-
-                {/* 필터 탭 */}
-                <div className="flex gap-2 mb-8">
-                    {filters.map((f) => (
-                        <button
-                            key={f.value}
-                            onClick={() => setActiveFilter(f.value)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeFilter === f.value
-                                ? 'bg-[#6c63ff] text-white'
-                                : 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10'
-                                }`}
-                        >
-                            {f.label}
-                            {f.value !== "all" && (
-                                <span className="ml-1.5 text-xs opacity-70">
-                                    {events.filter(e => e.status === f.value).length}
-                                </span>
-                            )}
-                        </button>
-                    ))}
+        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff' }}>
+            <div style={{ width: '90%', margin: '0 auto', paddingTop: 64 }}>
+                {/* 헤더 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0' }}>
+                    <h1 className="text-2xl font-bold" style={{ color: '#fff', margin: 0 }}>이벤트</h1>
                 </div>
 
-                {loading ? (
-                    <div className="flex justify-center py-20">
-                        <div className="w-8 h-8 border-2 border-[#6c63ff] border-t-transparent rounded-full animate-spin" />
+                <div style={{ padding: '28px 0 60px' }}>
+                    {/* 필터 탭 */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
+                        {filters.map((f) => (
+                            <button key={f.value} onClick={() => setActiveFilter(f.value)}
+                                style={{
+                                    padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                                    fontSize: 13, fontWeight: 500, transition: 'all .15s',
+                                    background: activeFilter === f.value ? '#6c63ff' : 'rgba(255,255,255,.06)',
+                                    color: activeFilter === f.value ? '#fff' : 'rgba(255,255,255,.5)',
+                                }}>
+                                {f.label}
+                                {f.value !== "all" && (
+                                    <span style={{ marginLeft: 6, fontSize: 11, opacity: .7 }}>
+                                        {events.filter(e => e.status === f.value).length}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
                     </div>
-                ) : (
-                    <ul className="grid grid-cols-3 gap-6">
-                        {filtered.map((event) => {
-                            const isPast = event.status === "past"
-                            return (
-                                <li key={event.id}>
-                                    <Link href={`/event/${event.id}`} className="group flex flex-col gap-3">
-                                        <div className="relative overflow-hidden rounded-xl aspect-video">
-                                            <img
-                                                src={event.img}
-                                                alt={event.name}
-                                                className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${isPast ? 'brightness-50' : ''}`}
-                                            />
-                                            {event.status !== "ongoing" && (
-                                                <span className={`absolute top-3 left-3 text-xs font-medium px-2.5 py-1 rounded-full ${statusStyle[event.status]}`}>
-                                                    {statusLabel[event.status]}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <span className={`text-sm font-medium leading-snug group-hover:text-[#6c63ff] transition-colors ${isPast ? 'text-white/50' : 'text-white'}`}>
-                                                {event.name}
-                                            </span>
-                                            <span className="text-white/30 text-xs">
-                                                {event.start_datetime.slice(0, 10).replaceAll('-', '.')} ~ {event.end_datetime.slice(0, 10).replaceAll('-', '.')}
-                                            </span>
-                                        </div>
-                                    </Link>
-                                </li>
-                            )
-                        })}
-                    </ul>
-                )}
 
-                {/* 필터 결과 없을 때 */}
-                {!loading && filtered.length === 0 && (
-                    <div className="flex justify-center py-20 text-white/30 text-sm">
-                        해당하는 이벤트가 없어요.
-                    </div>
-                )}
+                    {loading ? (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+                            <div style={{ width: 32, height: 32, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+                            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                        </div>
+                    ) : (
+                        <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+                            {filtered.map((event) => {
+                                const isPast = event.status === "past"
+                                return (
+                                    <li key={event.id}>
+                                        <Link href={`/event/${event.id}`} className="group flex flex-col gap-3">
+                                            <div className="relative overflow-hidden rounded-xl aspect-video">
+                                                <img src={event.img} alt={event.name}
+                                                    className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${isPast ? 'brightness-50' : ''}`} />
+                                                {event.status !== "ongoing" && (
+                                                    <span className={`absolute top-3 left-3 text-xs font-medium px-2.5 py-1 rounded-full ${statusStyle[event.status]}`}>
+                                                        {statusLabel[event.status]}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                <span style={{ fontSize: 14, fontWeight: 500, color: isPast ? 'rgba(255,255,255,.4)' : '#fff', lineHeight: 1.4 }}
+                                                    className="group-hover:text-[#6c63ff] transition-colors">
+                                                    {event.name}
+                                                </span>
+                                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
+                                                    {event.start_datetime.slice(0, 10).replaceAll('-', '.')} ~ {event.end_datetime.slice(0, 10).replaceAll('-', '.')}
+                                                </span>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    )}
+                    {!loading && filtered.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,.3)', fontSize: 14 }}>
+                            해당하는 이벤트가 없어요.
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )

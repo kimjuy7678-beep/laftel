@@ -15,6 +15,17 @@ const RATING_MAP: Record<string, string> = {
     'ADULT': '19',
 }
 
+const checkEmbeddable = async (key: string): Promise<boolean> => {
+    try {
+        const res = await fetch(
+            `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${key}&format=json`
+        )
+        return res.ok
+    } catch {
+        return false
+    }
+}
+
 export const useAniStore = create<AniStore>((set, get: any) => ({
     aniList: [],
     aniVideos: {},
@@ -26,7 +37,6 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
     onOpenDetailModal: (item: any) => set({ detailModalItem: item }),
     onCloseDetailModal: () => set({ detailModalItem: null }),
 
-    // content ratings 배치 fetch — KR 기준
     onFetchContentRatings: async (ids: number[]) => {
         const results: Record<number, string> = {}
         const chunks: number[][] = []
@@ -41,7 +51,6 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
                         `https://api.themoviedb.org/3/tv/${id}/content_ratings?api_key=${TMDB_KEY}`
                     )
                     const data = await res.json()
-                    // KR 기준으로만 — 없으면 ALL
                     const kr = data.results?.find((r: any) => r.iso_3166_1 === 'KR')
                     results[id] = RATING_MAP[kr?.rating] || 'ALL'
                 } catch {
@@ -55,7 +64,6 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
         }))
     },
 
-    // 전체 fetch
     onFetchAni: async () => {
         let allResults: any[] = []
         for (let page = 1; page <= 25; page++) {
@@ -69,12 +77,10 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
         const unique = Array.from(new Map(allResults.map(a => [a.id, a])).values())
         set({ aniList: unique })
 
-        // 상위 200개 ratings 백그라운드 fetch
         const top200ids = unique.slice(0, 200).map((a: any) => a.id)
         get().onFetchContentRatings(top200ids)
     },
 
-    // 빠른 fetch
     onFetchTopAni: async () => {
         const { aniList } = get()
         if (aniList.length >= 60) return
@@ -90,66 +96,54 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
         const unique = Array.from(new Map(results.map(a => [a.id, a])).values())
         set({ aniList: unique })
 
-        // 상위 60개 ratings 백그라운드 fetch
         const ids = unique.slice(0, 60).map((a: any) => a.id)
         get().onFetchContentRatings(ids)
     },
 
+
     onFetchVideo: async (id: number, name: string) => {
+        // useAniStore onFetchVideo 상단에 추가
+        console.log('[onFetchVideo]', id, name, YOUTUBE_KEY)
         const { aniVideos } = get()
         if (aniVideos[id]) return
 
-        const res = await fetch(
-            `https://api.themoviedb.org/3/tv/${id}/videos?api_key=${TMDB_KEY}`
-        )
-        const data = await res.json()
+        if (!YOUTUBE_KEY) return
 
-        const tmdbCandidates: string[] = (data.results || [])
-            .filter((v: any) =>
-                v.site === "YouTube" &&
-                (v.type === "Trailer" || v.type === "Teaser" || v.type === "Opening Credits")
-            )
-            .map((v: any) => v.key as string)
-
-        let ytCandidates: string[] = []
-        if (YOUTUBE_KEY) {
-            try {
-                const queries = [
-                    `${name} anime official trailer`,
-                    `${name} アニメ 予告`,
-                ]
-                const ytResults = await Promise.all(
-                    queries.map(q =>
-                        fetch(
-                            `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&key=${YOUTUBE_KEY}&type=video&maxResults=5&videoEmbeddable=true`
-                        ).then(r => r.json())
-                    )
+        try {
+            const queries = [
+                `${name} anime trailer`,
+                `${name} アニメ 予告`,
+                `${name} opening`,
+            ]
+            const ytResults = await Promise.all(
+                queries.map(q =>
+                    fetch(
+                        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&key=${YOUTUBE_KEY}&type=video&videoEmbeddable=true&regionCode=KR&maxResults=5`
+                    ).then(r => r.json())
                 )
-                ytCandidates = ytResults
-                    .flatMap(d => (d.items || []).map((item: any) => item.id?.videoId))
-                    .filter(Boolean)
-            } catch (e) {
-                console.warn('[useAniStore] YouTube search failed:', e)
+            )
+            const candidates: string[] = ytResults
+                .flatMap(d => (d.items || []).map((item: any) => item.id?.videoId))
+                .filter(Boolean)
+
+            if (candidates.length === 0) {
+                console.warn(`[useAniStore] No video candidates for id=${id} name=${name}`)
+                return
             }
-        }
 
-        const candidates = [...new Set([...tmdbCandidates, ...ytCandidates])]
-
-        if (candidates.length === 0) {
-            console.warn(`[useAniStore] No video candidates for id=${id} name=${name}`)
-            return
-        }
-
-        set((state: any) => ({
-            aniVideos: {
-                ...state.aniVideos,
-                [id]: {
-                    source: tmdbCandidates.length > 0 ? "tmdb" : "youtube",
-                    key: candidates[0],
-                    candidates,
+            set((state: any) => ({
+                aniVideos: {
+                    ...state.aniVideos,
+                    [id]: {
+                        source: "youtube",
+                        key: candidates[0],
+                        candidates: [...new Set(candidates)],
+                    },
                 },
-            },
-        }))
+            }))
+        } catch (e) {
+            console.warn('[useAniStore] YouTube search failed:', e)
+        }
     },
 
     onNextVideo: (id: number) => {

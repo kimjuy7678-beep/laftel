@@ -203,7 +203,7 @@ export default function StoreListPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white pb-20">
+        <div className="min-h-screen bg-white pb-20 w-[">
             <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
             <div className="border-b border-[#ebe8ff] bg-white py-3">

@@ -8,17 +8,17 @@ import { useWatchlistStore, WatchlistTab } from '@/store/useWatchlistStore'
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w300'
 
 const TABS: { id: WatchlistTab; label: string }[] = [
-    { id: 'recent',    label: '최근 본' },
-    { id: 'wishlist',  label: '보고싶다' },
+    { id: 'recent', label: '최근 본' },
+    { id: 'wishlist', label: '보고싶다' },
     { id: 'purchased', label: '구매한' },
-    { id: 'series',    label: '정주행' },
+    { id: 'series', label: '정주행' },
 ]
 
 const EMPTY_MSG: Record<WatchlistTab, { icon: string; text: string }> = {
-    recent:    { icon: '/images/laftel-icon/cry.png', text: '최근 본 작품이 아직 없어요.' },
-    wishlist:  { icon: '/images/laftel-icon/cry.png', text: '보고싶은 작품을 추가해보세요.' },
+    recent: { icon: '/images/laftel-icon/cry.png', text: '최근 본 작품이 아직 없어요.' },
+    wishlist: { icon: '/images/laftel-icon/cry.png', text: '보고싶은 작품을 추가해보세요.' },
     purchased: { icon: '/images/laftel-icon/cry.png', text: '구매한 작품이 없어요.' },
-    series:    { icon: '/images/laftel-icon/cry.png', text: '정주행 중인 작품이 없어요.' },
+    series: { icon: '/images/laftel-icon/cry.png', text: '정주행 중인 작품이 없어요.' },
 }
 
 export default function LibraryPage() {
@@ -31,13 +31,20 @@ export default function LibraryPage() {
 
     useEffect(() => {
         if (!user) { router.push('/login'); return }
-        fetchWatchlist(user.uid)
+        if (user?.uid) fetchWatchlist(user.uid)
     }, [user])
+
+    useEffect(() => {
+        const tab = new URLSearchParams(window.location.search).get('tab')
+        if (tab === 'recent' || tab === 'wishlist' || tab === 'purchased' || tab === 'series') {
+            setActiveTab(tab)
+        }
+    }, [])
 
     const tabItems = items.filter(i => i.tab === activeTab)
 
     const handleDelete = async () => {
-        if (!user || selected.size === 0) return
+        if (!user || !user.uid || selected.size === 0) return
         for (const id of selected) {
             await removeItem(user.uid, id, activeTab)
         }
@@ -112,7 +119,7 @@ export default function LibraryPage() {
                                 : user?.photoURL
                                     ? <img src={user.photoURL} alt="프로필" />
                                     : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#6c63ff' }}>
-                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                                     </div>
                             }
                         </div>
@@ -125,7 +132,7 @@ export default function LibraryPage() {
                         </div>
                         <Link href="/profile" style={{ width: '100%', textDecoration: 'none' }}>
                             <button className="lib-action-btn">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                                 프로필 선택
                             </button>
                         </Link>
@@ -165,7 +172,7 @@ export default function LibraryPage() {
                                 ) : (
                                     <button className="lib-delete-btn" onClick={() => setSelectMode(true)}>
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="3,6 5,6 21,6"/><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/>
+                                            <polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" />
                                         </svg>
                                         삭제
                                     </button>
@@ -200,7 +207,7 @@ export default function LibraryPage() {
                                         {selectMode && (
                                             <div className={`lib-item-check${selected.has(item.id) ? ' checked' : ''}`}>
                                                 {selected.has(item.id) && (
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12"/></svg>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>
                                                 )}
                                             </div>
                                         )}
