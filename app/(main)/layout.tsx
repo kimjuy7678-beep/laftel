@@ -5,6 +5,7 @@ import QuickMenu from "@/components/QuickMenu"
 import { Toaster } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
+import AnimePreviewModal from "@/components/anime/AnimePreviewModal"
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -26,6 +27,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             </AnimatePresence>
             <Footer />
             <QuickMenu />
+            <AnimePreviewModal />
             <Toaster
                 position="top-center"
                 expand={false}

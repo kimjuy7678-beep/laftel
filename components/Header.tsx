@@ -603,7 +603,7 @@ export default function Header() {
 
             {/* StoreHeader 스타일: py-[10px] wrapper + pill 내부 */}
             <header
-                className="fixed top-0 left-0 w-full z-[1000] transition-colors duration-300"
+                className="fixed top-0 left-0 w-full z-[9999] transition-colors duration-300"
                 style={{ background: scrolled ? '#000' : 'transparent' }}
             >
                 <div className="w-full h-[55px] flex items-center justify-between px-[28px]">
