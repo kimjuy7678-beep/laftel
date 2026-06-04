@@ -8,7 +8,7 @@ import OstSectionDetail from "@/components/anime/OstSectionDetail"
 import SeasonSelect from "@/components/anime/SeasonSelect"
 import EpisodeComments from "./Episodecomments"
 import Button from "@/components/Button"
-import VideoPlayer from "@/components/VideoPlayer"
+import VideoPlayer from "@/components/Videoplayer"
 
 export default function AnimeDetailPage() {
     const {
@@ -67,7 +67,7 @@ export default function AnimeDetailPage() {
     ] as const
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] text-white pt-14">
+        <div className="min-h-screen bg-[#0a0a0a] text-white pt-16">
             <SimilarPreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
 
             {modalOpen && (
