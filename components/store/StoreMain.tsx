@@ -242,7 +242,7 @@ function TopProductCard({ product, rank }: { product: StoreMainProduct; rank: nu
 
 function BestTopSection() {
     return (
-        <section className="mt-24 bg-[#fafafa] py-20">
+        <section className="relative left-1/2 mt-24 w-screen -translate-x-1/2 bg-[#fafafa] py-20">
             <Inner>
                 <div className="mb-3 flex items-end justify-between">
                     <div>
