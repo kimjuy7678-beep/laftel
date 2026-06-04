@@ -1,10 +1,9 @@
 'use client'
-import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
 import { useFilteredAniList } from '@/hook/useFilteredAniList'
 import { useEffect, useState } from 'react'
-import styles from './DayNewSection.module.css'
 import { usePreviewStore } from '@/store/usePreviewStore'
+import styles from './DayNewSection.module.css'
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일']
 const today = new Date().getDay()
@@ -12,9 +11,8 @@ const todayIdx = today === 0 ? 6 : today - 1
 
 export default function DayNewSection() {
     const { onFetchAni, contentRatings } = useAniStore()
-    const { setPreviewId } = usePreviewStore()
-    const router = useRouter()
     const [activeDay, setActiveDay] = useState(todayIdx)
+    const { setPreviewId } = usePreviewStore()
     const aniList = useFilteredAniList()
 
     useEffect(() => {
