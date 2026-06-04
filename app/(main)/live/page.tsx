@@ -32,10 +32,14 @@ export default function LivePage() {
         })
     }, [])
 
+    useEffect(() => {
+        window.scrollTo(0, 0)
+    }, [])
+
     return (
-        <div className="min-h-screen">
-            <div style={{ width: '90%', margin: '0 auto', padding: '64px 0' }}>
-                <div className="flex items-center gap-3 mb-8">
+        <div className="min-h-screen" style={{ background: '#0a0a0a', color: '#fff' }}>
+            <div style={{ width: '90%', margin: '0 auto', paddingTop: 64 }}>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0', marginBottom: 28 }}>
                     <h1 className="text-2xl font-bold">라이브</h1>
                     <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500 rounded-full text-xs font-bold text-white">
                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
