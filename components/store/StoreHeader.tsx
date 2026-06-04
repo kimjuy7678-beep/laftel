@@ -82,15 +82,15 @@ export default function StoreHeader() {
                     </button>
 
                     {/* 위시리스트 */}
-                    <button
-                        type="button"
+                    <Link
+                        href="/store/profile/wishlist"
                         aria-label="위시리스트"
                         className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                         </svg>
-                    </button>
+                    </Link>
 
                     {/* 장바구니 */}
                     <Link
@@ -150,17 +150,17 @@ export default function StoreHeader() {
                             {dropdownOpen && (
                                 <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] bg-[#141420] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 py-1">
                                     <Link
-                                        href="/profile"
+                                        href="/store/profile"
                                         onClick={() => setDropdownOpen(false)}
                                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
                                     >
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                                         </svg>
-                                        프로필
+                                        마이페이지
                                     </Link>
                                     <Link
-                                        href="/store/orders"
+                                        href="/store/prodile"
                                         onClick={() => setDropdownOpen(false)}
                                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
                                     >
