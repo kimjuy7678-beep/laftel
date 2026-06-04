@@ -103,7 +103,7 @@ function autocompleteSuggestions(query: string) {
 }
 
 function categoryHref(category: string) {
-    return `/store/category/${encodeURIComponent(category)}`;
+    return `/store/series?series=${encodeURIComponent(category)}`;
 }
 
 function cleanTitle(title: string) {
@@ -279,10 +279,10 @@ export function StoreSearchBar() {
 
             <p className="mt-3 text-center text-[11px] text-[#6f687d]">
                 Trending:{" "}
-                <Link href="/store/category/demon-slayer" className="text-[#7865ff]">#귀멸의 칼날</Link>{" "}
-                <Link href="/store/category/haikyu" className="text-[#7865ff]">#하이큐</Link>{" "}
-                <Link href="/store/category/jujutsu-kaisen" className="text-[#7865ff]">#주술회전</Link>{" "}
-                <Link href="/store/category/frieren" className="text-[#7865ff]">#장송의 프리렌</Link>
+                <Link href={categoryHref("귀멸의 칼날")} className="text-[#7865ff]">#귀멸의 칼날</Link>{" "}
+                <Link href={categoryHref("하이큐")} className="text-[#7865ff]">#하이큐</Link>{" "}
+                <Link href={categoryHref("주술회전")} className="text-[#7865ff]">#주술회전</Link>{" "}
+                <Link href={categoryHref("장송의 프리렌")} className="text-[#7865ff]">#장송의 프리렌</Link>
             </p>
         </div>
     );

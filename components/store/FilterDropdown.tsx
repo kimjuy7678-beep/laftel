@@ -1,0 +1,97 @@
+"use client";
+
+import React from "react";
+
+const PRICE_MIN = 0;
+const PRICE_MAX = 350000;
+
+interface FilterDropdownProps {
+    open: boolean;
+    priceRange: [number, number];
+    onPriceRange: (v: [number, number]) => void;
+    onlyInStock: boolean;
+    onOnlyInStock: (v: boolean) => void;
+    onReset: () => void;
+}
+
+export default function FilterDropdown({
+    open,
+    priceRange,
+    onPriceRange,
+    onlyInStock,
+    onOnlyInStock,
+    onReset,
+}: FilterDropdownProps) {
+    const pct = (v: number) => ((v - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
+
+    const handleMin = (e: React.ChangeEvent<HTMLInputElement>) => {
+        onPriceRange([Math.min(Number(e.target.value), priceRange[1] - 1000), priceRange[1]]);
+    };
+    const handleMax = (e: React.ChangeEvent<HTMLInputElement>) => {
+        onPriceRange([priceRange[0], Math.max(Number(e.target.value), priceRange[0] + 1000)]);
+    };
+
+    if (!open) return null;
+
+    return (
+        <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-[16px] border border-[#e2ddf5] bg-white p-5 shadow-[0_8px_32px_rgba(30,24,70,0.14)]">
+            {/* 가격 */}
+            <p className="text-[13px] font-semibold text-[#16121f]">가격별로 보기</p>
+            <div className="mt-3 flex items-center gap-2">
+                <div className="flex h-[30px] flex-1 items-center justify-center rounded-[8px] border border-[#ddd8f4] bg-[#faf9ff] text-[11px] font-medium text-[#3d3755]">
+                    ₩{priceRange[0].toLocaleString()}
+                </div>
+                <span className="text-[10px] text-[#c0bcd0]">—</span>
+                <div className="flex h-[30px] flex-1 items-center justify-center rounded-[8px] border border-[#ddd8f4] bg-[#faf9ff] text-[11px] font-medium text-[#3d3755]">
+                    ₩{priceRange[1].toLocaleString()}
+                </div>
+            </div>
+            <div className="relative mt-4 h-[6px] w-full">
+                <div className="absolute inset-0 rounded-full bg-[#e2ddf5]" />
+                <div
+                    className="absolute h-full rounded-full bg-[#7865ff]"
+                    style={{ left: `${pct(priceRange[0])}%`, right: `${100 - pct(priceRange[1])}%` }}
+                />
+                <input
+                    type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000}
+                    value={priceRange[0]} onChange={handleMin}
+                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:cursor-pointer"
+                />
+                <input
+                    type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000}
+                    value={priceRange[1]} onChange={handleMax}
+                    className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:cursor-pointer"
+                />
+            </div>
+
+            <div className="my-4 border-t border-[#f0edf8]" />
+
+            {/* 재고있음만 보기 */}
+            <p className="text-[13px] font-semibold text-[#16121f]">재고</p>
+            <button
+                onClick={() => onOnlyInStock(!onlyInStock)}
+                className={`mt-3 flex w-full items-center justify-between rounded-[10px] border px-3 py-2.5 text-[13px] font-medium transition ${onlyInStock
+                        ? "border-[#7865ff] bg-[#f0eeff] text-[#7865ff]"
+                        : "border-[#ddd8f4] bg-white text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"
+                    }`}
+            >
+                <span>재고 있음만 보기</span>
+                <div className={`relative h-[20px] w-[36px] rounded-full transition-colors ${onlyInStock ? "bg-[#7865ff]" : "bg-[#ddd8f4]"}`}>
+                    <div className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow transition-transform ${onlyInStock ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                </div>
+            </button>
+
+            {/* 초기화 */}
+            <button
+                onClick={onReset}
+                className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-[#ddd8f4] py-2 text-[12px] text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]"
+            >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                </svg>
+                초기화
+            </button>
+        </div>
+    );
+}
