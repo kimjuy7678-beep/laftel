@@ -1,20 +1,22 @@
 'use client'
 import { useState, useEffect } from "react"
-import { useAnimeDetail, IMG, GENRE_MAP } from "./useAnimeDetail"
-import { useEpisodes } from "./useEpisodes"
+import { useAnimeDetail, IMG, GENRE_MAP } from "@/app/(main)/anime/[id]/useAnimeDetail"
+import { useEpisodes } from "@/app/(main)/anime/[id]/useEpisodes"
 import { usePreviewStore } from "@/store/usePreviewStore"
-import SimilarPreviewModal from "./SimilarPreviewModal"
+import SimilarPreviewModal from "@/app/(main)/anime/[id]/SimilarPreviewModal"
 import VideoPlayer from "@/components/Videoplayer"
 import EpisodeComments from "./Episodecomments"
 import EpisodeSidebar from "./Episodesidebar"
 import EpisodeInfo from "./EpisodeInfo"
 import styles from "./scss/AnimeDeatilpage.module.scss"
+import { useAuthStore } from "@/store/useAuthStore"
 
 export default function AnimeDetailPage() {
     const {
         id, numericId, router,
         detail, loading,
         videoLoading, videoInfo,
+        epParam,
     } = useAnimeDetail()
 
     const {
@@ -25,15 +27,18 @@ export default function AnimeDetailPage() {
     const [currentEpisode, setCurrentEpisode] = useState<any>(null)
     const [previewItem, setPreviewItem] = useState<any>(null)
 
+    const { user } = useAuthStore()
+
     useEffect(() => {
         if (detail) initSeasons(detail)
     }, [detail])
 
     useEffect(() => {
         if (episodes.length > 0 && !currentEpisode) {
-            setCurrentEpisode(episodes[0])
+            const target = episodes.find(e => e.episode_number === epParam) || episodes[0]
+            setCurrentEpisode(target)
         }
-    }, [episodes])
+    }, [episodes, epParam])
 
     if (loading) return (
         <div className={styles.loadingScreen}>
@@ -62,12 +67,32 @@ export default function AnimeDetailPage() {
             </button>
 
             <div className={styles.playerRow}>
-
                 <div className={styles.playerArea}>
                     {videoLoading ? (
                         <div className={styles.playerState}>
                             <div className={styles.spinner} />
                             <span>영상 불러오는 중...</span>
+                        </div>
+                    ) : !user ? (
+                        <div className={styles.playerState} style={{ position: 'relative' }}>
+                            <img
+                                src={`https://image.tmdb.org/t/p/w780${detail.backdrop_path}`}
+                                className="absolute inset-0 w-full h-full object-cover opacity-30"
+                                alt=""
+                            />
+                            <div className="absolute inset-0 bg-black/60" />
+                            <div className="relative flex flex-col items-center gap-4">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                                <p className="text-white font-bold text-lg">로그인 후 이용할 수 있어요</p>
+                                <button
+                                    onClick={() => router.push('/login')}
+                                    className="px-6 py-2.5 bg-[#6c63ff] text-white rounded-full text-sm font-bold hover:opacity-90 transition-opacity"
+                                >
+                                    로그인하기
+                                </button>
+                            </div>
                         </div>
                     ) : videoInfo ? (
                         <VideoPlayer

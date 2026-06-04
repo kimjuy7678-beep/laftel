@@ -3,16 +3,13 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 import StoreSidebar from "@/components/store/StoreSliaebar";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 import FilterDropdown from "@/components/store/FilterDropdown";
 
-type SeriesProduct = StoreProduct & { productdetail?: string[] };
-
-const ALL_PRODUCTS = products as SeriesProduct[];
+const ALL_PRODUCTS = products as StoreProduct[];
 const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
 const ITEMS_PER_PAGE = 16;
 const PAGE_GROUP = 5;
@@ -109,9 +106,6 @@ const PRICE_INITIAL: [number, number] = [0, 300000];
 function SeriesPageInner() {
     const searchParams = useSearchParams();
     const { user } = useAuthStore();
-    const searchParams = useSearchParams();
-    const [manualSeries, setManualSeries] = useState<string | null>(null);
-    const [manualCharacter, setManualCharacter] = useState<string | null>(null);
     const [selectedSeries, setSelectedSeries] = useState(() => searchParams.get("series") ?? "전체");
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState("인기순");
@@ -120,8 +114,6 @@ function SeriesPageInner() {
     const [priceRange, setPriceRange] = useState<[number, number]>(PRICE_INITIAL);
     const [onlyInStock, setOnlyInStock] = useState(false);
 
-    const selectedSeries = manualSeries ?? searchParams.get("series") ?? "전체";
-    const selectedCharacter = manualCharacter ?? searchParams.get("character") ?? "";
     useEffect(() => {
         const series = searchParams.get("series");
         setSelectedSeries(series ?? "전체");
@@ -130,11 +122,9 @@ function SeriesPageInner() {
     const filtered = STORE_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
         const matchSeries = selectedSeries === "전체" || p.category === selectedSeries;
-        const characterText = [p.title, ...(p.productdetail ?? [])].join(" ").toLowerCase();
-        const matchCharacter = !selectedCharacter || characterText.includes(selectedCharacter.toLowerCase());
-        const matchPrice = p.soldout || (price >= priceRange[0] && price <= priceRange[1]);
-        const matchColor = !selectedColor || p.title.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "");
-        return matchSeries && matchCharacter && matchPrice && matchColor;
+        const matchPrice = price >= priceRange[0] && price <= priceRange[1];
+        const matchStock = !onlyInStock || !p.soldout;
+        return matchSeries && matchPrice && matchStock;
     });
 
     const sorted = [...filtered].sort((a, b) => {
@@ -159,9 +149,7 @@ function SeriesPageInner() {
     ].filter(Boolean).length;
 
     const handleSeriesSelect = (s: string) => {
-        setManualSeries(s);
-        setManualCharacter("");
-        setPage(1);
+        setSelectedSeries(s);
         document.getElementById("series-tab")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
@@ -208,11 +196,10 @@ function SeriesPageInner() {
                     <p className="text-[14px] text-[#6b647a]">
                         총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품
                         {selectedSeries !== "전체" && <span className="ml-2 font-semibold text-[#7865ff]">· {selectedSeries}</span>}
-                        {selectedCharacter && <span className="ml-2 font-semibold text-[#7865ff]">· {selectedCharacter}</span>}
                     </p>
                     <div className="flex items-center gap-2">
                         <div className="relative">
-                            <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
+                            <select value={sort} onChange={(e) => setSort(e.target.value)}
                                 className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
                                 <option>인기순</option><option>신상품순</option><option>낮은 가격순</option><option>높은 가격순</option>
                             </select>

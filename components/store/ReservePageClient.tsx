@@ -23,7 +23,7 @@ type CalendarEvent = {
 
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
-        <div className={`mx-auto w-full max-w-[1770px] px-5 md:px-[75px] ${className}`}>
+        <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>
             {children}
         </div>
     );
@@ -170,9 +170,9 @@ function ReleaseCalendar({
     const visibleDates = Array.from({ length: 10 }, (_, index) => addDays(today, index - 2));
 
     return (
-        <section className="rounded-[20px] bg-[#f6f3ff] px-4 py-6 md:rounded-[24px] md:px-6 md:py-7">
-            <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
+        <section className="rounded-[24px] bg-[#f6f3ff] px-6 py-7">
+            <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-2">
                     <span className="flex h-5 w-5 items-center justify-center rounded-[6px] bg-[#7865ff] text-white">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M8 2v4M16 2v4M3 10h18" />
@@ -189,7 +189,7 @@ function ReleaseCalendar({
                 </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 lg:grid-cols-10 lg:gap-4">
+            <div className="grid grid-cols-5 gap-4 lg:grid-cols-10">
                 {visibleDates.map((date) => {
                     const dateObj = toDate(date);
                     const weekday = WEEKDAYS[dateObj.getDay()];
@@ -202,7 +202,7 @@ function ReleaseCalendar({
                         <Link
                             key={`${date.year}-${date.month}-${date.day}`}
                             href={firstEvent ? `/store/${firstEvent.product.productId}` : "/store/reserve"}
-                            className={`flex h-[104px] flex-col items-center justify-center rounded-[12px] border transition md:h-[120px] ${isToday
+                            className={`flex h-[120px] flex-col items-center justify-center rounded-[12px] border transition ${isToday
                                 ? "border-[#5a45e8] bg-[#5a45e8] text-white shadow-[0_10px_24px_rgba(90,69,232,0.25)]"
                                 : "border-[#e2ddf5] bg-white text-[#111018] hover:border-[#7865ff]"
                                 }`}
@@ -261,12 +261,12 @@ function CalendarModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-3 py-4 md:px-4 md:py-8" onClick={onClose}>
-            <div className="flex max-h-[calc(100dvh-32px)] w-full max-w-[900px] flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:max-h-[calc(100dvh-64px)] md:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
-                <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#ebe8ff] px-4 py-4 md:h-[84px] md:px-7 md:py-0">
-                    <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:gap-5">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 py-8" onClick={onClose}>
+            <div className="w-full max-w-[900px]  overflow-hidden rounded-[24px] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.28)]" onClick={(event) => event.stopPropagation()}>
+                <div className="flex h-[84px] items-center justify-between border-b border-[#ebe8ff] px-7">
+                    <div className="flex items-center gap-5">
                         <h2 className="text-[20px] font-extrabold text-[#15121d]">월간 출시 일정</h2>
-                        <div className="flex w-fit items-center rounded-full bg-[#f1eeff] px-3 py-1.5 text-[#7865ff]">
+                        <div className="flex items-center rounded-full bg-[#f1eeff] px-3 py-1.5 text-[#7865ff]">
                             <button type="button" onClick={() => moveMonth(-1)} aria-label="이전 달" className="flex h-6 w-6 items-center justify-center">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="m15 18-6-6 6-6" /></svg>
                             </button>
@@ -283,7 +283,7 @@ function CalendarModal({
                     </button>
                 </div>
 
-                <div className="min-h-0 overflow-y-auto px-4 pb-5 pt-5 md:px-7 md:pb-6 md:pt-7">
+                <div className="px-7 pb-6 pt-7">
                     <div className="mb-4 grid grid-cols-7 text-center text-[11px] font-extrabold uppercase">
                         {WEEKDAYS.map((day) => (
                             <span key={day} className={day === "Sun" ? "text-[#ff3d48]" : day === "Sat" ? "text-[#3478ff]" : "text-[#7a8193]"}>
@@ -299,7 +299,7 @@ function CalendarModal({
                             return (
                                 <div
                                     key={`${date.year}-${date.month}-${date.day}`}
-                                    className={`min-h-[64px] border-b border-r border-[#e5e8ef] p-1.5 sm:min-h-[76px] md:min-h-[86px] md:p-2 ${date.muted ? "bg-[#eef0f3] text-[#c0c5cf]" : isToday ? "bg-[#f1eeff]" : "bg-white text-[#141620]"}`}
+                                    className={`min-h-[96px] border-b border-r border-[#e5e8ef] p-2 last:border-r-0 ${date.muted ? "bg-[#eef0f3] text-[#c0c5cf]" : isToday ? "bg-[#f1eeff]" : "bg-white text-[#141620]"}`}
                                 >
                                     <div className="flex justify-between">
                                         <span className={`flex h-7 w-7 items-center justify-center text-[12px] ${isToday ? "rounded-full bg-[#5a45e8] font-extrabold text-white" : ""}`}>
@@ -310,7 +310,7 @@ function CalendarModal({
                                         {cellEvents.map((event) => (
                                             <Link key={event.product.productId} href={`/store/${event.product.productId}`} className="block">
                                                 <div
-                                                    className="h-7 rounded-[7px] bg-[#ede9ff] bg-cover bg-center sm:h-8 md:h-10"
+                                                    className="h-10 rounded-[7px] bg-[#ede9ff] bg-cover bg-center"
                                                     style={{ backgroundImage: `url(${event.product.thumbnail})` }}
                                                     aria-label={event.label}
                                                 />
@@ -321,7 +321,7 @@ function CalendarModal({
                             );
                         })}
                     </div>
-                    <div className="mt-5 flex flex-wrap items-center gap-4 text-[12px] text-[#7a8193] md:gap-6">
+                    <div className="mt-5 flex items-center gap-6 text-[12px] text-[#7a8193]">
                         <span className="flex items-center gap-2"><i className="h-1.5 w-1.5 rounded-full bg-[#7865ff]" />출시 및 예약 시작일</span>
                         <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-full bg-[#5a45e8]" />오늘</span>
                         <span className="flex items-center gap-2"><i className="h-3.5 w-5 rounded bg-[#ede9ff]" />주요 이벤트</span>
@@ -349,7 +349,6 @@ export default function ReservePageClient({
 
     return (
         <div className="min-h-screen bg-white pb-24">
-            <Inner className="pt-6 md:pt-10">
             <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
             {/* 햄버거 메뉴 바 */}
@@ -373,7 +372,7 @@ export default function ReservePageClient({
                 <ReleaseCalendar today={today} events={events} onOpenModal={() => setCalendarOpen(true)} />
 
                 <section id="reserve-products" className="mt-10">
-                    <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
+                    <div className="mb-6 flex items-end justify-between gap-6">
                         <div>
                             <p className="mb-3 text-[12px] text-[#9b94b2]">
                                 <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
@@ -385,7 +384,7 @@ export default function ReservePageClient({
                                 누구보다 빠르게 한정판 피규어와 공식 굿즈를 만나보세요.
                             </p>
                         </div>
-                        <div className="flex h-[38px] w-fit items-center gap-2 rounded-full border border-[#ddd8f4] bg-white px-4 text-[13px] font-semibold text-[#6b647a]">
+                        <div className="flex h-[38px] items-center gap-2 rounded-full border border-[#ddd8f4] bg-white px-4 text-[13px] font-semibold text-[#6b647a]">
                             인기순
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                                 <path d="m6 9 6 6 6-6" />
@@ -398,7 +397,7 @@ export default function ReservePageClient({
                             예약 상품이 아직 없어요.
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-6 md:gap-y-10 xl:grid-cols-5">
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
                             {visibleProducts.map((product) => (
                                 <ProductCard key={product.productId} product={product} today={today} />
                             ))}
