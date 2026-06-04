@@ -20,7 +20,6 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
     const [activeKey, setActiveKey] = useState<string | null>(null)
     const [showControls, setShowControls] = useState(true)
     const failTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const triedKeys = useRef<Set<string>>(new Set())
 
     useEffect(() => {
@@ -33,7 +32,8 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
         if (!activeKey) return
         if (triedKeys.current.has(activeKey)) { onNextVideo(id); return }
         triedKeys.current.add(activeKey)
-        failTimer.current = setTimeout(() => { onNextVideo(id) }, 7000)
+        // iframe 자체 로드 실패 대비 최후 보험
+        failTimer.current = setTimeout(() => { onNextVideo(id) }, 10000)
         return () => { if (failTimer.current) clearTimeout(failTimer.current) }
     }, [activeKey])
 
@@ -43,12 +43,22 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
             if (e.origin !== 'https://www.youtube.com') return
             try {
                 const data = JSON.parse(e.data)
+
+                // 에러 → 즉시 다음
                 if (data.event === 'onError' && [2, 5, 100, 101, 150].includes(data.info)) {
                     if (failTimer.current) clearTimeout(failTimer.current)
                     onNextVideo(id)
                 }
-                if (data.event === 'onStateChange' && data.info === 1) {
+
+                // 재생 or 버퍼링 → 정상 영상 확정, 타이머 취소
+                if (data.event === 'onStateChange' && [1, 3].includes(data.info)) {
                     if (failTimer.current) clearTimeout(failTimer.current)
+                }
+
+                // -1(미시작) 이후 3초 안에 재생/버퍼링 안 오면 지역 제한으로 판단
+                if (data.event === 'onStateChange' && data.info === -1) {
+                    if (failTimer.current) clearTimeout(failTimer.current)
+                    failTimer.current = setTimeout(() => { onNextVideo(id) }, 3000)
                 }
             } catch { }
         }
@@ -90,7 +100,8 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
             />
 
             {onClose && (
-                <div className={`absolute top-4 right-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+                <div
+                    className={`absolute top-4 right-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
                     style={{ pointerEvents: showControls ? 'auto' : 'none', zIndex: 10 }}
                 >
                     <button
@@ -105,7 +116,8 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
                 </div>
             )}
 
-            <div className={`absolute top-0 left-0 right-0 px-6 pt-5 pb-12 transition-opacity duration-300 pointer-events-none ${showControls ? 'opacity-100' : 'opacity-0'}`}
+            <div
+                className={`absolute top-0 left-0 right-0 px-6 pt-5 pb-12 transition-opacity duration-300 pointer-events-none ${showControls ? 'opacity-100' : 'opacity-0'}`}
                 style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)' }}
             >
                 {title && <p className="text-white font-black text-lg">{title}</p>}
@@ -117,8 +129,10 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
             </div>
 
             {onNext && (
-                <div className={`absolute bottom-16 right-6 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
-                    style={{ pointerEvents: 'auto', zIndex: 10 }}>
+                <div
+                    className={`absolute bottom-16 right-6 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+                    style={{ pointerEvents: 'auto', zIndex: 10 }}
+                >
                     <button
                         onClick={onNext}
                         className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg text-white text-sm font-semibold hover:bg-white/30 transition-colors"

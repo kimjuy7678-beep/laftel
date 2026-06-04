@@ -48,8 +48,8 @@ export default function PartyRoomPage() {
     const tmdbId = isDummy
         ? Number(partyId.replace('dummy-', ''))
         : isPartySection
-        ? Number(partyId.replace('party-', ''))
-        : null
+            ? Number(partyId.replace('party-', ''))
+            : null
     const scheduledAtParam = searchParams.get('scheduledAt')
     const isDummyUpcoming = scheduledAtParam ? new Date(scheduledAtParam) > new Date() : false
 
@@ -253,7 +253,7 @@ export default function PartyRoomPage() {
                             className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="m15 18-6-6 6-6"/>
+                                <path d="m15 18-6-6 6-6" />
                             </svg>
                             돌아가기
                         </button>
@@ -326,7 +326,7 @@ export default function PartyRoomPage() {
                                 <h3 className="text-white font-bold text-base mb-4">관련 작품</h3>
                                 <div className="grid grid-cols-6 gap-3">
                                     {relatedAnime.map((ani) => (
-                                        <div key={ani.id} className="group cursor-pointer">
+                                        <div key={ani.id} className="group cursor-pointer" onClick={() => router.push(`/anime/${ani.id}`)}>
                                             <div className="aspect-[3/4] rounded-lg overflow-hidden relative">
                                                 <img
                                                     src={`https://image.tmdb.org/t/p/w300${ani.poster_path}`}
@@ -336,7 +336,7 @@ export default function PartyRoomPage() {
                                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-                                                            <polygon points="5,3 19,12 5,21"/>
+                                                            <polygon points="5,3 19,12 5,21" />
                                                         </svg>
                                                     </div>
                                                 </div>
