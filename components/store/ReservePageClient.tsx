@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Product } from "@/types/store";
+import StoreSidebar from "@/components/store/StoreSliaebar";
 
 const INITIAL_PRODUCT_COUNT = 20;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -339,6 +340,7 @@ export default function ReservePageClient({
     productLimit: number;
 }) {
     const [calendarOpen, setCalendarOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const today = useMemo(() => getTodayParts(), []);
     const events = useMemo(() => buildEvents(products, today), [products, today]);
     const visibleProducts = products.slice(0, productLimit);
@@ -347,6 +349,25 @@ export default function ReservePageClient({
 
     return (
         <div className="min-h-screen bg-white pb-24">
+            <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+            {/* 햄버거 메뉴 바 */}
+            <div className="border-b border-[#ebe8ff] bg-white py-3">
+                <Inner>
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="flex items-center gap-2 text-[14px] text-[#3d3755] transition hover:text-[#7865ff]"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                            <line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                        전체 카테고리
+                    </button>
+                </Inner>
+            </div>
+
             <Inner className="pt-10">
                 <ReleaseCalendar today={today} events={events} onOpenModal={() => setCalendarOpen(true)} />
 
