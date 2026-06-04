@@ -35,35 +35,35 @@ const ALL_GENRES = [
     { id: 10759, label: 'BL' },         // 실제 BL은 TMDB에 없어서 근사
     { id: 10766, label: 'GL 백합' },
     { id: 10765, label: 'SF' },
-    { id: 27,    label: '공포' },
-    { id: 18,    label: '드라마' },
+    { id: 27, label: '공포' },
+    { id: 18, label: '드라마' },
     { id: 10749, label: '로맨스' },
     { id: 10408, label: '마법소녀' },
     { id: 10759, label: '모험' },
-    { id: 4344,  label: '무협' },
-    { id: 9648,  label: '미스터리' },
-    { id: 80,    label: '범죄' },
+    { id: 4344, label: '무협' },
+    { id: 9648, label: '미스터리' },
+    { id: 80, label: '범죄' },
     { id: 10768, label: '성인' },
-    { id: 53,    label: '스릴러' },
+    { id: 53, label: '스릴러' },
     { id: 11602, label: '스포츠' },
-    { id: 36,    label: '시대물' },
+    { id: 36, label: '시대물' },
     { id: 10762, label: '아동' },
-    { id: 155030,label: '아이돌' },
+    { id: 155030, label: '아이돌' },
     { id: 10714, label: '악역영애' },
-    { id: 28,    label: '액션' },
-    { id: 210024,label: '역하렘' },
-    { id: 6075,  label: '음식' },
-    { id: 6075,  label: '음악' },
-    { id: 210024,label: '이세계' },
-    { id: 35,    label: '일상' },
-    { id: 10,    label: '재난' },
-    { id: 9799,  label: '추리' },
-    { id: 158718,label: '추방물' },
-    { id: 14,    label: '치유' },
-    { id: 35,    label: '코미디' },
+    { id: 28, label: '액션' },
+    { id: 210024, label: '역하렘' },
+    { id: 6075, label: '음식' },
+    { id: 6075, label: '음악' },
+    { id: 210024, label: '이세계' },
+    { id: 35, label: '일상' },
+    { id: 10, label: '재난' },
+    { id: 9799, label: '추리' },
+    { id: 158718, label: '추방물' },
+    { id: 14, label: '치유' },
+    { id: 35, label: '코미디' },
     { id: 10764, label: '특촬' },
-    { id: 14,    label: '판타지' },
-    { id: 210025,label: '하렘' },
+    { id: 14, label: '판타지' },
+    { id: 210025, label: '하렘' },
 ]
 
 // 사이드바 기본 노출 (상위 9개)
@@ -71,20 +71,20 @@ const SIDEBAR_GENRES = ALL_GENRES.slice(0, 9)
 
 const ALL_TAGS = [
     { id: '10751', label: '가족' },
-    { id: '9716',  label: '감동적인' },
-    { id: '9882',  label: '게임' },
+    { id: '9716', label: '감동적인' },
+    { id: '9882', label: '게임' },
     { id: '10087', label: '동물' },
     { id: '10189', label: '동양풍' },
-    { id: '4159',  label: '두뇌싸움' },
-    { id: '4565',  label: '로봇' },
-    { id: '4159',  label: '루프물' },
-    { id: '9799',  label: '먼치킨' },
-    { id: '1701',  label: '무거운' },
-    { id: '818',   label: '소설원작' },
-    { id: '9717',  label: '만화원작' },
-    { id: '4290',  label: '닌자' },
-    { id: '158718',label: '학원물' },
-    { id: '9882',  label: '마법' },
+    { id: '4159', label: '두뇌싸움' },
+    { id: '4565', label: '로봇' },
+    { id: '4159', label: '루프물' },
+    { id: '9799', label: '먼치킨' },
+    { id: '1701', label: '무거운' },
+    { id: '818', label: '소설원작' },
+    { id: '9717', label: '만화원작' },
+    { id: '4290', label: '닌자' },
+    { id: '158718', label: '학원물' },
+    { id: '9882', label: '마법' },
 ]
 const SIDEBAR_TAGS = ALL_TAGS.slice(0, 9)
 
@@ -96,27 +96,27 @@ const QUARTER_YEARS = [
     { value: '2025-Q3', label: '2025년 3분기' },
     { value: '2025-Q2', label: '2025년 2분기' },
     { value: '2025-Q1', label: '2025년 1분기' },
-    { value: '2024',    label: '2024년' },
-    { value: '2023',    label: '2023년' },
-    { value: '2022',    label: '2022년' },
-    { value: '2010s',   label: '2010년대' },
-    { value: '2000s',   label: '2000년대' },
-    { value: '1990s',   label: '1990년대' },
+    { value: '2024', label: '2024년' },
+    { value: '2023', label: '2023년' },
+    { value: '2022', label: '2022년' },
+    { value: '2010s', label: '2010년대' },
+    { value: '2000s', label: '2000년대' },
+    { value: '1990s', label: '1990년대' },
 ]
 const SIDEBAR_YEARS = QUARTER_YEARS.slice(0, 4)
 
 const SORT_OPTIONS = [
-    { value: 'popularity.desc',     label: '인기순' },
+    { value: 'popularity.desc', label: '인기순' },
     { value: 'first_air_date.desc', label: '신작순' },
-    { value: 'vote_count.desc',     label: '업데이트순' },
-    { value: '0',                   label: '리뷰 많은순' },
-    { value: 'vote_average.desc',   label: '별점 높은순' },
+    { value: 'vote_count.desc', label: '업데이트순' },
+    { value: '0', label: '리뷰 많은순' },
+    { value: 'vote_average.desc', label: '별점 높은순' },
 ]
 
 const GENRE_LABEL: Record<number, string> = {
-    16:'애니', 10759:'액션', 35:'코미디', 18:'드라마',
-    14:'판타지', 10765:'SF', 9648:'미스터리', 27:'호러',
-    10751:'가족', 10762:'어린이', 10749:'로맨스',
+    16: '애니', 10759: '액션', 35: '코미디', 18: '드라마',
+    14: '판타지', 10765: 'SF', 9648: '미스터리', 27: '호러',
+    10751: '가족', 10762: '어린이', 10749: '로맨스',
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -133,12 +133,12 @@ function quarterToRange(val: string) {
     if (val === '2025-Q3') return { gte: '2025-07-01', lte: '2025-09-30' }
     if (val === '2025-Q2') return { gte: '2025-04-01', lte: '2025-06-30' }
     if (val === '2025-Q1') return { gte: '2025-01-01', lte: '2025-03-31' }
-    if (val === '2024')    return { gte: '2024-01-01', lte: '2024-12-31' }
-    if (val === '2023')    return { gte: '2023-01-01', lte: '2023-12-31' }
-    if (val === '2022')    return { gte: '2022-01-01', lte: '2022-12-31' }
-    if (val === '2010s')   return { gte: '2010-01-01', lte: '2019-12-31' }
-    if (val === '2000s')   return { gte: '2000-01-01', lte: '2009-12-31' }
-    if (val === '1990s')   return { gte: '1990-01-01', lte: '1999-12-31' }
+    if (val === '2024') return { gte: '2024-01-01', lte: '2024-12-31' }
+    if (val === '2023') return { gte: '2023-01-01', lte: '2023-12-31' }
+    if (val === '2022') return { gte: '2022-01-01', lte: '2022-12-31' }
+    if (val === '2010s') return { gte: '2010-01-01', lte: '2019-12-31' }
+    if (val === '2000s') return { gte: '2000-01-01', lte: '2009-12-31' }
+    if (val === '1990s') return { gte: '1990-01-01', lte: '1999-12-31' }
     return null
 }
 
@@ -149,7 +149,7 @@ function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: ()
             <span className={`cb-box${checked ? ' checked' : ''}`}>
                 {checked && (
                     <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                 )}
             </span>
@@ -173,15 +173,15 @@ function GenreModal({
                     <h2>장르 전체</h2>
                     <button className="modal-close" onClick={onClose}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                     </button>
                 </div>
                 <p className="modal-desc">원치 않는 필터는 체크 박스를 한번 더 누르면 제외 할 수 있어요.</p>
                 <div className="modal-grid">
                     {ALL_GENRES.map(g => {
-                        const isOn  = selected.includes(g.id)
-                        const isEx  = excluded.includes(g.id)
+                        const isOn = selected.includes(g.id)
+                        const isEx = excluded.includes(g.id)
                         return (
                             <label
                                 key={g.label}
@@ -189,8 +189,8 @@ function GenreModal({
                                 onClick={() => isOn ? onExclude(g.id) : onToggle(g.id)}
                             >
                                 <span className={`cb-box${isOn ? ' checked' : ''}${isEx ? ' ex' : ''}`}>
-                                    {isOn && !isEx && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                    {isEx && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><line x1="2" y1="6" x2="10" y2="6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>}
+                                    {isOn && !isEx && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                                    {isEx && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><line x1="2" y1="6" x2="10" y2="6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></svg>}
                                 </span>
                                 <span>{g.label}</span>
                             </label>
@@ -200,8 +200,8 @@ function GenreModal({
                 <div className="modal-foot">
                     <button className="modal-reset" onClick={onReset}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                            <path d="M3 3v5h5"/>
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <path d="M3 3v5h5" />
                         </svg>
                         전체 초기화
                     </button>
@@ -216,11 +216,11 @@ function GenreModal({
 function AniCard({ item }: { item: AniItem }) {
     const [hov, setHov] = useState(false)
     const t = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const poster   = item.poster_path   ? `${IMG}/w342${item.poster_path}`   : null
+    const poster = item.poster_path ? `${IMG}/w342${item.poster_path}` : null
     const backdrop = item.backdrop_path ? `${IMG}/w780${item.backdrop_path}` : null
-    const score    = Math.round(item.vote_average * 10) / 10
-    const year     = item.first_air_date?.slice(0, 4) || ''
-    const genres   = item.genre_ids.map(g => GENRE_LABEL[g]).filter(Boolean).slice(0, 2)
+    const score = Math.round(item.vote_average * 10) / 10
+    const year = item.first_air_date?.slice(0, 4) || ''
+    const genres = item.genre_ids.map(g => GENRE_LABEL[g]).filter(Boolean).slice(0, 2)
     return (
         <li className="fc"
             onMouseEnter={() => { t.current = setTimeout(() => setHov(true), 160) }}
@@ -228,7 +228,7 @@ function AniCard({ item }: { item: AniItem }) {
             <div className="fc-thumb">
                 {poster
                     ? <img src={poster} alt={item.name} loading="lazy" />
-                    : <div className="fc-np"><span>{(item.name||'?')[0]}</span></div>}
+                    : <div className="fc-np"><span>{(item.name || '?')[0]}</span></div>}
                 {score > 0 && <span className="fc-score">★ {score}</span>}
             </div>
             <div className="fc-info">
@@ -257,11 +257,11 @@ function AniCard({ item }: { item: AniItem }) {
                         </p>
                         <div className="fh-acts">
                             <button className="fh-play">
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
                                 재생
                             </button>
                             <button className="fh-add" aria-label="찜">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                             </button>
                         </div>
                     </div>
@@ -283,14 +283,14 @@ function Skeleton() {
 
 // ─── 메인 ─────────────────────────────────────────────────────
 export default function TagSearch() {
-    const [filters, setFilters]     = useState<Filters>(DEFAULT_FILTERS)
-    const [results, setResults]     = useState<AniItem[]>([])
-    const [loading, setLoading]     = useState(false)
-    const [page, setPage]           = useState(1)
-    const [totalPages, setTotal]    = useState(1)
-    const [sortOpen, setSortOpen]   = useState(false)
+    const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
+    const [results, setResults] = useState<AniItem[]>([])
+    const [loading, setLoading] = useState(false)
+    const [page, setPage] = useState(1)
+    const [totalPages, setTotal] = useState(1)
+    const [sortOpen, setSortOpen] = useState(false)
     const [genreModal, setGenreModal] = useState(false)
-    const [tagModal, setTagModal]   = useState(false)
+    const [tagModal, setTagModal] = useState(false)
     const pending = useRef(false)
     const sortRef = useRef<HTMLDivElement>(null)
 
@@ -345,10 +345,10 @@ export default function TagSearch() {
             if (f.tags.length > 0) params.set('with_keywords', f.tags.join('|'))
             if (f.excludeGenres.length > 0) params.set('without_genres', f.excludeGenres.join(','))
             if (f.airing === 'ongoing') params.set('with_status', '0')
-            if (f.airing === 'ended')   params.set('with_status', '4')
+            if (f.airing === 'ended') params.set('with_status', '4')
 
             const isMovie = f.mediaType === 'movie'
-            const res  = await fetch(`https://api.themoviedb.org/3/discover/tv?${params}`)
+            const res = await fetch(`https://api.themoviedb.org/3/discover/tv?${params}`)
             const data = await res.json()
             const items: AniItem[] = (data.results || []).map((r: any) => ({
                 ...r, name: r.name || r.title, first_air_date: r.first_air_date || r.release_date,
@@ -387,8 +387,8 @@ export default function TagSearch() {
                 if (f.tags.length > 0) params.set('with_keywords', f.tags.join('|'))
                 if (f.excludeGenres.length > 0) params.set('without_genres', f.excludeGenres.join(','))
                 if (f.airing === 'ongoing') params.set('with_status', '0')
-                if (f.airing === 'ended')   params.set('with_status', '4')
-                const res  = await fetch(`https://api.themoviedb.org/3/discover/tv?${params}`)
+                if (f.airing === 'ended') params.set('with_status', '4')
+                const res = await fetch(`https://api.themoviedb.org/3/discover/tv?${params}`)
                 const data = await res.json()
                 if (!data.results?.length) break
                 const items: AniItem[] = data.results.map((r: any) => ({
@@ -552,7 +552,7 @@ export default function TagSearch() {
                         <h2>필터</h2>
                         <button className="btn-reset-all" onClick={reset}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
                             </svg>
                             전체 초기화
                         </button>
@@ -582,7 +582,7 @@ export default function TagSearch() {
                             <p className="sb-sec-title">장르</p>
                             <button className="btn-more-sec" onClick={() => setGenreModal(true)}>
                                 더 보기
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                             </button>
                         </div>
                         <div className="sb-checks">
@@ -604,7 +604,7 @@ export default function TagSearch() {
                             <p className="sb-sec-title">태그</p>
                             <button className="btn-more-sec" onClick={() => setTagModal(true)}>
                                 더 보기
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                             </button>
                         </div>
                         <div className="sb-checks">
@@ -626,7 +626,7 @@ export default function TagSearch() {
                             <p className="sb-sec-title">년도</p>
                             <button className="btn-more-sec">
                                 더 보기
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                             </button>
                         </div>
                         <div className="sb-checks">
@@ -649,7 +649,7 @@ export default function TagSearch() {
                         </div>
                         <div className="sb-checks">
                             <Checkbox checked={filters.airing === 'ongoing'} onChange={() => toggleAiring('ongoing')} label="방영중" />
-                            <Checkbox checked={filters.airing === 'ended'}   onChange={() => toggleAiring('ended')}   label="완결" />
+                            <Checkbox checked={filters.airing === 'ended'} onChange={() => toggleAiring('ended')} label="완결" />
                         </div>
                     </div>
                     <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
@@ -660,9 +660,9 @@ export default function TagSearch() {
                             <p className="sb-sec-title">출시타입</p>
                         </div>
                         <div className="sb-checks">
-                            <Checkbox checked={filters.mediaType === 'tva'}   onChange={() => toggleMedia('tva')}   label="TVA" />
-                            <Checkbox checked={filters.mediaType === 'movie'}  onChange={() => toggleMedia('movie')} label="극장판" />
-                            <Checkbox checked={filters.mediaType === 'ova'}    onChange={() => toggleMedia('ova')}   label="OVA" />
+                            <Checkbox checked={filters.mediaType === 'tva'} onChange={() => toggleMedia('tva')} label="TVA" />
+                            <Checkbox checked={filters.mediaType === 'movie'} onChange={() => toggleMedia('movie')} label="극장판" />
+                            <Checkbox checked={filters.mediaType === 'ova'} onChange={() => toggleMedia('ova')} label="OVA" />
                         </div>
                     </div>
                 </aside>
@@ -689,7 +689,7 @@ export default function TagSearch() {
                                         >
                                             {filters.sort === o.value && (
                                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2.5">
-                                                    <path d="M20 6L9 17l-5-5"/>
+                                                    <path d="M20 6L9 17l-5-5" />
                                                 </svg>
                                             )}
                                             {filters.sort !== o.value && <span style={{ width: 13 }} />}
@@ -713,7 +713,7 @@ export default function TagSearch() {
                                     ? (
                                         <li className="empty">
                                             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                                                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                                             </svg>
                                             <p>검색 결과가 없어요</p>
                                         </li>

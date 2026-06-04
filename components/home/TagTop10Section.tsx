@@ -1,10 +1,10 @@
 'use client'
-import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation } from 'swiper/modules'
 import 'swiper/css'
+import { usePreviewStore } from '@/store/usePreviewStore'
 
 const POSTER_W = 340
 const POSTER_H = 510
@@ -30,7 +30,6 @@ const GENRE_MAP: Record<number, string> = {
 
 export default function TagTop10Section() {
     const { aniList, onFetchAni } = useAniStore()
-    const router = useRouter()
     const prevRef = useRef<HTMLButtonElement>(null)
     const nextRef = useRef<HTMLButtonElement>(null)
 
@@ -50,6 +49,8 @@ export default function TagTop10Section() {
         .filter((a: any) => tag.genres.some((g: number) => a.genre_ids?.includes(g)))
         .sort((a: any, b: any) => b.popularity - a.popularity)
         .slice(0, 10)
+
+    const { setPreviewId } = usePreviewStore()
 
     return (
         <section style={{ padding: '56px 0 80px' }}>
@@ -174,7 +175,7 @@ export default function TagTop10Section() {
                                         <div
                                             className="tt-card"
                                             style={{ height: POSTER_H + 60 }}
-                                            onClick={() => router.push(`/anime/${ani.id}`)}
+                                            onClick={() => setPreviewId(ani.id)}
                                         >
                                             <span className="tt-rank">{i + 1}</span>
                                             <div className="tt-thumb">

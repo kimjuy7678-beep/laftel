@@ -31,6 +31,8 @@ export function useAnimeDetail() {
     const [modalOpen, setModalOpen] = useState(false)
     const [videoLoading, setVideoLoading] = useState(false)
 
+    const epParam = Number(searchParams.get('ep') || null)
+
     useEffect(() => {
         if (!id) return
         setLoading(true)
@@ -91,5 +93,6 @@ export function useAnimeDetail() {
         modalOpen, setModalOpen,
         videoLoading, videoInfo,
         openPlayer,
+        epParam,
     }
 }

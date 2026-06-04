@@ -9,9 +9,10 @@ import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductC
 import StoreSidebar from "@/components/store/StoreSliaebar";
 import FilterDropdown from "@/components/store/FilterDropdown";
 
-const ALL_PRODUCTS = products as StoreProduct[];
-const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
-const ITEMS_PER_PAGE = 16;
+type SearchableStoreProduct = StoreProduct & { productdetail?: string[] };
+
+const STORE_PRODUCTS = products as SearchableStoreProduct[];
+const ITEMS_PER_PAGE = 20;
 const PAGE_GROUP = 5;
 
 const HERO_SLIDES = [
@@ -27,6 +28,14 @@ const HERO_SLIDES = [
 function parsePrice(priceStr: string): number {
     const num = parseInt(priceStr.replace(/[^0-9]/g, ""), 10);
     return isNaN(num) ? 0 : num;
+}
+
+function getProductSearchText(product: SearchableStoreProduct) {
+    return [
+        product.title,
+        product.category,
+        ...(product.productdetail ?? []),
+    ].join(" ").toLowerCase();
 }
 
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -164,9 +173,8 @@ export default function StoreListPage() {
 
     const filtered = STORE_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
-        const matchSearch =
-            p.title.toLowerCase().includes(search.toLowerCase()) ||
-            p.category.toLowerCase().includes(search.toLowerCase());
+        const normalizedSearch = search.trim().toLowerCase();
+        const matchSearch = !normalizedSearch || getProductSearchText(p).includes(normalizedSearch);
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
         const matchStock = !onlyInStock || !p.soldout;
         return matchSearch && matchPrice && matchStock;
@@ -181,7 +189,6 @@ export default function StoreListPage() {
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    useEffect(() => { setPage(1); }, [search, priceRange, onlyInStock, sort]);
     useEffect(() => {
         if (user) console.log("👤 [Auth]", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
         else console.log("👻 [Auth] 비로그인 상태");
@@ -190,6 +197,27 @@ export default function StoreListPage() {
     const handleReset = () => {
         setPriceRange(PRICE_INITIAL);
         setOnlyInStock(false);
+        setPage(1);
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value);
+        setPage(1);
+    };
+
+    const handleSortChange = (value: string) => {
+        setSort(value);
+        setPage(1);
+    };
+
+    const handlePriceRange = (range: [number, number]) => {
+        setPriceRange(range);
+        setPage(1);
+    };
+
+    const handleOnlyInStock = (value: boolean) => {
+        setOnlyInStock(value);
+        setPage(1);
     };
 
     const activeFilterCount = [
@@ -238,10 +266,10 @@ export default function StoreListPage() {
                                 className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
                                 placeholder="찾으시는 상품을 검색하세요"
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => handleSearchChange(e.target.value)}
                             />
                             {search && (
-                                <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]">
+                                <button onClick={() => handleSearchChange("")} className="text-[#b0aabb] hover:text-[#7865ff]">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                 </button>
                             )}
@@ -262,7 +290,7 @@ export default function StoreListPage() {
                     </p>
                     <div className="flex items-center gap-2">
                         <div className="relative">
-                            <select value={sort} onChange={(e) => setSort(e.target.value)}
+                            <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
                                 className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
                                 <option>인기순</option>
                                 <option>신상품순</option>
@@ -290,9 +318,9 @@ export default function StoreListPage() {
                             <FilterDropdown
                                 open={filterOpen}
                                 priceRange={priceRange}
-                                onPriceRange={setPriceRange}
+                                onPriceRange={handlePriceRange}
                                 onlyInStock={onlyInStock}
-                                onOnlyInStock={setOnlyInStock}
+                                onOnlyInStock={handleOnlyInStock}
                                 onReset={handleReset}
                             />
                         </div>
@@ -308,14 +336,14 @@ export default function StoreListPage() {
                         </svg>
                         검색 결과가 없어요.
                         {(search || activeFilterCount > 0) && (
-                            <button onClick={() => { setSearch(""); handleReset(); }}
+                            <button onClick={() => { handleSearchChange(""); handleReset(); }}
                                 className="text-[13px] text-[#7865ff] underline">
                                 필터 초기화
                             </button>
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-4 gap-x-6 gap-y-10">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
                         {paginated.map((product) => (
                             <StoreProductCard key={product.productId} product={product} />
                         ))}
