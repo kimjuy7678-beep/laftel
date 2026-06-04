@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
 import { useEffect } from 'react'
+import { usePreviewStore } from '@/store/usePreviewStore'
 
 interface Props {
     genre: number
@@ -12,6 +13,7 @@ interface Props {
 export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
     const { aniList, onFetchAni } = useAniStore()
     const router = useRouter()
+    const { setPreviewId } = usePreviewStore()
 
     useEffect(() => {
         if (aniList.length === 0) onFetchAni()
@@ -103,7 +105,7 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
                         const showBadge = idx % 3 === 0 && badges.length > 0
 
                         return (
-                            <div key={ani.id} className="tr-card" onClick={() => router.push(`/anime/${ani.id}`)}>
+                            <div key={ani.id} className="tr-card" onClick={() => setPreviewId(ani.id)}>
                                 <div className="tr-thumb">
                                     {ani.backdrop_path
                                         ? <img className="tr-img" src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} />
