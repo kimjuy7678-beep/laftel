@@ -7,7 +7,7 @@ import SimilarPreviewModal from "./SimilarPreviewModal"
 import OstSectionDetail from "@/components/anime/OstSectionDetail"
 import SeasonSelect from "@/components/anime/SeasonSelect"
 import Button from "@/components/Button"
-import VideoPlayer from "@/components/VideoPlayer"
+import VideoPlayer from "@/components/Videoplayer"
 import EpisodeComments from "@/components/anime/Episodecomments"
 import Header from "@/components/Header"
 
@@ -70,7 +70,7 @@ export default function AnimeDetailPage() {
     return (
         <>
             <Header />
-            <div className="min-h-screen bg-[#0a0a0a] text-white pt-14">
+            <div className="min-h-screen bg-[#0a0a0a] text-white pt-16">
                 <SimilarPreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
 
                 {modalOpen && (
@@ -169,7 +169,7 @@ export default function AnimeDetailPage() {
                 )}
 
                 <button
-                    className="fixed top-[70px] left-6 z-[100] flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-white/60 text-[13px] cursor-pointer transition-all hover:text-white hover:bg-black/80"
+                    className="fixed top-[64px] left-6 z-[100] flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-white/60 text-[13px] cursor-pointer transition-all hover:text-white hover:bg-black/80"
                     onClick={() => router.back()}
                 >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
