@@ -4,8 +4,8 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { useRef, useState, useEffect } from "react";
+import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/firebase/firebase";
 
@@ -20,7 +20,8 @@ const MENU_TOP = [
 const MENU_BOTTOM = [
     { label: "배송지 관리", path: "/store/profile/address", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg> },
     { label: "결제 수단 관리", path: "/store/profile/payment", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg> },
-    { label: "회원 정보 관리", path: "/store/profile/account", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> },
+    // 회원 정보 관리 → OTT 마이페이지로 외부 이동
+    { label: "회원 정보 관리", path: "/mypage", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>, external: true },
     { label: "알림 설정", path: "/store/profile/notify", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg> },
 ];
 
@@ -28,12 +29,103 @@ const MEMBERSHIP_LABEL: Record<string, string> = {
     none: "Basic Plan", anime: "Anime Plan", ost: "OST Plan", allinone: "All-in-One Plan",
 };
 
+const MEMBERSHIP_BENEFITS = [
+    {
+        key: "none",
+        label: "BASIC",
+        color: "#c4b5fd",
+        bg: "#f0eeff",
+        benefits: ["월 1회 50% 할인 쿠폰 지급", "신규 굿즈 알림 서비스", "라프텔 스토어 이용 가능"],
+    },
+    {
+        key: "allinone",
+        label: "ALL",
+        color: "#7865ff",
+        bg: "#ede9ff",
+        benefits: ["월 1회 80% 할인 쿠폰 지급", "신규 굿즈 알림 서비스", "전용 굿즈 선구매 혜택", "배송비 무료", "포인트 2배 적립"],
+    },
+    {
+        key: "ost",
+        label: "OST",
+        color: "#a78bfa",
+        bg: "#f5f3ff",
+        benefits: ["월 1회 20% 할인 쿠폰 지급", "신규 굿즈 알림 서비스", "OST 연동 포인트 적립"],
+    },
+    {
+        key: "anime",
+        label: "ANIME",
+        color: "#818cf8",
+        bg: "#eef2ff",
+        benefits: ["월 1회 30% 할인 쿠폰 지급", "신규 굿즈 알림 서비스", "애니메 전용 굿즈 할인"],
+    },
+];
+
+function BenefitModal({ onClose }: { onClose: () => void }) {
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30" onClick={onClose}>
+            <div onClick={e => e.stopPropagation()}
+                className="w-[500px] max-h-[90vh] overflow-y-auto rounded-[24px] bg-white shadow-[0_20px_60px_rgba(120,101,255,0.2)]">
+                <div className="flex justify-end px-6 pt-5">
+                    <button onClick={onClose}
+                        className="rounded-full border border-[#e2ddf5] px-4 py-1.5 text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
+                        닫기
+                    </button>
+                </div>
+                <div className="mx-6 mb-5 rounded-[16px] bg-[#7865ff] px-6 py-7 text-center">
+                    <p className="text-[22px] font-extrabold text-white tracking-wide">LAFTEL MEMBERSHIP</p>
+                    <p className="mt-1 text-[14px] text-white/80">월간 혜택 안내</p>
+                </div>
+                <div className="mx-6 mb-6 rounded-[16px] border border-[#ebe8ff] bg-white px-6 py-5 flex flex-col gap-7">
+                    {MENU_BOTTOM.map((m) => (
+                        (m as any).external
+                            ? (
+                                <a key={m.path} href={m.path}
+                                    className="flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition text-[#3d3755] hover:bg-[#f0eeff]">
+                                    {m.icon}
+                                    {m.label}
+                                    {/* 외부 이동 표시 아이콘 */}
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-auto opacity-30">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                        <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                                    </svg>
+                                </a>
+                            )
+                            : (
+                                <Link key={m.path} href={m.path}
+                                    className={`flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition ${isActive(m.path) ? "bg-[#7865ff] text-white font-semibold" : "text-[#3d3755] hover:bg-[#f0eeff]"}`}>
+                                    {m.icon}{m.label}
+                                </Link>
+                            )
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function ProfileStoreLayout({ children }: { children: React.ReactNode }) {
     const { user, onLogin } = useAuthStore();
     const pathname = usePathname();
     const fileRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
-    const [wishCount, setWishCount] = useState(0);
+    const [benefitOpen, setBenefitOpen] = useState(false);
+    const [livePoints, setLivePoints] = useState<number>(user?.points ?? 0);
+    const [liveCoupons, setLiveCoupons] = useState<number>(0);
+    const [liveWishCount, setLiveWishCount] = useState<number>(0);
+
+    // Firebase 실시간 구독 — OTT 연동
+    useEffect(() => {
+        if (!user?.uid) return;
+        const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                setLivePoints(data.points ?? 0);
+                setLiveCoupons(data.coupons?.length ?? 0);
+                setLiveWishCount(data.wishlist?.length ?? 0);
+            }
+        });
+        return () => unsub();
+    }, [user?.uid]);
 
     const isActive = (path: string) =>
         path === "/store/profile" ? pathname === "/store/profile" : pathname.startsWith(path);
@@ -54,8 +146,9 @@ export default function ProfileStoreLayout({ children }: { children: React.React
 
     return (
         <div className="min-h-screen bg-[#fafafa]">
-            <div className="mx-auto max-w-[1200px] px-6 py-10">
+            {benefitOpen && <BenefitModal onClose={() => setBenefitOpen(false)} />}
 
+            <div className="mx-auto max-w-[1200px] px-6 py-10">
                 {/* 인사말 */}
                 <div className="mb-6">
                     <h1 className="text-[26px] font-bold text-[#16121f]">
@@ -93,17 +186,17 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                             <div className="mt-3 flex items-center gap-6">
                                 <div>
                                     <p className="text-[12px] text-[#9b94b2]">포인트</p>
-                                    <p className="text-[15px] font-bold text-[#7865ff]">{(user?.points ?? 0).toLocaleString()}P</p>
+                                    <p className="text-[15px] font-bold text-[#7865ff]">{livePoints.toLocaleString()}P</p>
                                 </div>
                                 <div className="h-7 w-px bg-[#d0caee]" />
                                 <div>
                                     <p className="text-[12px] text-[#9b94b2]">쿠폰</p>
-                                    <p className="text-[15px] font-bold text-[#7865ff]">2장</p>
+                                    <p className="text-[15px] font-bold text-[#7865ff]">{liveCoupons}장</p>
                                 </div>
                                 <div className="h-7 w-px bg-[#d0caee]" />
                                 <div>
                                     <p className="text-[12px] text-[#9b94b2]">좋아요</p>
-                                    <p className="text-[15px] font-bold text-[#7865ff]">6개</p>
+                                    <p className="text-[15px] font-bold text-[#7865ff]">{liveWishCount}개</p>
                                 </div>
                             </div>
                         </div>
@@ -129,7 +222,8 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                                 </Link>
                             ))}
                             <div className="my-3 border-t border-[#f0edf8]" />
-                            <div className="rounded-[10px] bg-[#f0eeff] p-3">
+                            <button onClick={() => setBenefitOpen(true)}
+                                className="w-full rounded-[10px] bg-[#f0eeff] p-3 text-left transition hover:bg-[#e4dfff]">
                                 <div className="flex items-center gap-2">
                                     <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#7865ff]">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
@@ -139,7 +233,7 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                                         <p className="text-[10px] text-[#9b94b2]">등급별 혜택 확인하기 ›</p>
                                     </div>
                                 </div>
-                            </div>
+                            </button>
                         </div>
                     </div>
 

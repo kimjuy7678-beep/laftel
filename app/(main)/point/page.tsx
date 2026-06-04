@@ -184,7 +184,7 @@ export default function Point() {
         if (!user || !selectedOption || !isPayable()) return
         setCharging(true)
         try {
-            await chargePoints((user as any).uid, selectedOption.amount)
+            await chargePoints((user as any).uid, selectedOption.amount, '라프텔 OTT 포인트 충전')
             setShowSuccess(true)
         } catch {
             toast.error('충전 실패 😭', {
