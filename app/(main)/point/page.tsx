@@ -59,7 +59,7 @@ function SuccessModal({ amount, onConfirm }: { amount: number; onConfirm: () => 
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="bg-[#1a1a1a] rounded-2xl w-full max-w-sm p-10 flex flex-col items-center text-center gap-6 border border-white/10">
                 <div className="w-20 h-20 rounded-full overflow-hidden" style={{ border: '2px solid #6c63ff' }}>
-                    <img src="/images/laftel/success-icon.png" alt="포인트 충전" className="w-full h-full object-cover" />
+                    <img src="/images/laftel-icon/success-icon.png" alt="포인트 충전" className="w-full h-full object-cover" />
                 </div>
                 <div>
                     <h3 className="text-2xl font-black mb-2">충전 완료!</h3>
