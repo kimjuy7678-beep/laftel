@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 
 import StoreSidebar from "@/components/store/StoreSliaebar"
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 
-const ALL_PRODUCTS = products as StoreProduct[];
+type SeriesProduct = StoreProduct & { productdetail?: string[] };
+
+const ALL_PRODUCTS = products as SeriesProduct[];
 const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
 const ITEMS_PER_PAGE = 16;
 const PAGE_GROUP = 5;
@@ -226,7 +229,9 @@ function FilterDropdown({ open, priceRange, onPriceRange, selectedColor, onColor
 
 export default function SeriesPage() {
     const { user } = useAuthStore();
-    const [selectedSeries, setSelectedSeries] = useState("전체");
+    const searchParams = useSearchParams();
+    const [manualSeries, setManualSeries] = useState<string | null>(null);
+    const [manualCharacter, setManualCharacter] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState("인기순");
     const [filterOpen, setFilterOpen] = useState(false);
@@ -234,18 +239,17 @@ export default function SeriesPage() {
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 300000]);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const series = params.get("series");
-        if (series) setSelectedSeries(series);
-    }, []);
+    const selectedSeries = manualSeries ?? searchParams.get("series") ?? "전체";
+    const selectedCharacter = manualCharacter ?? searchParams.get("character") ?? "";
 
     const filtered = STORE_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
         const matchSeries = selectedSeries === "전체" || p.category === selectedSeries;
+        const characterText = [p.title, ...(p.productdetail ?? [])].join(" ").toLowerCase();
+        const matchCharacter = !selectedCharacter || characterText.includes(selectedCharacter.toLowerCase());
         const matchPrice = p.soldout || (price >= priceRange[0] && price <= priceRange[1]);
         const matchColor = !selectedColor || p.title.toLowerCase().includes(COLOR_OPTIONS.find(c => c.value === selectedColor)?.label.toLowerCase() ?? "");
-        return matchSeries && matchPrice && matchColor;
+        return matchSeries && matchCharacter && matchPrice && matchColor;
     });
 
     const sorted = [...filtered].sort((a, b) => {
@@ -257,16 +261,29 @@ export default function SeriesPage() {
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    useEffect(() => { setPage(1); }, [selectedSeries, sort, priceRange, selectedColor]);
     useEffect(() => {
         if (user) console.log("👤 [Auth]", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
         else console.log("👻 [Auth] 비로그인 상태");
     }, [user]);
 
-    const handleReset = () => { setPriceRange([0, 300000]); setSelectedColor(null); };
+    const handleSortChange = (value: string) => {
+        setSort(value);
+        setPage(1);
+    };
+    const handlePriceRange = (value: [number, number]) => {
+        setPriceRange(value);
+        setPage(1);
+    };
+    const handleColor = (value: string | null) => {
+        setSelectedColor(value);
+        setPage(1);
+    };
+    const handleReset = () => { setPriceRange([0, 300000]); setSelectedColor(null); setPage(1); };
     const activeFilterCount = [priceRange[0] > 0 || priceRange[1] < 300000, selectedColor !== null].filter(Boolean).length;
     const handleSeriesSelect = (s: string) => {
-        setSelectedSeries(s);
+        setManualSeries(s);
+        setManualCharacter("");
+        setPage(1);
         document.getElementById("series-tab")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
@@ -317,10 +334,11 @@ export default function SeriesPage() {
                     <p className="text-[14px] text-[#6b647a]">
                         총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품
                         {selectedSeries !== "전체" && <span className="ml-2 font-semibold text-[#7865ff]">· {selectedSeries}</span>}
+                        {selectedCharacter && <span className="ml-2 font-semibold text-[#7865ff]">· {selectedCharacter}</span>}
                     </p>
                     <div className="flex items-center gap-2">
                         <div className="relative">
-                            <select value={sort} onChange={(e) => setSort(e.target.value)}
+                            <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
                                 className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
                                 <option>인기순</option><option>신상품순</option><option>낮은 가격순</option><option>높은 가격순</option>
                             </select>
@@ -334,8 +352,8 @@ export default function SeriesPage() {
                                 필터
                                 {activeFilterCount > 0 && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#7865ff] text-[10px] font-bold text-white">{activeFilterCount}</span>}
                             </button>
-                            <FilterDropdown open={filterOpen} priceRange={priceRange} onPriceRange={setPriceRange}
-                                selectedColor={selectedColor} onColor={setSelectedColor} onReset={handleReset} />
+                            <FilterDropdown open={filterOpen} priceRange={priceRange} onPriceRange={handlePriceRange}
+                                selectedColor={selectedColor} onColor={handleColor} onReset={handleReset} />
                         </div>
                     </div>
                 </div>

@@ -144,7 +144,7 @@ export default function StoreListPage() {
     const activeFilterCount = [priceRange[0] > 0 || priceRange[1] < 300000, selectedColor !== null].filter(Boolean).length;
 
     return (
-        <div className="min-h-screen bg-white pb-20">
+        <div className="min-h-screen bg-white pb-20 w-[">
             <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
             <div className="border-b border-[#ebe8ff] bg-white py-3">
