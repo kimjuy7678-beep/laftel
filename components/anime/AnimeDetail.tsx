@@ -8,7 +8,7 @@ import OstSectionDetail from "@/components/anime/OstSectionDetail"
 import SeasonSelect from "@/components/anime/SeasonSelect"
 import EpisodeComments from "./Episodecomments"
 import Button from "@/components/Button"
-import VideoPlayer from "@/components/Videoplayer"
+import VideoPlayer from "@/components/VideoPlayer"
 
 export default function AnimeDetailPage() {
     const {

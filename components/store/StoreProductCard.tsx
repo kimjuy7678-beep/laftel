@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { doc, setDoc, getDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from "@/firebase/firebase";
@@ -16,6 +17,7 @@ export type StoreProduct = {
     price: string;
     thumbnail: string;
     soldout: boolean;
+    productdetail?: string[];
 };
 
 function ImageSlot({ src, alt, className }: { src: string; alt: string; className: string }) {
@@ -79,7 +81,38 @@ export function WishButton({ productId }: { productId: string }) {
     );
 }
 
-export function CartButton({ productId, title, thumbnail }: { productId: string; title: string; thumbnail: string }) {
+function getCardOptionValues(product: StoreProduct): string[] {
+    const lines = (product.productdetail ?? []).map((line) => line.trim()).filter(Boolean);
+    const optionLines = lines
+        .filter((line) => /^옵션\s*[A-Z0-9가-힣]?\.?\s*/.test(line))
+        .map((line) => line.replace(/^옵션\s*[A-Z0-9가-힣]?\.?\s*/, "").trim())
+        .filter(Boolean);
+    if (optionLines.length > 0) return optionLines;
+
+    const selectIdx = lines.findIndex((line) => /선택(하여|후)\s*구매/.test(line));
+    if (selectIdx > 0) {
+        const values = lines[selectIdx - 1]
+            .split(/[,，、]/)
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0 && value.length <= 30);
+        if (values.length > 1) return values;
+    }
+
+    return [];
+}
+
+export function CartButton({
+    productId,
+    title,
+    thumbnail,
+    requiresOption = false,
+}: {
+    productId: string;
+    title: string;
+    thumbnail: string;
+    requiresOption?: boolean;
+}) {
+    const router = useRouter();
     const { user } = useAuthStore();
     const [inCart, setInCart] = useState(false);
     const [showLogin, setShowLogin] = useState(false);
@@ -89,8 +122,17 @@ export function CartButton({ productId, title, thumbnail }: { productId: string;
         if (!user?.uid) return;
         (async () => {
             const snap = await getDoc(doc(db, "users", user.uid!));
-            const cart: string[] = snap.data()?.cart || [];
-            setInCart(cart.includes(productId));
+            const cart = snap.data()?.cart as unknown;
+            const cartItems = Array.isArray(cart) ? cart : [];
+            setInCart(cartItems.some((item) => {
+                if (typeof item === "string") return item === productId;
+                return Boolean(
+                    item &&
+                    typeof item === "object" &&
+                    "productId" in item &&
+                    (item as { productId?: unknown }).productId === productId,
+                );
+            }));
         })();
     }, [user?.uid, productId]);
 
@@ -98,6 +140,10 @@ export function CartButton({ productId, title, thumbnail }: { productId: string;
 
     const addToCart = async (e: React.MouseEvent) => {
         e.preventDefault(); e.stopPropagation();
+        if (requiresOption) {
+            router.push(`/store/${productId}`);
+            return;
+        }
         if (!user?.uid) {
             setShowLogin(true);
             setTimeout(() => setShowLogin(false), 3000);
@@ -131,6 +177,7 @@ export default function StoreProductCard({ product }: { product: StoreProduct })
     const displayPrice = product.soldout ? "품절" : product.price;
     const isReserve = product.title.includes("[예약]");
     const displayTitle = product.title.replace("[예약]", "").trim();
+    const requiresOption = getCardOptionValues(product).length > 0 || product.title.includes("선택");
     return (
         <Link href={`/store/${product.productId}`} className="group block min-w-0">
             <div className="relative overflow-hidden rounded-[12px] bg-[#f3f1ff]">
@@ -146,7 +193,7 @@ export default function StoreProductCard({ product }: { product: StoreProduct })
                 )}
                 <div className="absolute bottom-3 right-3 flex gap-1.5">
                     <WishButton productId={product.productId} />
-                    <CartButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} />
+                    <CartButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} requiresOption={requiresOption} />
                 </div>
             </div>
             <div className="mt-3">

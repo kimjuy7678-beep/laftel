@@ -129,44 +129,109 @@ function parseDetail(lines: string[], title: string): ParsedDetail {
     return { specs, noticelines, isReservation, size, material };
 }
 
-// ─── 옵션값 추출 (5단계 fallback) ────────────────────────────────────────────
+// ─── 옵션값 추출 ────────────────────────────────────────────────────────────
+function cleanOptionValue(value: unknown) {
+    const stringValue = typeof value === "string" ? value.trim() : "";
+    let parsedValue: unknown = value;
+
+    if (stringValue.startsWith("{") || stringValue.startsWith("[")) {
+        try {
+            parsedValue = JSON.parse(stringValue) as unknown;
+        } catch {
+            parsedValue = value;
+        }
+    }
+
+    const raw = typeof parsedValue === "string"
+        ? parsedValue
+        : parsedValue && typeof parsedValue === "object"
+            ? String(
+                (parsedValue as { optionValue?: unknown; optionName?: unknown; name?: unknown; value?: unknown; label?: unknown; title?: unknown }).optionValue ??
+                (parsedValue as { optionName?: unknown }).optionName ??
+                (parsedValue as { name?: unknown }).name ??
+                (parsedValue as { value?: unknown }).value ??
+                (parsedValue as { label?: unknown }).label ??
+                (parsedValue as { title?: unknown }).title ??
+                "",
+            )
+            : "";
+
+    return raw
+        .replace(/["{,]\s*add(?:i)?tionalAmou?n?t?\s*["]?\s*:\s*[-+]?\d[\d,]*(?:원)?\s*[,}]?/gi, "")
+        .replace(/add(?:i)?tionalAmou?n?t?\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
+        .replace(/add(?:i)?tional[A-Za-z]*\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
+        .replace(/\(\s*[-+]?\d[\d,]*원\s*\)/g, "")
+        .replace(/\s*[-+]\s*\d[\d,]*원/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+}
+
+function cleanOptionLine(value: string) {
+    return cleanOptionValue(value)
+        .replace(/^[A-Z]\.\s*/, "")
+        .replace(/^옵션\s*[A-Z0-9가-힣]?\.?\s*/, "")
+        .trim();
+}
+
+function extractSizeOptions(lines: string[]) {
+    return lines
+        .map((line) => line.match(/^([SMLX]{1,3})\s*[:|]\s*/i)?.[1]?.toUpperCase())
+        .filter((option): option is string => Boolean(option));
+}
+
+function extractInlineChoiceOptions(lines: string[]) {
+    const selectIdx = lines.findIndex((line) => /선택(하여|후)?\s*구매|중\s*선택/.test(line));
+    if (selectIdx <= 0) return [];
+
+    return lines[selectIdx - 1]
+        .split(/[,，、/]/)
+        .map(cleanOptionLine)
+        .filter((value) => value.length > 0 && value.length <= 30);
+}
+
+function getLineOptionValues(line: string) {
+    const cleaned = cleanOptionLine(line);
+    if (!cleaned || /옵션을 선택|옵션 선택|캐릭터 선택|선택하여 구매|선택 후 구매/.test(cleaned)) return [];
+
+    return cleaned
+        .split(/[,，、/]/)
+        .map(cleanOptionLine)
+        .filter((value) => value.length > 0 && value.length <= 40);
+}
+
+function uniqueOptions(options: unknown[]) {
+    return Array.from(new Set(options.map(cleanOptionValue).filter(Boolean)));
+}
+
 function getOptionValues(product: StoreProduct): string[] {
-    // 1순위: API에서 받은 options
-    if (product.options.length > 0) return product.options;
+    if (product.options.length > 0) return uniqueOptions(product.options);
 
     const lines = product.productdetail.map((l) => l.trim()).filter(Boolean);
 
-    // 2순위: "옵션" 접두사 라인
     const optionLines = lines
         .filter((line) => /^옵션\s*[A-Z0-9가-힣]?\.?\s*/.test(line))
-        .map((line) => line.replace(/^옵션\s*[A-Z0-9가-힣]?\.?\s*/, "").trim())
-        .filter(Boolean);
-    if (optionLines.length > 0) return optionLines;
+        .flatMap(getLineOptionValues);
+    if (optionLines.length > 0) return uniqueOptions(optionLines);
 
-    // 3순위: "선택하여 구매" / "선택 후 구매" 앞 줄 쉼표 분리
-    const selectIdx = lines.findIndex((l) => /선택(하여|후)\s*구매/.test(l));
-    if (selectIdx > 0) {
-        const candidate = lines[selectIdx - 1];
-        const values = candidate
-            .split(/[,，、]/)
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0 && s.length <= 30);
-        if (values.length > 1) return values;
+    const inlineOptions = extractInlineChoiceOptions(lines);
+    if (inlineOptions.length > 1) return uniqueOptions(inlineOptions);
+
+    if (product.title.includes("사이즈 선택")) {
+        const sizeOptions = extractSizeOptions(lines);
+        if (sizeOptions.length > 0) return uniqueOptions(sizeOptions);
     }
 
-    // 4순위: "① ② ③ ..." 또는 "(1) (2) (3) ..." 형태 번호 목록
     const numberedLines = lines
         .filter((l) => /^[①-⑳]|^\([0-9]+\)\s/.test(l))
-        .map((l) => l.replace(/^[①-⑳]\s*|^\([0-9]+\)\s*/, "").trim())
+        .map((l) => cleanOptionLine(l.replace(/^[①-⑳]\s*|^\([0-9]+\)\s*/, "")))
         .filter((l) => l.length > 0 && l.length <= 40);
-    if (numberedLines.length > 1) return numberedLines;
+    if (numberedLines.length > 1) return uniqueOptions(numberedLines);
 
-    // 5순위: "- " 또는 "• " bullet 목록
     const bulletLines = lines
         .filter((l) => /^[-•·]\s+/.test(l))
-        .map((l) => l.replace(/^[-•·]\s+/, "").trim())
+        .map((l) => cleanOptionLine(l.replace(/^[-•·]\s+/, "")))
         .filter((l) => l.length > 0 && l.length <= 40 && /[가-힣A-Za-z0-9]/.test(l));
-    if (bulletLines.length > 1) return bulletLines;
+    if (bulletLines.length > 1) return uniqueOptions(bulletLines);
 
     return [];
 }
@@ -276,6 +341,7 @@ export function ProductDetail({
     const [thumbOffset, setThumbOffset] = useState(0);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [selectedOption, setSelectedOption] = useState("");
+    const [optionError, setOptionError] = useState(false);
     const [showLogin, setShowLogin] = useState(false);
     const [showCart, setShowCart] = useState(false);
     const [cartLoading, setCartLoading] = useState(false);
@@ -306,7 +372,7 @@ export function ProductDetail({
     const showOptionSelect = optionValues.length > 0 || product.title.includes("선택");
     const showSwiper = related.length > 5;
     const displayTitle = product.title.replace("[예약]", "").trim();
-    const cartOption = selectedOption || optionValues[0];
+    const cartOption = selectedOption || "기본";
 
     const addToCart = async () => {
         if (!user?.uid) {
@@ -314,9 +380,21 @@ export function ProductDetail({
             return;
         }
 
+        if (showOptionSelect && !selectedOption) {
+            setOptionError(true);
+            document.getElementById("product-option")?.focus();
+            return;
+        }
+
         setCartLoading(true);
         try {
-            await setDoc(doc(db, "users", user.uid), { cart: arrayUnion(product.productId) }, { merge: true });
+            await setDoc(doc(db, "users", user.uid), {
+                cart: arrayUnion({
+                    productId: product.productId,
+                    option: selectedOption || "기본",
+                    quantity: qty,
+                }),
+            }, { merge: true });
             setShowCart(true);
         } finally {
             setCartLoading(false);
@@ -479,13 +557,14 @@ export function ProductDetail({
                                     <select
                                         id="product-option"
                                         value={selectedOption}
-                                        onChange={(e) => setSelectedOption(e.target.value)}
-                                        disabled={product.soldout || optionValues.length === 0}
-                                        className="h-[46px] w-full appearance-none rounded-[12px] border border-[#e0daf7] bg-white px-4 pr-10 text-[13px] font-semibold text-[#222] outline-none transition-colors hover:border-[#c4bbff] focus:border-[#6B5CE7] disabled:cursor-not-allowed disabled:bg-[#f5f3ff] disabled:text-[#aaa]"
+                                        onChange={(e) => {
+                                            setSelectedOption(e.target.value);
+                                            setOptionError(false);
+                                        }}
+                                        disabled={product.soldout}
+                                        className={`h-[46px] w-full appearance-none rounded-[12px] border bg-white px-4 pr-10 text-[13px] font-semibold text-[#222] outline-none transition-colors hover:border-[#c4bbff] focus:border-[#6B5CE7] disabled:cursor-not-allowed disabled:bg-[#f5f3ff] disabled:text-[#aaa] ${optionError ? "border-[#ff5c7a]" : "border-[#e0daf7]"}`}
                                     >
-                                        <option value="">
-                                            {optionValues.length > 0 ? "옵션을 선택해주세요" : "옵션 정보를 불러오지 못했습니다"}
-                                        </option>
+                                        <option value="">옵션을 선택해주세요</option>
                                         {optionValues.map((option) => (
                                             <option key={option} value={option}>
                                                 {option}
@@ -506,6 +585,9 @@ export function ProductDetail({
                                         <path d="m6 9 6 6 6-6" />
                                     </svg>
                                 </div>
+                                {optionError && (
+                                    <p className="mt-2 text-[12px] font-semibold text-[#ff4d6d]">옵션을 선택해주세요.</p>
+                                )}
                             </div>
                         )}
 
@@ -597,7 +679,7 @@ export function ProductDetail({
                                 ))}
                             </div>
                         )}
-                        {activeTab === 2 && <p className="text-[13px] text-[#999]">판매자 정보가 없습니다.</p>}
+                        {activeTab === 2 && <p className="text-[13px] text-[#999]">공급사 | Laftel Store</p>}
                     </div>
                 </div>
 
