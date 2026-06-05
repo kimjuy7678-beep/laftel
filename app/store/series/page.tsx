@@ -77,23 +77,29 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
     const hasPrevGroup = groupStart > 1;
     const hasNextGroup = groupEnd < total;
+
+    const handleChange = (p: number) => {
+        onChange(p);
+        window.scrollTo(0, 0);
+    };
+
     return (
         <div className="mt-16 flex items-center justify-center gap-2">
-            <button onClick={() => onChange(Math.max(1, current - 1))} disabled={current === 1}
+            <button onClick={() => handleChange(Math.max(1, current - 1))} disabled={current === 1}
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            {hasPrevGroup && <button onClick={() => onChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            {hasPrevGroup && <button onClick={() => handleChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
             {pages.map((p) => (
-                <button key={p} onClick={() => onChange(p)}
+                <button key={p} onClick={() => handleChange(p)}
                     className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${p === current
                         ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]"
                         : "bg-white border border-[#d8d4ee] text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
                     {p}
                 </button>
             ))}
-            {hasNextGroup && <button onClick={() => onChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
-            <button onClick={() => onChange(Math.min(total, current + 1))} disabled={current === total}
+            {hasNextGroup && <button onClick={() => handleChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            <button onClick={() => handleChange(Math.min(total, current + 1))} disabled={current === total}
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
@@ -113,18 +119,21 @@ function SeriesPageInner() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [priceRange, setPriceRange] = useState<[number, number]>(PRICE_INITIAL);
     const [onlyInStock, setOnlyInStock] = useState(false);
+    const [onlyReserve, setOnlyReserve] = useState(false); // 추가
 
     useEffect(() => {
         const series = searchParams.get("series");
         setSelectedSeries(series ?? "전체");
     }, [searchParams]);
 
-    const filtered = STORE_PRODUCTS.filter((p) => {
+    const filtered = ALL_PRODUCTS.filter((p) => { // ALL_PRODUCTS로 변경 (예약 포함)
         const price = parsePrice(p.price);
+        const isReserve = p.title.includes("예약"); // 추가
         const matchSeries = selectedSeries === "전체" || p.category === selectedSeries;
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
         const matchStock = !onlyInStock || !p.soldout;
-        return matchSeries && matchPrice && matchStock;
+        const matchReserve = onlyReserve ? isReserve : !isReserve; // 추가
+        return matchSeries && matchPrice && matchStock && matchReserve;
     });
 
     const sorted = [...filtered].sort((a, b) => {
@@ -136,16 +145,17 @@ function SeriesPageInner() {
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    useEffect(() => { setPage(1); }, [selectedSeries, sort, priceRange, onlyInStock]);
+    useEffect(() => { setPage(1); }, [selectedSeries, sort, priceRange, onlyInStock, onlyReserve]);
     useEffect(() => {
         if (user) console.log("👤 [Auth]", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
         else console.log("👻 [Auth] 비로그인 상태");
     }, [user]);
 
-    const handleReset = () => { setPriceRange(PRICE_INITIAL); setOnlyInStock(false); };
+    const handleReset = () => { setPriceRange(PRICE_INITIAL); setOnlyInStock(false); setOnlyReserve(false); }; // 추가
     const activeFilterCount = [
         priceRange[0] > PRICE_INITIAL[0] || priceRange[1] < PRICE_INITIAL[1],
         onlyInStock,
+        onlyReserve, // 추가
     ].filter(Boolean).length;
 
     const handleSeriesSelect = (s: string) => {
@@ -219,6 +229,8 @@ function SeriesPageInner() {
                                 onPriceRange={setPriceRange}
                                 onlyInStock={onlyInStock}
                                 onOnlyInStock={setOnlyInStock}
+                                onlyReserve={onlyReserve}
+                                onOnlyReserve={setOnlyReserve}
                                 onReset={handleReset}
                             />
                         </div>
