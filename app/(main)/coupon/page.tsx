@@ -1,4 +1,5 @@
 "use client"
+import PageHeader from '@/components/PageHeader'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
@@ -124,7 +125,7 @@ export default function CouponPage() {
             `}</style>
 
             <div className="cp-wrap">
-                <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 40px' }}>쿠폰 등록</h1>
+                <PageHeader title="쿠폰 등록" />
 
                 {/* 입력 */}
                 <div style={{ marginBottom: 32 }}>
