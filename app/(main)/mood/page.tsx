@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
 import animeMeta from '@/data/animeMeta.json'
 import { Suspense } from 'react'
+import { toast } from 'sonner'
 
 interface AnimeMeta {
     tmdbId: number
@@ -76,8 +77,6 @@ function AnimeCard({ anime, aniList, accentColor, delay }: {
         }
     }, [anime.tmdbId])
 
-    const genreTags = anime.moods.slice(0, 2)
-
     return (
         <div
             onClick={() => router.push(`/anime/${anime.tmdbId}`)}
@@ -88,41 +87,50 @@ function AnimeCard({ anime, aniList, accentColor, delay }: {
             <div style={{
                 position: 'relative', width: '100%', aspectRatio: '3/4',
                 borderRadius: 10, overflow: 'hidden', marginBottom: 10,
-                transition: 'transform .22s cubic-bezier(.25,.46,.45,.94)',
-                transform: hovered ? 'translateY(-4px)' : 'none',
+                border: `2px solid ${hovered ? accentColor + '60' : 'transparent'}`,
+                boxShadow: hovered ? `0 16px 40px rgba(0,0,0,.6)` : '0 4px 16px rgba(0,0,0,.4)',
+                transition: 'transform .22s, border-color .2s, box-shadow .2s',
+                transform: hovered ? 'translateY(-6px)' : 'none',
             }}>
                 {poster
                     ? <img src={poster} alt={anime.koTitle} style={{
                         width: '100%', height: '100%', objectFit: 'cover',
                         transition: 'transform .35s',
-                        transform: hovered ? 'scale(1.04)' : 'scale(1)',
+                        transform: hovered ? 'scale(1.05)' : 'scale(1)',
                     }} />
-                    : <div style={{ width: '100%', height: '100%', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎌</div>
+                    : <div style={{ width: '100%', height: '100%', background: '#141420', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🎌</div>
                 }
+                {hovered && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.8) 0%, transparent 50%)', display: 'flex', alignItems: 'flex-end', padding: 12 }}>
+                        <button style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', background: accentColor, border: 'none', borderRadius: 20, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
+                            지금 보기
+                        </button>
+                    </div>
+                )}
             </div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#e8e8e8', margin: '0 0 4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: hovered ? '#fff' : 'rgba(255,255,255,.8)', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', lineHeight: 1.3, transition: 'color .18s' }}>
                 {anime.koTitle}
             </p>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                TV · {genreTags.join(' · ')}
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                {anime.moods.slice(0, 2).join(' · ')}
             </p>
         </div>
     )
 }
 
-// ── 하단 다른 기분 섹션 ───────────────────────────────────────────────
+// ── 다른 기분 섹션 ────────────────────────────────────────────────────
 function OtherMoodsSection({ currentId, onSelect }: { currentId: string; onSelect: (id: string) => void }) {
     const otherMoods = MOODS.filter(m => m.id !== currentId)
     const [hoveredId, setHoveredId] = useState<string | null>(null)
 
     return (
-        <div style={{ width: '90%', margin: '0 auto', paddingTop: 100, paddingBottom: 80 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
-                <h2 style={{ fontSize: 17, fontWeight: 700, color: 'rgba(255,255,255,.65)', margin: 0 }}>
-                    다른 감정 보기
-                </h2>
+        <div style={{ width: '90%', margin: '0 auto', padding: '80px 0' }}>
+            <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', padding: '18px 0', marginBottom: 32 }}>
+                <h2 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>다른 감정으로 찾기</h2>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: '8px 0 0' }}>지금 내 기분에 맞는 애니를 골라보세요</p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '32px 20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '28px 16px' }}>
                 {otherMoods.map(m => {
                     const isHovered = hoveredId === m.id
                     return (
@@ -135,45 +143,39 @@ function OtherMoodsSection({ currentId, onSelect }: { currentId: string; onSelec
                                 padding: 0, background: 'none', border: 'none',
                                 cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                                 transition: 'transform .22s cubic-bezier(.25,.46,.45,.94)',
-                                transform: isHovered ? 'translateY(-4px)' : 'none',
+                                transform: isHovered ? 'translateY(-6px)' : 'none',
                             }}
                         >
                             <div style={{
                                 position: 'relative', width: '100%', aspectRatio: '16/9',
-                                borderRadius: 10, overflow: 'hidden', marginBottom: 10,
-                                border: `1px solid ${isHovered ? m.color + '60' : 'rgba(255,255,255,.07)'}`,
-                                boxShadow: isHovered ? `0 12px 32px rgba(0,0,0,.5)` : 'none',
+                                borderRadius: 12, overflow: 'hidden', marginBottom: 12,
+                                border: `2px solid ${isHovered ? m.color + '70' : 'rgba(255,255,255,.07)'}`,
+                                boxShadow: isHovered ? `0 16px 40px rgba(0,0,0,.6), 0 0 0 1px ${m.color}30` : '0 4px 16px rgba(0,0,0,.4)',
                                 transition: 'border-color .2s, box-shadow .2s',
                             }}>
-                                <img
-                                    src={m.img}
-                                    alt={m.label}
-                                    style={{
-                                        width: '100%', height: '100%', objectFit: 'cover',
-                                        transition: 'transform .35s',
-                                        transform: isHovered ? 'scale(1.06)' : 'scale(1)',
-                                    }}
-                                />
-                                <div style={{
-                                    position: 'absolute', inset: 0,
-                                    background: 'linear-gradient(to top, rgba(0,0,0,.65) 0%, transparent 55%)',
+                                <img src={m.img} alt={m.label} style={{
+                                    width: '100%', height: '100%', objectFit: 'cover',
+                                    transition: 'transform .35s',
+                                    transform: isHovered ? 'scale(1.07)' : 'scale(1)',
                                 }} />
+                                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 60%)' }} />
+                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 14px' }}>
+                                    <p style={{
+                                        fontSize: 13, fontWeight: 800, margin: 0,
+                                        color: '#fff',
+                                        overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                                    }}>{m.label}</p>
+                                </div>
+                                {isHovered && (
+                                    <div style={{ position: 'absolute', inset: 0, background: `${m.color}15` }} />
+                                )}
                             </div>
                             <p style={{
-                                fontSize: 13, fontWeight: 700, margin: '0 0 4px',
-                                color: isHovered ? '#fff' : 'rgba(255,255,255,.75)',
-                                overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-                                lineHeight: 1.3, transition: 'color .18s',
-                            }}>
-                                {m.label}
-                            </p>
-                            <p style={{
                                 fontSize: 11, margin: 0,
-                                color: 'rgba(255,255,255,.3)',
+                                color: isHovered ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.3)',
                                 overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-                            }}>
-                                {m.sub}
-                            </p>
+                                transition: 'color .18s',
+                            }}>{m.sub}</p>
                         </button>
                     )
                 })}
@@ -193,13 +195,10 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
     const mood = MOODS.find(m => m.id === moodId)!
     const isRandom = moodId === 'random'
 
-    // random일 때 Math.random()을 useState 초기화 함수로 실행
-    // → 클라이언트 마운트 시 딱 한 번만 실행되어 Hydration 오류 없음
     const [randomAnime] = useState<AnimeMeta | null>(() =>
         isRandom ? meta[Math.floor(Math.random() * meta.length)] : null
     )
 
-    // random이면 전체 meta를 섞은 뒤 앞에서 9개, 첫 번째가 hero
     const allForMood = isRandom
         ? (randomAnime
             ? [randomAnime, ...meta.filter(a => a.tmdbId !== randomAnime.tmdbId).slice(0, 8)]
@@ -212,8 +211,6 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
     const [heroBackdrop, setHeroBackdrop] = useState<string | null>(null)
     const [heroPoster, setHeroPoster] = useState<string | null>(null)
 
-    // moodId가 바뀌면 이미지 리셋 후 새로 fetch
-    // 의존성을 moodId만 두어 무한루프 방지
     useEffect(() => {
         if (!hero) return
         setHeroBackdrop(null)
@@ -237,8 +234,8 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
             <style>{`
                 @keyframes card-in { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
                 @keyframes hero-in { from { opacity:0 } to { opacity:1 } }
-                @keyframes slide-up { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
-                .rv-inner { width: 90%; margin: 0 auto; }
+                @keyframes slide-up { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:translateY(0) } }
+                @keyframes spin { to { transform:rotate(360deg) } }
             `}</style>
 
             <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: 80, color: '#fff' }}>
@@ -262,7 +259,7 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 20, color: 'rgba(255,255,255,.55)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}
                             onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(255,255,255,.1)'); (e.currentTarget.style.color = '#fff') }}
                             onMouseLeave={e => { (e.currentTarget.style.background = 'rgba(255,255,255,.06)'); (e.currentTarget.style.color = 'rgba(255,255,255,.55)') }}
-                            onClick={() => { navigator.clipboard.writeText(window.location.href); alert('링크가 복사되었어요!') }}
+                            onClick={() => { navigator.clipboard.writeText(window.location.href); toast('링크가 복사되었어요!') }}
                         >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                             공유하기
@@ -272,64 +269,95 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
 
                 {/* ── 히어로 ── */}
                 {hero && (
-                    <div style={{ position: 'relative', width: '100%', height: 900, overflow: 'hidden', animation: 'hero-in .5s ease' }}>
+                    <div style={{ position: 'relative', width: '100%', height: '100vh', minHeight: 680, overflow: 'hidden', animation: 'hero-in .5s ease' }}>
                         {heroBackdrop
                             ? <img src={heroBackdrop} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
                             : <div style={{ position: 'absolute', inset: 0, background: mood.gradient }} />
                         }
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,10,10,1) 0%, rgba(10,10,10,.85) 35%, rgba(10,10,10,.3) 65%, rgba(10,10,10,.0) 100%)' }} />
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,10,10,.5) 0%, transparent 25%, transparent 65%, rgba(10,10,10,1) 100%)' }} />
+                        {/* 그라디언트 오버레이 */}
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,10,10,.98) 0%, rgba(10,10,10,.85) 40%, rgba(10,10,10,.2) 75%, transparent 100%)' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,10,10,.6) 0%, transparent 20%, transparent 60%, rgba(10,10,10,1) 100%)' }} />
 
+                        {/* 상단 네비 */}
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, paddingTop: 80 }}>
+                            <div style={{ width: '90%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <button
+                                    onClick={onReset}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 20, color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '7px 16px', fontFamily: 'inherit', transition: 'all .18s' }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.14)'; e.currentTarget.style.color = '#fff' }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = 'rgba(255,255,255,.6)' }}
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
+                                    홈으로
+                                </button>
+                                <button
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 20, color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '7px 16px', fontFamily: 'inherit', transition: 'all .18s' }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.14)'; e.currentTarget.style.color = '#fff' }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = 'rgba(255,255,255,.6)' }}
+                                    onClick={() => { navigator.clipboard.writeText(window.location.href); alert('링크가 복사되었어요!') }}
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                                    공유하기
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 히어로 콘텐츠 */}
                         <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', alignItems: 'center' }}>
-                            <div className="rv-inner" style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
+                            <div style={{ width: '90%', margin: '0 auto', display: 'flex', alignItems: 'center', gap: 48 }}>
+                                {/* 포스터 */}
                                 {heroPoster && (
                                     <img src={heroPoster} alt={hero.koTitle}
-                                        style={{ width: 160, height: 240, objectFit: 'cover', borderRadius: 12, flexShrink: 0, boxShadow: '0 24px 48px rgba(0,0,0,.7)', animation: 'slide-up .45s ease .05s both' }} />
+                                        style={{ width: 180, height: 270, objectFit: 'cover', borderRadius: 14, flexShrink: 0, boxShadow: `0 32px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.08)`, animation: 'slide-up .45s ease .05s both' }} />
                                 )}
-                                <div style={{ animation: 'slide-up .45s ease .1s both' }}>
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-                                        {hero.recommendationLabels.map((label, i) => (
+
+                                {/* 텍스트 */}
+                                <div style={{ animation: 'slide-up .45s ease .1s both', maxWidth: 580 }}>
+                                    {/* 무드 뱃지 */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                                        <span style={{ fontSize: 22 }}>{mood.emoji}</span>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: mood.color, background: `${mood.color}20`, border: `1px solid ${mood.color}40`, padding: '4px 12px', borderRadius: 20 }}>{mood.label}</span>
+                                    </div>
+
+                                    {/* 타이틀 */}
+                                    <h1 style={{ fontSize: 52, fontWeight: 900, color: '#fff', margin: '0 0 8px', lineHeight: 1.1, letterSpacing: '-0.03em' }}>{hero.koTitle}</h1>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,.35)', margin: '0 0 20px', letterSpacing: '.02em' }}>{hero.title}</p>
+
+                                    {/* 태그 */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 28 }}>
+                                        {hero.recommendationLabels.slice(0, 3).map((label, i) => (
                                             <span key={i} style={{
-                                                fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 4,
-                                                background: i === 0 ? mood.color : 'rgba(255,255,255,.1)',
-                                                color: i === 0 ? '#000' : 'rgba(255,255,255,.7)',
+                                                fontSize: 11, fontWeight: 700, padding: '4px 11px', borderRadius: 20,
+                                                background: i === 0 ? mood.color : 'rgba(255,255,255,.08)',
+                                                color: i === 0 ? '#fff' : 'rgba(255,255,255,.6)',
+                                                border: i === 0 ? 'none' : '1px solid rgba(255,255,255,.1)',
                                             }}>{label}</span>
                                         ))}
+                                        {hero.moods.slice(0, 3).map((m, i) => (
+                                            <span key={`m${i}`} style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', background: 'rgba(255,255,255,.05)', padding: '4px 11px', borderRadius: 20, border: '1px solid rgba(255,255,255,.08)' }}>{m}</span>
+                                        ))}
                                     </div>
-                                    <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', margin: '0 0 6px', lineHeight: 1.15, letterSpacing: '-.02em' }}>{hero.koTitle}</h2>
-                                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,.35)', margin: '0 0 16px' }}>{hero.title}</p>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                                            <span style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>
-                                                {(Object.values(hero.tasteDNA).reduce((a: number, b) => a + (b as number), 0) / Object.values(hero.tasteDNA).length / 10).toFixed(1)}
-                                            </span>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: 5 }}>
-                                            {hero.moods.slice(0, 4).map((m, i) => (
-                                                <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', background: 'rgba(255,255,255,.07)', padding: '3px 8px', borderRadius: 4 }}>{m}</span>
-                                            ))}
-                                        </div>
-                                    </div>
+
+                                    {/* 버튼 */}
                                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                                         <button onClick={() => router.push(`/anime/${hero.tmdbId}`)}
-                                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 28px', background: '#6c63ff', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background .18s', fontFamily: 'inherit' }}
-                                            onMouseEnter={e => (e.currentTarget.style.background = '#5a52e0')}
-                                            onMouseLeave={e => (e.currentTarget.style.background = '#6c63ff')}>
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
+                                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 32px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', transition: 'all .18s', fontFamily: 'inherit', letterSpacing: '-0.01em' }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = '#5a52e0'; e.currentTarget.style.transform = 'scale(1.03)' }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = '#6c63ff'; e.currentTarget.style.transform = 'scale(1)' }}>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
                                             재생하기
                                         </button>
                                         <button
-                                            style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 8, cursor: 'pointer', transition: 'background .15s' }}
-                                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.14)')}
-                                            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.08)')}>
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                            style={{ width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, cursor: 'pointer', transition: 'all .15s' }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.14)'; e.currentTarget.style.transform = 'scale(1.06)' }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.transform = 'scale(1)' }}>
+                                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
                                         </button>
                                         <button
-                                            style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 8, cursor: 'pointer', transition: 'background .15s' }}
-                                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.14)')}
-                                            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.08)')}>
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                                            style={{ width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, cursor: 'pointer', transition: 'all .15s' }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.14)'; e.currentTarget.style.transform = 'scale(1.06)' }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.transform = 'scale(1)' }}>
+                                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                                         </button>
                                     </div>
                                 </div>
@@ -338,24 +366,25 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                     </div>
                 )}
 
-                {/* ── 다른 감정 보기 ── */}
-                <OtherMoodsSection currentId={moodId} onSelect={onMoodChange} />
-
-                {/* ── 관련 작품 그리드 ── */}
+                {/* ── 관련 작품 ── */}
                 {subs.length > 0 && (
-                    <div className="rv-inner" style={{ paddingTop: 60 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
-                            <h2 style={{ fontSize: 17, fontWeight: 700, color: 'rgba(255,255,255,.65)', margin: 0 }}>
-                                {mood.label} 와 관련된 {subs.length} 작품
+                    <div style={{ width: '90%', margin: '0 auto', paddingTop: 80, paddingBottom: 20 }}>
+                        <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', padding: '18px 0', marginBottom: 32 }}>
+                            <h2 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
+                                <span style={{ color: mood.color }}>{mood.emoji}</span> 이런 작품도 있어요
                             </h2>
+                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: '8px 0 0' }}>{mood.sub} · {subs.length}편</p>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '32px 20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '32px 16px' }}>
                             {subs.map((anime, i) => (
-                                <AnimeCard key={anime.tmdbId} anime={anime} aniList={aniList} accentColor={mood.color} delay={i * 50} />
+                                <AnimeCard key={anime.tmdbId} anime={anime} aniList={aniList} accentColor={mood.color} delay={i * 40} />
                             ))}
                         </div>
                     </div>
                 )}
+
+                {/* ── 다른 감정 ── */}
+                <OtherMoodsSection currentId={moodId} onSelect={onMoodChange} />
 
             </div>
         </>
@@ -392,9 +421,7 @@ function MoodPageInner() {
     }
 
     useEffect(() => {
-        if (!selectedMood) {
-            router.push('/')
-        }
+        if (!selectedMood) router.push('/')
     }, [selectedMood])
 
     if (!selectedMood) return null
@@ -410,7 +437,6 @@ function MoodPageInner() {
     )
 }
 
-// ── export ────────────────────────────────────────────────────────────
 export default function MoodPage() {
     return (
         <Suspense fallback={

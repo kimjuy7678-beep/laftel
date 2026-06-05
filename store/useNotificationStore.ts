@@ -4,7 +4,7 @@ import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, writeBat
 
 interface Notification {
     id: string
-    type: 'point' | 'coupon' | 'membership' | 'event' | 'live'
+    type: 'point' | 'coupon' | 'membership' | 'event' | 'live' | 'order' | 'cancel'
     title: string
     body: string
     link?: string
