@@ -3,24 +3,32 @@
 
 import Header from "@/components/store/StoreHeader";
 import Footer from "@/components/Footer";
+import { motion, AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 export default function StoreLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const pathname = usePathname();
+
     return (
-        <>
-
-            <div>
-                {/* 헤더 바 */}
-                <Header />
-                <main className="bg-white">{children}</main>
-                <Footer variant="store" />
-
-            </div>
-
-
-        </>
+        <div className="bg-white min-h-screen">
+            <Header />
+            <AnimatePresence mode="wait" initial={false}>
+                <motion.main
+                    key={pathname}
+                    className="bg-white"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                >
+                    {children}
+                </motion.main>
+            </AnimatePresence>
+            <Footer variant="store" />
+        </div>
     );
 }

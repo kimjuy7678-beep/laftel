@@ -4,7 +4,8 @@ import { usePointStore } from '@/store/usePointStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import Link from 'next/link'
 import React, { useEffect, useRef, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { usePageTransition } from '@/hook/usePageTransition'
 import GradeModal from './GradeModal'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
@@ -548,6 +549,8 @@ export default function Header() {
     const dropdownRef = useRef<HTMLDivElement>(null)
     const notiRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
+    const pathname = usePathname()
+    const { navigate } = usePageTransition()
 
     const membership = user?.membership || 'none'
     const memberInfo = membershipConfig[membership] || membershipConfig['none']
@@ -601,44 +604,75 @@ export default function Header() {
             {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
             {gradeOpen && <GradeModal onClose={() => setGradeOpen(false)} />}
 
-            {/* StoreHeader 스타일: py-[10px] wrapper + pill 내부 */}
             <header
-                className="fixed top-0 left-0 w-full z-[9999] transition-colors duration-300"
+                className="fixed top-0 left-0 w-full z-[9999] transition-colors duration-300 py-[10px] px-[10px]"
                 style={{ background: scrolled ? '#000' : 'transparent' }}
             >
-                <div className="w-full h-[55px] flex items-center justify-between px-[28px]">
+                <div
+                    className="w-full h-[55px] flex items-center justify-between px-[28px] rounded-full transition-colors duration-300"
+                    style={{ background: scrolled ? 'rgba(0,0,0,0.85)' : 'transparent' }}
+                >
 
                     {/* 좌측: 로고 + 네비게이션 */}
-                    <div className="flex items-center gap-[28px]">
+                    <div className="flex items-center gap-[42px]">
                         {/* 로고 */}
-                        <Link href="/" className="flex items-center gap-[12px]">
-                            <img src="/images/stone.svg" alt="" className="h-7" />
-                            <img src="/images/logo-white.svg" alt="logo" className="h-5 w-auto" />
-                        </Link>
+                        <div className="flex items-center gap-[14px]">
+                            <Link href="/" className="flex items-center gap-[12px]">
+                                <img src="/images/stone.svg" alt="" className="h-10" />
+                                <img src="/images/logo-white.svg" alt="logo" className="h-[22px] w-auto" />
+                            </Link>
+                            {/* OTT / Store 토글 */}
+                            <div className="flex items-center bg-white/10 rounded-full p-[3px] gap-[2px]">
+                                <button
+                                    onClick={() => navigate('/', '#0a0a0a')}
+                                    className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${!pathname.startsWith('/store')
+                                        ? 'bg-white text-[#826CFF] shadow-sm'
+                                        : 'text-white/60 hover:text-white'
+                                        }`}
+                                >
+                                    OTT
+                                </button>
+                                <button
+                                    onClick={() => navigate('/store', '#ffffff')}
+                                    className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${pathname.startsWith('/store')
+                                        ? 'bg-white text-[#826CFF] shadow-sm'
+                                        : 'text-white/60 hover:text-white'
+                                        }`}
+                                >
+                                    Store
+                                </button>
+                            </div>
+                        </div>
 
-                        {/* 네비게이션 */}
                         <nav>
-                            <ul className="flex items-center gap-[28px]">
-                                {MenuList.map((menu) => (
-                                    <li key={menu.id} className="relative">
-                                        <Link
-                                            href={menu.path}
-                                            className="flex items-center gap-1.5 text-white/80 hover:text-white text-[14px] font-medium transition-colors duration-200"
-                                        >
-                                            {menu.title}
-                                            {menu.live && (
-                                                <span className="inline-flex items-center justify-center px-1.5 h-4 rounded bg-red-500 text-[10px] font-bold text-white animate-pulse">
-                                                    LIVE
-                                                </span>
-                                            )}
-                                            {menu.badge && (
-                                                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/25 text-[10px] font-bold text-white">
-                                                    {menu.badge}
-                                                </span>
-                                            )}
-                                        </Link>
-                                    </li>
-                                ))}
+                            <ul className="flex items-center gap-[32px]">
+                                {MenuList.map((menu) => {
+                                    const isActive = pathname === menu.path || (menu.path !== '/' && pathname.startsWith(menu.path))
+                                    return (
+                                        <li key={menu.id} className="relative">
+                                            <Link
+                                                href={menu.path}
+                                                className={`flex items-center gap-1.5 text-[15px] transition-all duration-200
+                                                    ${isActive
+                                                        ? 'text-white font-extrabold'
+                                                        : 'text-white/70 font-medium hover:text-white hover:font-bold'
+                                                    }`}
+                                            >
+                                                {menu.title}
+                                                {menu.live && (
+                                                    <span className="inline-flex items-center justify-center px-1.5 h-4 rounded bg-red-500 text-[10px] font-bold text-white animate-pulse">
+                                                        LIVE
+                                                    </span>
+                                                )}
+                                                {menu.badge && (
+                                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#6c5ce7]/100 text-[10px] font-bold text-white">
+                                                        {menu.badge}
+                                                    </span>
+                                                )}
+                                            </Link>
+                                        </li>
+                                    )
+                                })}
                             </ul>
                         </nav>
                     </div>
@@ -651,12 +685,13 @@ export default function Header() {
                             type="button"
                             aria-label="검색"
                             onClick={() => setSearchOpen(true)}
-                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 text-white"
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                             </svg>
                         </button>
+
                         {/* 멤버십 */}
                         <Link
                             href="/membership"
@@ -668,8 +703,6 @@ export default function Header() {
                                 <path d="M13 5v2M13 17v2M13 11v2" />
                             </svg>
                         </Link>
-
-
 
                         {/* 알림 */}
                         <div className="relative" ref={notiRef}>
