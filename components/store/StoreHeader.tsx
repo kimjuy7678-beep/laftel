@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useAuthStore } from '@/store/useAuthStore'
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { usePageTransition } from "@/hook/usePageTransition";
 import { StoreSearchModal } from "@/components/store/StoreSearch";
 import NotificationGNB from "@/components/store/NotificationGNB";
 import HeaderLoginAlert from "@/components/store/HeaderLoginAlert";
@@ -18,6 +19,8 @@ export default function StoreHeader() {
     const { user } = useAuthStore();
     const avatarConfig = useAuthStore(s => s.avatarConfig);
     const router = useRouter();
+    const pathname = usePathname();
+    const { navigate } = usePageTransition();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [loginAlertOpen, setLoginAlertOpen] = useState(false);
@@ -46,31 +49,54 @@ export default function StoreHeader() {
 
                 <div className="flex items-center gap-[42px]">
                     {/* 로고 */}
-                    <div className="flex items-center gap-[12px]">
-                        <Link href="/" className="flex items-center gap-[12px]">
-                            <img src="/images/stone.svg" alt="" className="h-7" />
-                            <img src="/images/logo-white.svg" alt="logo" className="h-5 w-auto" />
+                    <div className="flex items-center gap-[14px]">
+                        <Link href="/store" className="flex items-center gap-[12px]">
+                            <img src="/images/stone.svg" alt="" className="h-10" />
+                            <img src="/images/logo-white.svg" alt="logo" className="h-[22px] w-auto" />
                         </Link>
-                        <Link href="/store" className="pt-[7px]">
-                            <span className="text-white/80 hover:text-white font-[300] text-[22px] tracking-wide leading-none ">
+                        {/* OTT / Store 토글 */}
+                        <div className="flex items-center bg-white/10 rounded-full p-[3px] gap-[2px]">
+                            <button
+                                onClick={() => navigate('/', '#0a0a0a')}
+                                className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${!pathname.startsWith('/store')
+                                        ? 'bg-white text-[#826CFF] shadow-sm'
+                                        : 'text-white/60 hover:text-white'
+                                    }`}
+                            >
+                                OTT
+                            </button>
+                            <button
+                                onClick={() => navigate('/store', '#ffffff')}
+                                className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${pathname.startsWith('/store')
+                                        ? 'bg-white text-[#826CFF] shadow-sm'
+                                        : 'text-white/60 hover:text-white'
+                                    }`}
+                            >
                                 Store
-                            </span>
-                        </Link>
+                            </button>
+                        </div>
                     </div>
 
-                    {/* ── 네비게이션 (왼쪽으로 이동) ── */}
+                    {/* ── 네비게이션 ── */}
                     <nav>
                         <ul className="flex items-center gap-[32px]">
-                            {StoreMenuList.map((menu) => (
-                                <li key={menu.id}>
-                                    <Link
-                                        href={menu.path}
-                                        className="text-white/80 hover:text-white text-[14px] font-medium transition-colors duration-200"
-                                    >
-                                        {menu.title}
-                                    </Link>
-                                </li>
-                            ))}
+                            {StoreMenuList.map((menu) => {
+                                const isActive = pathname === menu.path || pathname.startsWith(menu.path)
+                                return (
+                                    <li key={menu.id}>
+                                        <Link
+                                            href={menu.path}
+                                            className={`text-[15px] transition-all duration-200
+                                                ${isActive
+                                                    ? 'text-white font-extrabold'
+                                                    : 'text-white/70 font-medium hover:text-white hover:font-bold'
+                                                }`}
+                                        >
+                                            {menu.title}
+                                        </Link>
+                                    </li>
+                                )
+                            })}
                         </ul>
                     </nav>
                 </div>

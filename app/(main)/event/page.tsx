@@ -1,4 +1,5 @@
 "use client"
+import PageHeader from '@/components/PageHeader'
 import { useEffect, useState } from 'react'
 import { useEventStore } from '@/store/useEventStore'
 import Link from 'next/link'
@@ -39,7 +40,7 @@ export default function EventPage() {
             <div style={{ width: '90%', margin: '0 auto', paddingTop: 64 }}>
                 {/* 헤더 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0' }}>
-                    <h1 className="text-2xl font-bold" style={{ color: '#fff', margin: 0 }}>이벤트</h1>
+                    <PageHeader title="이벤트" sub="라프텔의 다양한 이벤트에 참여하세요" />
                 </div>
 
                 <div style={{ padding: '28px 0 60px' }}>
