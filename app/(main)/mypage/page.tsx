@@ -1,4 +1,5 @@
 "use client"
+import PageHeader from '@/components/PageHeader'
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useRouter } from 'next/navigation'
@@ -296,7 +297,7 @@ export default function MyPage() {
             `}</style>
 
             <div className="mp-wrap">
-                <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 40px' }}>내 정보</h1>
+                <PageHeader title="내 정보" />
 
                 {/* 계정 */}
                 <section style={{ marginBottom: 48 }}>

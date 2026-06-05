@@ -240,35 +240,40 @@ export default function SurveyBanner() {
         <>
             <section style={{ padding: '48px 0 0' }}>
                 <style>{`
-                    .sb-wrap { width: 100%; margin: 0 auto; margin-top: -30px; padding-top: 50px;}
-                    .sb-inner { position: relative; overflow: hidden;}
-                    .sb-bg { width: 100%; height: auto; display: block; }
-                    .sb-content {
-                        position: absolute; z-index: 1;
-                        right: 80px; top: 50%; transform: translateY(-50%);
-                        display: flex; flex-direction: column;
-                        align-items: flex-start; gap: 16px;
+                    .sb-wrap { width: 100%; margin: 0 auto; margin-top: -30px; padding-top: 50px; }
+                    .sb-inner {
+                        position: relative;
+                        overflow: hidden;
+                        padding-top: 26.1%;
+                        height: 0;
                     }
-                    .sb-logo { font-size: 36px; font-weight: 900; color: #fff; letter-spacing: 2px; font-style: italic; white-space: nowrap; }
-                    .sb-desc { font-size: 18px; font-weight: 700; color: #fff; line-height: 1.4; white-space: nowrap; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+                    .sb-bg {
+                        position: absolute;
+                        top: 0; left: 0;
+                        width: 100%; height: 100%;
+                        object-fit: cover;
+                        display: block;
+                    }
                     .sb-btn {
+                        position: absolute;
+                        top: 82%;
+                        right: 14.5%;
                         display: inline-flex; align-items: center;
                         padding: 15px 30px; border-radius: 50px;
                         background: rgba(255,255,255,0.15);
                         border: 1px solid rgba(255,255,255,0.4);
-                        color: #fff; font-size: 24px; font-weight: 600;
-                        text-decoration: none; transition: background .2s;
-                        backdrop-filter: blur(4px);
-                        position: absolute;
-                        white-space: nowrap;   
-                        top: 190px;
-                        right: 200px;
+                        color: #fff; font-size: clamp(12px, 1.5vw, 24px); font-weight: 600;
+                        cursor: pointer; white-space: nowrap;
+                        backdrop-filter: blur(4px); transition: background .2s;
                     }
                     .sb-btn:hover { background: rgba(255,255,255,0.5); }
+                    @media (max-width: 1920px) {
+                        .sb-btn { right: 10.5%; }
+                    }
                     .sb-dismiss {
                         position: absolute;
-                        top: 170px;
-                        right: 20px;
+                        top: 8%;
+                        right: 1.5%;
                         z-index: 2;
                         width: 32px; height: 32px; border-radius: 50%;
                         background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
@@ -282,13 +287,14 @@ export default function SurveyBanner() {
                 <div className="sb-wrap">
                     <div className="sb-inner">
                         <img className="sb-bg" src="/images/banner/survey-banner.png" alt="설문 배너" />
-                        <div className="sb-content">
-                            <button className="sb-btn" onClick={() => setOpen(true)}>
-                                설문 참여하기 · 🎁 100P
-                            </button>
-                        </div>
+                        <button className="sb-btn" onClick={() => setOpen(true)}>
+                            설문 참여하기 · 🎁 100P
+                        </button>
                         <button className="sb-dismiss" onClick={() => setDismissed(true)}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
                         </button>
                     </div>
                 </div>

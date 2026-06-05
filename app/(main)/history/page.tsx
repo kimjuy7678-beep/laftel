@@ -1,4 +1,5 @@
 "use client"
+import PageHeader from '@/components/PageHeader'
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
@@ -60,7 +61,7 @@ export default function HistoryPage() {
             `}</style>
 
             <div className="hs-wrap">
-                <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 40px' }}>이용내역</h1>
+                <PageHeader title="이용내역" />
 
                 {/* 탭 */}
                 <div className="hs-tabs">
