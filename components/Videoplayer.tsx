@@ -33,7 +33,7 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
         if (triedKeys.current.has(activeKey)) { onNextVideo(id); return }
         triedKeys.current.add(activeKey)
         // iframe 자체 로드 실패 대비 최후 보험
-        failTimer.current = setTimeout(() => { onNextVideo(id) }, 10000)
+        
         return () => { if (failTimer.current) clearTimeout(failTimer.current) }
     }, [activeKey])
 
@@ -56,10 +56,10 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
                 }
 
                 // -1(미시작) 이후 3초 안에 재생/버퍼링 안 오면 지역 제한으로 판단
-                if (data.event === 'onStateChange' && data.info === -1) {
-                    if (failTimer.current) clearTimeout(failTimer.current)
-                    failTimer.current = setTimeout(() => { onNextVideo(id) }, 3000)
-                }
+                // if (data.event === 'onStateChange' && data.info === -1) {
+                //     if (failTimer.current) clearTimeout(failTimer.current)
+                //     failTimer.current = setTimeout(() => { onNextVideo(id) }, 3000)
+                // }
             } catch { }
         }
         window.addEventListener('message', handler)

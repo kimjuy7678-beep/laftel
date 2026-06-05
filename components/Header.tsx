@@ -1,4 +1,5 @@
 "use client"
+import HeaderSearch from './HeaderSearch'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
@@ -7,6 +8,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { usePageTransition } from '@/hook/usePageTransition'
 import GradeModal from './GradeModal'
+import { toast } from 'sonner'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
@@ -16,8 +18,8 @@ const MenuList = [
     { id: 2, title: "요일별 신작", path: "/day-new" },
     { id: 3, title: "라이브", path: "/live", live: true },
     { id: 4, title: "OST", path: "/ost" },
-    { id: 5, title: "스토어", path: "/store", badge: "N" },
-    { id: 6, title: "이벤트", path: "/event" },
+    { id: 5, title: "이벤트", path: "/event" },
+    { id: 6, title: "스토어", path: "/store", badge: "N" },
 ]
 
 const membershipConfig: Record<string, { label: string; color: string | null }> = {
@@ -73,468 +75,6 @@ function EventNotifications() {
     )
 }
 
-function SearchOverlay({ onClose }: { onClose: () => void }) {
-    const [query, setQuery] = useState('')
-    const [results, setResults] = useState<any[]>([])
-    const [ostResults, setOstResults] = useState<any[]>([])
-    const [trending, setTrending] = useState<any[]>([])
-    const [loading, setLoading] = useState(false)
-    const [activeCategory, setActiveCategory] = useState('trending')
-    const [categoryItems, setCategoryItems] = useState<any[]>([])
-    const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
-    const inputRef = useRef<HTMLInputElement>(null)
-    const router = useRouter()
-    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-    const CATS = [
-        { id: 'trending', label: '🔥 인기', genre: null },
-        { id: '16', label: '🎌 애니메이션', genre: 16 },
-        { id: 'action', label: '⚔️ 액션', genre: 10759 },
-        { id: 'romance', label: '💕 로맨스', genre: 10749 },
-        { id: 'fantasy', label: '✨ 판타지', genre: 10765 },
-        { id: 'comedy', label: '😂 개그', genre: 35 },
-        { id: 'drama', label: '😭 드라마', genre: 18 },
-        { id: 'mystery', label: '🌑 미스터리', genre: 9648 },
-    ]
-
-    useEffect(() => {
-        inputRef.current?.focus()
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-        window.addEventListener('keydown', onKey)
-        loadCategory('trending', null)
-        // 카운트만 백그라운드로
-        Promise.all(CATS.slice(1).map(c =>
-            fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=${c.genre}&with_original_language=ja&language=ko-KR&page=1`)
-                .then(r => r.json()).then(d => ({ id: c.id, count: d.total_results || 0 })).catch(() => ({ id: c.id, count: 0 }))
-        )).then(results => {
-            const counts: Record<string, number> = {}
-            results.forEach(r => { counts[r.id] = r.count })
-            setCategoryCounts(counts)
-        })
-        return () => window.removeEventListener('keydown', onKey)
-    }, [])
-
-    const loadCategory = async (id: string, genre: number | null) => {
-        setLoading(true)
-        try {
-            const url = id === 'trending'
-                ? `https://api.themoviedb.org/3/trending/tv/week?api_key=${TMDB_KEY}&language=ko-KR`
-                : `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=${genre}&with_original_language=ja&language=ko-KR&sort_by=popularity.desc`
-            const data = await fetch(url).then(r => r.json())
-            const list = (data.results || []).filter((r: any) => r.original_language === 'ja')
-            setTrending(list.slice(0, 3))
-            setCategoryItems(list.slice(0, 12))
-        } catch { }
-        finally { setLoading(false) }
-    }
-
-    const search = useCallback(async (q: string) => {
-        if (!q.trim()) { setResults([]); setOstResults([]); return }
-        setLoading(true)
-        try {
-            const [a, o] = await Promise.all([
-                fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&language=ko-KR`).then(r => r.json()),
-                fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q + ' anime ost')}&media=music&genreId=27&limit=3&country=JP`).then(r => r.json()),
-            ])
-            setResults((a.results || []).filter((r: any) => r.origin_country?.includes('JP') || r.original_language === 'ja').slice(0, 8))
-            setOstResults((o.results || []).filter((r: any) => r.previewUrl).slice(0, 3))
-        } catch { }
-        finally { setLoading(false) }
-    }, [])
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const v = e.target.value
-        setQuery(v)
-        if (debounceRef.current) clearTimeout(debounceRef.current)
-        debounceRef.current = setTimeout(() => search(v), 320)
-    }
-
-    const handleCat = (cat: typeof CATS[0]) => {
-        setActiveCategory(cat.id)
-        setQuery('')
-        loadCategory(cat.id, cat.genre)
-    }
-
-    const handleSubmit = () => {
-        if (!query.trim()) return
-        onClose(); router.push(`/anime/search?q=${encodeURIComponent(query)}`)
-    }
-
-    const isSearching = query.trim().length > 0
-
-    return (
-        <>
-            <style>{`
-              
-.so{
-    position:fixed;
-    inset:0;
-    z-index:9999;
-}
-
-.so-bg{
-    position:absolute;
-    inset:0;
-    background:rgba(0,0,0,.86);
-    backdrop-filter:blur(18px);
-}
-
-.so-modal{
-    position:absolute;
-    top:70px;
-    left:50%;
-    transform:translateX(-50%);
-
-    width:min(1400px,92vw);
-    height:82vh;
-
-    background:#070811;
-
-    border:1px solid rgba(255,255,255,.05);
-    border-radius:20px;
-
-    overflow:hidden;
-
-    display:flex;
-    flex-direction:column;
-
-    box-shadow:
-    0 40px 120px rgba(0,0,0,.8);
-}
-
-.so-top{
-    height:64px;
-
-    display:flex;
-    align-items:center;
-    gap:12px;
-
-    padding:0 18px;
-
-    border-bottom:1px solid rgba(255,255,255,.05);
-
-    flex-shrink:0;
-}
-
-.so-inp{
-    flex:1;
-
-    background:none;
-    border:none;
-    outline:none;
-
-    color:#fff;
-
-    font-size:14px;
-}
-
-.so-inp::placeholder{
-    color:rgba(255,255,255,.25);
-}
-
-.so-esc-btn{
-    height:28px;
-    padding:0 10px;
-
-    border:none;
-    border-radius:6px;
-
-    background:rgba(255,255,255,.05);
-
-    color:rgba(255,255,255,.5);
-
-    cursor:pointer;
-}
-
-.so-body{
-    flex:1;
-    display:flex;
-    overflow:hidden;
-}
-
-.so-side{
-    width:125px;
-
-    border-right:1px solid rgba(255,255,255,.05);
-
-    padding:14px 0;
-
-    flex-shrink:0;
-}
-
-.so-side-lbl{
-    display:block;
-
-    padding:0 14px 10px;
-
-    font-size:10px;
-    color:rgba(255,255,255,.25);
-}
-
-.so-cat-btn{
-    width:100%;
-
-    height:38px;
-
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    padding:0 14px;
-
-    border:none;
-    background:none;
-
-    color:rgba(255,255,255,.45);
-
-    cursor:pointer;
-
-    font-size:12px;
-
-    transition:.15s;
-}
-
-.so-cat-btn:hover{
-    background:rgba(255,255,255,.04);
-    color:#fff;
-}
-
-.so-cat-btn.on{
-    background:rgba(108,99,255,.15);
-
-    color:#fff;
-
-    border-left:2px solid #7d75ff;
-}
-
-.so-right{
-    flex:1;
-    display:flex;
-    overflow:hidden;
-}
-
-.so-posters{
-    width:150px;
-
-    padding:12px;
-
-    border-right:1px solid rgba(255,255,255,.05);
-
-    flex-shrink:0;
-
-    overflow-y:auto;
-}
-
-.so-poster{
-    width:100%;
-
-    aspect-ratio:2/3;
-
-    border-radius:10px;
-
-    overflow:hidden;
-
-    margin-bottom:12px;
-
-    cursor:pointer;
-}
-
-.so-poster img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-}
-
-.so-list{
-    flex:1;
-
-    overflow-y:auto;
-}
-
-.so-list-lbl{
-    display:block;
-
-    padding:18px 18px 10px;
-
-    color:rgba(255,255,255,.25);
-
-    font-size:11px;
-}
-
-.so-row{
-    height:48px;
-
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    padding:0 18px;
-
-    cursor:pointer;
-
-    transition:.15s;
-}
-
-.so-row:hover{
-    background:rgba(255,255,255,.04);
-}
-
-.so-row-left{
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-
-.so-row-thumb{
-    width:28px;
-    height:40px;
-
-    border-radius:4px;
-
-    overflow:hidden;
-}
-
-.so-row-thumb img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-}
-
-.so-row-name{
-    color:#e8e8e8;
-    font-size:13px;
-}
-
-.so-row-year{
-    color:rgba(255,255,255,.25);
-    font-size:11px;
-}
-            `}</style>
-
-            <div className="so" onClick={onClose}>
-                <div className="so-bg" />
-                <div className="so-modal" onClick={e => e.stopPropagation()}>
-
-                    {/* 검색바 */}
-                    <div className="so-top">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="2" strokeLinecap="round">
-                            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                        </svg>
-                        <input ref={inputRef} className="so-inp" value={query} onChange={handleChange}
-                            onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
-                            placeholder="애니, OST, 장르 검색..." />
-                        <button className="so-esc-btn" onClick={onClose}>ESC</button>
-                    </div>
-
-                    {/* 바디 */}
-                    <div className="so-body">
-                        {/* 카테고리 사이드바 */}
-                        <div className="so-side">
-                            <span className="so-side-lbl">카테고리</span>
-                            {CATS.map(cat => (
-                                <button key={cat.id}
-                                    className={`so-cat-btn ${activeCategory === cat.id && !isSearching ? 'on' : ''}`}
-                                    onClick={() => handleCat(cat)}>
-                                    <span>{cat.label}</span>
-                                    {categoryCounts[cat.id] ? (
-                                        <span className="so-cat-cnt">
-                                            {categoryCounts[cat.id] > 999 ? `${Math.floor(categoryCounts[cat.id] / 1000)}k` : categoryCounts[cat.id]}
-                                        </span>
-                                    ) : null}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* 오른쪽 */}
-                        <div className="so-right">
-                            {loading ? (
-                                <div className="so-loading" style={{ flex: 1 }}><div className="so-spin" />불러오는 중...</div>
-                            ) : isSearching ? (
-                                /* 검색 결과 */
-                                <div className="so-list" style={{ width: '100%' }}>
-                                    {results.length === 0 && ostResults.length === 0 ? (
-                                        <div className="so-empty">검색 결과가 없어요 😢</div>
-                                    ) : (
-                                        <>
-                                            {results.length > 0 && (
-                                                <>
-                                                    <span className="so-list-lbl">애니 {results.length}개</span>
-                                                    {results.map(item => (
-                                                        <div key={item.id} className="so-row"
-                                                            onClick={() => { onClose(); router.push(`/anime/${item.id}`) }}>
-                                                            <div className="so-row-left">
-                                                                <div className="so-row-thumb">
-                                                                    {item.poster_path && <img src={`${IMG}/w92${item.poster_path}`} alt={item.name} />}
-                                                                </div>
-                                                                <span className="so-row-name">{item.name}</span>
-                                                            </div>
-                                                            <span className="so-row-year">{item.first_air_date?.slice(0, 4)}</span>
-                                                        </div>
-                                                    ))}
-                                                </>
-                                            )}
-                                            {ostResults.length > 0 && (
-                                                <>
-                                                    <div className="so-divider" />
-                                                    <span className="so-list-lbl">🎵 OST {ostResults.length}개</span>
-                                                    {ostResults.map((ost: any) => (
-                                                        <div key={ost.trackId} className="so-ost-row"
-                                                            onClick={() => { onClose(); router.push('/ost') }}>
-                                                            <div className="so-ost-img"><img src={ost.artworkUrl100} alt={ost.trackName} /></div>
-                                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                                <p className="so-ost-title">{ost.trackName}</p>
-                                                                <p className="so-ost-artist">{ost.artistName}</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            ) : (
-                                <>
-                                    {/* 포스터 3개 */}
-                                    <div className="so-posters">
-                                        {trending.map(item => (
-                                            <div key={item.id} className="so-poster"
-                                                onClick={() => { onClose(); router.push(`/anime/${item.id}`) }}>
-                                                {item.poster_path
-                                                    ? <img src={`${IMG}/w342${item.poster_path}`} alt={item.name} />
-                                                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, background: '#1a1a22' }}>🎌</div>
-                                                }
-                                                <div className="so-poster-ov">
-                                                    <p className="so-poster-name">{item.name}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* 리스트 */}
-                                    <div className="so-list">
-                                        <span className="so-list-lbl">{CATS.find(c => c.id === activeCategory)?.label}</span>
-                                        {categoryItems.map(item => (
-                                            <div key={item.id} className="so-row"
-                                                onClick={() => { onClose(); router.push(`/anime/${item.id}`) }}>
-                                                <div className="so-row-left">
-                                                    <div className="so-row-thumb">
-                                                        {item.poster_path && <img src={`${IMG}/w92${item.poster_path}`} alt={item.name} />}
-                                                    </div>
-                                                    <span className="so-row-name">{item.name}</span>
-                                                </div>
-                                                <span className="so-row-year">{item.first_air_date?.slice(0, 4)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </>
-    )
-}
 export default function Header() {
     const user = useAuthStore(s => s.user)
     const avatarConfig = useAuthStore(s => s.avatarConfig)
@@ -572,8 +112,24 @@ export default function Header() {
     }, [])
 
     useEffect(() => {
-        document.body.style.overflow = searchOpen ? 'hidden' : ''
-        return () => { document.body.style.overflow = '' }
+        if (searchOpen) {
+            const sw = window.innerWidth - document.documentElement.clientWidth
+            document.body.style.overflow = 'hidden'
+            document.body.style.paddingRight = `${sw}px`
+            const header = document.querySelector('header') as HTMLElement | null
+            if (header) header.style.paddingRight = `${sw + 10}px`
+        } else {
+            document.body.style.overflow = ''
+            document.body.style.paddingRight = ''
+            const header = document.querySelector('header') as HTMLElement | null
+            if (header) header.style.paddingRight = ''
+        }
+        return () => {
+            document.body.style.overflow = ''
+            document.body.style.paddingRight = ''
+            const header = document.querySelector('header') as HTMLElement | null
+            if (header) header.style.paddingRight = ''
+        }
     }, [searchOpen])
 
     useEffect(() => {
@@ -586,6 +142,7 @@ export default function Header() {
         await onLogout()
         setDropdownOpen(false)
         router.push('/')
+        toast("로그아웃되었습니다")
     }
 
     const DropdownMenu = [
@@ -601,7 +158,7 @@ export default function Header() {
 
     return (
         <>
-            {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
+            {searchOpen && <HeaderSearch onClose={() => setSearchOpen(false)} />}
             {gradeOpen && <GradeModal onClose={() => setGradeOpen(false)} />}
 
             <header

@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { useAniStore } from '@/store/useAniStore'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 
 const DUMMY_PARTIES = [
     { hostName: '메롱포켓몬', time: '21:22', attendees: 15, maxAttendees: 30, img: '/images/character/ch-1.png' },
@@ -18,6 +17,8 @@ export default function PartySection() {
     const router = useRouter()
     const { aniList, onFetchTopAni } = useAniStore()
     const [offset, setOffset] = useState(0)
+
+
 
     useEffect(() => {
         onFetchTopAni()
@@ -37,12 +38,17 @@ export default function PartySection() {
 
     return (
         <section>
+
             <div className="relative flex flex-col gap-1 mb-5 pt-20">
                 <h2 className="text-xl font-bold text-white">Party Now</h2>
                 <p className="text-sm text-white/60">지금 이 순간, 혼자 보기엔 아쉬우니까</p>
-                <Link href="/live/create" className="absolute right-0 px-8 py-2 bg-white/10 hover:bg-white/20 transition-colors rounded-xl text-sm text-white font-medium">
+                {/* 파티 개설하기 — 그냥 이동, 게이트는 create 페이지에서 처리 */}
+                <button
+                    onClick={() => router.push('/live/create')}
+                    className="absolute right-0 px-8 py-2 bg-white/10 hover:bg-white/20 transition-colors rounded-xl text-sm text-white font-medium cursor-pointer"
+                >
                     파티 개설하기
-                </Link>
+                </button>
             </div>
 
             <ul className="grid grid-cols-4 gap-2 list-none p-0 m-0">

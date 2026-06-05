@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useRouter } from 'next/navigation'
 import { auth, db } from '@/firebase/firebase'
+import CancelMembershipModal from '@/components/CancelMembershipModal'
 import { updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { toast } from 'sonner'
@@ -16,7 +17,32 @@ interface Card {
     isDefault: boolean
 }
 
-// 카드 추가 팝업 컴포넌트
+// ── 멤버십 메타 ───────────────────────────────────────────────
+const MEMBERSHIP_META = {
+    anime: {
+        name: '애니 멤버십',
+        emoji: '🎬',
+        price: '9,900',
+        color: '#6c63ff',
+        features: ['애니메이션 무제한 시청', 'FHD 고화질', '광고 없음', '동시 4기기'],
+    },
+    ost: {
+        name: 'OST 멤버십',
+        emoji: '🎵',
+        price: '4,900',
+        color: '#ec4899',
+        features: ['OST 전곡 무제한 감상', 'OST 오프라인 저장', '고음질 스트리밍'],
+    },
+    allinone: {
+        name: '올인원',
+        emoji: '⚡',
+        price: '13,900',
+        color: '#f59e0b',
+        features: ['애니메이션 무제한 시청', 'FHD 고화질', 'OST 전곡 감상', 'OST 오프라인 저장', '광고 없음'],
+    },
+}
+
+// ── 카드 추가 팝업 ────────────────────────────────────────────
 function AddCardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: Card) => void }) {
     const [cardNumber, setCardNumber] = useState('')
     const [cardExpiry, setCardExpiry] = useState('')
@@ -74,76 +100,39 @@ function AddCardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: C
                 className="relative bg-[#111] rounded-2xl w-full max-w-md border border-white/10"
                 onClick={e => e.stopPropagation()}
             >
-                {/* 헤더 */}
                 <div className="flex items-center justify-between px-7 py-5 border-b border-white/10">
                     <h3 className="text-lg font-black">카드 등록</h3>
-                    <button
-                        onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer"
-                    >
-                        ✕
-                    </button>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer">✕</button>
                 </div>
-
                 <div className="px-7 py-6 flex flex-col gap-5">
                     <div>
                         <p className="text-sm text-white/40 mb-2">카드번호</p>
-                        <input
-                            className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
-                            value={cardNumber}
-                            onChange={e => setCardNumber(formatCardNumber(e.target.value))}
-                            placeholder="0000 0000 0000 0000"
-                            maxLength={19}
-                        />
+                        <input className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
+                            value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))} placeholder="0000 0000 0000 0000" maxLength={19} />
                     </div>
                     <div className="grid grid-cols-2 gap-5">
                         <div>
                             <p className="text-sm text-white/40 mb-2">유효기간</p>
-                            <input
-                                className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
-                                value={cardExpiry}
-                                onChange={e => setCardExpiry(formatExpiry(e.target.value))}
-                                placeholder="MM/YY"
-                                maxLength={5}
-                            />
+                            <input className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
+                                value={cardExpiry} onChange={e => setCardExpiry(formatExpiry(e.target.value))} placeholder="MM/YY" maxLength={5} />
                         </div>
                         <div>
                             <p className="text-sm text-white/40 mb-2">CVC</p>
-                            <input
-                                className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
-                                value={cardCvc}
-                                onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                placeholder="000"
-                                maxLength={4}
-                                type="password"
-                            />
+                            <input className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
+                                value={cardCvc} onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="000" maxLength={4} type="password" />
                         </div>
                     </div>
                     <div>
                         <p className="text-sm text-white/40 mb-2">카드 소유자 이름</p>
-                        <input
-                            className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
-                            value={cardName}
-                            onChange={e => setCardName(e.target.value)}
-                            placeholder="홍길동"
-                            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                        />
+                        <input className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
+                            value={cardName} onChange={e => setCardName(e.target.value)} placeholder="홍길동" onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
                     </div>
                     {cardError && <p className="text-sm text-red-400">{cardError}</p>}
                     <p className="text-sm text-white/25">🔒 카드번호 뒷 4자리만 저장됩니다.</p>
                     <div className="flex gap-3 pt-1">
-                        <button
-                            onClick={onClose}
-                            className="flex-1 py-3 rounded-xl border border-white/20 text-white/50 text-base font-bold hover:border-white/40 transition-colors cursor-pointer"
-                        >
-                            취소
-                        </button>
-                        <button
-                            onClick={handleSubmit}
-                            disabled={cardLoading}
-                            className="flex-1 py-3 rounded-xl text-white text-base font-bold transition-colors cursor-pointer hover:opacity-90"
-                            style={{ background: '#6c63ff', opacity: cardLoading ? 0.5 : 1 }}
-                        >
+                        <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-white/20 text-white/50 text-base font-bold hover:border-white/40 transition-colors cursor-pointer">취소</button>
+                        <button onClick={handleSubmit} disabled={cardLoading} className="flex-1 py-3 rounded-xl text-white text-base font-bold transition-colors cursor-pointer hover:opacity-90"
+                            style={{ background: '#6c63ff', opacity: cardLoading ? 0.5 : 1 }}>
                             {cardLoading ? '등록 중...' : '카드 등록하기'}
                         </button>
                     </div>
@@ -153,8 +142,9 @@ function AddCardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: C
     )
 }
 
+// ── 메인 ──────────────────────────────────────────────────────
 export default function MyPage() {
-    const { user } = useAuthStore()
+    const { user, setMembership } = useAuthStore()
     const router = useRouter()
 
     const [emailStep, setEmailStep] = useState<'idle' | 'form'>('idle')
@@ -170,6 +160,18 @@ export default function MyPage() {
 
     const [cards, setCards] = useState<Card[]>([])
     const [showAddCardModal, setShowAddCardModal] = useState(false)
+    const [showCancelModal, setShowCancelModal] = useState(false)
+
+    // 멤버십 정보
+    const membershipKey = user?.membership as keyof typeof MEMBERSHIP_META | 'none' | undefined
+    const membership = membershipKey && membershipKey !== 'none' ? MEMBERSHIP_META[membershipKey] : null
+
+    // 다음 결제일 (30일 후 예시)
+    const nextBillingDate = (() => {
+        const d = new Date()
+        d.setDate(d.getDate() + 30)
+        return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+    })()
 
     const provider = auth.currentUser?.providerData?.[0]?.providerId || ''
     const isEmailUser = provider === 'password'
@@ -213,17 +215,29 @@ export default function MyPage() {
         await saveCards(newCards)
     }
 
+    // 멤버십 해지
+    const handleCancelMembership = async () => {
+        if (!user?.uid) return
+        try {
+            await setDoc(doc(db, 'users', user.uid), { membership: 'none' }, { merge: true })
+            setMembership('none')
+            setShowCancelModal(false)
+            toast.success('멤버십이 해지되었어요', {
+                description: '현재 기간 종료 후 이용이 중단돼요.',
+            })
+        } catch {
+            toast.error('해지 중 오류가 발생했어요. 다시 시도해주세요.')
+        }
+    }
+
     const handleUpdateEmail = async () => {
         if (!auth.currentUser || !newEmail) return
         setEmailError('')
         setLoading(true)
         try {
             await updateEmail(auth.currentUser, newEmail)
-            toast.success('이메일 변경 완료 ✉️', {
-                description: '새 이메일로 로그인할 수 있어요.',
-            })
-            setEmailStep('idle')
-            setNewEmail('')
+            toast.success('이메일 변경 완료 ✉️', { description: '새 이메일로 로그인할 수 있어요.' })
+            setEmailStep('idle'); setNewEmail('')
         } catch (err: any) {
             const msgs: Record<string, string> = {
                 'auth/requires-recent-login': '보안을 위해 다시 로그인 후 시도해주세요.',
@@ -274,6 +288,7 @@ export default function MyPage() {
                 .mp-row-value.accent { color: #6c63ff; }
                 .mp-btn { font-size: 12px; padding: 7px 14px; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; background: none; color: rgba(255,255,255,.6); cursor: pointer; transition: all .18s; white-space: nowrap; flex-shrink: 0; }
                 .mp-btn:hover { border-color: rgba(255,255,255,.4); color: #fff; }
+                .mp-btn.danger { border-color: rgba(248,113,113,.3); color: rgba(248,113,113,.7); }
                 .mp-btn.danger:hover { border-color: #f87171; color: #f87171; }
                 .mp-form { background: #141420; border-radius: 14px; padding: 20px; margin-top: 8px; display: flex; flex-direction: column; gap: 16px; border: 1px solid rgba(255,255,255,.07); }
                 .mp-form-label { font-size: 11px; color: rgba(255,255,255,.4); margin: 0 0 6px; }
@@ -299,7 +314,113 @@ export default function MyPage() {
             <div className="mp-wrap">
                 <PageHeader title="내 정보" />
 
-                {/* 계정 */}
+                {/* ── 멤버십 섹션 ───────────────────────────── */}
+                <section style={{ marginBottom: 48 }}>
+                    <p className="mp-label">멤버십</p>
+
+                    {membership ? (
+                        /* 멤버십 가입 상태 */
+                        <div style={{
+                            borderRadius: 16,
+                            padding: '24px',
+                            background: `${membership.color}0f`,
+                            border: `1px solid ${membership.color}30`,
+                            marginBottom: 0,
+                        }}>
+                            {/* 헤더 */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <div style={{
+                                        width: 48, height: 48, borderRadius: 12,
+                                        background: `${membership.color}20`,
+                                        border: `1px solid ${membership.color}40`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 22,
+                                    }}>
+                                        {membership.emoji}
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                                            <span style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{membership.name}</span>
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 700, padding: '2px 8px',
+                                                borderRadius: 10, background: `${membership.color}25`,
+                                                color: membership.color, border: `1px solid ${membership.color}40`,
+                                            }}>이용 중</span>
+                                        </div>
+                                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,.45)' }}>
+                                            월 ₩{membership.price}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button
+                                    className="mp-btn danger"
+                                    onClick={() => setShowCancelModal(true)}
+                                >
+                                    해지하기
+                                </button>
+                            </div>
+
+                            {/* 구분선 */}
+                            <div style={{ height: 1, background: `${membership.color}20`, marginBottom: 20 }} />
+
+                            {/* 혜택 목록 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+                                {membership.features.map(f => (
+                                    <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={membership.color} strokeWidth="3">
+                                            <polyline points="20,6 9,17 4,12" />
+                                        </svg>
+                                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,.75)' }}>{f}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* 다음 결제일 */}
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '12px 14px', borderRadius: 10,
+                                background: 'rgba(255,255,255,0.04)',
+                                border: '1px solid rgba(255,255,255,0.07)',
+                            }}>
+                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>다음 결제일</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.8)' }}>{nextBillingDate}</span>
+                            </div>
+                        </div>
+                    ) : (
+                        /* 멤버십 없는 상태 */
+                        <div style={{
+                            borderRadius: 16, padding: '28px 24px',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.07)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+                        }}>
+                            <div>
+                                <p style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,.7)', margin: '0 0 5px' }}>
+                                    이용 중인 멤버십이 없어요
+                                </p>
+                                <p style={{ fontSize: 13, color: 'rgba(255,255,255,.35)', margin: 0 }}>
+                                    멤버십을 구독하고 애니·OST를 즐겨보세요
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => router.push('/membership')}
+                                className="mp-btn"
+                                style={{
+                                    background: '#6c63ff', borderColor: '#6c63ff',
+                                    color: '#fff', padding: '9px 18px', fontSize: 13, fontWeight: 700,
+                                    flexShrink: 0,
+                                }}
+                            >
+                                멤버십 시작하기
+                            </button>
+                        </div>
+                    )}
+                </section>
+
+                <hr className="mp-divider" />
+
+                {/* ── 계정 섹션 ─────────────────────────────── */}
                 <section style={{ marginBottom: 48 }}>
                     <p className="mp-label">계정</p>
 
@@ -382,7 +503,7 @@ export default function MyPage() {
 
                 <hr className="mp-divider" />
 
-                {/* 결제수단 */}
+                {/* ── 결제수단 섹션 ─────────────────────────── */}
                 <section style={{ marginBottom: 48 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                         <p className="mp-label" style={{ margin: 0 }}>결제수단</p>
@@ -417,11 +538,16 @@ export default function MyPage() {
 
             {/* 카드 추가 팝업 */}
             {showAddCardModal && (
-                <AddCardModal
-                    onClose={() => setShowAddCardModal(false)}
-                    onAdd={handleAddCard}
-                />
+                <AddCardModal onClose={() => setShowAddCardModal(false)} onAdd={handleAddCard} />
             )}
+
+            {/* 멤버십 해지 팝업 */}
+            <CancelMembershipModal
+                isOpen={showCancelModal}
+                onClose={() => setShowCancelModal(false)}
+                onConfirm={handleCancelMembership}
+                membershipName={membership?.name ?? ''}
+            />
         </div>
     )
 }
