@@ -1,4 +1,5 @@
 "use client"
+import PageHeader from '@/components/PageHeader'
 import { useEffect, useState } from 'react'
 
 interface Notice {
@@ -56,7 +57,7 @@ export default function NoticePage() {
             `}</style>
 
             <div className="nt-wrap">
-                <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 40px' }}>공지사항</h1>
+                <PageHeader title="공지사항" />
 
                 {loading ? (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>

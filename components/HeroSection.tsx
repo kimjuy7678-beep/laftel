@@ -23,6 +23,7 @@ export default function HeroSection() {
 
     const [playingId, setPlayingId] = useState<number | null>(null)
     const [activeIndex, setActiveIndex] = useState(0)
+    const [videoOpacity, setVideoOpacity] = useState(0)
 
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const swiperRef = useRef<SwiperType | null>(null)
@@ -38,6 +39,17 @@ export default function HeroSection() {
             swiperRef.current.autoplay.stop()
         } else {
             swiperRef.current.autoplay.start()
+        }
+    }, [playingId])
+
+    // playingId 바뀔 때 opacity 트랜지션
+    useEffect(() => {
+        if (playingId !== null) {
+            // 약간 딜레이 후 fade in
+            const t = setTimeout(() => setVideoOpacity(1), 50)
+            return () => clearTimeout(t)
+        } else {
+            setVideoOpacity(0)
         }
     }, [playingId])
 
@@ -105,14 +117,12 @@ export default function HeroSection() {
                                 onMouseEnter={() => handleMouseEnter(hero.id!)}
                                 onMouseLeave={() => handleMouseLeave()}
                             >
-                                {/* 이미지는 항상 보임 */}
                                 <img
                                     src={hero.image}
                                     alt={name}
                                     className="absolute inset-0 w-full h-full object-cover"
                                 />
 
-                                {/* 영상이 준비되면 이미지 위에 덮음 */}
                                 {isPlaying && (
                                     <video
                                         key={hero.id}
@@ -121,7 +131,11 @@ export default function HeroSection() {
                                         muted
                                         loop
                                         playsInline
-                                        className="absolute inset-0 w-full h-full object-cover scale-[1.2] pointer-events-none z-10"
+                                        style={{
+                                            opacity: videoOpacity,
+                                            transition: 'opacity 0.8s ease',
+                                        }}
+                                        className="absolute inset-0 w-full h-full object-cover pointer-events-none z-10"
                                     />
                                 )}
 
@@ -129,7 +143,7 @@ export default function HeroSection() {
                                     {isPlaying && (
                                         <button
                                             onClick={handleCloseVideo}
-                                            className="absolute top-15 right-6 z-50 flex items-center gap-2
+                                            className="absolute top-[5%] right-6 z-50 flex items-center gap-2
                                                        text-white/70 hover:text-white text-sm transition-colors duration-200 cursor-pointer"
                                         >
                                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -140,28 +154,54 @@ export default function HeroSection() {
                                         </button>
                                     )}
 
-                                    <h1 className='text-[26px] absolute bottom-90 left-55 text-white whitespace-pre-line'>
-                                        {hero.text}
-                                    </h1>
+                                    {!isPlaying && (
+                                        <>
+                                            <h1
+                                                style={{
+                                                    position: 'absolute',
+                                                    bottom: '28%',
+                                                    left: '8%',
+                                                    fontSize: 'clamp(14px, 1.4vw, 26px)',
+                                                    color: '#fff',
+                                                    whiteSpace: 'pre-line',
+                                                    lineHeight: 1.6,
+                                                }}
+                                            >
+                                                {hero.text}
+                                            </h1>
 
-                                    <div className="absolute left-55 bottom-60 z-30 flex items-center gap-4">
-                                        <button
-                                            onClick={() => router.push(`/anime/${hero.id}?play=1`)}
-                                            className="inline-flex items-center justify-center h-[52px] px-8 rounded-full border border-white/50 text-white text-sm font-semibold
-                                                       backdrop-blur-md bg-white/10 hover:bg-white hover:text-black
-                                                       transition-all duration-300 cursor-pointer whitespace-nowrap"
-                                        >
-                                            1화 보러가기
-                                        </button>
-                                        <button
-                                            onClick={() => router.push(`/anime/${hero.id}`)}
-                                            className="inline-flex items-center justify-center h-[52px] px-8 rounded-full border border-white/50 text-white text-sm font-semibold
-                                                        hover:bg-white hover:text-black
-                                                       transition-all duration-300 cursor-pointer whitespace-nowrap"
-                                        >
-                                            상세보기
-                                        </button>
-                                    </div>
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    bottom: '14%',
+                                                    left: '8%',
+                                                    zIndex: 30,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '16px',
+                                                }}
+                                            >
+                                                <button
+                                                    onClick={() => router.push(`/anime/${hero.id}?play=1`)}
+                                                    className="inline-flex items-center justify-center rounded-full border border-white/50 text-white font-semibold
+                                                               backdrop-blur-md bg-white/10 hover:bg-white hover:text-black
+                                                               transition-all duration-300 cursor-pointer whitespace-nowrap"
+                                                    style={{ fontSize: 'clamp(11px, 1vw, 14px)', height: 'clamp(40px, 4vw, 52px)', padding: '0 clamp(16px, 2vw, 32px)' }}
+                                                >
+                                                    1화 보러가기
+                                                </button>
+                                                <button
+                                                    onClick={() => router.push(`/anime/${hero.id}`)}
+                                                    className="inline-flex items-center justify-center rounded-full border border-white/50 text-white font-semibold
+                                                               hover:bg-white hover:text-black
+                                                               transition-all duration-300 cursor-pointer whitespace-nowrap"
+                                                    style={{ fontSize: 'clamp(11px, 1vw, 14px)', height: 'clamp(40px, 4vw, 52px)', padding: '0 clamp(16px, 2vw, 32px)' }}
+                                                >
+                                                    상세보기
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </SwiperSlide>

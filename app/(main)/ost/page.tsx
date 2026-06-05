@@ -1,4 +1,5 @@
 'use client'
+import PageHeader from '@/components/PageHeader'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
@@ -352,20 +353,19 @@ function TrackRow({ track, index, isPlaying, onPlay }: { track: Track; index: nu
 }
 
 // ── 신곡 섹션 ──────────────────────────────────────────────────
-function NewSection({ tracks, playingId, onPlay, visible }: {
+function NewSection({ tracks, playingId, onPlay }: {
     tracks: Track[]
     playingId: string | null
     onPlay: (t: Track) => void
-    visible: boolean   // ← 추가
 }) {
     const main = tracks[0]
     const subs = tracks.slice(1, 7)
     if (!main) return null
     const GAP = 25
     return (
-        <section style={{ marginBottom: 56, display: visible ? 'block' : 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                <span style={{ fontSize: 24, fontWeight: 800, padding: '3px 10px', color: '#fff' }}>방금 공개된 OST</span>
+        <section style={{ marginBottom: 60 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <h2 style={{ fontSize: 25, fontWeight: 800, color: '#fff', margin: 0 }}>방금 공개된 OST</h2>
             </div>
             <div style={{
                 display: 'grid',
@@ -426,25 +426,23 @@ function NewSection({ tracks, playingId, onPlay, visible }: {
 }
 
 // ── 주간 TOP 10 ────────────────────────────────────────────────
-function WeeklyTop10({ tracks, playingId, onPlay, visible }: {
+function WeeklyTop10({ tracks, playingId, onPlay }: {
     tracks: Track[]
     playingId: string | null
     onPlay: (t: Track) => void
-    visible: boolean   // ← 추가
 }) {
     if (!tracks.length) return null
     return (
-        <section style={{ marginBottom: 60, display: visible ? 'block' : 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                <span style={{ fontSize: 18 }}>🎵</span>
-                <h2 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>라프텔Music 주간 TOP 10</h2>
+        <section style={{ marginBottom: 60, position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <h2 style={{ fontSize: 25, fontWeight: 800, color: '#fff', margin: 0 }}>주간 TOP 10</h2>
             </div>
             <Swiper
                 modules={[FreeMode]}
                 freeMode={{ sticky: false }}
                 slidesPerView={'auto'}
                 spaceBetween={24}
-                style={{ overflow: 'visible' }}>
+                style={{ overflow: 'visible', marginRight: 'calc(-5vw - 20px)', paddingRight: 'calc(5vw + 20px)' }}>
                 {tracks.map((t, i) => {
                     const playing = playingId === t.id
                     return (
@@ -505,23 +503,22 @@ function WeeklyTop10({ tracks, playingId, onPlay, visible }: {
 }
 
 // ── 취향저격 ──────────────────────────────────────────────────
-function RecommendSection({ tracks, playingId, onPlay, userName, visible }: {
+function RecommendSection({ tracks, playingId, onPlay, userName }: {
     tracks: Track[]
     playingId: string | null
     onPlay: (t: Track) => void
     userName: string
-    visible: boolean   // ← 추가
 }) {
-    const picks = useMemo(() => [...tracks].sort(() => Math.random() - 0.5).slice(0, 21), [tracks.length])
+    const picks = useMemo(() => [...tracks].sort(() => Math.random() - 0.5).slice(0, 21), [tracks.length > 0 ? tracks[0].id : ''])
     if (!picks.length) return null
     return (
-        <section style={{ marginBottom: 48, display: visible ? 'block' : 'none' }}>
+        <section style={{ marginBottom: 60, position: 'relative', zIndex: 1 }}>
             <div style={{ marginBottom: 20 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>
-                    <span style={{ color: '#9d97ff' }}>"{userName}"</span> 님 취향저격 🎵
+                <h2 style={{ fontSize: 25, fontWeight: 800, color: '#fff', margin: 0 }}>
+                    <span style={{ color: '#9d97ff' }}>"{userName}"</span> 님 취향저격
                 </h2>
             </div>
-            <Swiper modules={[FreeMode]} freeMode slidesPerView={'auto'} spaceBetween={14} style={{ overflow: 'visible' }}>
+            <Swiper modules={[FreeMode]} freeMode slidesPerView={'auto'} spaceBetween={14} style={{ overflow: 'visible', marginRight: 'calc(-5vw - 20px)', paddingRight: 'calc(5vw + 20px)' }}>
                 {picks.map(t => (
                     <SwiperSlide key={t.id} style={{ width: 160 }}>
                         <div onClick={() => onPlay(t)} style={{ cursor: 'pointer', textAlign: 'center', transition: 'transform .25s' }}
@@ -545,20 +542,18 @@ function HotAnimeSection({
     hotAnimes,
     playingId,
     onPlayAnime,
-    visible,   // ← 추가
 }: {
     hotAnimes: HotAnime[]
     playingId: string | null
     onPlayAnime: (anime: HotAnime) => void
-    visible: boolean
 }) {
     if (!hotAnimes.length) return null
     return (
-        <section style={{ marginBottom: 48, display: visible ? 'block' : 'none' }}>
+        <section style={{ marginBottom: 60, position: 'relative', zIndex: 1 }}>
             <div style={{ marginBottom: 20 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>화제의 애니메이션 OST</h2>
+                <h2 style={{ fontSize: 25, fontWeight: 800, color: '#fff', margin: 0 }}>화제의 애니메이션 OST</h2>
             </div>
-            <Swiper modules={[FreeMode]} freeMode slidesPerView={'auto'} spaceBetween={14} style={{ overflow: 'visible' }}>
+            <Swiper modules={[FreeMode]} freeMode slidesPerView={'auto'} spaceBetween={14} style={{ overflow: 'visible', marginRight: 'calc(-5vw - 20px)', paddingRight: 'calc(5vw + 20px)' }}>
                 {hotAnimes.map(anime => {
                     const isActive = anime.tracks.some(t => t.id === playingId)
                     const playingTrack = anime.tracks.find(t => t.id === playingId)
@@ -629,9 +624,6 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
     const [sidebarOpen, setSidebarOpen] = useState(true)
     const [activeType, setActiveType] = useState('전체')
 
-    // sidebarOpen이 false일 때 스와이퍼 섹션도 함께 숨김
-    const swipersVisible = sidebarOpen
-
     const top10 = useMemo(() => {
         if (!tracks.length) return []
         return [...tracks].sort((a, b) => (b.popularity || b.duration || 0) - (a.popularity || a.duration || 0)).slice(0, 10)
@@ -672,71 +664,84 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
     const isFiltering = search || activeTag !== '전체' || activeType !== '전체'
 
     return (
-        <div style={{ display: 'flex', gap: 0, alignItems: 'flex-start', width: '100%' }}>
+        <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', width: '100%', position: 'relative' }}>
 
             {/* 사이드바 필터 — sidebarOpen 토글 */}
             {sidebarOpen && (
-                <div style={{ width: 280, marginRight: 28, position: 'sticky', top: 55, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 55px)', overflowY: 'auto', zIndex: 20, flexShrink: 0, background: '#0a0a0a' }}>
-                    <div style={{ marginBottom: 24 }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em', margin: '0 0 10px' }}>타입</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {typeFilters.map(f => {
-                                const cnt = typeCounts[f as keyof typeof typeCounts] ?? 0
-                                const active = activeType === f
-                                return (
-                                    <button key={f} onClick={() => setActiveType(f)} style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        padding: '8px 12px', borderRadius: 8, border: 'none',
-                                        background: active ? 'rgba(108,99,255,.15)' : 'none',
-                                        color: active ? '#9d97ff' : 'rgba(255,255,255,.5)',
-                                        fontSize: 13, fontWeight: active ? 700 : 400,
-                                        cursor: 'pointer', textAlign: 'left', transition: 'all .15s', width: '100%',
-                                    }}>
-                                        <span>{f}</span>
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 600,
-                                            color: active ? '#9d97ff' : 'rgba(255,255,255,.25)',
-                                            background: active ? 'rgba(108,99,255,.2)' : 'rgba(255,255,255,.07)',
-                                            padding: '1px 7px', borderRadius: 10, minWidth: 28, textAlign: 'center',
-                                        }}>{cnt}</span>
-                                    </button>
-                                )
-                            })}
+                <div style={{ width: 280, flexShrink: 0, alignSelf: 'stretch', position: 'relative' }}>
+                    {/* 배경: 화면 왼쪽 끝 ~ 사이드바 오른쪽 끝, 위아래 전체 */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0, bottom: 0,
+                        left: 'calc(-1 * (100vw - 90%) / 2)',
+                        right: 0,
+                        background: '#0a0a0a',
+                        zIndex: 28,
+                        pointerEvents: 'none',
+                    }} />
+                    {/* 필터: sticky로 스크롤 따라옴 */}
+                    <div style={{ position: 'sticky', top: 75, maxHeight: 'calc(100vh - 75px)', overflowY: 'auto', zIndex: 30, paddingRight: 28 }}>
+                        <div style={{ marginBottom: 24 }}>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em', margin: '0 0 10px' }}>타입</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {typeFilters.map(f => {
+                                    const cnt = typeCounts[f as keyof typeof typeCounts] ?? 0
+                                    const active = activeType === f
+                                    return (
+                                        <button key={f} onClick={() => setActiveType(f)} style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            padding: '8px 12px', borderRadius: 8, border: 'none',
+                                            background: active ? 'rgba(108,99,255,.15)' : 'none',
+                                            color: active ? '#9d97ff' : 'rgba(255,255,255,.5)',
+                                            fontSize: 13, fontWeight: active ? 700 : 400,
+                                            cursor: 'pointer', textAlign: 'left', transition: 'all .15s', width: '100%',
+                                        }}>
+                                            <span>{f}</span>
+                                            <span style={{
+                                                fontSize: 11, fontWeight: 600,
+                                                color: active ? '#9d97ff' : 'rgba(255,255,255,.25)',
+                                                background: active ? 'rgba(108,99,255,.2)' : 'rgba(255,255,255,.07)',
+                                                padding: '1px 7px', borderRadius: 10, minWidth: 28, textAlign: 'center',
+                                            }}>{cnt}</span>
+                                        </button>
+                                    )
+                                })}
+                            </div>
                         </div>
-                    </div>
-                    <div style={{ height: 1, background: 'rgba(255,255,255,.07)', marginBottom: 20 }} />
-                    <div>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em', margin: '0 0 10px' }}>분위기</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {allTags.map(tag => {
-                                const cnt = tagCounts[tag as keyof typeof tagCounts] ?? 0
-                                const active = activeTag === tag
-                                return (
-                                    <button key={tag} onClick={() => setActiveTag(tag)} style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        padding: '8px 12px', borderRadius: 8, border: 'none',
-                                        background: active ? 'rgba(108,99,255,.15)' : 'none',
-                                        color: active ? '#9d97ff' : 'rgba(255,255,255,.5)',
-                                        fontSize: 13, fontWeight: active ? 700 : 400,
-                                        cursor: 'pointer', textAlign: 'left', transition: 'all .15s', width: '100%',
-                                    }}>
-                                        <span>{tag}</span>
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 600,
-                                            color: active ? '#9d97ff' : 'rgba(255,255,255,.25)',
-                                            background: active ? 'rgba(108,99,255,.2)' : 'rgba(255,255,255,.07)',
-                                            padding: '1px 7px', borderRadius: 10, minWidth: 28, textAlign: 'center',
-                                        }}>{cnt}</span>
-                                    </button>
-                                )
-                            })}
+                        <div style={{ height: 1, background: 'rgba(255,255,255,.07)', marginBottom: 20 }} />
+                        <div>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em', margin: '0 0 10px' }}>분위기</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {allTags.map(tag => {
+                                    const cnt = tagCounts[tag as keyof typeof tagCounts] ?? 0
+                                    const active = activeTag === tag
+                                    return (
+                                        <button key={tag} onClick={() => setActiveTag(tag)} style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            padding: '8px 12px', borderRadius: 8, border: 'none',
+                                            background: active ? 'rgba(108,99,255,.15)' : 'none',
+                                            color: active ? '#9d97ff' : 'rgba(255,255,255,.5)',
+                                            fontSize: 13, fontWeight: active ? 700 : 400,
+                                            cursor: 'pointer', textAlign: 'left', transition: 'all .15s', width: '100%',
+                                        }}>
+                                            <span>{tag}</span>
+                                            <span style={{
+                                                fontSize: 11, fontWeight: 600,
+                                                color: active ? '#9d97ff' : 'rgba(255,255,255,.25)',
+                                                background: active ? 'rgba(108,99,255,.2)' : 'rgba(255,255,255,.07)',
+                                                padding: '1px 7px', borderRadius: 10, minWidth: 28, textAlign: 'center',
+                                            }}>{cnt}</span>
+                                        </button>
+                                    )
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
 
             {/* 메인 콘텐츠 */}
-            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', paddingLeft: 10 }}>
+            <div style={{ flex: 1, minWidth: 0, paddingLeft: 10, position: 'relative', zIndex: 25 }}>
                 {/* 검색 + 필터 토글 */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 24, alignItems: 'center' }}>
                     <button onClick={() => setSidebarOpen(v => !v)}
@@ -772,31 +777,26 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                     </div>
                 ) : (
                     <>
-                        {/* ↓ visible prop으로 사이드바와 동기화 */}
                         <NewSection
                             tracks={newTracks}
                             playingId={playingId}
                             onPlay={onPlay}
-                            visible={swipersVisible}
                         />
                         <WeeklyTop10
                             tracks={top10}
                             playingId={playingId}
                             onPlay={onPlay}
-                            visible={swipersVisible}
                         />
                         <RecommendSection
                             tracks={tracks}
                             playingId={playingId}
                             onPlay={onPlay}
                             userName={userName}
-                            visible={swipersVisible}
                         />
                         <HotAnimeSection
                             hotAnimes={hotAnimes}
                             playingId={playingId}
                             onPlayAnime={onPlayAnime}
-                            visible={swipersVisible}
                         />
                         {['전투', '감성', '로맨스', '새벽감성', '열혈', '힐링', '오프닝', '엔딩'].map(tag => {
                             const tagged = tracks.filter(t => t.tags.includes(tag))
@@ -966,21 +966,17 @@ export default function OstPage() {
                 @keyframes spin{to{transform:rotate(360deg)}}
             `}</style>
 
-                <div style={{ paddingTop: 64 }}>
-                    <div style={{ width: '90%', margin: '0 auto', borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0' }}>
-                        <span style={{ fontSize: 18 }}>🎵</span>
-                        <h1 className="text-2xl font-bold" style={{ color: '#fff', margin: 0 }}>OST</h1>
-                        <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'rgba(108,99,255,.2)', color: '#9d97ff' }}>{tracks.length}</span>
-                        {loading && (
-                            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'rgba(255,255,255,.3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                                {loadCount}곡 로드 중...
-                            </span>
-                        )}
+                <div style={{ width: '90%', margin: '0 auto', paddingTop: 64, paddingBottom: 60, overflow: 'visible' }}>
+                    <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0', marginBottom: 28, position: 'relative', zIndex: 29 }}>
+                        <PageHeader title="OST" sub="애니메이션 속 그 노래, 여기서 다시 들어요" />
                     </div>
                     {loading && <div className="ost-loading-bar" />}
-
-                    <div style={{ width: '90%', margin: '0 auto', paddingTop: 28, paddingBottom: 60 }}>
+                    {loading && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
+                            <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                            {loadCount}곡 로드 중...
+                        </div>
+                    )}
                         <OstTab
                             tracks={tracks}
                             playingId={playingId}
@@ -990,7 +986,6 @@ export default function OstPage() {
                             hotAnimes={hotAnimes}
                             userName={userName}
                         />
-                    </div>
                 </div>
             </div>
 
