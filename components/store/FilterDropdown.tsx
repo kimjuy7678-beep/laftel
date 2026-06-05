@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 350000;
@@ -12,6 +12,8 @@ interface FilterDropdownProps {
     onlyInStock: boolean;
     onOnlyInStock: (v: boolean) => void;
     onReset: () => void;
+    onlyReserve?: boolean;
+    onOnlyReserve?: (v: boolean) => void;
 }
 
 export default function FilterDropdown({
@@ -21,15 +23,40 @@ export default function FilterDropdown({
     onlyInStock,
     onOnlyInStock,
     onReset,
+    onlyReserve: onlyReserveProp,
+    onOnlyReserve,
 }: FilterDropdownProps) {
     const pct = (v: number) => ((v - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
 
+    const [localRange, setLocalRange] = useState<[number, number]>(priceRange);
+    const [onlyReserve, setOnlyReserve] = useState(onlyReserveProp ?? false);
+
+    useEffect(() => { setLocalRange(priceRange); }, [priceRange]);
+    useEffect(() => { setOnlyReserve(onlyReserveProp ?? false); }, [onlyReserveProp]);
+
     const handleMin = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onPriceRange([Math.min(Number(e.target.value), priceRange[1] - 1000), priceRange[1]]);
+        setLocalRange([Math.min(Number(e.target.value), localRange[1] - 1000), localRange[1]]);
     };
     const handleMax = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onPriceRange([priceRange[0], Math.max(Number(e.target.value), priceRange[0] + 1000)]);
+        setLocalRange([localRange[0], Math.max(Number(e.target.value), localRange[0] + 1000)]);
     };
+
+    const handleConfirm = () => onPriceRange(localRange);
+
+    const handleReset = () => {
+        setLocalRange([PRICE_MIN, PRICE_MAX]);
+        setOnlyReserve(false);
+        onOnlyReserve?.(false);
+        onReset();
+    };
+
+    const handleToggleReserve = () => {
+        const next = !onlyReserve;
+        setOnlyReserve(next);
+        onOnlyReserve?.(next);
+    };
+
+    const isPriceChanged = localRange[0] !== priceRange[0] || localRange[1] !== priceRange[1];
 
     if (!open) return null;
 
@@ -39,30 +66,40 @@ export default function FilterDropdown({
             <p className="text-[13px] font-semibold text-[#16121f]">가격별로 보기</p>
             <div className="mt-3 flex items-center gap-2">
                 <div className="flex h-[30px] flex-1 items-center justify-center rounded-[8px] border border-[#ddd8f4] bg-[#faf9ff] text-[11px] font-medium text-[#3d3755]">
-                    ₩{priceRange[0].toLocaleString()}
+                    ₩{localRange[0].toLocaleString()}
                 </div>
                 <span className="text-[10px] text-[#c0bcd0]">—</span>
                 <div className="flex h-[30px] flex-1 items-center justify-center rounded-[8px] border border-[#ddd8f4] bg-[#faf9ff] text-[11px] font-medium text-[#3d3755]">
-                    ₩{priceRange[1].toLocaleString()}
+                    ₩{localRange[1].toLocaleString()}
                 </div>
             </div>
             <div className="relative mt-4 h-[6px] w-full">
                 <div className="absolute inset-0 rounded-full bg-[#e2ddf5]" />
                 <div
                     className="absolute h-full rounded-full bg-[#7865ff]"
-                    style={{ left: `${pct(priceRange[0])}%`, right: `${100 - pct(priceRange[1])}%` }}
+                    style={{ left: `${pct(localRange[0])}%`, right: `${100 - pct(localRange[1])}%` }}
                 />
                 <input
                     type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000}
-                    value={priceRange[0]} onChange={handleMin}
+                    value={localRange[0]} onChange={handleMin}
                     className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:cursor-pointer"
                 />
                 <input
                     type="range" min={PRICE_MIN} max={PRICE_MAX} step={1000}
-                    value={priceRange[1]} onChange={handleMax}
+                    value={localRange[1]} onChange={handleMax}
                     className="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#7865ff] [&::-webkit-slider-thumb]:cursor-pointer"
                 />
             </div>
+            <button
+                onClick={handleConfirm}
+                disabled={!isPriceChanged}
+                className={`mt-3 flex w-full items-center justify-center rounded-[10px] py-2 text-[13px] font-semibold transition ${isPriceChanged
+                        ? "bg-[#7865ff] text-white hover:bg-[#6754e8] cursor-pointer"
+                        : "bg-[#f0edf8] text-[#c0bcd0] cursor-default"
+                    }`}
+            >
+                가격 적용
+            </button>
 
             <div className="my-4 border-t border-[#f0edf8]" />
 
@@ -71,8 +108,8 @@ export default function FilterDropdown({
             <button
                 onClick={() => onOnlyInStock(!onlyInStock)}
                 className={`mt-3 flex w-full items-center justify-between rounded-[10px] border px-3 py-2.5 text-[13px] font-medium transition ${onlyInStock
-                        ? "border-[#7865ff] bg-[#f0eeff] text-[#7865ff]"
-                        : "border-[#ddd8f4] bg-white text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"
+                    ? "border-[#7865ff] bg-[#f0eeff] text-[#7865ff]"
+                    : "border-[#ddd8f4] bg-white text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"
                     }`}
             >
                 <span>재고 있음만 보기</span>
@@ -81,9 +118,25 @@ export default function FilterDropdown({
                 </div>
             </button>
 
+            {/* 예약 굿즈만 보기 */}
+            <div className="my-4 border-t border-[#f0edf8]" />
+            <p className="text-[13px] font-semibold text-[#16121f]">예약 굿즈</p>
+            <button
+                onClick={() => handleToggleReserve()}
+                className={`mt-3 flex w-full items-center justify-between rounded-[10px] border px-3 py-2.5 text-[13px] font-medium transition ${onlyReserve
+                    ? "border-[#7865ff] bg-[#f0eeff] text-[#7865ff]"
+                    : "border-[#ddd8f4] bg-white text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"
+                    }`}
+            >
+                <span>예약 굿즈만 보기</span>
+                <div className={`relative h-[20px] w-[36px] rounded-full transition-colors ${onlyReserve ? "bg-[#7865ff]" : "bg-[#ddd8f4]"}`}>
+                    <div className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow transition-transform ${onlyReserve ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                </div>
+            </button>
+
             {/* 초기화 */}
             <button
-                onClick={onReset}
+                onClick={handleReset}
                 className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-[#ddd8f4] py-2 text-[12px] text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]"
             >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

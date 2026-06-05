@@ -1,11 +1,6 @@
 "use client"
 import { useEffect, useState } from 'react'
 import PaymentModal from './PaymentModal'
-import { useAuthStore } from '@/store/useAuthStore'
-import { useRouter } from 'next/navigation'
-import { db } from '@/firebase/firebase'
-import { doc, setDoc, addDoc, collection } from 'firebase/firestore'
-import { toast } from 'sonner'
 
 type PlanId = 'anime' | 'ost' | 'allinone'
 
@@ -62,6 +57,12 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
     const [modalPlan, setModalPlan] = useState<PlanId>(defaultPlan)
     const [showPayment, setShowPayment] = useState(false)
 
+    // PaymentModal + MembershipModal 동시에 닫기
+    const handleCloseAll = () => {
+        setShowPayment(false)
+        onClose()
+    }
+
     useEffect(() => {
         if (defaultPlan) setModalPlan(defaultPlan)
     }, [defaultPlan])
@@ -69,7 +70,7 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
-                if (showPayment) setShowPayment(false)
+                if (showPayment) handleCloseAll()
                 else onClose()
             }
         }
@@ -181,7 +182,7 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                         </div>
                     </div>
 
-                    {/* 하단 시작하기 버튼 — PaymentModal 열기 */}
+                    {/* 하단 시작하기 버튼 */}
                     <button
                         onClick={() => setShowPayment(true)}
                         className="w-full mt-6 py-4 rounded-xl font-black text-lg text-white transition-all cursor-pointer"
@@ -192,10 +193,11 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                 </div>
             </div>
 
-            {/* 결제 팝업 */}
+            {/* 결제 팝업 — onCloseAll로 MembershipModal까지 함께 닫기 */}
             <PaymentModal
                 isOpen={showPayment}
                 onClose={() => setShowPayment(false)}
+                onCloseAll={handleCloseAll}
                 planId={modalPlan}
             />
         </>

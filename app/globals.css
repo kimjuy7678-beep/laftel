@@ -95,3 +95,18 @@ html.dark body {
     opacity: 1 !important;
   }
 }
+
+/* 전역 커서 포인터 */
+a,
+button,
+[role="button"],
+[onClick],
+label[for],
+input[type="checkbox"],
+input[type="radio"],
+input[type="submit"],
+input[type="button"],
+select,
+summary {
+  cursor: pointer;
+}

@@ -511,8 +511,8 @@ export default function CartPage() {
                         type="button"
                         disabled={selectedItems.length === 0}
                         className="mt-5 h-[56px] w-full rounded-[16px] bg-[#826CFF] text-[20px] font-bold text-white transition hover:bg-[#6f5af2] disabled:cursor-not-allowed disabled:bg-[#d8d5ee]"
-                    >
-                        {formatWon(finalTotal)} 결제하기
+                    >    <Link href="/store/order">
+                            {formatWon(finalTotal)} 결제하기</Link>
                     </button>
                 </aside>
             </main>
