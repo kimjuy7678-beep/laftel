@@ -28,14 +28,14 @@ export default function Home() {
         position: 'fixed',
         top: 0,
         left: 0,
-        width: 70,
-        height: 70,
+        width: 40,
+        height: 40,
         pointerEvents: 'none',
         zIndex: 99999,
         transform: `translate(${cursor.x + 10}px, ${cursor.y + 10}px)`,
         transition: 'transform .12s cubic-bezier(.25,.46,.45,.94)',
       }}>
-        <img src="/images/laftel-icon/laftelmini.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <img src="/images/stone.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </div>
 
       <div className="min-h-screen bg-[#0a0a0a]">

@@ -434,6 +434,28 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
     playingId: string | null
     onPlay: (t: Track) => void
 }) {
+    const [posters, setPosters] = useState<Record<string, string>>({})
+
+    useEffect(() => {
+        if (!tracks.length) return
+        // animeName으로 TMDB 포스터 fetch
+        Promise.all(
+            tracks.map(async t => {
+                try {
+                    const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(t.animeName)}&language=ko-KR`)
+                    const data = await res.json()
+                    const hit = (data.results || []).find((r: any) => r.original_language === 'ja' && r.poster_path)
+                    if (hit?.poster_path) return { id: t.id, poster: `https://image.tmdb.org/t/p/w342${hit.poster_path}` }
+                } catch { }
+                return { id: t.id, poster: '' }
+            })
+        ).then(results => {
+            const map: Record<string, string> = {}
+            results.forEach(r => { if (r.poster) map[r.id] = r.poster })
+            setPosters(map)
+        })
+    }, [tracks.map(t => t.id).join(',')])
+
     if (!tracks.length) return null
     return (
         <section style={{ marginBottom: 60, position: 'relative', zIndex: 1 }}>
@@ -448,15 +470,16 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                 style={{ overflow: 'visible', marginRight: 'calc(-5vw - 20px)', paddingRight: 'calc(5vw + 20px)' }}>
                 {tracks.map((t, i) => {
                     const playing = playingId === t.id
+                    const thumb = posters[t.id] || t.cover
                     return (
-                        <SwiperSlide key={t.id} style={{ width: 280 }}>
+                        <SwiperSlide key={t.id} style={{ width: 210 }}>
                             <div
                                 onClick={() => onPlay(t)}
                                 style={{ cursor: 'pointer', transition: 'transform .25s' }}
                                 onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-6px)'}
                                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
                                 <div style={{
-                                    position: 'relative', width: 280, height: 280, borderRadius: 14,
+                                    position: 'relative', width: 210, height: 300, borderRadius: 14,
                                     overflow: 'hidden', background: '#1a1a1a',
                                     border: `3px solid ${playing ? '#6c63ff' : 'transparent'}`,
                                     boxShadow: playing
@@ -464,8 +487,8 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                                         : '0 8px 24px rgba(0,0,0,.8)',
                                     transition: 'border-color .2s, box-shadow .2s',
                                 }}>
-                                    {t.cover
-                                        ? <img src={t.cover} alt={t.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    {thumb
+                                        ? <img src={thumb} alt={t.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🎵</div>
                                     }
                                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 50%)' }} />
@@ -489,7 +512,7 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                                         </div>
                                     )}
                                 </div>
-                                <div style={{ paddingLeft: 30 }}>
+                                <div style={{ paddingLeft: 4 }}>
                                     <p style={{ fontSize: 13, fontWeight: 700, color: playing ? '#a5a0ff' : 'rgba(255,255,255,.85)', margin: '8px 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.title}</p>
                                     <p style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.animeName}</p>
                                 </div>
@@ -971,7 +994,7 @@ export default function OstPage() {
 
             {/* ── 마우스 커서 이미지 ─────────────────────────── */}
             <div style={{
-                position: 'fixed', top: 0, left: 0, width: 70, height: 70,
+                position: 'fixed', top: 0, left: 0, width: 500, height: 500,
                 pointerEvents: 'none', zIndex: 99999,
                 transform: `translate(${cursor.x + 10}px, ${cursor.y + 10}px)`,
                 transition: 'transform .12s cubic-bezier(.25,.46,.45,.94)',
@@ -989,8 +1012,9 @@ export default function OstPage() {
             `}</style>
 
                 <div style={{ width: '90%', margin: '0 auto', paddingTop: 64, paddingBottom: 60, overflow: 'visible' }}>
-                    <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0', marginBottom: 28, position: 'relative', zIndex: 29 }}>
-                        <PageHeader title="OST" sub="애니메이션 속 그 노래, 여기서 다시 들어요" />
+                    <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', padding: '18px 0', marginBottom: 28, position: 'relative', zIndex: 29 }}>
+                        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.2, letterSpacing: '-0.02em' }}>OST</h1>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: '8px 0 0' }}>애니메이션 속 그 노래, 여기서 다시 들어요</p>
                     </div>
                     {loading && <div className="ost-loading-bar" />}
                     {loading && (
