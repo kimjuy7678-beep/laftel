@@ -142,10 +142,6 @@ export default function MoodSection() {
                         <p className="mood-eyebrow">라프텔이 추천하는 감정 맞춤 애니메이션</p>
                         <h2 className="mood-title">오늘 당신의 덕심을 채워 줄 감정은?</h2>
                     </div>
-                    <button className="mood-more" onClick={() => router.push('/mood')}>
-                        전체보기
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
-                    </button>
                 </div>
 
                 <div className="mood-grid">
