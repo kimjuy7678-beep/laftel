@@ -47,6 +47,14 @@ export function useAnimeDetail() {
         }).finally(() => setLoading(false))
     }, [id])
 
+    useEffect(() => {
+        if (!detail) return
+        if (useAniStore.getState().aniVideos[numericId]) return
+        setVideoLoading(true)
+        onFetchVideo(numericId, detail.original_name || detail.name)
+            .finally(() => setVideoLoading(false))
+    }, [detail, numericId])
+
     const openPlayer = useCallback(async () => {
         if (!detail) return
         setModalOpen(true)
