@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
 import animeMeta from '@/data/animeMeta.json'
 import { Suspense } from 'react'
+import { toast } from 'sonner'
 
 interface AnimeMeta {
     tmdbId: number
@@ -262,7 +263,7 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 20, color: 'rgba(255,255,255,.55)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}
                             onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(255,255,255,.1)'); (e.currentTarget.style.color = '#fff') }}
                             onMouseLeave={e => { (e.currentTarget.style.background = 'rgba(255,255,255,.06)'); (e.currentTarget.style.color = 'rgba(255,255,255,.55)') }}
-                            onClick={() => { navigator.clipboard.writeText(window.location.href); alert('링크가 복사되었어요!') }}
+                            onClick={() => { navigator.clipboard.writeText(window.location.href); toast('링크가 복사되었어요!') }}
                         >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                             공유하기

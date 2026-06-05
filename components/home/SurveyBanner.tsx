@@ -134,7 +134,7 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                             <span className="sv-done-emoji">🎉</span>
                             <p className="sv-done-title">소중한 의견 감사해요!</p>
                             <p className="sv-done-sub">더 나은 라프텔을 만드는 데 활용할게요</p>
-                            {user?.uid && <p className="sv-done-point">🎁 100 포인트가 지급되었어요!</p>}
+                            {user?.uid && <p className="sv-done-point">🎁 700p 포인트가 지급되었어요!</p>}
                             <button className="sv-close-btn" onClick={onClose}>확인</button>
                         </div>
                     ) : (
@@ -288,7 +288,7 @@ export default function SurveyBanner() {
                     <div className="sb-inner">
                         <img className="sb-bg" src="/images/banner/survey-banner.png" alt="설문 배너" />
                         <button className="sb-btn" onClick={() => setOpen(true)}>
-                            설문 참여하기 · 🎁 100P
+                            설문 참여하기 · 🎁 700P
                         </button>
                         <button className="sb-dismiss" onClick={() => setDismissed(true)}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
