@@ -11,6 +11,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import CartAlert from "@/components/store/CartAlert";
 import LoginAlert from "@/components/store/LoginAlert";
 import type { StoreProduct } from "../../store/useStore"; // API 응답 → 정규화된 타입
+import { useRouter } from "next/navigation";
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 const TABS = ["교환/반품 안내", "유의사항", "판매자 정보"];
@@ -347,6 +348,28 @@ export function ProductDetail({
     const [cartLoading, setCartLoading] = useState(false);
     const swiperRef = useRef<HTMLDivElement>(null);
     const { user } = useAuthStore();
+    const router = useRouter();
+
+    const handleBuy = () => {
+        if (!user?.uid) {
+            setShowLogin(true);
+            return;
+        }
+        if (showOptionSelect && !selectedOption) {
+            setOptionError(true);
+            document.getElementById("product-option")?.focus();
+            return;
+        }
+        const params = new URLSearchParams({
+            productId: product.productId,
+            title: product.title,
+            price: product.price,
+            thumbnail: product.thumbnail,
+            option: selectedOption || "기본",
+            qty: String(qty),
+        });
+        router.push(`/store/order?${params.toString()}`);
+    };
 
     const handlePrev = () => setActiveImg((i) => (i - 1 + images.length) % images.length);
     const handleNext = () => setActiveImg((i) => (i + 1) % images.length);
@@ -621,7 +644,7 @@ export function ProductDetail({
                         )}
 
                         <div className="flex gap-3">
-                            <button disabled={product.soldout} className="flex-1 h-[52px] rounded-full bg-[#826CFF] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                            <button onClick={handleBuy} disabled={product.soldout} className="flex-1 h-[52px] rounded-full bg-[#826CFF] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                                 {product.soldout ? "품절" : "구매하기"}
                             </button>
                             <button
