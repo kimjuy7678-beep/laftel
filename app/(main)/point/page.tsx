@@ -1,4 +1,5 @@
 "use client"
+import PageHeader from '@/components/PageHeader'
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
@@ -228,8 +229,7 @@ export default function Point() {
             `}</style>
 
             <div className="pt-wrap">
-                <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 8px' }}>내 포인트</h1>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,.4)', margin: '0 0 40px' }}>포인트로 애니메이션을 소장하거나 대여할 수 있어요.</p>
+                <PageHeader title="내 포인트" sub="포인트로 애니메이션을 소장하거나 대여할 수 있어요." />
 
                 {/* 포인트 잔액 */}
                 <section style={{ marginBottom: 48 }}>

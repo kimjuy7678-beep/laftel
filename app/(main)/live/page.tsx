@@ -1,4 +1,5 @@
 'use client'
+import PageHeader from '@/components/PageHeader'
 import Link from 'next/link'
 import channels from '@/data/channels.json'
 import PartySection from '@/components/PartySection'
@@ -40,7 +41,7 @@ export default function LivePage() {
         <div className="min-h-screen" style={{ background: '#0a0a0a', color: '#fff' }}>
             <div style={{ width: '90%', margin: '0 auto', paddingTop: 64 }}>
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0', marginBottom: 28 }}>
-                    <h1 className="text-2xl font-bold">라이브</h1>
+                    <PageHeader title="라이브" sub="지금 이 순간, 함께 보는 애니메이션" />
                     <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500 rounded-full text-xs font-bold text-white">
                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                         LIVE

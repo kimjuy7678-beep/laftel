@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import PageHeader from '@/components/PageHeader'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 
 // ─── 타입 ──────────────────────────────────────────────────────
 interface AniItem {
@@ -143,7 +144,7 @@ function quarterToRange(val: string) {
 }
 
 // ─── 체크박스 컴포넌트 ─────────────────────────────────────────
-function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+function Checkbox({ checked, onChange, label, count }: { checked: boolean; onChange: () => void; label: string; count?: number }) {
     return (
         <label className="cb-row" onClick={onChange}>
             <span className={`cb-box${checked ? ' checked' : ''}`}>
@@ -154,6 +155,7 @@ function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: ()
                 )}
             </span>
             <span className="cb-label">{label}</span>
+            {count !== undefined && <span className="cb-count">{count > 999 ? `${Math.floor(count/1000)}k` : count}</span>}
         </label>
     )
 }
@@ -289,6 +291,7 @@ export default function TagSearch() {
     const [page, setPage] = useState(1)
     const [totalPages, setTotal] = useState(1)
     const [sortOpen, setSortOpen] = useState(false)
+    const [filterOpen, setFilterOpen] = useState(false)
     const [genreModal, setGenreModal] = useState(false)
     const [tagModal, setTagModal] = useState(false)
     const pending = useRef(false)
@@ -416,15 +419,42 @@ export default function TagSearch() {
         fetchResults(filters, page)
     }, [page])
 
+    // 사이드바 필터 카운트 (results 기반)
+    const genreCounts = useMemo(() => {
+        const counts: Record<number, number> = {}
+        results.forEach(item => {
+            item.genre_ids.forEach(gid => {
+                counts[gid] = (counts[gid] || 0) + 1
+            })
+        })
+        return counts
+    }, [results])
+
+    const yearCounts = useMemo(() => {
+        const counts: Record<string, number> = {}
+        results.forEach(item => {
+            const y = item.first_air_date?.slice(0, 4)
+            if (y) counts[y] = (counts[y] || 0) + 1
+        })
+        return counts
+    }, [results])
+
     const currentSortLabel = SORT_OPTIONS.find(o => o.value === filters.sort)?.label || '인기순'
 
     return (
         <>
             <style>{`
-                .fp { min-height:100vh; background:#0a0a0a; padding-top:56px; display:flex; }
+                .fp { min-height:100vh; background:#0a0a0a; padding-top:64px; }
+                .fp-inner { width:90%; margin:0 auto; }
+                .fp-header { borderBottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; justify-content:space-between; padding:18px 0; margin-bottom:0; }
+                .fp-body { display:flex; gap:0; align-items:flex-start; }
+                .fp-sidebar { overflow:hidden; transition:width .3s cubic-bezier(.4,0,.2,1), opacity .3s ease; flex-shrink:0; }
+                .fp-sidebar.open { width:280px; opacity:1; }
+                .fp-sidebar.closed { width:0; opacity:0; }
+                .fp-sidebar-inner { width:280px; padding-right:28px; padding-top:24px; }
 
                 /* ── 사이드바 ── */
-                .sb { width:220px; min-width:220px; border-right:1px solid rgba(255,255,255,.07); padding:28px 0 60px; overflow-y:auto; }
+                
                 .sb-top { display:flex; align-items:center; justify-content:space-between; padding:0 20px 20px; }
                 .sb-top h2 { font-size:16px; font-weight:700; color:#fff; margin:0; }
                 .btn-reset-all { display:flex; align-items:center; gap:4px; background:none; border:none; color:rgba(255,255,255,.35); font-size:12px; cursor:pointer; padding:0; transition:color .2s; }
@@ -453,7 +483,10 @@ export default function TagSearch() {
                 .cb-box { width:16px; height:16px; min-width:16px; border-radius:3px; border:1.5px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; }
                 .cb-box.checked { background:#6c63ff; border-color:#6c63ff; }
                 .cb-box.ex { background:rgba(239,68,68,.2); border-color:#ef4444; }
-                .cb-label { font-size:13px; color:rgba(255,255,255,.5); }
+                .cb-label { font-size:13px; color:rgba(255,255,255,.5); flex:1; }
+                .cb-count { font-size:11px; font-weight:600; color:rgba(255,255,255,.25); background:rgba(255,255,255,.07); padding:1px 7px; border-radius:10px; min-width:28px; text-align:center; }
+                .cb-row:hover .cb-count { color:rgba(255,255,255,.5); }
+                .cb-box.checked ~ .cb-count { color:#9d97ff; background:rgba(108,99,255,.2); }
                 .cb-row:hover .cb-label { color:rgba(255,255,255,.8); }
                 .cb-row:hover .cb-box { border-color:rgba(255,255,255,.4); }
 
@@ -461,14 +494,14 @@ export default function TagSearch() {
                 .fm { flex:1; display:flex; flex-direction:column; min-width:0; }
 
                 /* 상단 바 */
-                .fm-top { padding:16px 28px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; justify-content:space-between; }
+                .fm-top { padding:24px 0 0; border-bottom:none; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
                 .fm-top h1 { font-size:18px; font-weight:700; color:#fff; margin:0; }
 
                 /* 정렬 드롭다운 */
                 .sort-wrap { position:relative; }
                 .btn-sort { display:flex; align-items:center; gap:5px; background:none; border:none; color:rgba(255,255,255,.55); font-size:13px; cursor:pointer; padding:6px 10px; border-radius:6px; transition:all .2s; }
                 .btn-sort:hover { color:#fff; background:rgba(255,255,255,.06); }
-                .sort-dd { position:absolute; right:0; top:calc(100% + 4px); width:140px; background:#1c1c1e; border:1px solid rgba(255,255,255,.1); border-radius:10px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:300; }
+                .sort-dd { position:absolute; right:0; top:calc(100% + 4px); width:140px; background:#1c1c1e; border:1px solid rgba(255,255,255,.1); border-radius:10px; overflow:visible; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:9000; }
                 .sort-item { display:flex; align-items:center; gap:8px; width:100%; padding:10px 14px; background:none; border:none; color:rgba(255,255,255,.55); font-size:13px; cursor:pointer; text-align:left; transition:all .15s; }
                 .sort-item:hover { background:rgba(255,255,255,.06); color:#fff; }
                 .sort-item.active { color:#fff; }
@@ -546,193 +579,218 @@ export default function TagSearch() {
             `}</style>
 
             <div className="fp">
-                {/* ── 사이드바 ── */}
-                <aside className="sb">
-                    <div className="sb-top">
-                        <h2>필터</h2>
-                        <button className="btn-reset-all" onClick={reset}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
+                <div className="fp-inner">
+
+                    {/* 헤더 */}
+                    <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0' }}>
+                        <PageHeader title="태그 검색" sub="장르, 태그, 년도로 작품을 찾아보세요" />
+                        <button
+                            onClick={() => setFilterOpen(v => !v)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                padding: '9px 18px', borderRadius: 10,
+                                background: filterOpen ? 'rgba(108,99,255,.2)' : 'rgba(108,99,255,.1)',
+                                border: `1px solid ${filterOpen ? 'rgba(108,99,255,.5)' : 'rgba(108,99,255,.25)'}`,
+                                color: '#a5a0ff', fontSize: 13, fontWeight: 600,
+                                cursor: 'pointer', transition: 'all .2s', whiteSpace: 'nowrap', flexShrink: 0,
+                            }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="3" y1="6" x2="21" y2="6" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="18" x2="14" y2="18" />
                             </svg>
-                            전체 초기화
+                            {filterOpen ? '필터 닫기' : '필터 열기'}
+                            {activeCount > 0 && (
+                                <span style={{ background: '#6c63ff', color: '#fff', fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 10 }}>
+                                    {activeCount}
+                                </span>
+                            )}
                         </button>
                     </div>
-                    <hr className="sb-divider" />
 
-                    {/* 감상/멤버십 토글 */}
-                    <div style={{ marginBottom: 16 }}>
-                        <label className="toggle-row" onClick={() => setFilters(f => ({ ...f, watchable: !f.watchable }))}>
-                            <div className={`toggle-sw${filters.watchable ? ' on' : ''}`}>
-                                <div className="toggle-knob" />
-                            </div>
-                            <span className="toggle-label">감상 가능한 작품만 보기</span>
-                        </label>
-                        <label className="toggle-row" onClick={() => setFilters(f => ({ ...f, memberOnly: !f.memberOnly }))}>
-                            <div className={`toggle-sw${filters.memberOnly ? ' on' : ''}`}>
-                                <div className="toggle-knob" />
-                            </div>
-                            <span className="toggle-label">멤버십 포함 작품만 보기</span>
-                        </label>
-                    </div>
-                    <hr className="sb-divider" />
+                    {/* 바디 */}
+                    <div className="fp-body">
 
-                    {/* 장르 */}
-                    <div className="sb-sec">
-                        <div className="sb-sec-head">
-                            <p className="sb-sec-title">장르</p>
-                            <button className="btn-more-sec" onClick={() => setGenreModal(true)}>
-                                더 보기
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
-                            </button>
-                        </div>
-                        <div className="sb-checks">
-                            {SIDEBAR_GENRES.map(g => (
-                                <Checkbox
-                                    key={g.label}
-                                    checked={filters.genres.includes(g.id)}
-                                    onChange={() => toggleGenre(g.id)}
-                                    label={g.label}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
+                        {/* 사이드바 */}
+                        <div className={`fp-sidebar ${filterOpen ? 'open' : 'closed'}`}>
+                            <aside className="fp-sidebar-inner">
 
-                    {/* 태그 */}
-                    <div className="sb-sec">
-                        <div className="sb-sec-head">
-                            <p className="sb-sec-title">태그</p>
-                            <button className="btn-more-sec" onClick={() => setTagModal(true)}>
-                                더 보기
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
-                            </button>
-                        </div>
-                        <div className="sb-checks">
-                            {SIDEBAR_TAGS.map(t => (
-                                <Checkbox
-                                    key={t.id}
-                                    checked={filters.tags.includes(t.id)}
-                                    onChange={() => toggleTag(t.id)}
-                                    label={t.label}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
-
-                    {/* 년도 */}
-                    <div className="sb-sec">
-                        <div className="sb-sec-head">
-                            <p className="sb-sec-title">년도</p>
-                            <button className="btn-more-sec">
-                                더 보기
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
-                            </button>
-                        </div>
-                        <div className="sb-checks">
-                            {SIDEBAR_YEARS.map(y => (
-                                <Checkbox
-                                    key={y.value}
-                                    checked={filters.year === y.value}
-                                    onChange={() => toggleYear(y.value)}
-                                    label={y.label}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
-
-                    {/* 방영 */}
-                    <div className="sb-sec">
-                        <div className="sb-sec-head">
-                            <p className="sb-sec-title">방영</p>
-                        </div>
-                        <div className="sb-checks">
-                            <Checkbox checked={filters.airing === 'ongoing'} onChange={() => toggleAiring('ongoing')} label="방영중" />
-                            <Checkbox checked={filters.airing === 'ended'} onChange={() => toggleAiring('ended')} label="완결" />
-                        </div>
-                    </div>
-                    <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
-
-                    {/* 출시타입 */}
-                    <div className="sb-sec">
-                        <div className="sb-sec-head">
-                            <p className="sb-sec-title">출시타입</p>
-                        </div>
-                        <div className="sb-checks">
-                            <Checkbox checked={filters.mediaType === 'tva'} onChange={() => toggleMedia('tva')} label="TVA" />
-                            <Checkbox checked={filters.mediaType === 'movie'} onChange={() => toggleMedia('movie')} label="극장판" />
-                            <Checkbox checked={filters.mediaType === 'ova'} onChange={() => toggleMedia('ova')} label="OVA" />
-                        </div>
-                    </div>
-                </aside>
-
-                {/* ── 메인 ── */}
-                <div className="fm">
-                    <div className="fm-top">
-                        <h1>태그검색</h1>
-                        {/* 정렬 드롭다운 */}
-                        <div className="sort-wrap" ref={sortRef}>
-                            <button className="btn-sort" onClick={() => setSortOpen(v => !v)}>
-                                {currentSortLabel}
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d={sortOpen ? "m18 15-6-6-6 6" : "m6 9 6 6 6-6"} />
-                                </svg>
-                            </button>
-                            {sortOpen && (
-                                <div className="sort-dd">
-                                    {SORT_OPTIONS.map(o => (
-                                        <button
-                                            key={o.value}
-                                            className={`sort-item${filters.sort === o.value ? ' active' : ''}`}
-                                            onClick={() => { setFilters(f => ({ ...f, sort: o.value })); setSortOpen(false) }}
-                                        >
-                                            {filters.sort === o.value && (
-                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2.5">
-                                                    <path d="M20 6L9 17l-5-5" />
-                                                </svg>
-                                            )}
-                                            {filters.sort !== o.value && <span style={{ width: 13 }} />}
-                                            {o.label}
-                                        </button>
-                                    ))}
+                                <div className="sb-top">
+                                    <h2>필터</h2>
+                                    <button className="btn-reset-all" onClick={reset}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
+                                        </svg>
+                                        전체 초기화
+                                    </button>
                                 </div>
-                            )}
+                                <hr className="sb-divider" />
+
+                                <div style={{ marginBottom: 16 }}>
+                                    <label className="toggle-row" onClick={() => setFilters(f => ({ ...f, watchable: !f.watchable }))}>
+                                        <div className={`toggle-sw${filters.watchable ? ' on' : ''}`}>
+                                            <div className="toggle-knob" />
+                                        </div>
+                                        <span className="toggle-label">감상 가능한 작품만 보기</span>
+                                    </label>
+                                    <label className="toggle-row" onClick={() => setFilters(f => ({ ...f, memberOnly: !f.memberOnly }))}>
+                                        <div className={`toggle-sw${filters.memberOnly ? ' on' : ''}`}>
+                                            <div className="toggle-knob" />
+                                        </div>
+                                        <span className="toggle-label">멤버십 포함 작품만 보기</span>
+                                    </label>
+                                </div>
+                                <hr className="sb-divider" />
+
+                                <div className="sb-sec">
+                                    <div className="sb-sec-head">
+                                        <p className="sb-sec-title">장르</p>
+                                        <button className="btn-more-sec" onClick={() => setGenreModal(true)}>
+                                            더 보기
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+                                        </button>
+                                    </div>
+                                    <div className="sb-checks">
+                                        {SIDEBAR_GENRES.map(g => (
+                                            <Checkbox key={g.label} checked={filters.genres.includes(g.id)} onChange={() => toggleGenre(g.id)} label={g.label} count={genreCounts[g.id] || 0} />
+                                        ))}
+                                    </div>
+                                </div>
+                                <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
+
+                                <div className="sb-sec">
+                                    <div className="sb-sec-head">
+                                        <p className="sb-sec-title">태그</p>
+                                        <button className="btn-more-sec" onClick={() => setTagModal(true)}>
+                                            더 보기
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+                                        </button>
+                                    </div>
+                                    <div className="sb-checks">
+                                        {SIDEBAR_TAGS.map(t => (
+                                            <Checkbox key={t.id} checked={filters.tags.includes(t.id)} onChange={() => toggleTag(t.id)} label={t.label} />
+                                        ))}
+                                    </div>
+                                </div>
+                                <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
+
+                                <div className="sb-sec">
+                                    <div className="sb-sec-head">
+                                        <p className="sb-sec-title">년도</p>
+                                    </div>
+                                    <div className="sb-checks">
+                                        {SIDEBAR_YEARS.map(y => {
+                                            const cnt = results.filter(r => {
+                                                const yr = r.first_air_date?.slice(0, 4)
+                                                if (!yr) return false
+                                                if (y.value.includes('-Q')) {
+                                                    const q = parseInt(y.value.split('-Q')[1])
+                                                    const yy = y.value.split('-Q')[0]
+                                                    const month = parseInt(r.first_air_date?.slice(5, 7) || '0')
+                                                    const qMonths = [[1,2,3],[4,5,6],[7,8,9],[10,11,12]]
+                                                    return yr === yy && qMonths[q-1]?.includes(month)
+                                                }
+                                                if (y.value === '2010s') return parseInt(yr) >= 2010 && parseInt(yr) <= 2019
+                                                if (y.value === '2000s') return parseInt(yr) >= 2000 && parseInt(yr) <= 2009
+                                                if (y.value === '1990s') return parseInt(yr) >= 1990 && parseInt(yr) <= 1999
+                                                return yr === y.value
+                                            }).length
+                                            return <Checkbox key={y.value} checked={filters.year === y.value} onChange={() => toggleYear(y.value)} label={y.label} count={cnt} />
+                                        })}
+                                    </div>
+                                </div>
+                                <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
+
+                                <div className="sb-sec">
+                                    <div className="sb-sec-head">
+                                        <p className="sb-sec-title">방영</p>
+                                    </div>
+                                    <div className="sb-checks">
+                                        <Checkbox checked={filters.airing === 'ongoing'} onChange={() => toggleAiring('ongoing')} label="방영중" count={results.length} />
+                                        <Checkbox checked={filters.airing === 'ended'} onChange={() => toggleAiring('ended')} label="완결" count={results.length} />
+                                    </div>
+                                </div>
+                                <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
+
+                                <div className="sb-sec">
+                                    <div className="sb-sec-head">
+                                        <p className="sb-sec-title">출시타입</p>
+                                    </div>
+                                    <div className="sb-checks">
+                                        <Checkbox checked={filters.mediaType === 'tva'} onChange={() => toggleMedia('tva')} label="TVA" count={results.length} />
+                                        <Checkbox checked={filters.mediaType === 'movie'} onChange={() => toggleMedia('movie')} label="극장판" count={results.length} />
+                                        <Checkbox checked={filters.mediaType === 'ova'} onChange={() => toggleMedia('ova')} label="OVA" count={results.length} />
+                                    </div>
+                                </div>
+
+                            </aside>
                         </div>
-                    </div>
 
-                    <div className="fm-body">
-                        {!loading && results.length > 0 && (
-                            <p className="result-info">{results.length.toLocaleString()}개의 작품</p>
-                        )}
-
-                        <ul className="finder-grid">
-                            {loading && results.length === 0
-                                ? Array.from({ length: 60 }).map((_, i) => <Skeleton key={i} />)
-                                : results.length === 0 && !loading
-                                    ? (
-                                        <li className="empty">
-                                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                                                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                        {/* 메인 콘텐츠 */}
+                        <div className="fm">
+                            <div className="fm-top">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginLeft: 'auto' }}>
+                                    <div className="sort-wrap" ref={sortRef}>
+                                        <button className="btn-sort" onClick={() => setSortOpen(v => !v)}>
+                                            {currentSortLabel}
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d={sortOpen ? "m18 15-6-6-6 6" : "m6 9 6 6 6-6"} />
                                             </svg>
-                                            <p>검색 결과가 없어요</p>
-                                        </li>
-                                    )
-                                    : results.map(item => <AniCard key={item.id} item={item} />)
-                            }
-                            {loading && results.length > 0 &&
-                                Array.from({ length: 20 }).map((_, i) => <Skeleton key={`m${i}`} />)
-                            }
-                        </ul>
+                                        </button>
+                                        {sortOpen && (
+                                            <div className="sort-dd">
+                                                {SORT_OPTIONS.map(o => (
+                                                    <button
+                                                        key={o.value}
+                                                        className={`sort-item${filters.sort === o.value ? ' active' : ''}`}
+                                                        onClick={() => { setFilters(f => ({ ...f, sort: o.value })); setSortOpen(false) }}
+                                                    >
+                                                        {filters.sort === o.value && (
+                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2.5">
+                                                                <path d="M20 6L9 17l-5-5" />
+                                                            </svg>
+                                                        )}
+                                                        {filters.sort !== o.value && <span style={{ width: 13 }} />}
+                                                        {o.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
 
-                        {!loading && page < totalPages && results.length > 0 && (
-                            <button className="btn-more" onClick={() => setPage(p => p + 1)}>더보기</button>
-                        )}
+                            <div className="fm-body">
+                                {!loading && results.length > 0 && (
+                                    <p className="result-info">{results.length.toLocaleString()}개의 작품</p>
+                                )}
+                                <ul className="finder-grid">
+                                    {loading && results.length === 0
+                                        ? Array.from({ length: 60 }).map((_, i) => <Skeleton key={i} />)
+                                        : results.length === 0 && !loading
+                                            ? (
+                                                <li className="empty">
+                                                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                                                        <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                                                    </svg>
+                                                    <p>검색 결과가 없어요</p>
+                                                </li>
+                                            )
+                                            : results.map(item => <AniCard key={item.id} item={item} />)
+                                    }
+                                    {loading && results.length > 0 &&
+                                        Array.from({ length: 20 }).map((_, i) => <Skeleton key={`m${i}`} />)
+                                    }
+                                </ul>
+                                {!loading && page < totalPages && results.length > 0 && (
+                                    <button className="btn-more" onClick={() => setPage(p => p + 1)}>더보기</button>
+                                )}
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
 
-            {/* 장르 모달 */}
             {genreModal && (
                 <GenreModal
                     selected={filters.genres}
