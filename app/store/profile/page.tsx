@@ -1,10 +1,12 @@
-// app/store/profile/page.tsx
 "use client";
+
+// app/store/profile/page.tsx
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { db } from "@/firebase/firebase";
-import { collection, getDocs, orderBy, query, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { saveStoreNotification } from "@/utils/storeNotification";
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -20,7 +22,7 @@ type OrderItem = {
 type Order = {
     id: string;
     date: string;
-    status: "결제완료" | "배송시작" | "배송중" | "배송완료" | "주문취소";
+    status: "결제완료" | "배송시작" | "배송중" | "배송완료" | "주문취소" | "교환환불신청";
     items: OrderItem[];
     total: number;
     usedPoints: number;
@@ -36,23 +38,15 @@ const STATUS_COLOR: Record<string, string> = {
     "배송중": "text-[#7865ff]",
     "배송완료": "text-[#22c55e]",
     "주문취소": "text-[#ff4d6d]",
+    "교환환불신청": "text-[#d97706]",
 };
 
-const CANCEL_REASONS = [
-    "단순 변심",
-    "상품 불량/파손",
-    "배송 지연",
-    "주문 실수",
-    "기타",
-];
+const CANCEL_REASONS = ["단순 변심", "상품 불량/파손", "배송 지연", "주문 실수", "기타"];
+const REFUND_REASONS = ["상품 불량/파손", "오배송", "단순 변심", "배송 지연", "기타"];
 
 // ─── 주문취소 팝업 ─────────────────────────────────────────────────────────────
 
-function CancelPopup({
-    order,
-    onClose,
-    onConfirm,
-}: {
+function CancelPopup({ order, onClose, onConfirm }: {
     order: Order;
     onClose: () => void;
     onConfirm: (orderId: string, selectedIds: string[], reason: string) => Promise<void>;
@@ -84,7 +78,6 @@ function CancelPopup({
             <div className="relative w-[480px] max-h-[90vh] overflow-y-auto rounded-[20px] bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                 <h2 className="mb-5 text-center text-[22px] font-bold text-[#7865ff]">주문 취소</h2>
 
-                {/* 상품 목록 */}
                 <div className="mb-5 rounded-[16px] bg-[#f0eeff] p-4 flex flex-col gap-4">
                     {order.items.map(item => (
                         <div key={item.productId} className="flex items-center gap-3">
@@ -108,7 +101,6 @@ function CancelPopup({
                     ))}
                 </div>
 
-                {/* 취소 사유 */}
                 <div className="mb-5 relative">
                     <select
                         value={reason}
@@ -120,7 +112,6 @@ function CancelPopup({
                     <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
                 </div>
 
-                {/* 환불 금액 */}
                 <div className="mb-5 text-[13px] text-[#6b647a]">
                     <p>결제금액 : {order.total.toLocaleString()}원</p>
                     <p>할인금액 제외 : -{discount.toLocaleString()}원</p>
@@ -130,13 +121,81 @@ function CancelPopup({
                     <p className="text-[28px] font-bold text-[#7865ff]">{Math.max(0, refundAmount - discount).toLocaleString()}원</p>
                 </div>
 
-                {/* 버튼 */}
                 <button
                     onClick={handleConfirm}
                     disabled={loading}
                     className="w-full h-[44px] rounded-[12px] border border-[#ddd8f4] text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff] disabled:opacity-50">
                     {loading ? "처리 중..." : "배송취소"}
                 </button>
+            </div>
+        </div>
+    );
+}
+
+// ─── 교환/환불 신청 팝업 ───────────────────────────────────────────────────────
+
+function RefundPopup({ order, onClose, onConfirm }: {
+    order: Order;
+    onClose: () => void;
+    onConfirm: (orderId: string, reason: string) => Promise<void>;
+}) {
+    const [reason, setReason] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleConfirm = async () => {
+        if (!reason) { alert("사유를 선택해주세요."); return; }
+        setLoading(true);
+        await onConfirm(order.id, reason);
+        setLoading(false);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+            <div className="relative w-[440px] rounded-[20px] bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <h2 className="mb-5 text-center text-[22px] font-bold text-[#d97706]">교환 / 환불 신청</h2>
+
+                <div className="mb-4 rounded-[12px] bg-[#fff8e6] border border-[#fde68a]/60 px-4 py-3">
+                    <p className="text-[12px] text-[#d97706] font-medium">수령 후 7일 이내에만 신청 가능해요.</p>
+                </div>
+
+                {/* 상품 요약 */}
+                <div className="mb-5 flex flex-col gap-2">
+                    {order.items.map((item, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                            <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[8px] bg-[#f0eeff]">
+                                {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="line-clamp-1 text-[13px] font-medium text-[#16121f]">{item.title}</p>
+                                <p className="text-[11px] text-[#9b94b2]">{item.option} · {item.qty}개</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* 사유 */}
+                <div className="mb-5 relative">
+                    <select
+                        value={reason}
+                        onChange={e => setReason(e.target.value)}
+                        className="w-full h-[48px] appearance-none rounded-[12px] border border-[#ddd8f4] bg-white px-4 text-[13px] text-[#3d3755] outline-none focus:border-[#d97706] cursor-pointer">
+                        <option value="">교환/환불 사유 선택</option>
+                        {REFUND_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
+                </div>
+
+                <div className="flex gap-2">
+                    <button onClick={onClose}
+                        className="flex-1 h-[44px] rounded-[12px] border border-[#ddd8f4] text-[13px] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition">
+                        취소
+                    </button>
+                    <button onClick={handleConfirm} disabled={loading}
+                        className="flex-1 h-[44px] rounded-[12px] bg-[#d97706] text-[13px] font-semibold text-white hover:bg-[#b45309] transition disabled:opacity-50">
+                        {loading ? "신청 중..." : "신청하기"}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -150,6 +209,7 @@ export default function ProfilePage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+    const [refundTarget, setRefundTarget] = useState<Order | null>(null);
 
     useEffect(() => {
         if (!user?.uid) { setLoading(false); return; }
@@ -176,6 +236,7 @@ export default function ProfilePage() {
         })();
     }, [user?.uid]);
 
+    // ── 주문 취소 ──────────────────────────────────────────────────────────────
     const handleCancel = async (orderId: string, selectedIds: string[], reason: string) => {
         if (!user?.uid) return;
         try {
@@ -183,15 +244,48 @@ export default function ProfilePage() {
                 status: "주문취소",
                 cancelReason: reason,
                 cancelledItems: selectedIds,
-                cancelledAt: new Date(),
+                cancelledAt: serverTimestamp(),
             });
+
+            await saveStoreNotification(user.uid, {
+                type: "cancel",
+                title: "주문이 취소되었어요",
+                body: `사유: ${reason} · 결제 금액은 3~5일 내 환불돼요.`,
+                link: "/store/mypage",
+            });
+
             setOrders(prev => prev.map(o =>
                 o.id === orderId ? { ...o, status: "주문취소" } : o
             ));
-            alert("주문이 취소되었습니다.");
         } catch (err) {
             console.error("[Cancel]", err);
             alert("취소 처리 중 오류가 발생했습니다.");
+        }
+    };
+
+    // ── 교환/환불 신청 ─────────────────────────────────────────────────────────
+    const handleRefund = async (orderId: string, reason: string) => {
+        if (!user?.uid) return;
+        try {
+            await updateDoc(doc(db, "users", user.uid, "orders", orderId), {
+                status: "교환환불신청",
+                refundReason: reason,
+                refundRequestedAt: serverTimestamp(),
+            });
+
+            await saveStoreNotification(user.uid, {
+                type: "cancel",
+                title: "교환/환불 신청이 완료됐어요",
+                body: `사유: ${reason} · 영업일 기준 3~5일 내 처리돼요.`,
+                link: "/store/mypage",
+            });
+
+            setOrders(prev => prev.map(o =>
+                o.id === orderId ? { ...o, status: "교환환불신청" } : o
+            ));
+        } catch (err) {
+            console.error("[Refund]", err);
+            alert("신청 처리 중 오류가 발생했습니다.");
         }
     };
 
@@ -201,7 +295,7 @@ export default function ProfilePage() {
         if (tab === "전체") return true;
         if (tab === "배송중") return o.status === "결제완료" || o.status === "배송시작" || o.status === "배송중";
         if (tab === "배송완료") return o.status === "배송완료";
-        if (tab === "교환환불") return o.status === "주문취소";
+        if (tab === "교환환불") return o.status === "주문취소" || o.status === "교환환불신청";
         return true;
     });
 
@@ -264,12 +358,14 @@ export default function ProfilePage() {
                                         {canCancel(order.status) && (
                                             <button
                                                 onClick={() => setCancelTarget(order)}
-                                                className="rounded-[8px] border border-[#ddd8f4] px-3 py-1 text-[11px] text-[#ff4d6d] border-[#ffb3c1] hover:bg-[#fff0f3]">
+                                                className="rounded-[8px] border border-[#ffb3c1] px-3 py-1 text-[11px] text-[#ff4d6d] hover:bg-[#fff0f3] transition">
                                                 주문 취소
                                             </button>
                                         )}
                                         {order.status === "배송완료" && (
-                                            <button className="rounded-[8px] border border-[#ddd8f4] px-3 py-1 text-[11px] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]">
+                                            <button
+                                                onClick={() => setRefundTarget(order)}
+                                                className="rounded-[8px] border border-[#ddd8f4] px-3 py-1 text-[11px] text-[#6b647a] hover:border-[#d97706] hover:text-[#d97706] transition">
                                                 교환 / 환불 신청
                                             </button>
                                         )}
@@ -282,12 +378,18 @@ export default function ProfilePage() {
             )}
             <p className="mt-4 text-right text-[11px] text-[#9b94b2]">※ 단순변심으로 인한 교환은 불가능합니다</p>
 
-            {/* 주문취소 팝업 */}
             {cancelTarget && (
                 <CancelPopup
                     order={cancelTarget}
                     onClose={() => setCancelTarget(null)}
                     onConfirm={handleCancel}
+                />
+            )}
+            {refundTarget && (
+                <RefundPopup
+                    order={refundTarget}
+                    onClose={() => setRefundTarget(null)}
+                    onConfirm={handleRefund}
                 />
             )}
         </>
