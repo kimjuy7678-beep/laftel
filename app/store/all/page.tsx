@@ -9,9 +9,8 @@ import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductC
 import StoreSidebar from "@/components/store/StoreSliaebar";
 import FilterDropdown from "@/components/store/FilterDropdown";
 
-type SearchableStoreProduct = StoreProduct & { productdetail?: string[] };
-
-const STORE_PRODUCTS = products as SearchableStoreProduct[];
+const ALL_PRODUCTS = products as StoreProduct[];
+const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
 const ITEMS_PER_PAGE = 20;
 const PAGE_GROUP = 5;
 
@@ -23,6 +22,15 @@ const HERO_SLIDES = [
     { series: "사카모토 데이즈", tag: "NEW", title: "사카모토 데이즈", desc: "은퇴후 평화로운 일상을 보내고있는 전설의 킬러,사카모토\n그의 일상을 위협하는 무리들", bg: "#5bb8c4", image: "/store/product_list/SAKA.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff", textAlign: "left" as const },
     { series: "에반게리온", tag: "POPULAR", title: "신세계\n에반게리온", desc: "대재앙 이후 '사도'라 불리는 미지의 괴물들에 맞서\n생체 병기 '에반게리온'을 조종하는 14세 소년소녀 파일럿들의 이야기", bg: "#7a7fbe", image: "/store/product_list/EVA.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#7865ff", textAlign: "left" as const },
     { series: "나의 히어로 아카데미아", tag: "FEATURED", title: "나의 히어로\n아카데미아", desc: "'개성'이라는 초능력을 갖고 태어나는 게 당연한 세계,\n주인공 미도리야 이즈쿠도 히어로를 동경하고 있다.\n하지만 무개성인 이즈쿠는 히어로가 될 수 없는데 ....", bg: "#5ab6e8", image: "/store/product_list/academy.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff", textAlign: "left" as const },
+    { series: "짱구는못말려", tag: "POPULAR", title: "짱구는 못말려", desc: "사고뭉치 짱구의 엉뚱한 행동과 이를 수습하는 가족들의 끈끈한 사랑,\n떡잎마을 친구들과의 유쾌한 일상", bg: "#7ecb5a", image: "/store/product_list/JJANG.png", textColor: "#111", tagColor: "#3a7d00", btnBorder: "#3a7d00", textAlign: "left" as const },
+    { series: "하츠네 미쿠", tag: "FEATURED", title: "하츠네 미쿠", desc: "일본의 크립톤 퓨처 미디어 사가 2007년에 발매한\n음성 합성 소프트웨어(보컬로이드)이자,\n이를 대표하는 가상의 캐릭터(가상 아이돌)", bg: "#4ecdc4", image: "/store/product_list/MIKU.png", textColor: "#fff", tagColor: "#ff69b4", btnBorder: "#ff69b4", textAlign: "left" as const },
+    { series: "명탐정 코난", tag: "POPULAR", title: "명탐정 코난", desc: "고아원에서 쫓겨난 소년 나카지마 아쓰시가 이능력 무효화 능력을 가진 다자이 오사무를 만나\n'무장탐정사'에 입단하게 되면서 요코하마를 위협하는 거대한 악의 조직들에\n맞서 싸우는 스타일리시 이능력 배틀물", bg: "#2a2a2a", image: "/store/product_list/SHLOCK.png", textColor: "#fff", tagColor: "#e0b84b", btnBorder: "#e0b84b", textAlign: "left" as const },
+    { series: "블루록", tag: "NEW", title: "블루록", desc: "일본이 월드컵에서 우승하기 위해\n세계 최고의 '이기적인 스트라이커'를 육성하는 극단적인 프로젝트에\n고등학생 축구 선수들이 참여하며 벌어지는 서바이벌 이야기", bg: "#3355cc", image: "/store/product_list/BLUELOCK.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff", textAlign: "left" as const },
+    { series: "문호 스트레이독스", tag: "FEATURED", title: "문호 스트레이독스", desc: "고등학생 탐정이 의문의 조직에 의해 몸이 작아진 후,\n정체를 숨긴 채 사건을 해결하며 그 조직을 추적하는 이야기", bg: "#b5a080", image: "/store/product_list/DOGS.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff", textAlign: "left" as const },
+    { series: "진격의 거인", tag: "POPULAR", title: "진격의거인", desc: "거인 전멸을 맹세하고 조사병단에 입단한 주인공 에렌 예거가\n거인의 정체와 세계의 잔혹한 진실을 마주하며 인류의 자유를 찾기 위해\n전 세계와 처절한 사투를 벌이는 다크 판타지 액션 만화", bg: "#3a1a0a", image: "/store/product_list/BIGHUMAN.png", textColor: "#fff", tagColor: "#e05a00", btnBorder: "#e05a00", textAlign: "left" as const },
+    { series: "재배소년", tag: "FEATURED", title: "재배소년", desc: "마법의 화원에서 씨앗을 심어 식물의 요정인 '맨드레이크'를 수확하고\n수집하는 방치형 육성 시뮬레이션 게임", bg: "#a05090", image: "/store/product_list/FLOLAR.png", textColor: "#fff", tagColor: "#ffc0e0", btnBorder: "#ffc0e0", textAlign: "left" as const },
+    { series: "홀로 라이브", tag: "NEW", title: "홀로 라이브", desc: "현실 세계와 이세계에서 모인 개성 넘치는 가상 인형·요정·신적 존재들이\n버추얼 아이돌로 데뷔하여 다채로운 예능과 음악 활동을 통해\n글로벌 팬들과 소통하며 함께 성장해 나가는 거대 멀티버스 세계관", bg: "#e8b0d8", image: "/store/product_list/IDOL.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff", textAlign: "left" as const },
+    { series: "하치와레", tag: "FEATURED", title: "하치와레", desc: "'먼지 같고 작고 귀여운 녀석'의 줄임말로,\n주인공 치이카와와 친구들이 가혹한 현실 속에서 살아가는 일상을 다룬 만화", bg: "#e8a0b8", image: "/store/product_list/HACHI.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff", textAlign: "left" as const },
 ];
 
 function parsePrice(priceStr: string): number {
@@ -30,19 +38,12 @@ function parsePrice(priceStr: string): number {
     return isNaN(num) ? 0 : num;
 }
 
-function getProductSearchText(product: SearchableStoreProduct) {
-    return [
-        product.title,
-        product.category,
-        ...(product.productdetail ?? []),
-    ].join(" ").toLowerCase();
-}
-
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
+    return <div className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
 }
 
 function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void }) {
+    const [slides, setSlides] = useState(HERO_SLIDES);
     const [current, setCurrent] = useState(0);
     const [startX, setStartX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
@@ -50,64 +51,82 @@ function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void })
 
     const startTimer = () => {
         if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = setInterval(() => setCurrent((v) => (v + 1) % HERO_SLIDES.length), 4000);
+        timerRef.current = setInterval(() => setCurrent((v) => (v + 1) % slides.length), 4000);
     };
-    useEffect(() => { startTimer(); return () => { if (timerRef.current) clearInterval(timerRef.current); }; }, []);
+    useEffect(() => {
+        setSlides([...HERO_SLIDES].sort(() => Math.random() - 0.5));
+        startTimer();
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }, []);
 
     const goTo = (idx: number) => { setCurrent(idx); startTimer(); };
     const onMouseDown = (e: React.MouseEvent) => { setIsDragging(false); setStartX(e.clientX); };
     const onMouseMove = (e: React.MouseEvent) => { if (Math.abs(e.clientX - startX) > 5) setIsDragging(true); };
     const onMouseUp = (e: React.MouseEvent) => {
         const diff = e.clientX - startX;
-        if (Math.abs(diff) > 50) {
-            if (diff < 0) goTo((current + 1) % HERO_SLIDES.length);
-            else goTo((current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+        if (isDragging && Math.abs(diff) > 50) {
+            if (diff < 0) goTo((current + 1) % slides.length);
+            else goTo((current - 1 + slides.length) % slides.length);
         }
         setIsDragging(false);
     };
     const onTouchStart = (e: React.TouchEvent) => setStartX(e.touches[0].clientX);
     const onTouchEnd = (e: React.TouchEvent) => {
         const diff = e.changedTouches[0].clientX - startX;
-        if (diff < -50) goTo((current + 1) % HERO_SLIDES.length);
-        else if (diff > 50) goTo((current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+        if (diff < -50) goTo((current + 1) % slides.length);
+        else if (diff > 50) goTo((current - 1 + slides.length) % slides.length);
     };
 
-    const slide = HERO_SLIDES[current];
+    const slide = slides[current];
     const isLeft = slide.textAlign === "left";
     return (
         <div className="relative w-full overflow-hidden rounded-[20px] cursor-grab active:cursor-grabbing select-none"
             style={{ backgroundColor: slide.bg, minHeight: 620 }}
             onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={() => setIsDragging(false)}
             onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-            {HERO_SLIDES.map((s, i) => (
-                <div key={i} className="absolute inset-0 transition-opacity duration-700"
-                    style={{
-                        opacity: i === current ? 1 : 0,
-                        backgroundImage: `url(${s.image})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: s.textAlign === "left" ? "center right" : "center left",
-                    }} />
-            ))}
-            <div className="absolute inset-0"
+            {/* 태블릿 이상: 이미지 배경 */}
+            <div className="hidden md:block">
+                {slides.map((s, i) => (
+                    <div key={i} className="absolute inset-0 transition-opacity duration-700"
+                        style={{
+                            opacity: i === current ? 1 : 0,
+                            backgroundImage: `url(${s.image})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: s.textAlign === "left" ? "center right" : "center left",
+                        }} />
+                ))}
+            </div>
+            {/* 모바일/태블릿 이하: 단색 배경만 */}
+            <div className="absolute inset-0 md:hidden" style={{ backgroundColor: slide.bg }} />
+            <div className="absolute inset-0 hidden md:block"
                 style={{
                     background: isLeft
                         ? "linear-gradient(to right, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, transparent 100%)"
                         : "linear-gradient(to left, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, transparent 100%)"
                 }} />
-            <div className={`relative z-10 flex min-h-[620px] flex-col justify-center px-14 py-14 ${isLeft ? "items-start text-left" : "items-end text-right"}`}>
-                <span className="mb-4 text-[13px] font-bold uppercase tracking-widest" style={{ color: slide.tagColor }}>{slide.tag}</span>
-                <h2 className="mb-4 text-[58px] font-extrabold leading-tight whitespace-pre-line" style={{ color: slide.textColor }}>{slide.title}</h2>
-                <p className="mb-10 max-w-[540px] whitespace-pre-line text-[15px] leading-[1.9]" style={{ color: slide.textColor, opacity: 0.9 }}>{slide.desc}</p>
-                <button
-                    onClick={() => { if (!isDragging) onSeriesSelect(slide.series); }}
-                    className="inline-flex w-fit items-center gap-2 rounded-full border-2 px-7 py-3 text-[14px] font-semibold transition hover:opacity-80"
-                    style={{ borderColor: slide.btnBorder, color: slide.textColor }}>
-                    굿즈보러가기
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
-                </button>
+            {/* 모바일 안내 문구 */}
+            <div className="absolute top-4 right-4 z-20 md:hidden" style={{ animation: "pulse 3s ease-in-out infinite" }}>
+                <span className="rounded-full bg-white/20 px-3 py-1.5 text-[12px] font-bold text-white/90 backdrop-blur-sm tracking-wide">
+                    더 큰 화면에서 이미지를 확인하세요
+                </span>
+            </div>
+            {/* 텍스트 콘텐츠 */}
+            <div className="relative z-10 flex min-h-[620px] flex-col justify-center px-8 py-12 md:px-14 md:py-14">
+                <div className={`flex flex-col items-start text-left w-full md:${isLeft ? "items-start text-left" : "items-end text-right"}`}>
+                    <span className="mb-3 text-[11px] md:text-[13px] font-bold uppercase tracking-widest opacity-80" style={{ color: slide.tagColor }}>{slide.tag}</span>
+                    <h2 className="mb-3 text-[32px] md:text-[58px] font-extrabold leading-tight whitespace-pre-line drop-shadow-lg" style={{ color: slide.textColor }}>{slide.title}</h2>
+                    <p className="mb-8 max-w-[480px] md:max-w-[540px] whitespace-pre-line text-[13px] md:text-[15px] leading-[1.9] opacity-90" style={{ color: slide.textColor }}>{slide.desc}</p>
+                    <button
+                        onClick={() => { if (!isDragging) onSeriesSelect(slide.series); }}
+                        className="inline-flex w-fit items-center gap-2 rounded-full border-2 px-6 py-2.5 md:px-7 md:py-3 text-[13px] md:text-[14px] font-semibold transition hover:opacity-80"
+                        style={{ borderColor: slide.btnBorder, color: slide.textColor }}>
+                        굿즈보러가기
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+                    </button>
+                </div>
             </div>
             <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 gap-2">
-                {HERO_SLIDES.map((_, i) => (
+                {slides.map((_, i) => (
                     <button key={i} onClick={() => goTo(i)}
                         className={`rounded-full transition-all duration-300 ${i === current ? "w-6 h-2.5 bg-[#7865ff]" : "w-2.5 h-2.5 bg-white/50"}`} />
                 ))}
@@ -173,8 +192,9 @@ export default function StoreListPage() {
 
     const filtered = STORE_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
-        const normalizedSearch = search.trim().toLowerCase();
-        const matchSearch = !normalizedSearch || getProductSearchText(p).includes(normalizedSearch);
+        const matchSearch =
+            p.title.toLowerCase().includes(search.toLowerCase()) ||
+            p.category.toLowerCase().includes(search.toLowerCase());
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
         const matchStock = !onlyInStock || !p.soldout;
         return matchSearch && matchPrice && matchStock;
@@ -189,6 +209,7 @@ export default function StoreListPage() {
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
+    useEffect(() => { setPage(1); }, [search, priceRange, onlyInStock, sort]);
     useEffect(() => {
         if (user) console.log("👤 [Auth]", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
         else console.log("👻 [Auth] 비로그인 상태");
@@ -197,27 +218,6 @@ export default function StoreListPage() {
     const handleReset = () => {
         setPriceRange(PRICE_INITIAL);
         setOnlyInStock(false);
-        setPage(1);
-    };
-
-    const handleSearchChange = (value: string) => {
-        setSearch(value);
-        setPage(1);
-    };
-
-    const handleSortChange = (value: string) => {
-        setSort(value);
-        setPage(1);
-    };
-
-    const handlePriceRange = (range: [number, number]) => {
-        setPriceRange(range);
-        setPage(1);
-    };
-
-    const handleOnlyInStock = (value: boolean) => {
-        setOnlyInStock(value);
-        setPage(1);
     };
 
     const activeFilterCount = [
@@ -225,13 +225,12 @@ export default function StoreListPage() {
         onlyInStock,
     ].filter(Boolean).length;
 
-    // 히어로 배너에서 시리즈 선택 → 시리즈 페이지로 이동
     const handleSeriesSelect = (series: string) => {
         router.push(`/store/series?series=${encodeURIComponent(series)}`);
     };
 
     return (
-        <div className="min-h-screen bg-white pb-20 w-[">
+        <div className="min-h-screen bg-white pb-20">
             <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
             <div className="border-b border-[#ebe8ff] bg-white py-3">
@@ -248,16 +247,16 @@ export default function StoreListPage() {
                 </Inner>
             </div>
 
-            <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
+            <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-8 sm:py-10">
                 <Inner>
                     <p className="mb-4 text-[12px] text-[#9b94b2]">
                         <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
                         <span className="mx-1.5">›</span>
                         <span className="font-medium text-[#7865ff]">전체굿즈</span>
                     </p>
-                    <div className="flex items-end justify-between">
-                        <h1 className="text-[32px] font-bold text-[#16121f]">전체 굿즈</h1>
-                        <div className="flex h-[44px] w-[340px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)]">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <h1 className="text-[24px] sm:text-[32px] font-bold text-[#16121f]">전체 굿즈</h1>
+                        <div className="flex h-[44px] w-full sm:w-[340px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)]">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]">
                                 <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
                                 <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -266,10 +265,10 @@ export default function StoreListPage() {
                                 className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
                                 placeholder="찾으시는 상품을 검색하세요"
                                 value={search}
-                                onChange={(e) => handleSearchChange(e.target.value)}
+                                onChange={(e) => setSearch(e.target.value)}
                             />
                             {search && (
-                                <button onClick={() => handleSearchChange("")} className="text-[#b0aabb] hover:text-[#7865ff]">
+                                <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                 </button>
                             )}
@@ -290,7 +289,7 @@ export default function StoreListPage() {
                     </p>
                     <div className="flex items-center gap-2">
                         <div className="relative">
-                            <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
+                            <select value={sort} onChange={(e) => setSort(e.target.value)}
                                 className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
                                 <option>인기순</option>
                                 <option>신상품순</option>
@@ -318,9 +317,9 @@ export default function StoreListPage() {
                             <FilterDropdown
                                 open={filterOpen}
                                 priceRange={priceRange}
-                                onPriceRange={handlePriceRange}
+                                onPriceRange={setPriceRange}
                                 onlyInStock={onlyInStock}
-                                onOnlyInStock={handleOnlyInStock}
+                                onOnlyInStock={setOnlyInStock}
                                 onReset={handleReset}
                             />
                         </div>
@@ -336,14 +335,14 @@ export default function StoreListPage() {
                         </svg>
                         검색 결과가 없어요.
                         {(search || activeFilterCount > 0) && (
-                            <button onClick={() => { handleSearchChange(""); handleReset(); }}
+                            <button onClick={() => { setSearch(""); handleReset(); }}
                                 className="text-[13px] text-[#7865ff] underline">
                                 필터 초기화
                             </button>
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-6 lg:gap-y-10">
                         {paginated.map((product) => (
                             <StoreProductCard key={product.productId} product={product} />
                         ))}

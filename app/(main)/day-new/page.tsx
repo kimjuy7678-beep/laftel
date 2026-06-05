@@ -1,5 +1,6 @@
 'use client'
 
+import PageHeader from '@/components/PageHeader'
 import { useEffect, useState, useRef } from 'react'
 import CalendarModal from './CalendarModal'
 import { useAniStore } from '@/store/useAniStore'
@@ -75,9 +76,7 @@ export default function DayNewPage() {
             <section className={styles.section}>
                 <div className={styles.inner}>
                     <div className={styles.sectionHead}>
-                        <h2 className={styles.sectionTitle}>
-                            <span className={styles.sectionTitleAccent}>{DAY_LABELS[todayIdx]}</span> 업데이트
-                        </h2>
+                        <PageHeader title="요일별 신작" sub="매일 업데이트되는 최신 애니메이션" />
 
                     </div>
 
@@ -175,7 +174,7 @@ export default function DayNewPage() {
             <section className={styles.section}>
                 <div className={styles.inner}>
                     <div className={styles.daysectionHead}>
-                        <h2 className={styles.sectionTitle}>요일별 신작</h2>
+                        <PageHeader title="요일별 신작" sub="매일 업데이트되는 최신 애니메이션" />
                         <button className={styles.calBtn} onClick={() => setShowCalendar(true)}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="3" y="4" width="18" height="18" rx="2" />
