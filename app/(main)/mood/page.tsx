@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
 import animeMeta from '@/data/animeMeta.json'
 import { Suspense } from 'react'
+import { toast } from 'sonner'
 
 interface AnimeMeta {
     tmdbId: number
@@ -237,7 +238,34 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                 @keyframes spin { to { transform:rotate(360deg) } }
             `}</style>
 
-            <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff' }}>
+            <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: 80, color: '#fff' }}>
+
+                {/* ── 헤더 ── */}
+                <div className="rv-inner" style={{ padding: '80px 0 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <button
+                                onClick={onReset}
+                                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.4)', fontSize: 16, cursor: 'pointer', padding: '4px 6px', lineHeight: 1, borderRadius: 6, transition: 'color .15s', fontFamily: 'inherit' }}
+                                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,.8)')}
+                                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,.4)')}
+                            >← 돌아가기</button>
+                            <div>
+                                <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.2 }}>{mood.label}</h1>
+                                <p style={{ fontSize: 14, color: 'rgba(255,255,255,.4)', margin: '4px 0 0' }}>{mood.sub}</p>
+                            </div>
+                        </div>
+                        <button
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 20, color: 'rgba(255,255,255,.55)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit' }}
+                            onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(255,255,255,.1)'); (e.currentTarget.style.color = '#fff') }}
+                            onMouseLeave={e => { (e.currentTarget.style.background = 'rgba(255,255,255,.06)'); (e.currentTarget.style.color = 'rgba(255,255,255,.55)') }}
+                            onClick={() => { navigator.clipboard.writeText(window.location.href); toast('링크가 복사되었어요!') }}
+                        >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                            공유하기
+                        </button>
+                    </div>
+                </div>
 
                 {/* ── 히어로 ── */}
                 {hero && (
