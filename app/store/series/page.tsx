@@ -183,7 +183,7 @@ function SeriesPageInner() {
 
             <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
                 <Inner>
-                    <p className="mb-4 text-[12px] text-[#9b94b2]">
+                    <p className="mb-4 text-[14px] text-[#9b94b2]">
                         <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
                         <span className="mx-1.5">›</span>
                         <span className="font-medium text-[#7865ff]">시리즈별</span>

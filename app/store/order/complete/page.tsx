@@ -8,6 +8,16 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import { saveNotification } from "@/utils/notification";
+import { issueCoupon } from "@/lib/coupon";
+import { db } from "@/firebase/firebase";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+
+interface OrderData {
+    buyer?: { name?: string; phone?: string; email?: string };
+    shipping?: { name?: string; phone?: string; address?: string; detail?: string; zip?: string; memo?: string };
+    paymentMethod?: string;
+    items?: { title: string; thumbnail: string; option: string; qty: number; price: number }[];
+}
 
 function OrderCompleteContent() {
     const searchParams = useSearchParams();
@@ -22,22 +32,47 @@ function OrderCompleteContent() {
 
     const [copied, setCopied] = useState(false);
     const [visible, setVisible] = useState(false);
+    const [orderData, setOrderData] = useState<OrderData | null>(null);
 
     useEffect(() => {
-        // 페이드인 애니메이션
         const t = setTimeout(() => setVisible(true), 50);
         return () => clearTimeout(t);
     }, []);
 
-    // ── 주문 완료 알림 저장 (한 번만) ─────────────────────────────────────
+    // ── Firestore에서 실제 주문 데이터 가져오기 ───────────────────────────────
     useEffect(() => {
         if (!user?.uid || !orderNumber) return;
-        saveNotification(user.uid, {
+        getDoc(doc(db, "users", user.uid, "orders", orderNumber))
+            .then((snap) => { if (snap.exists()) setOrderData(snap.data() as OrderData); })
+            .catch(() => { });
+    }, [user?.uid, orderNumber]);
+
+    // ── 주문 완료 알림 + 첫 구매 쿠폰 발급 ───────────────────────────────────
+    useEffect(() => {
+        if (!user?.uid || !orderNumber) return;
+        const uid = user.uid;
+
+        saveNotification(uid, {
             type: "order",
             title: "주문이 완료되었어요 🛍️",
             body: `${title} 주문이 정상 접수되었어요. 주문번호: ${orderNumber.slice(0, 8)}...`,
             link: `/store/order/complete?orderNumber=${orderNumber}&title=${encodeURIComponent(title)}&thumbnail=${encodeURIComponent(thumbnail)}&total=${total}&option=${encodeURIComponent(option)}&qty=${qty}`,
-        }).catch(() => { }); // 알림 실패해도 페이지에 영향 없도록
+        }).catch(() => { });
+
+        getDocs(collection(db, "users", uid, "coupons")).then(async (snap) => {
+            const alreadyIssued = snap.docs.some((d) => d.data().label === "첫 구매 축하 쿠폰");
+            if (!alreadyIssued) {
+                await issueCoupon({
+                    uid,
+                    label: "첫 구매 축하 쿠폰",
+                    discount: 0.1,
+                    type: "rate",
+                    minOrderAmount: 5000,
+                    maxDiscountAmount: 3000,
+                    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                });
+            }
+        }).catch(() => { });
     }, [user?.uid, orderNumber]); // eslint-disable-line
 
     const copyOrderNumber = async () => {
@@ -131,16 +166,22 @@ function OrderCompleteContent() {
                     {/* 배송정보 */}
                     <div className="px-6 py-5">
                         <h2 className="text-[14px] font-bold text-[#111018] mb-3">배송정보</h2>
-                        <div className="space-y-1 text-[13px]">
-                            <p className="font-bold text-[#111]">라프텔</p>
-                            <p className="text-[#555]">010-5959-5959</p>
-                            <p className="text-[#555] leading-relaxed">
-                                서울특별시 영등포구 국제금융로 10, (여의도동, 서울국제금융센터 투아이에프씨)<br />
-                                13층, 주식회사 라프텔<br />
-                                (03706)
-                            </p>
-                            <p className="mt-2 text-[#aaa]">요청사항 : 벨리 와주세요</p>
-                        </div>
+                        {orderData?.shipping ? (
+                            <div className="space-y-1 text-[13px]">
+                                <p className="font-bold text-[#111]">{orderData.shipping.name}</p>
+                                <p className="text-[#555]">{orderData.shipping.phone}</p>
+                                <p className="text-[#555] leading-relaxed">
+                                    {orderData.shipping.address}<br />
+                                    {orderData.shipping.detail}<br />
+                                    ({orderData.shipping.zip})
+                                </p>
+                                {orderData.shipping.memo && (
+                                    <p className="mt-2 text-[#aaa]">요청사항 : {orderData.shipping.memo}</p>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="text-[13px] text-[#bbb]">배송정보를 불러오는 중...</p>
+                        )}
                     </div>
                 </div>
             </main>

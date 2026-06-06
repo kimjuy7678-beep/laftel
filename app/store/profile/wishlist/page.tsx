@@ -35,7 +35,7 @@ export default function WishlistPage() {
     return (
         <>
             <div className="mb-6 flex items-center gap-2">
-                <h2 className="text-[20px] font-bold text-[#16121f]">좋아요</h2>
+                <h2 className="text-[20px] font-bold text-[#16121f]">위시 리스트</h2>
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#7865ff] text-[12px] font-bold text-white">{wishlist.length}</span>
             </div>
 

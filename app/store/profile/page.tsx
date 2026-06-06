@@ -5,8 +5,8 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { db } from "@/firebase/firebase";
-import { collection, getDocs, orderBy, query, doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { saveStoreNotification } from "@/utils/storeNotification";
+import { collection, getDocs, orderBy, query, doc, updateDoc, serverTimestamp, getDoc, setDoc, increment, addDoc } from "firebase/firestore";
+import { saveNotification } from "@/utils/notification";
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -26,6 +26,8 @@ type Order = {
     items: OrderItem[];
     total: number;
     usedPoints: number;
+    couponId?: string;
+    couponDiscount?: number;
     createdAt: any;
 };
 
@@ -76,7 +78,12 @@ function CancelPopup({ order, onClose, onConfirm }: {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
             <div className="relative w-[480px] max-h-[90vh] overflow-y-auto rounded-[20px] bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-                <h2 className="mb-5 text-center text-[22px] font-bold text-[#7865ff]">주문 취소</h2>
+                <div className="mb-5 flex items-center justify-between">
+                    <h2 className="text-[22px] font-bold text-[#7865ff]">주문 취소</h2>
+                    <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f0eeff] text-[#9b94b2] hover:bg-[#e0daf7] hover:text-[#7865ff] transition">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                    </button>
+                </div>
 
                 <div className="mb-5 rounded-[16px] bg-[#f0eeff] p-4 flex flex-col gap-4">
                     {order.items.map(item => (
@@ -210,6 +217,12 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
     const [refundTarget, setRefundTarget] = useState<Order | null>(null);
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 6;
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
+    const [appliedFrom, setAppliedFrom] = useState("");
+    const [appliedTo, setAppliedTo] = useState("");
 
     useEffect(() => {
         if (!user?.uid) { setLoading(false); return; }
@@ -236,22 +249,55 @@ export default function ProfilePage() {
         })();
     }, [user?.uid]);
 
-    // ── 주문 취소 ──────────────────────────────────────────────────────────────
+    // 탭 변경 시 페이지 + 날짜 리셋
+    useEffect(() => { setPage(1); setAppliedFrom(""); setAppliedTo(""); setDateFrom(""); setDateTo(""); }, [tab]);
+
+    // ── 주문 취소 (포인트 환불 + 쿠폰 복원) ───────────────────────────────────
     const handleCancel = async (orderId: string, selectedIds: string[], reason: string) => {
         if (!user?.uid) return;
+        const uid = user.uid;
         try {
-            await updateDoc(doc(db, "users", user.uid, "orders", orderId), {
+            const order = orders.find(o => o.id === orderId);
+
+            // 1. 주문 상태 업데이트
+            await updateDoc(doc(db, "users", uid, "orders", orderId), {
                 status: "주문취소",
                 cancelReason: reason,
                 cancelledItems: selectedIds,
                 cancelledAt: serverTimestamp(),
             });
 
-            await saveStoreNotification(user.uid, {
-                type: "cancel",
+            // 2. 포인트 환불
+            if (order?.usedPoints && order.usedPoints > 0) {
+                await setDoc(doc(db, "users", uid), { points: increment(order.usedPoints) }, { merge: true });
+                await addDoc(collection(db, "users", uid, "pointHistory"), {
+                    amount: order.usedPoints,
+                    type: "earn",
+                    description: "주문 취소 포인트 환불",
+                    label: "주문 취소 포인트 환불",
+                    createdAt: new Date(),
+                });
+            }
+
+            // 3. 쿠폰 복원 (사용 처리된 쿠폰을 active로 되돌림)
+            if (order?.couponId) {
+                const couponRef = doc(db, "users", uid, "coupons", order.couponId);
+                const couponSnap = await getDoc(couponRef);
+                if (couponSnap.exists() && couponSnap.data().status === "used") {
+                    await updateDoc(couponRef, {
+                        status: "active",
+                        usedAt: null,
+                        usedOrderId: null,
+                    });
+                }
+            }
+
+            // 4. 알림
+            await saveNotification(uid, {
+                type: "order",
                 title: "주문이 취소되었어요",
                 body: `사유: ${reason} · 결제 금액은 3~5일 내 환불돼요.`,
-                link: "/store/mypage",
+                link: "/store/profile",
             });
 
             setOrders(prev => prev.map(o =>
@@ -273,11 +319,11 @@ export default function ProfilePage() {
                 refundRequestedAt: serverTimestamp(),
             });
 
-            await saveStoreNotification(user.uid, {
-                type: "cancel",
+            await saveNotification(user.uid, {
+                type: "order",
                 title: "교환/환불 신청이 완료됐어요",
                 body: `사유: ${reason} · 영업일 기준 3~5일 내 처리돼요.`,
-                link: "/store/mypage",
+                link: "/store/profile",
             });
 
             setOrders(prev => prev.map(o =>
@@ -292,12 +338,23 @@ export default function ProfilePage() {
     const canCancel = (status: string) => status === "결제완료" || status === "배송시작";
 
     const filtered = orders.filter(o => {
-        if (tab === "전체") return true;
-        if (tab === "배송중") return o.status === "결제완료" || o.status === "배송시작" || o.status === "배송중";
-        if (tab === "배송완료") return o.status === "배송완료";
-        if (tab === "교환환불") return o.status === "주문취소" || o.status === "교환환불신청";
+        if (tab === "전체") { /* 탭 필터 없음 */ }
+        else if (tab === "배송중" && !(o.status === "결제완료" || o.status === "배송시작" || o.status === "배송중")) return false;
+        else if (tab === "배송완료" && o.status !== "배송완료") return false;
+        else if (tab === "교환환불" && !(o.status === "주문취소" || o.status === "교환환불신청")) return false;
+
+        // 날짜 필터
+        if (appliedFrom || appliedTo) {
+            const orderDate = o.createdAt?.toDate?.() as Date | undefined;
+            if (!orderDate) return false;
+            if (appliedFrom && orderDate < new Date(appliedFrom)) return false;
+            if (appliedTo && orderDate > new Date(appliedTo + "T23:59:59")) return false;
+        }
         return true;
     });
+
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     return (
         <>
@@ -314,11 +371,32 @@ export default function ProfilePage() {
             </div>
 
             {/* 날짜 검색 */}
-            <div className="mb-5 flex items-center gap-2">
-                <input type="date" className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
+            <div className="mb-5 flex items-center gap-2 flex-wrap">
+                <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={e => setDateFrom(e.target.value)}
+                    className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]"
+                />
                 <span className="text-[#9b94b2]">~</span>
-                <input type="date" className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
-                <button className="h-[36px] rounded-[8px] bg-[#7865ff] px-4 text-[12px] font-semibold text-white">기간 검색</button>
+                <input
+                    type="date"
+                    value={dateTo}
+                    onChange={e => setDateTo(e.target.value)}
+                    className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]"
+                />
+                <button
+                    onClick={() => { setAppliedFrom(dateFrom); setAppliedTo(dateTo); setPage(1); }}
+                    className="h-[36px] rounded-[8px] bg-[#7865ff] px-4 text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
+                    기간 검색
+                </button>
+                {(appliedFrom || appliedTo) && (
+                    <button
+                        onClick={() => { setDateFrom(""); setDateTo(""); setAppliedFrom(""); setAppliedTo(""); setPage(1); }}
+                        className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] transition">
+                        초기화
+                    </button>
+                )}
             </div>
 
             {/* 주문 목록 */}
@@ -330,51 +408,80 @@ export default function ProfilePage() {
                     주문 내역이 없어요.
                 </div>
             ) : (
-                <div className="flex flex-col gap-4">
-                    {filtered.map(order => (
-                        <div key={order.id} className="rounded-[12px] border border-[#ebe8ff] p-5">
-                            <div className="flex gap-4">
-                                <div className="flex-1 min-w-0">
-                                    <p className="mb-3 text-[12px] text-[#9b94b2]">{order.date}</p>
-                                    {order.items.map((item, i) => (
-                                        <div key={i} className="mb-3 flex items-center gap-3">
-                                            <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[8px] bg-[#f0eeff]">
-                                                {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
+                <>
+                    <div className="flex flex-col gap-4">
+                        {paginated.map(order => (
+                            <div key={order.id} className="rounded-[12px] border border-[#ebe8ff] p-5">
+                                <div className="flex gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="mb-3 text-[12px] text-[#9b94b2]">{order.date}</p>
+                                        {order.items.map((item, i) => (
+                                            <div key={i} className="mb-3 flex items-center gap-3">
+                                                <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[8px] bg-[#f0eeff]">
+                                                    {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="line-clamp-1 text-[13px] font-medium text-[#16121f]">{item.title}</p>
+                                                    <p className="text-[11px] text-[#9b94b2]">옵션 : {item.option}</p>
+                                                    <p className="text-[12px] font-bold text-[#16121f]">{item.price.toLocaleString()}원</p>
+                                                    <p className="text-[11px] text-[#9b94b2]">총 수량 : {item.qty}</p>
+                                                </div>
                                             </div>
-                                            <div className="min-w-0">
-                                                <p className="line-clamp-1 text-[13px] font-medium text-[#16121f]">{item.title}</p>
-                                                <p className="text-[11px] text-[#9b94b2]">옵션 : {item.option}</p>
-                                                <p className="text-[12px] font-bold text-[#16121f]">{item.price.toLocaleString()}원</p>
-                                                <p className="text-[11px] text-[#9b94b2]">총 수량 : {item.qty}</p>
-                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="shrink-0 text-right">
+                                        <p className={`mb-1 text-[13px] font-bold ${STATUS_COLOR[order.status] ?? "text-[#7865ff]"}`}>{order.status}</p>
+                                        <p className="text-[17px] font-bold text-[#16121f]">{order.total.toLocaleString()}원</p>
+                                        {order.usedPoints > 0 && <p className="text-[11px] text-[#9b94b2]">🪙 {order.usedPoints.toLocaleString()}원</p>}
+                                        <div className="mt-2 flex flex-col gap-1.5 items-end">
+                                            {canCancel(order.status) && (
+                                                <button
+                                                    onClick={() => setCancelTarget(order)}
+                                                    className="rounded-[8px] border border-[#ffb3c1] px-3 py-1 text-[11px] text-[#ff4d6d] hover:bg-[#fff0f3] transition">
+                                                    주문 취소
+                                                </button>
+                                            )}
+                                            {order.status === "배송완료" && (
+                                                <button
+                                                    onClick={() => setRefundTarget(order)}
+                                                    className="rounded-[8px] border border-[#ddd8f4] px-3 py-1 text-[11px] text-[#6b647a] hover:border-[#d97706] hover:text-[#d97706] transition">
+                                                    교환 / 환불 신청
+                                                </button>
+                                            )}
                                         </div>
-                                    ))}
-                                </div>
-                                <div className="shrink-0 text-right">
-                                    <p className={`mb-1 text-[13px] font-bold ${STATUS_COLOR[order.status] ?? "text-[#7865ff]"}`}>{order.status}</p>
-                                    <p className="text-[17px] font-bold text-[#16121f]">{order.total.toLocaleString()}원</p>
-                                    {order.usedPoints > 0 && <p className="text-[11px] text-[#9b94b2]">🪙 {order.usedPoints.toLocaleString()}원</p>}
-                                    <div className="mt-2 flex flex-col gap-1.5 items-end">
-                                        {canCancel(order.status) && (
-                                            <button
-                                                onClick={() => setCancelTarget(order)}
-                                                className="rounded-[8px] border border-[#ffb3c1] px-3 py-1 text-[11px] text-[#ff4d6d] hover:bg-[#fff0f3] transition">
-                                                주문 취소
-                                            </button>
-                                        )}
-                                        {order.status === "배송완료" && (
-                                            <button
-                                                onClick={() => setRefundTarget(order)}
-                                                className="rounded-[8px] border border-[#ddd8f4] px-3 py-1 text-[11px] text-[#6b647a] hover:border-[#d97706] hover:text-[#d97706] transition">
-                                                교환 / 환불 신청
-                                            </button>
-                                        )}
                                     </div>
                                 </div>
                             </div>
+                        ))}
+                    </div>
+
+                    {/* 페이지네이션 */}
+                    {totalPages > 1 && (
+                        <div className="mt-6 flex items-center justify-center gap-1">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e0daf7] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] disabled:opacity-30 transition">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                                <button key={n} onClick={() => setPage(n)}
+                                    className={`flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-semibold transition ${page === n
+                                        ? "bg-[#7865ff] text-white"
+                                        : "border border-[#e0daf7] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff]"
+                                        }`}>
+                                    {n}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e0daf7] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] disabled:opacity-30 transition">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+                            </button>
                         </div>
-                    ))}
-                </div>
+                    )}
+                </>
             )}
             <p className="mt-4 text-right text-[11px] text-[#9b94b2]">※ 단순변심으로 인한 교환은 불가능합니다</p>
 
