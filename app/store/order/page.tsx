@@ -606,7 +606,7 @@ function OrderContent() {
             <main className="mx-auto w-full max-w-[1770px] px-[75px] py-10">
                 <div className="text-center mb-10">
                     <p className="text-[12px] font-semibold tracking-[0.2em] text-[#826CFF] uppercase mb-1">Laftel Store</p>
-                    <h1 className="text-[28px] font-extrabold text-[#111018] tracking-tight">ORDER & PAY</h1>
+                    <h1 className="text-[28px] font-extrabold text-[#826CFF] tracking-tight">ORDER & PAY</h1>
                     <p className="text-[13px] text-[#aaa] mt-1">최종 주문하기</p>
                 </div>
 
