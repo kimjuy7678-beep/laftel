@@ -6,9 +6,12 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useAuthStore } from "@/store/useAuthStore";
+import { saveNotification } from "@/utils/notification";
 
 function OrderCompleteContent() {
     const searchParams = useSearchParams();
+    const { user } = useAuthStore();
 
     const orderNumber = searchParams.get("orderNumber") ?? "000000000000000";
     const title = searchParams.get("title") ?? "상품명";
@@ -26,14 +29,22 @@ function OrderCompleteContent() {
         return () => clearTimeout(t);
     }, []);
 
+    // ── 주문 완료 알림 저장 (한 번만) ─────────────────────────────────────
+    useEffect(() => {
+        if (!user?.uid || !orderNumber) return;
+        saveNotification(user.uid, {
+            type: "order",
+            title: "주문이 완료되었어요 🛍️",
+            body: `${title} 주문이 정상 접수되었어요. 주문번호: ${orderNumber.slice(0, 8)}...`,
+            link: `/store/order/complete?orderNumber=${orderNumber}&title=${encodeURIComponent(title)}&thumbnail=${encodeURIComponent(thumbnail)}&total=${total}&option=${encodeURIComponent(option)}&qty=${qty}`,
+        }).catch(() => { }); // 알림 실패해도 페이지에 영향 없도록
+    }, [user?.uid, orderNumber]); // eslint-disable-line
+
     const copyOrderNumber = async () => {
         await navigator.clipboard.writeText(orderNumber);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
-
-    // 썸네일을 3개로 보여주기 (더미 틸트 효과)
-    const thumbImages = thumbnail ? [thumbnail] : [];
 
     return (
         <div className="min-h-screen bg-[#f5f3ff] flex flex-col">
@@ -63,7 +74,6 @@ function OrderCompleteContent() {
                     <button
                         onClick={copyOrderNumber}
                         className="w-7 h-7 rounded-full bg-white border border-[#e0daf7] flex items-center justify-center hover:bg-[#f0eeff] transition-colors"
-                        title="복사"
                     >
                         {copied ? (
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#826CFF" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>

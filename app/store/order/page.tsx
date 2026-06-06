@@ -6,16 +6,11 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useCouponStore } from "@/store/useCouponStore";
+import { usePointStore } from "@/store/usePointStore";
 import { db } from "@/firebase/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-
-// ─── 더미 데이터 ─────────────────────────────────────────────────────────────
-const DUMMY_COUPONS = [
-    { id: "c1", label: "신규 가입 쿠폰 10%", discount: 0.1, type: "rate" as const },
-    { id: "c2", label: "여름 한정 3,000원 할인", discount: 3000, type: "fixed" as const },
-    { id: "c3", label: "라프텔 멤버십 5,000원 할인", discount: 5000, type: "fixed" as const },
-];
-const MAX_POINTS = 5000;
+import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
+import { useCoupon, issueCoupon } from "@/lib/coupon";
 
 // ─── 애니메이션 숫자 훅 ──────────────────────────────────────────────────────
 function useAnimatedNumber(target: number, duration = 350) {
@@ -151,25 +146,25 @@ function ModalWrap({ title, children, onClose }: { title: string; children: Reac
     }, [onClose]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
             onClick={onClose}>
-            <div className="w-full max-w-[420px] bg-white rounded-[24px] p-6 shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-                style={{ animation: "modalIn 0.2s ease" }}>
+            <div className="bg-white rounded-[20px] w-full max-w-md p-6 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-[16px] font-extrabold text-[#111018]">{title}</h2>
-                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#f5f3ff] flex items-center justify-center hover:bg-[#ebe8ff] transition-colors">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                    <h3 className="text-[16px] font-bold text-[#111]">{title}</h3>
+                    <button onClick={onClose} className="text-[#aaa] hover:text-[#555] transition-colors">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
                     </button>
                 </div>
                 {children}
             </div>
-            <style>{`@keyframes modalIn { from { opacity:0; transform:scale(0.95) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }`}</style>
         </div>
     );
 }
 
-// ─── 인풋 필드 ───────────────────────────────────────────────────────────────
+// ─── 공통 인풋 필드 ──────────────────────────────────────────────────────────
 function Field({ label, value, onChange, placeholder }: {
     label: string; value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -179,12 +174,114 @@ function Field({ label, value, onChange, placeholder }: {
         <div>
             <label className="block text-[12px] font-semibold text-[#666] mb-1.5">{label}</label>
             <input value={value} onChange={onChange} placeholder={placeholder}
-                className="w-full h-10 rounded-[10px] border border-[#e0daf7] px-3 text-[13px] outline-none focus:border-[#826CFF] transition-colors" />
+                className="w-full h-10 rounded-[10px] border border-[#e0daf7] px-3 text-[13px] text-[#333] outline-none focus:border-[#826CFF] transition-colors" />
         </div>
     );
 }
 
-// ─── 메인 페이지 ─────────────────────────────────────────────────────────────
+// ─── 등록된 결제수단 선택 팝업 ───────────────────────────────────────────────
+
+interface SavedCard {
+    id: string; brand: string; last4: string; expiry: string; isDefault: boolean;
+}
+
+function SavedCardModal({
+    cards,
+    selectedId,
+    onSelect,
+    onClose,
+}: {
+    cards: SavedCard[];
+    selectedId: string;
+    onSelect: (id: string) => void;
+    onClose: () => void;
+}) {
+    const [tempId, setTempId] = useState(selectedId);
+
+    useEffect(() => {
+        const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+        window.addEventListener("keydown", h);
+        return () => window.removeEventListener("keydown", h);
+    }, [onClose]);
+
+    return (
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-[20px] w-full max-w-sm p-6 shadow-2xl"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-[16px] font-bold text-[#111]">결제수단 선택</h3>
+                    <button onClick={onClose} className="text-[#aaa] hover:text-[#555] transition-colors">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div className="flex flex-col gap-2 mb-5">
+                    {cards.map(card => (
+                        <button
+                            key={card.id}
+                            onClick={() => setTempId(card.id)}
+                            className={`flex items-center gap-3 px-4 py-3.5 rounded-[12px] border-2 text-left transition-all ${tempId === card.id
+                                    ? "border-[#826CFF] bg-[#f5f3ff]"
+                                    : "border-[#e0daf7] hover:border-[#c4bbff]"
+                                }`}
+                        >
+                            {/* 라디오 */}
+                            <span className={`w-5 h-5 rounded-full flex-shrink-0 border-2 flex items-center justify-center transition-colors ${tempId === card.id ? "border-[#826CFF]" : "border-[#d0c9f0]"
+                                }`}>
+                                {tempId === card.id && (
+                                    <span className="w-2.5 h-2.5 rounded-full bg-[#826CFF]" />
+                                )}
+                            </span>
+
+                            {/* 브랜드 뱃지 */}
+                            <span className="text-[11px] font-bold text-[#826CFF] bg-[#f0eeff] px-2 py-0.5 rounded flex-shrink-0">
+                                {card.brand}
+                            </span>
+
+                            {/* 카드 번호 */}
+                            <span className="text-[13px] font-semibold text-[#333] flex-1">
+                                •••• {card.last4}
+                            </span>
+
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <span className="text-[11px] text-[#aaa]">{card.expiry}</span>
+                                {card.isDefault && (
+                                    <span className="text-[10px] font-bold text-[#826CFF] bg-[#f0eeff] px-1.5 py-0.5 rounded-full">
+                                        기본
+                                    </span>
+                                )}
+                            </div>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex gap-2">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 h-11 rounded-full border-2 border-[#e0daf7] text-[#888] text-[14px] font-bold hover:bg-[#f5f3ff] transition-colors"
+                    >
+                        취소
+                    </button>
+                    <button
+                        onClick={() => { onSelect(tempId); onClose(); }}
+                        className="flex-1 h-11 rounded-full bg-[#826CFF] text-white text-[14px] font-bold hover:bg-[#6B5CE7] transition-colors"
+                    >
+                        선택 완료
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── 주문 페이지 본체 ─────────────────────────────────────────────────────────
 function OrderContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -198,15 +295,47 @@ function OrderContent() {
     const rawPrice = parseInt(price.replace(/[^0-9]/g, ""), 10) || 0;
 
     // ── 멤버십 / 배송비 ──
-    // user.membership 필드명이 다르면 아래 한 줄만 수정하세요
     const { user } = useAuthStore();
     const isMember = !!user?.membership;
     const FREE_SHIPPING_THRESHOLD = 100000;
     const shippingFee = isMember ? 0 : rawPrice >= FREE_SHIPPING_THRESHOLD ? 0 : 3000;
 
-    // ── 주문자 정보 ──
-    const [buyer, setBuyer] = useState<BuyerInfo>({ name: "라프텔", phone: "010-5959-5958", email: "laftel@naver.com" });
+    // ── 쿠폰 (Firebase 연동) ──
+    const {
+        activeCoupons,
+        selectedCoupon,
+        selectCoupon,
+        getDiscount,
+        fetchActiveCoupons,
+    } = useCouponStore();
+
+    // ── 포인트 (Firebase 연동) ──
+    const { points, fetchPoints } = usePointStore();
+
+    // ── 유저 데이터 로드 ──
+    useEffect(() => {
+        if (user?.uid) {
+            fetchActiveCoupons(user.uid);
+            fetchPoints(user.uid);
+        }
+    }, [user?.uid]);
+
+    // ── 주문자 정보 — user 값으로 초기화 ──
+    const [buyer, setBuyer] = useState<BuyerInfo>({
+        name: user?.name ?? "",
+        phone: "",
+        email: user?.email ?? "",
+    });
     const [showBuyerModal, setShowBuyerModal] = useState(false);
+
+    // user 로드 완료 후 buyer 동기화
+    useEffect(() => {
+        setBuyer((prev) => ({
+            ...prev,
+            name: prev.name || user?.name || "",
+            email: prev.email || user?.email || "",
+        }));
+    }, [user?.name, user?.email]);
 
     // ── 배송지 ──
     const [shipping, setShipping] = useState<ShippingInfo>({
@@ -216,40 +345,73 @@ function OrderContent() {
     });
     const [showShippingModal, setShowShippingModal] = useState(false);
 
-    // ── 쿠폰 / 포인트 ──
-    const [selectedCoupon, setSelectedCoupon] = useState("");
+    // ── 쿠폰 셀렉트 핸들러 ──
+    const handleCouponChange = (couponId: string) => {
+        if (!couponId) { selectCoupon(null); return; }
+        const found = activeCoupons.find((c) => c.id === couponId) ?? null;
+        selectCoupon(found);
+    };
+
+    // ── 할인 계산 ──
+    // 쿠폰은 상품금액 기준 (배송비 제외), baseDiscount 적용 후 금액 기준
+    const baseDiscount = 8000;
+    const orderBase = rawPrice + shippingFee - baseDiscount; // 쿠폰/포인트 적용 전 기준 금액
+    const couponDiscount = getDiscount(Math.max(0, orderBase));
+
+    // ── 포인트 입력 ──
     const [pointInput, setPointInput] = useState("");
     const [appliedPoint, setAppliedPoint] = useState(0);
     const [pointError, setPointError] = useState("");
 
-    const coupon = DUMMY_COUPONS.find((c) => c.id === selectedCoupon);
-    const couponDiscount = coupon
-        ? coupon.type === "rate"
-            ? Math.floor(rawPrice * coupon.discount)
-            : coupon.discount
-        : 0;
+    // 쿠폰 변경 시 포인트 자동 재계산 (전체사용 중이었으면 다시 맞춰줌)
+    useEffect(() => {
+        if (appliedPoint === 0) return;
+        const maxAfterCoupon = Math.max(0, orderBase - couponDiscount);
+        const newMax = Math.min(points, maxAfterCoupon);
+        if (appliedPoint > newMax) {
+            setAppliedPoint(newMax);
+            setPointInput(String(newMax));
+        }
+    }, [couponDiscount]); // eslint-disable-line
 
-    const baseDiscount = 8000;
-    const totalDiscount = baseDiscount + couponDiscount + appliedPoint;
-    const totalPrice = Math.max(0, rawPrice + shippingFee - totalDiscount);
-
-    // ── 포인트 적용 ──
     const applyPoint = () => {
         const v = parseInt(pointInput.replace(/[^0-9]/g, ""), 10) || 0;
-        if (v > MAX_POINTS) { setPointError(`최대 ${MAX_POINTS.toLocaleString()}P까지 사용 가능해요.`); return; }
-        if (v > rawPrice + shippingFee - baseDiscount - couponDiscount) { setPointError("사용 포인트가 결제 금액을 초과해요."); return; }
+        if (v > points) { setPointError(`보유 포인트(${points.toLocaleString()}P)를 초과했어요.`); return; }
+        const maxUsable = Math.max(0, orderBase - couponDiscount);
+        if (v > maxUsable) { setPointError("사용 포인트가 결제 금액을 초과해요."); return; }
         setPointError("");
         setAppliedPoint(v);
     };
     const useAllPoints = () => {
-        const max = Math.min(MAX_POINTS, Math.max(0, rawPrice + shippingFee - baseDiscount - couponDiscount));
+        const maxUsable = Math.max(0, orderBase - couponDiscount);
+        const max = Math.min(points, maxUsable);
         setPointInput(String(max));
         setAppliedPoint(max);
         setPointError("");
     };
 
+    const totalDiscount = baseDiscount + couponDiscount + appliedPoint;
+    const totalPrice = Math.max(0, rawPrice + shippingFee - totalDiscount);
+
+    // ── 저장된 카드 (Firestore users/{uid}.cards) ──
+    const [savedCards, setSavedCards] = useState<{
+        id: string; brand: string; last4: string; expiry: string; isDefault: boolean;
+    }[]>([]);
+
+    useEffect(() => {
+        if (!user?.uid) return;
+        import("@/firebase/firebase").then(({ db: fsdb }) =>
+            import("firebase/firestore").then(({ getDoc, doc: fsDoc }) =>
+                getDoc(fsDoc(fsdb, "users", user.uid!)).then(snap => {
+                    if (snap.exists()) setSavedCards(snap.data().cards ?? []);
+                })
+            )
+        );
+    }, [user?.uid]);
+
     // ── 결제 수단 ──
     const [selectedPayment, setSelectedPayment] = useState("laftel_pay");
+    const [showCardModal, setShowCardModal] = useState(false);
     const [agreed, setAgreed] = useState(false);
     const [agreeError, setAgreeError] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -259,6 +421,7 @@ function OrderContent() {
     const animDiscount = useAnimatedNumber(totalDiscount);
     const flashTotal = useFlash(totalPrice);
 
+    // ── 결제 처리 ─────────────────────────────────────────────────────────────
     const handlePay = async () => {
         if (!agreed) {
             setAgreeError(true);
@@ -268,13 +431,24 @@ function OrderContent() {
         if (!user?.uid) return;
         setLoading(true);
         try {
-            // Firestore users/{uid}/orders 에 주문 저장
+            const uid = user.uid;
+
+            // 1. 첫 구매 여부 — addDoc 전에 먼저 확인 (타이밍 이슈 방지)
+            const existingOrders = await getDocs(collection(db, "users", uid, "orders"));
+            const isFirstPurchase = existingOrders.size === 0;
+
+            // 2. 주문 Firestore 저장
             const orderRef = await addDoc(
-                collection(db, "users", user.uid, "orders"),
+                collection(db, "users", uid, "orders"),
                 {
                     status: "결제완료",
                     total: totalPrice,
                     usedPoints: appliedPoint,
+                    couponId: selectedCoupon?.id ?? null,
+                    couponDiscount,
+                    paymentMethod: selectedPayment,
+                    buyer,
+                    shipping,
                     createdAt: serverTimestamp(),
                     items: [{
                         productId,
@@ -286,6 +460,31 @@ function OrderContent() {
                     }],
                 }
             );
+
+            // 3. 쿠폰 사용 처리
+            if (selectedCoupon) {
+                await useCoupon(uid, selectedCoupon.id, orderRef.id);
+                selectCoupon(null);
+            }
+
+            // 4. 포인트 차감
+            if (appliedPoint > 0) {
+                await usePointStore.getState().chargePoints(uid, -appliedPoint, "스토어 결제 포인트 사용");
+            }
+
+            // 5. 첫 구매면 축하 쿠폰 발급 (issueCoupon 내부에서 쿠폰 알림도 함께 저장)
+            if (isFirstPurchase) {
+                await issueCoupon({
+                    uid,
+                    label: "첫 구매 축하 쿠폰",
+                    discount: 0.1,
+                    type: "rate",
+                    minOrderAmount: 5000,
+                    maxDiscountAmount: 3000,
+                    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                });
+            }
+
             router.push(
                 `/store/order/complete?orderNumber=${orderRef.id}` +
                 `&title=${encodeURIComponent(title)}` +
@@ -295,7 +494,7 @@ function OrderContent() {
                 `&qty=${qty}`
             );
         } catch (err) {
-            console.error("[Order] Firestore 저장 실패:", err);
+            console.error("[Order] 결제 처리 실패:", err);
             alert("주문 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
             setLoading(false);
         }
@@ -309,13 +508,20 @@ function OrderContent() {
             {showShippingModal && (
                 <EditShippingModal info={shipping} onSave={setShipping} onClose={() => setShowShippingModal(false)} />
             )}
+            {showCardModal && savedCards.length > 0 && (
+                <SavedCardModal
+                    cards={savedCards}
+                    selectedId={savedCards.some(c => c.id === selectedPayment) ? selectedPayment : (savedCards.find(c => c.isDefault)?.id ?? savedCards[0].id)}
+                    onSelect={setSelectedPayment}
+                    onClose={() => setShowCardModal(false)}
+                />
+            )}
 
             {/* 결제 로딩 오버레이 */}
             {loading && (
                 <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm"
                     style={{ animation: "fadeIn 0.2s ease" }}>
                     <div className="flex flex-col items-center gap-6">
-                        {/* 스피너 */}
                         <div className="relative w-20 h-20">
                             <div className="absolute inset-0 rounded-full border-4 border-[#ebe8ff]" />
                             <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#826CFF] animate-spin" />
@@ -325,12 +531,10 @@ function OrderContent() {
                                 </svg>
                             </div>
                         </div>
-                        {/* 텍스트 */}
                         <div className="text-center">
                             <p className="text-[18px] font-extrabold text-[#111018] tracking-tight">결제 처리 중</p>
                             <p className="mt-1.5 text-[13px] text-[#aaa]">잠시만 기다려주세요...</p>
                         </div>
-                        {/* 진행 바 */}
                         <div className="w-48 h-1.5 bg-[#ebe8ff] rounded-full overflow-hidden">
                             <div className="h-full bg-[#826CFF] rounded-full" style={{ animation: "progressBar 1.4s ease-in-out infinite" }} />
                         </div>
@@ -397,9 +601,9 @@ function OrderContent() {
                                 </button>
                             </div>
                             <div className="space-y-2 text-[13px]">
-                                <p className="font-bold text-[#111]">{buyer.name}</p>
-                                <div className="flex gap-3"><span className="w-14 text-[#aaa]">휴대폰</span><span className="text-[#333] font-medium">{buyer.phone}</span></div>
-                                <div className="flex gap-3"><span className="w-14 text-[#aaa]">이메일</span><span className="text-[#333] font-medium">{buyer.email}</span></div>
+                                <p className="font-bold text-[#111]">{buyer.name || "이름을 입력해주세요"}</p>
+                                <div className="flex gap-3"><span className="w-14 text-[#aaa]">휴대폰</span><span className="text-[#333] font-medium">{buyer.phone || "-"}</span></div>
+                                <div className="flex gap-3"><span className="w-14 text-[#aaa]">이메일</span><span className="text-[#333] font-medium">{buyer.email || "-"}</span></div>
                             </div>
                             <p className="mt-3 text-[11px] text-[#ccc] leading-relaxed">
                                 * 위 연락처 정보는 배송 관련 알림 발송 시 사용됩니다.
@@ -434,23 +638,27 @@ function OrderContent() {
                                     <label className="block text-[12px] font-semibold text-[#666] mb-1.5">쿠폰 적용</label>
                                     <div className="relative">
                                         <select
-                                            value={selectedCoupon}
-                                            onChange={(e) => setSelectedCoupon(e.target.value)}
+                                            value={selectedCoupon?.id ?? ""}
+                                            onChange={(e) => handleCouponChange(e.target.value)}
                                             className="w-full h-11 rounded-[12px] border border-[#e0daf7] px-4 pr-10 text-[13px] text-[#333] bg-white outline-none focus:border-[#826CFF] appearance-none transition-colors"
                                         >
                                             <option value="">쿠폰을 선택해주세요</option>
-                                            {DUMMY_COUPONS.map((c) => (
-                                                <option key={c.id} value={c.id}>{c.label}</option>
+                                            {activeCoupons.map((c) => (
+                                                <option key={c.id} value={c.id}>
+                                                    {c.label} ({c.type === "rate"
+                                                        ? `${Math.round(c.discount * 100)}%`
+                                                        : `${c.discount.toLocaleString()}원`} 할인)
+                                                </option>
                                             ))}
                                         </select>
                                         <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#826CFF]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="m6 9 6 6 6-6" /></svg>
                                     </div>
-                                    {coupon ? (
+                                    {selectedCoupon ? (
                                         <p className="mt-1.5 text-[12px] text-[#826CFF] font-semibold flex items-center gap-1">
                                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                                            {coupon.type === "rate"
-                                                ? `${(coupon.discount * 100).toFixed(0)}% 할인 — ${couponDiscount.toLocaleString()}원 절약`
-                                                : `${coupon.discount.toLocaleString()}원 할인`}
+                                            {selectedCoupon.type === "rate"
+                                                ? `${Math.round(selectedCoupon.discount * 100)}% 할인 — ${couponDiscount.toLocaleString()}원 절약`
+                                                : `${selectedCoupon.discount.toLocaleString()}원 할인`}
                                         </p>
                                     ) : <p className="mt-1 text-[11px] text-transparent select-none">-</p>}
                                 </div>
@@ -459,7 +667,7 @@ function OrderContent() {
                                 <div>
                                     <label className="block text-[12px] font-semibold text-[#666] mb-1.5">
                                         포인트
-                                        <span className="text-[#aaa] font-normal ml-1.5">(보유 {MAX_POINTS.toLocaleString()}P)</span>
+                                        <span className="text-[#aaa] font-normal ml-1.5">(보유 {points.toLocaleString()}P)</span>
                                     </label>
                                     <div className="flex gap-2">
                                         <input
@@ -490,7 +698,7 @@ function OrderContent() {
                                         </p>
                                     )}
                                     {!pointError && appliedPoint === 0 && (
-                                        <p className="mt-1 text-[11px] text-[#bbb]">사용 가능 포인트: {MAX_POINTS.toLocaleString()}P</p>
+                                        <p className="mt-1 text-[11px] text-[#bbb]">사용 가능 포인트: {Math.min(points, Math.max(0, orderBase - couponDiscount)).toLocaleString()}P</p>
                                     )}
                                 </div>
                             </div>
@@ -554,7 +762,6 @@ function OrderContent() {
                                     </span>
                                 </div>
 
-                                {/* 총 절약 금액 뱃지 */}
                                 {totalDiscount > 0 && (
                                     <div className="flex justify-center">
                                         <span className="text-[11px] font-bold text-[#826CFF] bg-[#f0eeff] px-3 py-1 rounded-full" style={{ animation: "fadeSlideIn 0.3s ease" }}>
@@ -574,6 +781,38 @@ function OrderContent() {
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
                                     라프텔 페이로 1초 만에 결제
                                 </button>
+
+                                {/* 등록된 결제수단 */}
+                                {savedCards.length > 0 && (
+                                    <>
+                                        <p className="text-[11px] text-[#bbb] font-semibold pt-1 px-1">등록된 결제수단</p>
+                                        <button
+                                            onClick={() => setShowCardModal(true)}
+                                            className={`w-full h-11 rounded-[12px] border-2 text-left px-4 flex items-center gap-3 transition-all ${savedCards.some(c => c.id === selectedPayment)
+                                                    ? "border-[#826CFF] bg-[#f5f3ff]"
+                                                    : "border-[#e0daf7] hover:border-[#c4bbff]"
+                                                }`}
+                                        >
+                                            {(() => {
+                                                const chosen = savedCards.find(c => c.id === selectedPayment);
+                                                return chosen ? (
+                                                    <>
+                                                        <span className="text-[11px] font-bold text-[#826CFF] bg-[#f0eeff] px-1.5 py-0.5 rounded flex-shrink-0">{chosen.brand}</span>
+                                                        <span className="text-[13px] font-semibold text-[#333] flex-1">•••• {chosen.last4}</span>
+                                                        <span className="text-[11px] text-[#826CFF] font-semibold">변경 ›</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#826CFF" strokeWidth="2.2"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
+                                                        <span className="text-[13px] text-[#826CFF] font-semibold flex-1">카드 선택하기</span>
+                                                        <span className="text-[11px] text-[#826CFF]">›</span>
+                                                    </>
+                                                );
+                                            })()}
+                                        </button>
+                                    </>
+                                )}
+
                                 <div className="grid grid-cols-2 gap-2">
                                     {[
                                         { id: "kakaopay", label: "카카오페이", color: "#3A1D1D" },
