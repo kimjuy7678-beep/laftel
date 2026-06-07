@@ -250,7 +250,7 @@ function SeriesPageInner() {
                         )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-4 gap-x-6 gap-y-10">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "40px 24px" }}>
                         {paginated.map((product) => (
                             <StoreProductCard key={product.productId} product={product} />
                         ))}

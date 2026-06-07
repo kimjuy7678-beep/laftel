@@ -238,23 +238,26 @@ export default function StoreProductCard({ product }: { product: StoreProduct })
 
     return (
         <div className="group block min-w-0">
-            {/* 이미지 영역 — 버튼은 Link 밖 */}
-            <div className="relative overflow-hidden rounded-[12px] bg-[#f3f1ff]">
-                <Link href={`/store/${product.productId}`} className="block">
-                    <ImageSlot src={product.thumbnail} alt={product.title}
-                        className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.04]" />
-                    {isReserve && !isSoldout && (
-                        <span className="absolute left-3 top-3 rounded-full bg-[#7865ff] px-2.5 py-1 text-[11px] font-bold text-white shadow-[0_2px_8px_rgba(120,101,255,0.36)]">예약</span>
-                    )}
-                    {isSoldout && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                            <span className="rounded-full bg-white/90 px-4 py-1.5 text-[13px] font-bold text-[#555]">품절</span>
-                        </div>
-                    )}
-                </Link>
+            {/* 이미지 + 버튼 래퍼 — relative 기준점 */}
+            <div className="relative rounded-[12px]">
+                {/* 이미지 영역 — overflow-hidden 분리 */}
+                <div className="overflow-hidden rounded-[12px] bg-[#f3f1ff]">
+                    <Link href={`/store/${product.productId}`} className="block">
+                        <ImageSlot src={product.thumbnail} alt={product.title}
+                            className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.04]" />
+                        {isReserve && !isSoldout && (
+                            <span className="absolute left-3 top-3 rounded-full bg-[#7865ff] px-2.5 py-1 text-[11px] font-bold text-white shadow-[0_2px_8px_rgba(120,101,255,0.36)]">예약</span>
+                        )}
+                        {isSoldout && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                <span className="rounded-full bg-white/90 px-4 py-1.5 text-[13px] font-bold text-[#555]">품절</span>
+                            </div>
+                        )}
+                    </Link>
+                </div>
 
-                {/* ✅ Link 완전히 밖 — 이벤트 충돌 없음 */}
-                <div className="absolute bottom-3 right-3 flex gap-1.5 z-10">
+                {/* 버튼 — overflow-hidden 형제, scale stacking context 영향 없음 */}
+                <div className="absolute bottom-3 right-3 flex gap-1.5">
                     <WishButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} disabled={isSoldout} />
                     <CartButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} requiresOption={requiresOption} disabled={isSoldout} />
                 </div>

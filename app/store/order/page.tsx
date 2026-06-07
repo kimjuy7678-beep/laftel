@@ -403,6 +403,12 @@ function OrderContent() {
     const displayTitle = isMulti ? `${cartItems[0].title}${cartItems.length > 1 ? ` 외 ${cartItems.length - 1}건` : ""}` : title;
     const displayThumbnail = isMulti ? (cartItems[0]?.thumbnail ?? "") : thumbnail;
 
+    // ── 결제 완료 후 중복결제 방지 ────────────────────────────────────────────
+    // 결제 페이지 마운트 시 항상 플래그 초기화 (새 구매 허용)
+    useEffect(() => {
+        sessionStorage.removeItem("order_completed");
+    }, []);
+
     // ── 멤버십 / 배송비 ──
     const { user } = useAuthStore();
     const isMember = !!user?.membership;
@@ -530,7 +536,7 @@ function OrderContent() {
             });
             if (selectedCoupon) { await useCoupon(uid, selectedCoupon.id, orderRef.id); selectCoupon(null); }
             router.push(
-                `/store/order/complete?orderNumber=${orderRef.id}` +
+                `/store/order/complete?orderNumber=${orderRef.id}&from=new` +
                 `&title=${encodeURIComponent(displayTitle)}` +
                 `&thumbnail=${encodeURIComponent(displayThumbnail)}` +
                 `&total=${totalPrice}` +
