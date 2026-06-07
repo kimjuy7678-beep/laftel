@@ -32,7 +32,7 @@ type Order = {
     refundType?: "제품하자" | "단순변심";
 };
 
-const STATUS_TABS = ["전체", "배송중", "배송완료", "교환환불"];
+const STATUS_TABS = ["전체", "배송중", "배송완료", "교환환불/취소"];
 const STATUS_COLOR: Record<string, string> = {
     "결제완료": "text-[#7865ff]",
     "배송시작": "text-[#7865ff]",
