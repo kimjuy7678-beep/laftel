@@ -1,7 +1,6 @@
 'use client'
 import PageHeader from '@/components/PageHeader'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import Lottie from 'lottie-react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
@@ -1074,11 +1073,6 @@ export default function OstPage() {
                     </div>
                     {loading && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                            <Lottie
-                                path="https://assets10.lottiefiles.com/packages/lf20_ikku7ex4.json"
-                                style={{ width: 36, height: 36 }}
-                                loop
-                            />
                             <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{loadCount}곡 로드 중...</span>
                         </div>
                     )}
