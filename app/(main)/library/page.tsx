@@ -10,26 +10,28 @@ const TMDB_IMG = 'https://image.tmdb.org/t/p/w300'
 const TABS: { id: WatchlistTab; label: string }[] = [
     { id: 'recent', label: '최근 본' },
     { id: 'wishlist', label: '보고싶다' },
-    { id: 'purchased', label: '구매한' },
-    { id: 'series', label: '정주행' },
+    { id: 'purchased', label: '구매한' }
 ]
 
 const EMPTY_MSG: Record<WatchlistTab, { icon: string; text: string }> = {
     recent: { icon: '/images/laftel-icon/cry.png', text: '최근 본 작품이 아직 없어요.' },
     wishlist: { icon: '/images/laftel-icon/cry.png', text: '보고싶은 작품을 추가해보세요.' },
     purchased: { icon: '/images/laftel-icon/cry.png', text: '구매한 작품이 없어요.' },
-    series: { icon: '/images/laftel-icon/cry.png', text: '정주행 중인 작품이 없어요.' },
 }
 
 export default function LibraryPage() {
     const router = useRouter()
     const { user, avatarConfig } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
     const { items, loading, fetchWatchlist, removeItem } = useWatchlistStore()
     const [activeTab, setActiveTab] = useState<WatchlistTab>('recent')
     const [selectMode, setSelectMode] = useState(false)
     const [selected, setSelected] = useState<Set<number>>(new Set())
 
+    useEffect(() => { setHydrated(true) }, [])
+
     useEffect(() => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         if (user?.uid) fetchWatchlist(user.uid)
     }, [user])
@@ -61,52 +63,57 @@ export default function LibraryPage() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingTop: 56 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 56 }}>
             <style>{`
                 .lib-wrap { max-width: 1820px; margin: 0 auto; padding: 32px 48px 60px; display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start; min-height: calc(100vh - 56px); }
+
                 /* 왼쪽 프로필 카드 */
-                .lib-profile-card { background: #111; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 28px 20px; display: flex; flex-direction: column; align-items: center; gap: 0; height: fit-content; }
-                .lib-avatar { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 12px; background: #1a1a2e; }
+                .lib-profile-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 28px 20px; display: flex; flex-direction: column; align-items: center; gap: 0; height: fit-content; }
+                .lib-avatar { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 12px; background: var(--bg-secondary); }
                 .lib-avatar img { width: 100%; height: 100%; object-fit: cover; }
-                .lib-username { font-size: 16px; font-weight: 800; color: #fff; margin: 0 0 4px; }
-                .lib-level { font-size: 12px; color: rgba(255,255,255,.4); margin: 0 0 16px; }
+                .lib-username { font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px; }
+                .lib-level { font-size: 12px; color: var(--text-subtle); margin: 0 0 16px; }
                 .lib-stats { display: flex; gap: 24px; margin-bottom: 20px; width: 100%; justify-content: center; }
                 .lib-stat { text-align: center; }
-                .lib-stat-num { font-size: 18px; font-weight: 900; color: #fff; }
-                .lib-stat-label { font-size: 11px; color: rgba(255,255,255,.35); }
-                .lib-action-btn { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); color: rgba(255,255,255,.7); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all .2s; margin-bottom: 0; }
-                .lib-action-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
+                .lib-stat-num { font-size: 18px; font-weight: 900; color: var(--text-primary); }
+                .lib-stat-label { font-size: 11px; color: var(--text-subtle); }
+                .lib-action-btn { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--border); background: var(--border-faint); color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all .2s; margin-bottom: 0; }
+                .lib-action-btn:hover { background: var(--border-subtle); color: var(--text-primary); }
                 .lib-member-banner { width: 100%; margin-top: 16px; padding: 14px 16px; background: rgba(108,99,255,.12); border: 1px solid rgba(108,99,255,.2); border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all .2s; text-decoration: none; }
                 .lib-member-banner:hover { background: rgba(108,99,255,.2); }
-                .lib-member-text { font-size: 14px; font-weight: 800; color: #fff; margin: 0 0 2px; }
-                .lib-member-sub { font-size: 11px; color: rgba(255,255,255,.45); margin: 0; }
+                .lib-member-text { font-size: 14px; font-weight: 800; color: var(--text-primary); margin: 0 0 2px; }
+                .lib-member-sub { font-size: 11px; color: var(--text-subtle); margin: 0; }
+
                 /* 오른쪽 보관함 */
-                .lib-main { background: #111; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; overflow: hidden; min-height: calc(100vh - 140px); display: flex; flex-direction: column; }
-                .lib-main-header { padding: 20px 24px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
-                .lib-main-title { font-size: 18px; font-weight: 800; color: #fff; margin: 0 0 16px; }
+                .lib-main { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; min-height: calc(100vh - 140px); display: flex; flex-direction: column; }
+                .lib-main-header { padding: 20px 24px 0; border-bottom: 1px solid var(--border-subtle); }
+                .lib-main-title { font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 16px; }
                 .lib-tabs { display: flex; gap: 0; }
-                .lib-tab { padding: 10px 18px; font-size: 14px; font-weight: 600; color: rgba(255,255,255,.4); background: none; border: none; cursor: pointer; position: relative; transition: color .2s; }
-                .lib-tab:hover { color: rgba(255,255,255,.75); }
-                .lib-tab.active { color: #fff; }
-                .lib-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: #6c63ff; border-radius: 1px; }
+                .lib-tab { padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text-subtle); background: none; border: none; cursor: pointer; position: relative; transition: color .2s; }
+                .lib-tab:hover { color: var(--text-muted); }
+                .lib-tab.active { color: var(--text-primary); }
+                .lib-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--main); border-radius: 1px; }
                 .lib-tab-action { margin-left: auto; display: flex; align-items: center; }
-                .lib-delete-btn { display: flex; align-items: center; gap: 5px; background: none; border: none; color: rgba(255,255,255,.4); font-size: 13px; cursor: pointer; padding: 8px 0; transition: color .2s; }
+                .lib-delete-btn { display: flex; align-items: center; gap: 5px; background: none; border: none; color: var(--text-subtle); font-size: 13px; cursor: pointer; padding: 8px 0; transition: color .2s; }
                 .lib-delete-btn:hover { color: #f87171; }
+
                 /* 그리드 */
                 .lib-grid { padding: 20px 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; align-content: start; }
                 .lib-item { position: relative; cursor: pointer; }
-                .lib-item-poster { width: 100%; aspect-ratio: 2/3; border-radius: 10px; overflow: hidden; background: #1a1a2e; transition: transform .2s; }
+                .lib-item-poster { width: 100%; aspect-ratio: 2/3; border-radius: 10px; overflow: hidden; background: var(--bg-secondary); transition: transform .2s; }
                 .lib-item:hover .lib-item-poster { transform: translateY(-3px); }
                 .lib-item-poster img { width: 100%; height: 100%; object-fit: cover; }
-                .lib-item-title { font-size: 12px; color: rgba(255,255,255,.7); margin: 6px 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-                .lib-item-check { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,.6); background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; transition: all .2s; }
-                .lib-item-check.checked { background: #6c63ff; border-color: #6c63ff; }
+                .lib-item-title { font-size: 12px; color: var(--text-muted); margin: 6px 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+                .lib-item-check { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; transition: all .2s; }
+                .lib-item-check.checked { background: var(--main); border-color: var(--main); }
+
                 /* 빈 상태 */
                 .lib-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 12px; flex: 1; }
                 .lib-empty img { width: 80px; height: 80px; object-fit: contain; opacity: .5; filter: grayscale(1); flex-shrink: 0; }
-                .lib-empty p { font-size: 14px; color: rgba(255,255,255,.35); margin: 0; }
+                .lib-empty p { font-size: 14px; color: var(--text-subtle); margin: 0; }
+
                 /* 카운트 */
-                .lib-count { font-size: 13px; color: rgba(255,255,255,.3); padding: 0 24px 12px; }
+                .lib-count { font-size: 13px; color: var(--text-faint); padding: 0 24px 12px; }
             `}</style>
 
             <div className="lib-wrap">
@@ -118,7 +125,7 @@ export default function LibraryPage() {
                                 ? <img src={avatarConfig.svgDataUrl} alt="프로필" />
                                 : user?.photoURL
                                     ? <img src={user.photoURL} alt="프로필" />
-                                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#6c63ff' }}>
+                                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--main)' }}>
                                         <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                                     </div>
                             }
@@ -137,7 +144,7 @@ export default function LibraryPage() {
                             </button>
                         </Link>
                         <Link href="/membership" className="lib-member-banner">
-                            <span style={{ fontSize: 28 }}>🐱</span>
+                            <img src="/images/laftel-icon/new.png" alt="icon" style={{ width: '70px' }} />
                             <div>
                                 <p className="lib-member-text"><span style={{ color: '#9d97ff' }}>멤버십</span> 시작하기</p>
                                 <p className="lib-member-sub">한일 동시방영 신작부터 역대 인기애니까지 무제한</p>
@@ -183,7 +190,7 @@ export default function LibraryPage() {
 
                     {loading ? (
                         <div className="lib-empty">
-                            <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+                            <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--main)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
                             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
                         </div>
                     ) : tabItems.length === 0 ? (

@@ -22,11 +22,11 @@ export default function MembershipPlans({ onOpenModal }: MembershipPlansProps) {
             <h2 className="font-black text-center mb-3 text-3xl 2xl:text-5xl 3xl:text-7xl">
                 나에게 <span className="text-[#6c63ff]">딱!</span> 맞는 멤버십 확인하기
             </h2>
-            <p className="text-white/40 text-sm 2xl:text-base 3xl:text-xl mb-16 2xl:mb-24">*멤버십은 언제든 해지가 가능합니다</p>
+            <p className="text-[var(--text-subtle)] text-sm 2xl:text-base 3xl:text-xl mb-16 2xl:mb-24">*멤버십은 언제든 해지가 가능합니다</p>
             <div className="grid grid-cols-3 w-full max-w-5xl 2xl:max-w-7xl divide-x divide-white/10">
                 {planList.map(plan => (
                     <div key={plan.id} className="flex flex-col items-center py-12 2xl:py-16 px-8 2xl:px-12 gap-6 2xl:gap-8">
-                        <p className="text-white/50 text-sm 2xl:text-base 3xl:text-xl text-center">{plan.label}</p>
+                        <p className="text-[var(--text-muted)] text-sm 2xl:text-base 3xl:text-xl text-center">{plan.label}</p>
                         <div className="relative">
                             {plan.best && (
                                 <span className="absolute -top-6 -right-10 text-[#f59e0b] text-sm 2xl:text-base font-black italic">BEST!</span>

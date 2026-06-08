@@ -1,6 +1,7 @@
 'use client'
 import PageHeader from '@/components/PageHeader'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import Lottie from 'lottie-react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
@@ -61,21 +62,39 @@ function classifyTrack(item: any): { type: Track['type']; tags: string[] } {
 
 function extractAnimeName(item: any): string {
     const col: string = item.collectionName || ''
-    return col
+    const trackName: string = item.trackName || ''
+    
+    // collectionName에 알려진 애니 키워드가 있으면 그게 애니명
+    const knownAnime = [
+        '鬼滅の刃', '呪術廻戦', '進撃の巨人', 'ONE PIECE', 'NARUTO', 'BLEACH',
+        'ハイキュー', 'ヒロアカ', 'チェンソーマン', 'スパイファミリー', '葬送のフリーレン',
+        'エヴァンゲリオン', 'コードギアス', 'HUNTER', 'ドラゴンボール', 'フェアリーテイル',
+        'ソードアートオンライン', 'オーバーロード', 'リゼロ', 'モブサイコ',
+    ]
+    for (const anime of knownAnime) {
+        if (col.includes(anime) || trackName.includes(anime)) return anime
+    }
+
+    // 일반 파싱
+    const cleaned = col
         .replace(/\s*\(.*?\)\s*/g, '')
-        .replace(/\s*-\s*(ost|original soundtrack|soundtrack|opening|ending|bgm|score|music|anime|the animation|season \d+)\s*/gi, '')
+        .replace(/\s*-\s*(ost|original soundtrack|soundtrack|opening|ending|bgm|score|music|anime|the animation|season \d+|ep\.?\s*\d*|single)\s*/gi, '')
         .replace(/\s*(ost|original soundtrack|soundtrack)\s*/gi, '')
-        .trim() || item.artistName || 'Unknown'
+        .trim()
+    
+    // 정제된 결과가 아티스트명이랑 같으면 의미없음 → artistName 반환
+    if (!cleaned || cleaned === item.artistName) return item.artistName || 'Unknown'
+    return cleaned
 }
 
 const ft = (s: number) => s ? `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}` : '0:30'
 
 async function fetchItunesAnime(term: string, limit = 50): Promise<Track[]> {
     try {
-        const res = await fetch(`${ITUNES_BASE}?term=${encodeURIComponent(term)}&media=music&genreId=27&limit=${limit}&country=JP`)
+        const res = await fetch(`${ITUNES_BASE}?term=${encodeURIComponent(term)}&media=music&entity=song&genreId=27&limit=${limit}&country=JP&lang=ja_jp`)
         const data = await res.json()
         return (data.results || [])
-            .filter((item: any) => item.previewUrl && item.artworkUrl100)
+            .filter((item: any) => item.previewUrl && item.artworkUrl100 && item.artworkUrl100.includes('mzstatic'))
             .map((item: any) => {
                 const { type, tags } = classifyTrack(item)
                 return {
@@ -83,7 +102,7 @@ async function fetchItunesAnime(term: string, limit = 50): Promise<Track[]> {
                     title: item.trackName,
                     artist: item.artistName,
                     animeName: extractAnimeName(item),
-                    cover: item.artworkUrl100.replace('100x100', '400x400'),
+                    cover: item.artworkUrl100.replace('100x100bb', '600x600bb').replace('100x100', '600x600'),
                     previewUrl: item.previewUrl,
                     duration: item.trackTimeMillis ? Math.floor(item.trackTimeMillis / 1000) : 0,
                     type, tags,
@@ -95,8 +114,9 @@ async function fetchItunesAnime(term: string, limit = 50): Promise<Track[]> {
 }
 
 async function fetchNewReleases(): Promise<Track[]> {
+    // 첫 번째는 귀멸의칼날 紅蓮華 고정
     const queries = [
-        '紅蓮華 LiSA 鬼滅の刃',
+        '紅蓮華 LiSA 鬼滅の刃 EP',   // 귀멸 — 첫 번째 고정
         'Ado うた ワンピース',
         'YOASOBI アニメ 推しの子',
         '廻廻奇譚 Eve 呪術廻戦',
@@ -104,11 +124,16 @@ async function fetchNewReleases(): Promise<Track[]> {
         'スパイファミリー OP アニメ',
         '進撃の巨人 Linked Horizon',
     ]
-    const results = await Promise.all(queries.map(q => fetchItunesAnime(q, 5)))
+    const results = await Promise.all(queries.map(q => fetchItunesAnime(q, 10)))
     const seen = new Set<string>()
     const tracks: Track[] = []
     for (const list of results) {
-        const pick = list.find(t => !seen.has(t.id) && t.previewUrl)
+        // 귀멸 쿼리(첫 번째)는 LiSA + 鬼滅 키워드가 있는 트랙을 엄격하게 선택
+        const pick = tracks.length === 0
+            ? list.find(t => !seen.has(t.id) && t.previewUrl &&
+                (t.artist.includes('LiSA') || t.collectionName.includes('鬼滅') || t.animeName.includes('鬼滅')))
+              || list.find(t => !seen.has(t.id) && t.previewUrl)
+            : list.find(t => !seen.has(t.id) && t.previewUrl)
         if (pick) { seen.add(pick.id); tracks.push(pick) }
         if (tracks.length >= 7) break
     }
@@ -116,36 +141,36 @@ async function fetchNewReleases(): Promise<Track[]> {
 }
 
 const HOT_ANIME_LIST = [
-    { name: '呪術廻戦', query: '呪術廻戦 ost' },
-    { name: '鬼滅の刃', query: '鬼滅の刃 ost' },
-    { name: '進撃の巨人', query: '進撃の巨人 ost' },
-    { name: 'Spy x Family', query: 'spy x family ost' },
-    { name: 'Frieren', query: 'frieren beyond journey end ost' },
-    { name: 'Chainsaw Man', query: 'chainsaw man ost' },
-    { name: 'Blue Lock', query: 'blue lock ost' },
-    { name: 'Mob Psycho 100', query: 'mob psycho 100 ost' },
-    { name: 'Violet Evergarden', query: 'violet evergarden ost' },
-    { name: 'Re:Zero', query: 're zero starting life ost' },
-    { name: 'Overlord', query: 'overlord anime ost' },
-    { name: 'Haikyuu', query: 'haikyuu ost' },
-    { name: 'Fullmetal Alchemist Brotherhood', query: 'fullmetal alchemist brotherhood ost' },
-    { name: 'Death Note', query: 'death note anime ost' },
-    { name: 'Bleach TYBW', query: 'bleach thousand year blood war ost' },
-    { name: 'One Piece', query: 'one piece ost' },
-    { name: 'Naruto Shippuden', query: 'naruto shippuden ost' },
-    { name: 'My Hero Academia', query: 'my hero academia ost' },
-    { name: 'Demon Slayer', query: 'demon slayer kimetsu no yaiba ost' },
-    { name: 'Vinland Saga', query: 'vinland saga ost' },
-    { name: 'Steins;Gate', query: 'steins gate ost' },
-    { name: 'Code Geass', query: 'code geass ost' },
-    { name: 'Hunter x Hunter', query: 'hunter x hunter 2011 ost' },
-    { name: 'Attack on Titan', query: 'attack on titan ost' },
-    { name: 'Tokyo Ghoul', query: 'tokyo ghoul ost' },
-    { name: 'Sword Art Online', query: 'sword art online ost' },
-    { name: 'Evangelion', query: 'neon genesis evangelion ost' },
-    { name: 'Dragon Ball Z', query: 'dragon ball z ost' },
-    { name: 'Black Clover', query: 'black clover ost' },
-    { name: 'Fairy Tail', query: 'fairy tail ost' },
+    { name: '呪術廻戦', query: '呪術廻戦 サウンドトラック' },
+    { name: '鬼滅の刃', query: '鬼滅の刃 サウンドトラック' },
+    { name: '進撃の巨人', query: '進撃の巨人 サウンドトラック' },
+    { name: 'スパイファミリー', query: 'SPY FAMILY アニメ サウンドトラック' },
+    { name: '葬送のフリーレン', query: '葬送のフリーレン サウンドトラック' },
+    { name: 'チェンソーマン', query: 'チェンソーマン サウンドトラック' },
+    { name: 'ブルーロック', query: 'ブルーロック アニメ サウンドトラック' },
+    { name: 'モブサイコ100', query: 'モブサイコ100 サウンドトラック' },
+    { name: 'ヴァイオレット・エヴァーガーデン', query: 'ヴァイオレット エヴァーガーデン サウンドトラック' },
+    { name: 'Re:ゼロ', query: 'リゼロ サウンドトラック アニメ' },
+    { name: 'オーバーロード', query: 'オーバーロード アニメ サウンドトラック' },
+    { name: 'ハイキュー!!', query: 'ハイキュー サウンドトラック' },
+    { name: '鋼の錬金術師', query: '鋼の錬金術師 BROTHERHOOD サウンドトラック' },
+    { name: 'デスノート', query: 'デスノート アニメ サウンドトラック' },
+    { name: 'BLEACH', query: 'BLEACH サウンドトラック アニメ' },
+    { name: 'ワンピース', query: 'ONE PIECE サウンドトラック' },
+    { name: 'ナルト疾風伝', query: 'ナルト疾風伝 サウンドトラック' },
+    { name: '僕のヒーローアカデミア', query: '僕のヒーローアカデミア サウンドトラック' },
+    { name: '鬼滅の刃 遊郭編', query: '鬼滅の刃 遊郭編 サウンドトラック' },
+    { name: 'ヴィンランド・サガ', query: 'ヴィンランド サガ サウンドトラック' },
+    { name: 'STEINS;GATE', query: 'シュタインズゲート サウンドトラック' },
+    { name: 'コードギアス', query: 'コードギアス サウンドトラック' },
+    { name: 'HUNTER×HUNTER', query: 'HUNTER HUNTER 2011 サウンドトラック' },
+    { name: '進撃の巨人 Final', query: '進撃の巨人 Final Season サウンドトラック' },
+    { name: '東京喰種', query: '東京喰種 トーキョーグール サウンドトラック' },
+    { name: 'ソードアートオンライン', query: 'ソードアートオンライン サウンドトラック' },
+    { name: '新世紀エヴァンゲリオン', query: 'エヴァンゲリオン サウンドトラック' },
+    { name: 'ドラゴンボールZ', query: 'ドラゴンボールZ サウンドトラック' },
+    { name: 'ブラッククローバー', query: 'ブラッククローバー サウンドトラック' },
+    { name: 'フェアリーテイル', query: 'フェアリーテイル サウンドトラック' },
 ]
 
 async function fetchHotAnimeOst(): Promise<HotAnime[]> {
@@ -158,7 +183,7 @@ async function fetchHotAnimeOst(): Promise<HotAnime[]> {
             const data = await res.json()
                 ; (data.results || []).forEach((anime: any) => {
                     const n = (anime.name || anime.original_name || '').toLowerCase()
-                    if (anime.poster_path) tmdbPosters[n] = `https://image.tmdb.org/t/p/w200${anime.poster_path}`
+                    if (anime.poster_path) tmdbPosters[n] = `https://image.tmdb.org/t/p/w342${anime.poster_path}`
                 })
         }
     } catch { }
@@ -174,7 +199,7 @@ async function fetchHotAnimeOst(): Promise<HotAnime[]> {
             return {
                 id: idx,
                 name: anime.name,
-                poster: tmdbPoster || (tracks[0]?.cover || ''),
+                poster: tracks[0]?.cover || tmdbPoster || '',
                 track: tracks[0] || null,
                 tracks,
             }
@@ -253,7 +278,7 @@ function BottomPlayer({ track, isPlaying, progress, volume, onPlayPause, onSeek,
                 @keyframes bp-in{from{transform:translateY(100%)}to{transform:translateY(0)}}
                 .bp-seekbar{position:absolute;top:-1px;left:0;right:0;height:4px;background:rgba(255,255,255,.08);cursor:pointer}
                 .bp-left{display:flex;align-items:center;gap:13px;width:280px;flex-shrink:0}
-                .bp-cover{width:52px;height:52px;border-radius:8px;overflow:hidden;background:#1a1a1a;flex-shrink:0;position:relative}
+                .bp-cover{width:52px;height:52px;border-radius:8px;overflow:hidden;background:var(--bg-card);flex-shrink:0;position:relative}
                 .bp-cover img{width:100%;height:100%;object-fit:cover}
                 .bp-tinfo{min-width:0}
                 .bp-tname{font-size:13px;font-weight:700;color:#fff;margin:0 0 2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -336,14 +361,14 @@ function TrackRow({ track, index, isPlaying, onPlay }: { track: Track; index: nu
             onMouseEnter={e => { if (!isPlaying) (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,.04)' }}
             onMouseLeave={e => { if (!isPlaying) (e.currentTarget as HTMLDivElement).style.background = '' }}>
             <span style={{ fontSize: 12, color: isPlaying ? '#6c63ff' : 'rgba(255,255,255,.22)', width: 22, textAlign: 'center', flexShrink: 0 }}>{index + 1}</span>
-            <div style={{ width: 42, height: 42, borderRadius: 7, overflow: 'hidden', background: '#1a1a1a', flexShrink: 0 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 7, overflow: 'hidden', background: 'var(--bg-card)', flexShrink: 0 }}>
                 {track.cover ? <img src={track.cover} alt={track.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🎵</div>}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: isPlaying ? '#a5a0ff' : 'rgba(255,255,255,.85)', margin: '0 0 2px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{track.title}</p>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{track.artist}</p>
+                <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{track.artist}</p>
             </div>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', width: 32, textAlign: 'right', flexShrink: 0 }}>{ft(track.duration)}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-faint)', width: 32, textAlign: 'right', flexShrink: 0 }}>{ft(track.duration)}</span>
             {isPlaying
                 ? <svg width="13" height="13" viewBox="0 0 24 24" fill="#6c63ff"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
                 : <svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,255,255,0.22)"><polygon points="5,3 19,12 5,21" /></svg>
@@ -353,19 +378,22 @@ function TrackRow({ track, index, isPlaying, onPlay }: { track: Track; index: nu
 }
 
 // ── 신곡 섹션 ──────────────────────────────────────────────────
-function NewSection({ tracks, playingId, onPlay }: {
+function NewSection({ tracks, playingId, onPlay, hotAnimePoster }: {
     tracks: Track[]
     playingId: string | null
     onPlay: (t: Track) => void
+    hotAnimePoster?: string
 }) {
     const main = tracks[0]
     const subs = tracks.slice(1, 7)
     if (!main) return null
     const GAP = 25
+    // hotAnimes[0](주술회전) 포스터 우선, 없으면 iTunes 앨범자켓
+    const mainImg = hotAnimePoster || main.cover
     return (
         <section style={{ marginBottom: 60 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <h2 style={{ fontSize: 25, fontWeight: 800, color: '#fff', margin: 0 }}>방금 공개된 OST</h2>
+                <h2 style={{ fontSize: 25, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>방금 공개된 OST</h2>
             </div>
             <div style={{
                 display: 'grid',
@@ -380,11 +408,11 @@ function NewSection({ tracks, playingId, onPlay }: {
                         gridColumn: '1 / 3', gridRow: '1 / 3',
                         borderRadius: 20, overflow: 'hidden',
                         cursor: main.previewUrl ? 'pointer' : 'default',
-                        position: 'relative', background: '#111', transition: 'transform .25s',
+                        position: 'relative', background: 'var(--bg-secondary)', transition: 'transform .25s',
                     }}
                     onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.02)'}
                     onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
-                    {main.cover && <img src={main.cover} alt={main.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                    {mainImg && <img src={mainImg} alt={main.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.88) 0%, transparent 55%)' }} />
                     {playingId === main.id && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(108,99,255,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -396,8 +424,8 @@ function NewSection({ tracks, playingId, onPlay }: {
                         </div>
                     )}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '28px' }}>
-                        <p style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: '0 0 6px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{main.title}</p>
-                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', margin: 0 }}>{main.animeName} · {main.artist}</p>
+                        <p style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 6px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{main.title}</p>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>{main.animeName} · {main.artist}</p>
                     </div>
                 </div>
                 {subs.map(t => (
@@ -407,7 +435,7 @@ function NewSection({ tracks, playingId, onPlay }: {
                         style={{
                             borderRadius: 14, overflow: 'hidden',
                             cursor: t.previewUrl ? 'pointer' : 'default',
-                            position: 'relative', background: '#111', transition: 'transform .2s',
+                            position: 'relative', background: 'var(--bg-secondary)', transition: 'transform .2s',
                         }}
                         onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.04)'}
                         onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
@@ -415,8 +443,8 @@ function NewSection({ tracks, playingId, onPlay }: {
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.82) 0%, transparent 55%)' }} />
                         {playingId === t.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(108,99,255,.35)' }} />}
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 14px' }}>
-                            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', margin: '0 0 2px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.title}</p>
-                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,.5)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.animeName}</p>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.title}</p>
+                            <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.animeName}</p>
                         </div>
                     </div>
                 ))}
@@ -425,49 +453,26 @@ function NewSection({ tracks, playingId, onPlay }: {
     )
 }
 
-// ── 주간 TOP 10 ────────────────────────────────────────────────
 function WeeklyTop10({ tracks, playingId, onPlay }: {
     tracks: Track[]
     playingId: string | null
     onPlay: (t: Track) => void
 }) {
-    const [posters, setPosters] = useState<Record<string, string>>({})
-
-    useEffect(() => {
-        if (!tracks.length) return
-        // animeName으로 TMDB 포스터 fetch
-        Promise.all(
-            tracks.map(async t => {
-                try {
-                    const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(t.animeName)}&language=ko-KR`)
-                    const data = await res.json()
-                    const hit = (data.results || []).find((r: any) => r.original_language === 'ja' && r.poster_path)
-                    if (hit?.poster_path) return { id: t.id, poster: `https://image.tmdb.org/t/p/w342${hit.poster_path}` }
-                } catch { }
-                return { id: t.id, poster: '' }
-            })
-        ).then(results => {
-            const map: Record<string, string> = {}
-            results.forEach(r => { if (r.poster) map[r.id] = r.poster })
-            setPosters(map)
-        })
-    }, [tracks.map(t => t.id).join(',')])
-
     if (!tracks.length) return null
     return (
         <section style={{ marginBottom: 60, position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <h2 style={{ fontSize: 25, fontWeight: 800, color: '#fff', margin: 0 }}>주간 TOP 10</h2>
+                <h2 style={{ fontSize: 25, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>주간 TOP 10</h2>
             </div>
             <Swiper
                 modules={[FreeMode]}
                 freeMode={{ sticky: false }}
                 slidesPerView={'auto'}
-                spaceBetween={24}
+                spaceBetween={16}
                 style={{ overflow: 'visible', marginRight: 'calc(-5vw - 20px)', paddingRight: 'calc(5vw + 20px)' }}>
                 {tracks.map((t, i) => {
                     const playing = playingId === t.id
-                    const thumb = posters[t.id] || t.cover
+                    const thumb = t.cover
                     return (
                         <SwiperSlide key={t.id} style={{ width: 210 }}>
                             <div
@@ -477,7 +482,7 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
                                 <div style={{
                                     position: 'relative', width: 210, height: 300, borderRadius: 14,
-                                    overflow: 'hidden', background: '#1a1a1a',
+                                    overflow: 'hidden', background: 'var(--bg-card)',
                                     border: `3px solid ${playing ? '#6c63ff' : 'transparent'}`,
                                     boxShadow: playing
                                         ? '0 0 20px rgba(108,99,255,.55), 0 8px 24px rgba(0,0,0,.8)'
@@ -491,12 +496,12 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                                     {/* 하단 그라디언트 + 숫자 */}
                                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 50%)' }} />
                                     <span style={{
-                                        position: 'absolute', left: 10, bottom: 0,
-                                        fontSize: 88, fontWeight: 900, lineHeight: 1,
+                                        position: 'absolute', left: 8, bottom: -8,
+                                        fontSize: 72, fontWeight: 900, lineHeight: 1,
                                         color: playing ? '#a5a0ff' : '#fff',
                                         textShadow: '0 2px 12px rgba(0,0,0,.9)',
                                         userSelect: 'none', pointerEvents: 'none',
-                                        transition: 'color .2s', letterSpacing: '-4px',
+                                        transition: 'color .2s', letterSpacing: '-3px',
                                     }}>
                                         {i + 1}
                                     </span>
@@ -512,7 +517,7 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                                 </div>
                                 <div style={{ paddingLeft: 4 }}>
                                     <p style={{ fontSize: 13, fontWeight: 700, color: playing ? '#a5a0ff' : 'rgba(255,255,255,.85)', margin: '8px 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.title}</p>
-                                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.animeName}</p>
+                                    <p style={{ fontSize: 11, color: 'var(--text-subtle)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.animeName}</p>
                                 </div>
                             </div>
                         </SwiperSlide>
@@ -535,7 +540,7 @@ function RecommendSection({ tracks, playingId, onPlay, userName }: {
     return (
         <section style={{ marginBottom: 60, position: 'relative', zIndex: 1 }}>
             <div style={{ marginBottom: 20 }}>
-                <h2 style={{ fontSize: 25, fontWeight: 800, color: '#fff', margin: 0 }}>
+                <h2 style={{ fontSize: 25, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                     <span style={{ color: '#9d97ff' }}>"{userName}"</span> 님 취향저격
                 </h2>
             </div>
@@ -545,11 +550,11 @@ function RecommendSection({ tracks, playingId, onPlay, userName }: {
                         <div onClick={() => onPlay(t)} style={{ cursor: 'pointer', textAlign: 'center', transition: 'transform .25s' }}
                             onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-6px)'}
                             onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
-                            <div style={{ width: 160, height: 160, borderRadius: '50%', overflow: 'hidden', background: '#1a1a1a', border: playingId === t.id ? '4px solid #6c63ff' : '4px solid transparent', boxShadow: playingId === t.id ? '0 0 24px rgba(108,99,255,.6)' : 'none', transition: 'border-color .2s' }}>
+                            <div style={{ width: 160, height: 160, borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-card)', border: playingId === t.id ? '4px solid #6c63ff' : '4px solid transparent', boxShadow: playingId === t.id ? '0 0 24px rgba(108,99,255,.6)' : 'none', transition: 'border-color .2s' }}>
                                 {t.cover ? <img src={t.cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🎵</div>}
                             </div>
-                            <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.85)', margin: '10px 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: 160 }}>{t.animeName}</p>
-                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: 160 }}>{t.artist}</p>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-high)', margin: '10px 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: 160 }}>{t.animeName}</p>
+                            <p style={{ fontSize: 10, color: 'var(--text-subtle)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: 160 }}>{t.artist}</p>
                         </div>
                     </SwiperSlide>
                 ))}
@@ -572,7 +577,7 @@ function HotAnimeSection({
     return (
         <section style={{ marginBottom: 60, position: 'relative', zIndex: 1 }}>
             <div style={{ marginBottom: 20 }}>
-                <h2 style={{ fontSize: 25, fontWeight: 800, color: '#fff', margin: 0 }}>화제의 애니메이션 OST</h2>
+                <h2 style={{ fontSize: 25, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>화제의 애니메이션 OST</h2>
             </div>
             <Swiper modules={[FreeMode]} freeMode slidesPerView={'auto'} spaceBetween={14} style={{ overflow: 'visible', marginRight: 'calc(-5vw - 20px)', paddingRight: 'calc(5vw + 20px)' }}>
                 {hotAnimes.map(anime => {
@@ -587,7 +592,7 @@ function HotAnimeSection({
                                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
                                 <div style={{
                                     width: 180, height: 255, borderRadius: 14,
-                                    overflow: 'hidden', background: '#1a1a1a', marginBottom: 10,
+                                    overflow: 'hidden', background: 'var(--bg-card)', marginBottom: 10,
                                     position: 'relative',
                                     border: `3px solid ${isActive ? '#6c63ff' : 'transparent'}`,
                                     boxShadow: isActive ? '0 0 20px rgba(108,99,255,.45), 0 8px 24px rgba(0,0,0,.6)' : '0 8px 24px rgba(0,0,0,.6)',
@@ -608,16 +613,16 @@ function HotAnimeSection({
                                     )}
                                     {anime.tracks.length > 0 && (
                                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px', background: 'linear-gradient(to top, rgba(0,0,0,.95), transparent)' }}>
-                                            <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: '#6c63ff', color: '#fff' }}>
+                                            <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: '#6c63ff', color: 'var(--text-primary)' }}>
                                                 ▶ {(anime.tracks[0].type || 'OST').toUpperCase()}
                                             </span>
-                                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,.5)', marginLeft: 6 }}>{anime.tracks.length}곡</span>
+                                            <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 6 }}>{anime.tracks.length}곡</span>
                                         </div>
                                     )}
                                 </div>
                                 <p style={{ fontSize: 13, fontWeight: 700, color: isActive ? '#a5a0ff' : 'rgba(255,255,255,.88)', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: 180 }}>{anime.name}</p>
                                 {anime.tracks[0] && (
-                                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: 180 }}>
+                                    <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: 180 }}>
                                         {playingTrack?.title || anime.tracks[0].title}
                                     </p>
                                 )}
@@ -647,7 +652,22 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
 
     const top10 = useMemo(() => {
         if (!tracks.length) return []
-        return [...tracks].sort((a, b) => (b.popularity || b.duration || 0) - (a.popularity || a.duration || 0)).slice(0, 10)
+        const sorted = [...tracks].sort((a, b) => (b.popularity || b.duration || 0) - (a.popularity || a.duration || 0))
+        // 커버 이미지 중복 제거 (같은 앨범 트랙 반복 방지)
+        const seenCovers = new Set<string>()
+        const seenAnimes = new Set<string>()
+        const unique: typeof sorted = []
+        for (const t of sorted) {
+            const coverKey = t.cover.replace(/\/\d+x\d+/, '')  // 해상도 부분 무시
+            const animeKey = t.animeName.toLowerCase().trim()
+            if (!seenCovers.has(coverKey) && !seenAnimes.has(animeKey)) {
+                seenCovers.add(coverKey)
+                seenAnimes.add(animeKey)
+                unique.push(t)
+                if (unique.length >= 10) break
+            }
+        }
+        return unique
     }, [tracks.length > 0 ? tracks[0].id : ''])
 
     const allTags = ['전체', '오프닝', '엔딩', 'BGM', '전투', '감성', '로맨스', '새벽감성', '열혈', '힐링']
@@ -696,14 +716,14 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                         top: 0, bottom: 0,
                         left: 'calc(-1 * (100vw - 90%) / 2)',
                         right: 0,
-                        background: '#0a0a0a',
+                        background: 'var(--bg-primary)',
                         zIndex: 28,
                         pointerEvents: 'none',
                     }} />
                     {/* 필터: sticky로 스크롤 따라옴 */}
                     <div style={{ position: 'sticky', top: 75, maxHeight: 'calc(100vh - 75px)', overflowY: 'auto', zIndex: 30, paddingRight: 28 }}>
                         <div style={{ marginBottom: 24 }}>
-                            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em', margin: '0 0 10px' }}>타입</p>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '.08em', margin: '0 0 10px' }}>타입</p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 {typeFilters.map(f => {
                                     const cnt = typeCounts[f as keyof typeof typeCounts] ?? 0
@@ -731,7 +751,7 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                         </div>
                         <div style={{ height: 1, background: 'rgba(255,255,255,.07)', marginBottom: 20 }} />
                         <div>
-                            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em', margin: '0 0 10px' }}>분위기</p>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '.08em', margin: '0 0 10px' }}>분위기</p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 {allTags.map(tag => {
                                     const cnt = tagCounts[tag as keyof typeof tagCounts] ?? 0
@@ -781,9 +801,9 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                         </svg>
                     </button>
                     <div style={{ position: 'relative', flex: 1 }}>
-                        <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.3)', pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+                        <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)', pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
                         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="애니·곡·아티스트 검색"
-                            style={{ width: '100%', height: 36, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, color: '#fff', fontSize: 13, padding: '0 16px 0 36px', outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', height: 36, background: 'rgba(255,255,255,.07)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13, padding: '0 16px 0 36px', outline: 'none', boxSizing: 'border-box' }}
                             onFocus={e => (e.target.style.borderColor = '#6c63ff')}
                             onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,.1)')} />
                     </div>
@@ -791,7 +811,7 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
 
                 {isFiltering ? (
                     <div>
-                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.28)', marginBottom: 12 }}>{filtered.length}곡</p>
+                        <p style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 12 }}>{filtered.length}곡</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             {filtered.map((t, i) => <TrackRow key={t.id} track={t} index={i} isPlaying={playingId === t.id} onPlay={onPlay} />)}
                         </div>
@@ -802,6 +822,7 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                             tracks={newTracks}
                             playingId={playingId}
                             onPlay={onPlay}
+                            hotAnimePoster={hotAnimes[0]?.poster || hotAnimes[0]?.tracks[0]?.cover}
                         />
                         <WeeklyTop10
                             tracks={top10}
@@ -825,9 +846,9 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                             return (
                                 <section key={tag} style={{ marginBottom: 32 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                                        <h2 style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,.88)', margin: 0 }}>#{tag}</h2>
+                                        <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-high)', margin: 0 }}>#{tag}</h2>
                                         <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.07)' }} />
-                                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,.25)' }}>{tagged.length}곡</span>
+                                        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{tagged.length}곡</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                         {tagged.slice(0, 25).map((t, i) => <TrackRow key={t.id} track={t} index={i} isPlaying={playingId === t.id} onPlay={onPlay} />)}
@@ -858,11 +879,13 @@ export default function OstPage() {
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const tracksRef = useRef<Track[]>([])
+    const volumeRef = useRef(0.8)           // ← 클로저 stale 방지
+    const currentTrackRef = useRef<Track | null>(null)  // ← 플레이어바 동기화용
     const userName = user?.name || user?.email?.split('@')[0] || '라프텔'
 
     useEffect(() => { tracksRef.current = tracks }, [tracks])
+    useEffect(() => { volumeRef.current = volume; if (audioRef.current) audioRef.current.volume = volume }, [volume])
     const getPlayableTracks = useCallback(() => tracksRef.current.filter(t => t.previewUrl), [])
-    useEffect(() => { if (audioRef.current) audioRef.current.volume = volume }, [volume])
 
     useEffect(() => {
         const onMove = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY })
@@ -873,38 +896,90 @@ export default function OstPage() {
     useEffect(() => {
         const load = async () => {
             setLoading(true)
-            const queries = [
-                'アニメ オープニング', 'アニメ エンディング', 'アニメ サウンドトラック',
-                '呪術廻戦 ost', '鬼滅の刃 ost', '進撃の巨人 ost',
-                'naruto shippuden ost', 'bleach tybw ost', 'one piece ost',
-                'spy x family ost', 'frieren ost', 'chainsaw man ost',
-                'violet evergarden ost', 'fullmetal alchemist brotherhood ost',
-                'haikyuu ost', 'mob psycho 100 ost', 'blue lock ost',
-                're zero ost', 'overlord ost', 'death note ost',
-                'sword art online ost', 'dragon ball z ost', 'evangelion ost',
-                'my hero academia ost', 'demon slayer ost', 'vinland saga ost',
-                'steins gate ost', 'code geass ost', 'hunter x hunter ost',
-                'tokyo ghoul ost', 'black clover ost', 'fairy tail ost',
+
+            // ── 1단계: 인기 6개만 먼저 빠르게 (로딩 끝내기)
+            const priorityQueries = [
+                '呪術廻戦 サウンドトラック',
+                '鬼滅の刃 サウンドトラック',
+                '進撃の巨人 サウンドトラック',
+                'スパイファミリー サウンドトラック',
+                '葬送のフリーレン サウンドトラック',
+                'チェンソーマン サウンドトラック',
             ]
             const seen = new Set<string>()
-            const results = await Promise.all(queries.map(q => fetchItunesAnime(q, 50)))
-            const allTracks: Track[] = []
-            results.flat().forEach(t => { if (!seen.has(t.id)) { seen.add(t.id); allTracks.push(t) } })
-            setTracks(allTracks)
-            setLoadCount(allTracks.length)
+            const firstResults = await Promise.all(priorityQueries.map(q => fetchItunesAnime(q, 20)))
+            const firstTracks: Track[] = []
+            firstResults.flat().forEach(t => { if (!seen.has(t.id)) { seen.add(t.id); firstTracks.push(t) } })
+            setTracks(firstTracks)
+            setLoadCount(firstTracks.length)
+            setLoading(false)  // ← 여기서 먼저 로딩 해제 → 화면 바로 표시
 
+            // ── 2단계: newTracks + hotAnimes (섹션 표시용)
             const [newT, hotA] = await Promise.all([fetchNewReleases(), fetchHotAnimeOst()])
-            setNewTracks(newT)
+            const hotFirstTrack = hotA[0]?.tracks?.find(t => t.previewUrl)
+            const mergedNewT = hotFirstTrack
+                ? [hotFirstTrack, ...newT.filter(t => t.id !== hotFirstTrack.id).slice(0, 6)]
+                : newT
+            setNewTracks(mergedNewT)
             setHotAnimes(hotA)
-            setLoading(false)
+
+            // ── 3단계: 나머지 쿼리 배경에서 추가 로딩 (UX 안 막음)
+            const restQueries = [
+                'アニメ オープニング サウンドトラック', 'アニメ エンディング サウンドトラック',
+                'アニメ BGM サウンドトラック 2023', 'アニメ サウンドトラック 2024',
+                'ナルト疾風伝 サウンドトラック', 'BLEACH サウンドトラック',
+                'ワンピース サウンドトラック', 'ヴァイオレット エヴァーガーデン サウンドトラック',
+                '鋼の錬金術師 BROTHERHOOD サウンドトラック', 'ハイキュー サウンドトラック',
+                'モブサイコ100 サウンドトラック', 'ブルーロック サウンドトラック',
+                'リゼロ サウンドトラック', 'オーバーロード サウンドトラック',
+                'デスノート サウンドトラック', 'ソードアートオンライン サウンドトラック',
+                'エヴァンゲリオン サウンドトラック', 'ドラゴンボールZ サウンドトラック',
+                '僕のヒーローアカデミア サウンドトラック', '東京喰種 サウンドトラック',
+                'シュタインズゲート サウンドトラック', 'コードギアス サウンドトラック',
+                'ヴィンランドサガ サウンドトラック', 'HUNTER HUNTER サウンドトラック',
+                'フェアリーテイル サウンドトラック', 'ブラッククローバー サウンドトラック',
+            ]
+            // 4개씩 배치로 나눠서 순차 로딩 → 서버 부하 줄이기
+            const batchSize = 4
+            for (let i = 0; i < restQueries.length; i += batchSize) {
+                const batch = restQueries.slice(i, i + batchSize)
+                const batchResults = await Promise.all(batch.map(q => fetchItunesAnime(q, 30)))
+                const newBatchTracks: Track[] = []
+                batchResults.flat().forEach(t => {
+                    if (!seen.has(t.id)) { seen.add(t.id); newBatchTracks.push(t) }
+                })
+                if (newBatchTracks.length > 0) {
+                    setTracks(prev => [...prev, ...newBatchTracks])
+                    setLoadCount(prev => prev + newBatchTracks.length)
+                }
+                // 배치 사이 살짝 텀 줘서 API 레이트리밋 방지
+                await new Promise(r => setTimeout(r, 300))
+            }
         }
         load()
     }, [])
 
     const stopAudio = useCallback(() => {
-        audioRef.current?.pause()
-        if (progressRef.current) clearInterval(progressRef.current)
+        if (audioRef.current) {
+            audioRef.current.pause()
+            audioRef.current.onended = null
+            audioRef.current.src = ''
+            audioRef.current = null
+        }
+        if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null }
         setPlayingId(null); setProgress(0)
+    }, [])
+
+    // 페이지 이탈 시 오디오 완전 정리
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause()
+                audioRef.current.onended = null
+                audioRef.current.src = ''
+            }
+            if (progressRef.current) clearInterval(progressRef.current)
+        }
     }, [])
 
     const startPlay = useCallback((track: Track) => {
@@ -917,10 +992,16 @@ export default function OstPage() {
         const audio = new Audio()
         audio.crossOrigin = 'anonymous'
         audio.src = track.previewUrl
-        audio.volume = volume
+        audio.volume = volumeRef.current   // ← ref 사용으로 stale 방지
         audioRef.current = audio
+
+        // currentTrack을 재생 직전에 동기적으로 ref에 저장 → 플레이어바 즉시 반영
+        currentTrackRef.current = track
+        setCurrentTrack(track)
+        setPlayingId(track.id)
+        setProgress(0)
+
         audio.play().catch(err => console.warn('play error:', err))
-        setPlayingId(track.id); setCurrentTrack(track); setProgress(0)
         if (progressRef.current) clearInterval(progressRef.current)
         progressRef.current = setInterval(() => {
             if (!audioRef.current) return
@@ -928,10 +1009,10 @@ export default function OstPage() {
         }, 200)
         audioRef.current.onended = () => {
             const all = getPlayableTracks()
-            const idx = all.findIndex(t => t.id === track.id)
+            const idx = all.findIndex(t => t.id === currentTrackRef.current?.id)
             if (idx >= 0 && idx < all.length - 1) startPlay(all[idx + 1]); else stopAudio()
         }
-    }, [stopAudio, volume, getPlayableTracks])
+    }, [stopAudio, getPlayableTracks])
 
     const handlePlayAnime = useCallback((anime: HotAnime) => {
         if (!anime.tracks.length) return
@@ -978,25 +1059,30 @@ export default function OstPage() {
                 <img src="/images/laftel-icon/sing.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
 
-            <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: currentTrack ? 96 : 0 }}>
+            <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: currentTrack ? 96 : 0 }}>
                 <style>{`
-                .ost-loading-bar{height:3px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
-                .ost-loading-bar::after{content:'';position:absolute;left:-40%;width:40%;height:100%;background:linear-gradient(to right,transparent,#6c63ff,transparent);animation:ost-shimmer 1.2s infinite}
+
                 @keyframes ost-shimmer{to{left:100%}}
                 @keyframes eq{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
                 @keyframes spin{to{transform:rotate(360deg)}}
             `}</style>
 
                 <div style={{ width: '90%', margin: '0 auto', paddingTop: 64, paddingBottom: 60, overflow: 'visible' }}>
-                    <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', padding: '18px 0', marginBottom: 28, position: 'relative', zIndex: 29 }}>
-                        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.2, letterSpacing: '-0.02em' }}>OST</h1>
-                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: '8px 0 0' }}>애니메이션 속 그 노래, 여기서 다시 들어요</p>
+                    <div style={{ borderBottom: '1px solid var(--border-subtle)', padding: '18px 0', marginBottom: 28, position: 'relative', zIndex: 29 }}>
+                        <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', margin: 0, lineHeight: 1.2, letterSpacing: '-0.02em' }}>OST</h1>
+                        <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '8px 0 0' }}>애니메이션 속 그 노래, 여기서 다시 들어요</p>
                     </div>
-                    {loading && <div className="ost-loading-bar" />}
                     {loading && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'var(--text-faint)' }}>
                             <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                             {loadCount}곡 로드 중...
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                            <Lottie
+                                path="https://assets10.lottiefiles.com/packages/lf20_ikku7ex4.json"
+                                style={{ width: 36, height: 36 }}
+                                loop
+                            />
+
                         </div>
                     )}
                     <OstTab
@@ -1013,7 +1099,7 @@ export default function OstPage() {
 
             {currentTrack && (
                 <BottomPlayer
-                    track={currentTrack} isPlaying={playingId === currentTrack.id}
+                    track={currentTrackRef.current || currentTrack} isPlaying={playingId === (currentTrackRef.current || currentTrack)?.id}
                     progress={progress} volume={volume}
                     onPlayPause={() => playingId === currentTrack.id ? stopAudio() : startPlay(currentTrack)}
                     onSeek={handleSeek} onPrev={handlePrev} onNext={handleNext}

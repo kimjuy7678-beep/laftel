@@ -158,10 +158,10 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
 
                     {/* 헤더 */}
                     <div style={{ padding: '24px 28px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: 0 }}>전체 일정</h2>
+                        <h2 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 800, margin: 0 }}>전체 일정</h2>
                         <button
                             onClick={onClose}
-                            style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' }}
+                            style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.05)', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.1)'; e.currentTarget.style.color = '#fff' }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.05)'; e.currentTarget.style.color = 'rgba(255,255,255,.4)' }}
                         >
@@ -171,19 +171,19 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                         </button>
                     </div>
 
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,.28)', padding: '6px 28px 20px', margin: 0, borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+                    <p style={{ fontSize: 12, color: 'var(--text-faint)', padding: '6px 28px 20px', margin: 0, borderBottom: '1px solid rgba(255,255,255,.07)' }}>
                         날짜를 선택하면 해당일 방영 작품을 확인할 수 있어요
                     </p>
 
                     {/* 월 네비 */}
                     <div style={{ display: 'flex', alignItems: 'center', padding: '18px 28px 12px' }}>
-                        <button onClick={prevMonth} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: 'transparent', color: 'rgba(255,255,255,.35)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .18s' }}
+                        <button onClick={prevMonth} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: 'transparent', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .18s' }}
                             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.3)'; e.currentTarget.style.color = '#fff' }}
                             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.1)'; e.currentTarget.style.color = 'rgba(255,255,255,.35)' }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                         </button>
-                        <span style={{ flex: 1, textAlign: 'center', color: '#fff', fontSize: 16, fontWeight: 700 }}>{viewYear}년 {viewMonth + 1}월</span>
-                        <button onClick={nextMonth} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: 'transparent', color: 'rgba(255,255,255,.35)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .18s' }}
+                        <span style={{ flex: 1, textAlign: 'center', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700 }}>{viewYear}년 {viewMonth + 1}월</span>
+                        <button onClick={nextMonth} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: 'transparent', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .18s' }}
                             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.3)'; e.currentTarget.style.color = '#fff' }}
                             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.1)'; e.currentTarget.style.color = 'rgba(255,255,255,.35)' }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
@@ -241,15 +241,15 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                     {/* 범례 */}
                     <div style={{ padding: '12px 28px 20px', borderTop: '1px solid rgba(255,255,255,.05)', marginTop: 'auto', display: 'flex', gap: 20 }}>
                         {calLoading
-                            ? <span style={{ fontSize: 11, color: 'rgba(255,255,255,.2)' }}>방영 정보 불러오는 중…</span>
+                            ? <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>방영 정보 불러오는 중…</span>
                             : <>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(108,99,255,.8)', display: 'block' }} />
-                                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.28)' }}>방영 있음</span>
+                                    <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>방영 있음</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <span style={{ width: 14, height: 14, borderRadius: 4, background: 'rgba(108,99,255,.15)', border: '1px solid rgba(108,99,255,.3)', display: 'block' }} />
-                                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.28)' }}>오늘</span>
+                                    <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>오늘</span>
                                 </div>
                             </>
                         }
@@ -263,14 +263,14 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                         {/* 패널 헤더 */}
                         <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid rgba(255,255,255,.07)', position: 'sticky', top: 0, background: '#141420', zIndex: 5 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{selectedLabel}</span>
+                                <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{selectedLabel}</span>
                                 {!listLoading && (
-                                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', background: 'rgba(255,255,255,.07)', borderRadius: 20, padding: '2px 8px' }}>{selectedList.length}편</span>
+                                    <span style={{ fontSize: 11, color: 'var(--text-subtle)', background: 'rgba(255,255,255,.07)', borderRadius: 20, padding: '2px 8px' }}>{selectedList.length}편</span>
                                 )}
                             </div>
                             <button
                                 onClick={() => { onSelectDate(selectedDate!); onClose() }}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.5)', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', transition: 'all .18s' }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', transition: 'all .18s' }}
                                 onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.25)' }}
                                 onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.1)' }}
                             >
@@ -295,7 +295,7 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                                 </div>
                             ) : selectedList.length === 0 ? (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>
-                                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,.2)', textAlign: 'center', margin: 0 }}>이 날은 방영 작품이 없어요</p>
+                                    <p style={{ fontSize: 13, color: 'var(--text-faint)', textAlign: 'center', margin: 0 }}>이 날은 방영 작품이 없어요</p>
                                 </div>
                             ) : (
                                 selectedList.map((ani, idx) => {
@@ -325,12 +325,12 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                                    <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ani.name}</p>
-                                                    {isNew && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 10, background: '#6c63ff', color: '#fff', flexShrink: 0 }}>신작</span>}
+                                                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ani.name}</p>
+                                                    {isNew && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 10, background: '#6c63ff', color: 'var(--text-primary)', flexShrink: 0 }}>신작</span>}
                                                 </div>
                                                 <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
                                                     {genres.map((g: string) => (
-                                                        <span key={g} style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '1px 6px' }}>{g}</span>
+                                                        <span key={g} style={{ fontSize: 10, color: 'var(--text-faint)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '1px 6px' }}>{g}</span>
                                                     ))}
                                                     {score > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(251,191,36,.65)' }}>★ {score}</span>}
                                                 </div>

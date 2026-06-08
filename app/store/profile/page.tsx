@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { db } from "@/firebase/firebase";
 import { collection, getDocs, orderBy, query, doc, updateDoc, serverTimestamp, getDoc, setDoc, increment, addDoc } from "firebase/firestore";
 import { saveStoreNotification } from "@/utils/storeNotification";
+import Link from "next/link";
 
 type OrderItem = {
     productId: string;
@@ -26,7 +27,7 @@ type Order = {
     usedPoints: number;
     couponId?: string;
     couponDiscount?: number;
-    createdAt: any;
+    createdAt?: Date | { toDate?: () => Date } | null;
     cancelReason?: string;
     refundReason?: string;
     refundType?: "제품하자" | "단순변심";
@@ -45,6 +46,41 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const CANCEL_REASONS = ["단순 변심", "상품 불량/파손", "배송 지연", "주문 실수", "기타"];
+
+const DATE_RANGE_BUTTONS = [
+    { label: "1달", months: 1, days: 0 },
+    { label: "3달", months: 3, days: 0 },
+    { label: "6개월", months: 6, days: 0 },
+];
+
+function toDateInputValue(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function toOrderDateLabel(date?: Date) {
+    if (!date) return "-";
+    return toDateInputValue(date).replaceAll("-", ".");
+}
+
+function getOrderCreatedDate(createdAt: Order["createdAt"]) {
+    if (createdAt instanceof Date) return createdAt;
+    return createdAt?.toDate?.();
+}
+
+function getDateRange(months: number, days: number) {
+    const to = new Date();
+    const from = new Date(to);
+    if (months > 0) from.setMonth(from.getMonth() - months);
+    if (days > 0) from.setDate(from.getDate() - days);
+
+    return {
+        from: toDateInputValue(from),
+        to: toDateInputValue(to),
+    };
+}
 
 // ─── 주문취소 팝업 ─────────────────────────────────────────────────────────────
 function CancelPopup({ order, onClose, onConfirm }: {
@@ -233,31 +269,31 @@ export default function ProfilePage() {
     const { user } = useAuthStore();
     const [tab, setTab] = useState("전체");
     const [orders, setOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
     const [refundTarget, setRefundTarget] = useState<Order | null>(null);
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 6;
-    const [dateFrom, setDateFrom] = useState("");
-    const [dateTo, setDateTo] = useState("");
-    const [appliedFrom, setAppliedFrom] = useState("");
-    const [appliedTo, setAppliedTo] = useState("");
+    const [initialDateRange] = useState(() => getDateRange(1, 0));
+    const [dateFrom, setDateFrom] = useState(initialDateRange.from);
+    const [dateTo, setDateTo] = useState(initialDateRange.to);
+    const [appliedFrom, setAppliedFrom] = useState(initialDateRange.from);
+    const [appliedTo, setAppliedTo] = useState(initialDateRange.to);
+    const [activeRange, setActiveRange] = useState("1달");
 
     useEffect(() => {
-        if (!user?.uid) { setLoading(false); return; }
+        if (!user?.uid) return;
         (async () => {
             try {
                 const snap = await getDocs(query(collection(db, "users", user.uid!, "orders"), orderBy("createdAt", "desc")));
                 setOrders(snap.docs.map(d => ({
                     id: d.id, ...d.data(),
-                    date: d.data().createdAt?.toDate?.()?.toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }) ?? "-",
+                    date: toOrderDateLabel(getOrderCreatedDate(d.data().createdAt)),
                 })) as Order[]);
             } catch (err) { console.error("[Orders]", err); }
             finally { setLoading(false); }
         })();
     }, [user?.uid]);
-
-    useEffect(() => { setPage(1); setAppliedFrom(""); setAppliedTo(""); setDateFrom(""); setDateTo(""); }, [tab]);
 
     // ── 주문 취소 → "처리중" 상태로 저장 (관리자 확인 후 주문취소로 변경) ──────
     const handleCancel = async (orderId: string, selectedIds: string[], reason: string) => {
@@ -330,12 +366,29 @@ export default function ProfilePage() {
     const canCancel = (status: string) => status === "결제완료" || status === "배송시작";
     const canRefund = (status: string) => status === "배송완료";
 
+    const applyDateRange = (label: string, months: number, days: number) => {
+        const range = getDateRange(months, days);
+        setDateFrom(range.from);
+        setDateTo(range.to);
+        setAppliedFrom(range.from);
+        setAppliedTo(range.to);
+        setActiveRange(label);
+        setPage(1);
+    };
+
+    const applyCustomDateRange = () => {
+        setAppliedFrom(dateFrom);
+        setAppliedTo(dateTo);
+        setActiveRange("");
+        setPage(1);
+    };
+
     const filtered = orders.filter(o => {
         if (tab === "배송중" && !(o.status === "결제완료" || o.status === "배송시작" || o.status === "배송중")) return false;
         if (tab === "배송완료" && o.status !== "배송완료") return false;
-        if (tab === "교환환불" && !(o.status === "처리중" || o.status === "주문취소" || o.status === "교환환불신청" || o.status === "환불완료")) return false;
+        if (tab === "교환환불/취소" && !(o.status === "처리중" || o.status === "주문취소" || o.status === "교환환불신청" || o.status === "환불완료")) return false;
         if (appliedFrom || appliedTo) {
-            const orderDate = o.createdAt?.toDate?.() as Date | undefined;
+            const orderDate = getOrderCreatedDate(o.createdAt);
             if (!orderDate) return false;
             if (appliedFrom && orderDate < new Date(appliedFrom)) return false;
             if (appliedTo && orderDate > new Date(appliedTo + "T23:59:59")) return false;
@@ -353,7 +406,7 @@ export default function ProfilePage() {
             {/* 탭 */}
             <div className="mb-5 flex items-center gap-6 border-b border-[#f0edf8]">
                 {STATUS_TABS.map(t => (
-                    <button key={t} onClick={() => setTab(t)}
+                    <button key={t} onClick={() => { setTab(t); setPage(1); }}
                         className={`pb-3 text-[13px] font-semibold transition border-b-2 ${tab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
                         {t}
                     </button>
@@ -362,21 +415,28 @@ export default function ProfilePage() {
 
             {/* 날짜 검색 */}
             <div className="mb-5 flex items-center gap-2 flex-wrap">
+                {DATE_RANGE_BUTTONS.map((range) => (
+                    <button
+                        key={range.label}
+                        type="button"
+                        onClick={() => applyDateRange(range.label, range.months, range.days)}
+                        className={`h-[36px] rounded-[8px] px-3 text-[12px] font-semibold transition ${activeRange === range.label
+                            ? "bg-[#7865ff] text-white"
+                            : "border border-[#ddd8f4] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"
+                            }`}
+                    >
+                        {range.label}
+                    </button>
+                ))}
                 <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
                     className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
                 <span className="text-[#9b94b2]">~</span>
                 <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
                     className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
-                <button onClick={() => { setAppliedFrom(dateFrom); setAppliedTo(dateTo); setPage(1); }}
+                <button onClick={applyCustomDateRange}
                     className="h-[36px] rounded-[8px] bg-[#7865ff] px-4 text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
                     기간 검색
                 </button>
-                {(appliedFrom || appliedTo) && (
-                    <button onClick={() => { setDateFrom(""); setDateTo(""); setAppliedFrom(""); setAppliedTo(""); setPage(1); }}
-                        className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] transition">
-                        초기화
-                    </button>
-                )}
             </div>
 
             {/* 주문 목록 */}
@@ -396,17 +456,19 @@ export default function ProfilePage() {
                                     <div className="flex-1 min-w-0">
                                         <p className="mb-3 text-[12px] text-[#9b94b2]">{order.date}</p>
                                         {order.items.map((item, i) => (
-                                            <div key={i} className="mb-3 flex items-center gap-3">
-                                                <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[8px] bg-[#f0eeff]">
-                                                    {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
+                                            <Link key={i} href={item.productId}>
+                                                <div key={i} className="mb-3 flex items-center gap-3">
+                                                    <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[8px] bg-[#f0eeff]">
+                                                        {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="line-clamp-1 text-[13px] font-medium text-[#16121f]">{item.title}</p>
+                                                        <p className="text-[11px] text-[#9b94b2]">옵션 : {item.option}</p>
+                                                        <p className="text-[12px] font-bold text-[#16121f]">{item.price.toLocaleString()}원</p>
+                                                        <p className="text-[11px] text-[#9b94b2]">총 수량 : {item.qty}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <p className="line-clamp-1 text-[13px] font-medium text-[#16121f]">{item.title}</p>
-                                                    <p className="text-[11px] text-[#9b94b2]">옵션 : {item.option}</p>
-                                                    <p className="text-[12px] font-bold text-[#16121f]">{item.price.toLocaleString()}원</p>
-                                                    <p className="text-[11px] text-[#9b94b2]">총 수량 : {item.qty}</p>
-                                                </div>
-                                            </div>
+                                            </Link>
                                         ))}
                                     </div>
                                     <div className="shrink-0 text-right">

@@ -102,7 +102,7 @@ function AnimeCard({ anime, aniList, accentColor, delay }: {
                 }
                 {hovered && (
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.8) 0%, transparent 50%)', display: 'flex', alignItems: 'flex-end', padding: 12 }}>
-                        <button style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', background: accentColor, border: 'none', borderRadius: 20, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        <button style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', background: accentColor, border: 'none', borderRadius: 20, color: 'var(--text-primary)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
                             지금 보기
                         </button>
@@ -112,7 +112,7 @@ function AnimeCard({ anime, aniList, accentColor, delay }: {
             <p style={{ fontSize: 13, fontWeight: 700, color: hovered ? '#fff' : 'rgba(255,255,255,.8)', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', lineHeight: 1.3, transition: 'color .18s' }}>
                 {anime.koTitle}
             </p>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                 {anime.moods.slice(0, 2).join(' · ')}
             </p>
         </div>
@@ -127,8 +127,8 @@ function OtherMoodsSection({ currentId, onSelect }: { currentId: string; onSelec
     return (
         <div style={{ width: '90%', margin: '0 auto', padding: '80px 0' }}>
             <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', padding: '18px 0', marginBottom: 32 }}>
-                <h2 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>다른 감정으로 찾기</h2>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: '8px 0 0' }}>지금 내 기분에 맞는 애니를 골라보세요</p>
+                <h2 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>다른 감정으로 찾기</h2>
+                <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '8px 0 0' }}>지금 내 기분에 맞는 애니를 골라보세요</p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '28px 16px' }}>
                 {otherMoods.map(m => {
@@ -162,7 +162,7 @@ function OtherMoodsSection({ currentId, onSelect }: { currentId: string; onSelec
                                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 14px' }}>
                                     <p style={{
                                         fontSize: 13, fontWeight: 800, margin: 0,
-                                        color: '#fff',
+                                        color: 'var(--text-primary)',
                                         overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
                                     }}>{m.label}</p>
                                 </div>
@@ -238,7 +238,7 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                 @keyframes spin { to { transform:rotate(360deg) } }
             `}</style>
 
-            <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: 80, color: '#fff' }}>
+            <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 80, color: 'var(--text-primary)' }}>
 
                 {/* ── 헤더 ── */}
                 <div className="rv-inner" style={{ padding: '80px 0 20px' }}>
@@ -246,13 +246,13 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <button
                                 onClick={onReset}
-                                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.4)', fontSize: 16, cursor: 'pointer', padding: '4px 6px', lineHeight: 1, borderRadius: 6, transition: 'color .15s', fontFamily: 'inherit' }}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-subtle)', fontSize: 16, cursor: 'pointer', padding: '4px 6px', lineHeight: 1, borderRadius: 6, transition: 'color .15s', fontFamily: 'inherit' }}
                                 onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,.8)')}
                                 onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,.4)')}
                             >← 돌아가기</button>
                             <div>
-                                <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.2 }}>{mood.label}</h1>
-                                <p style={{ fontSize: 14, color: 'rgba(255,255,255,.4)', margin: '4px 0 0' }}>{mood.sub}</p>
+                                <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>{mood.label}</h1>
+                                <p style={{ fontSize: 14, color: 'var(--text-subtle)', margin: '4px 0 0' }}>{mood.sub}</p>
                             </div>
                         </div>
                         <button
@@ -283,7 +283,7 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                             <div style={{ width: '90%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <button
                                     onClick={onReset}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 20, color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '7px 16px', fontFamily: 'inherit', transition: 'all .18s' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 20, color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '7px 16px', fontFamily: 'inherit', transition: 'all .18s' }}
                                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.14)'; e.currentTarget.style.color = '#fff' }}
                                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = 'rgba(255,255,255,.6)' }}
                                 >
@@ -291,7 +291,7 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                                     홈으로
                                 </button>
                                 <button
-                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 20, color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '7px 16px', fontFamily: 'inherit', transition: 'all .18s' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 20, color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '7px 16px', fontFamily: 'inherit', transition: 'all .18s' }}
                                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.14)'; e.currentTarget.style.color = '#fff' }}
                                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = 'rgba(255,255,255,.6)' }}
                                     onClick={() => { navigator.clipboard.writeText(window.location.href); alert('링크가 복사되었어요!') }}
@@ -320,8 +320,8 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                                     </div>
 
                                     {/* 타이틀 */}
-                                    <h1 style={{ fontSize: 52, fontWeight: 900, color: '#fff', margin: '0 0 8px', lineHeight: 1.1, letterSpacing: '-0.03em' }}>{hero.koTitle}</h1>
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,.35)', margin: '0 0 20px', letterSpacing: '.02em' }}>{hero.title}</p>
+                                    <h1 style={{ fontSize: 52, fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 8px', lineHeight: 1.1, letterSpacing: '-0.03em' }}>{hero.koTitle}</h1>
+                                    <p style={{ fontSize: 14, color: 'var(--text-subtle)', margin: '0 0 20px', letterSpacing: '.02em' }}>{hero.title}</p>
 
                                     {/* 태그 */}
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 28 }}>
@@ -334,14 +334,14 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                                             }}>{label}</span>
                                         ))}
                                         {hero.moods.slice(0, 3).map((m, i) => (
-                                            <span key={`m${i}`} style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', background: 'rgba(255,255,255,.05)', padding: '4px 11px', borderRadius: 20, border: '1px solid rgba(255,255,255,.08)' }}>{m}</span>
+                                            <span key={`m${i}`} style={{ fontSize: 11, color: 'var(--text-subtle)', background: 'rgba(255,255,255,.05)', padding: '4px 11px', borderRadius: 20, border: '1px solid rgba(255,255,255,.08)' }}>{m}</span>
                                         ))}
                                     </div>
 
                                     {/* 버튼 */}
                                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                                         <button onClick={() => router.push(`/anime/${hero.tmdbId}`)}
-                                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 32px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', transition: 'all .18s', fontFamily: 'inherit', letterSpacing: '-0.01em' }}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 32px', background: '#6c63ff', border: 'none', borderRadius: 10, color: 'var(--text-primary)', fontSize: 15, fontWeight: 800, cursor: 'pointer', transition: 'all .18s', fontFamily: 'inherit', letterSpacing: '-0.01em' }}
                                             onMouseEnter={e => { e.currentTarget.style.background = '#5a52e0'; e.currentTarget.style.transform = 'scale(1.03)' }}
                                             onMouseLeave={e => { e.currentTarget.style.background = '#6c63ff'; e.currentTarget.style.transform = 'scale(1)' }}>
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
@@ -370,10 +370,10 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                 {subs.length > 0 && (
                     <div style={{ width: '90%', margin: '0 auto', paddingTop: 80, paddingBottom: 20 }}>
                         <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', padding: '18px 0', marginBottom: 32 }}>
-                            <h2 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
+                            <h2 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
                                 <span style={{ color: mood.color }}>{mood.emoji}</span> 이런 작품도 있어요
                             </h2>
-                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: '8px 0 0' }}>{mood.sub} · {subs.length}편</p>
+                            <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '8px 0 0' }}>{mood.sub} · {subs.length}편</p>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '32px 16px' }}>
                             {subs.map((anime, i) => (
@@ -440,7 +440,7 @@ function MoodPageInner() {
 export default function MoodPage() {
     return (
         <Suspense fallback={
-            <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ width: 28, height: 28, border: '3px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
                 <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
             </div>

@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { db } from "@/firebase/firebase";
 import { collection, getDocs, orderBy, query, onSnapshot, doc } from "firebase/firestore";
 import Link from "next/link";
+import CountUp from 'react-countup'
 
 type PointRecord = {
     id: string;
@@ -81,7 +82,7 @@ export default function PointsPage() {
                     <div className="flex-1">
                         <p className="text-[12px] font-medium text-[#9b94b2] mb-0.5">현재 보유 포인트</p>
                         <p className="text-[32px] font-black text-[#7865ff] leading-none">
-                            {livePoints.toLocaleString()}
+                            <CountUp end={livePoints} duration={0.4} separator="," enableScrollSpy scrollSpyOnce />
                             <span className="text-[18px] font-bold ml-1">P</span>
                         </p>
                     </div>
@@ -108,7 +109,7 @@ export default function PointsPage() {
                         </div>
                         <div>
                             <p className="text-[11px] text-[#9b94b2]">총 적립</p>
-                            <p className="text-[15px] font-bold text-[#16121f]">+{totalEarned.toLocaleString()}P</p>
+                            <p className="text-[15px] font-bold text-[#16121f]">+<CountUp end={totalEarned} duration={0.4} separator="," enableScrollSpy scrollSpyOnce />P</p>
                         </div>
                     </div>
                     <div className="rounded-[12px] bg-white px-4 py-3 flex items-center gap-3">
@@ -119,7 +120,7 @@ export default function PointsPage() {
                         </div>
                         <div>
                             <p className="text-[11px] text-[#9b94b2]">총 사용</p>
-                            <p className="text-[15px] font-bold text-[#16121f]">-{totalUsed.toLocaleString()}P</p>
+                            <p className="text-[15px] font-bold text-[#16121f]">-<CountUp end={totalUsed} duration={0.4} separator="," enableScrollSpy scrollSpyOnce />P</p>
                         </div>
                     </div>
                 </div>

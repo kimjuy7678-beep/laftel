@@ -3,13 +3,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { doc, setDoc, getDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from "@/firebase/firebase";
 import LoginAlert from "@/components/store/LoginAlert";
 import CartAlert from "@/components/store/CartAlert";
 import WishAlert from "@/components/store/WishAlert";
+import RestockAlertButton from "@/components/store/RestockAlertButton";
 
 export type StoreProduct = {
     productId: string;
@@ -20,6 +20,62 @@ export type StoreProduct = {
     soldout: boolean;
     productdetail?: string[];
 };
+
+type DateParts = {
+    year: number;
+    month: number;
+    day: number;
+};
+
+function getTodayParts(): DateParts {
+    const parts = new Intl.DateTimeFormat("ko-KR", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+    }).formatToParts(new Date());
+    const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value);
+
+    return {
+        year: value("year"),
+        month: value("month"),
+        day: value("day"),
+    };
+}
+
+function toSerial(date: DateParts) {
+    return date.year * 10000 + date.month * 100 + date.day;
+}
+
+function parseReserveDeadline(product: StoreProduct, fallbackYear: number): DateParts | null {
+    const text = (product.productdetail ?? []).join(" ");
+    const fullDate = text.match(/예약 마감일\s*\|?\s*(20\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+    if (fullDate) {
+        return {
+            year: Number(fullDate[1]),
+            month: Number(fullDate[2]),
+            day: Number(fullDate[3]),
+        };
+    }
+
+    const shortDate = text.match(/예약 마감일\s*\|?\s*(\d{1,2})월\s*(\d{1,2})일/);
+    if (shortDate) {
+        return {
+            year: fallbackYear,
+            month: Number(shortDate[1]),
+            day: Number(shortDate[2]),
+        };
+    }
+
+    return null;
+}
+
+function isReserveClosed(product: StoreProduct) {
+    if (!product.title.includes("[예약]")) return false;
+    const today = getTodayParts();
+    const deadline = parseReserveDeadline(product, today.year);
+    return Boolean(deadline && toSerial(deadline) < toSerial(today));
+}
 
 function ImageSlot({ src, alt, className }: { src: string; alt: string; className: string }) {
     if (!src) return <div className={`${className} bg-[#eeeeef]`} aria-label={alt} />;
@@ -140,17 +196,13 @@ export function CartButton({
     requiresOption?: boolean;
     disabled?: boolean;
 }) {
-    const router = useRouter();
     const { user } = useAuthStore();
     const [inCart, setInCart] = useState(false);
     const [showLogin, setShowLogin] = useState(false);
     const [showCart, setShowCart] = useState(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // ✅ 추가
 
-    // ✅ 페이지 재진입 시(뒤로가기 포함) 알럿 상태 초기화
     useEffect(() => {
-        setShowCart(false);
-        setShowLogin(false);
         return () => {
             if (timerRef.current) clearTimeout(timerRef.current); // ✅ 언마운트 시 타이머 정리
         };
@@ -179,6 +231,7 @@ export function CartButton({
     const addToCart = async (e: React.MouseEvent) => {
         e.preventDefault(); e.stopPropagation();
         if (disabled) return;
+        void requiresOption;
 
         if (!user?.uid) {
             setShowLogin(true);
@@ -234,10 +287,12 @@ export function CartButton({
     );
 }
 
-export default function StoreProductCard({ product }: { product: StoreProduct }) {
-    const displayPrice = product.soldout ? "품절" : product.price;
+export default function StoreProductCard({ product, badgeLabel }: { product: StoreProduct; badgeLabel?: string }) {
     const isReserve = product.title.includes("[예약]");
+    const reserveClosed = isReserveClosed(product);
     const isSoldout = product.title.includes("[품절]") || product.soldout;
+    const isUnavailable = isSoldout || reserveClosed;
+    const displayPrice = reserveClosed ? "예약 마감" : isSoldout ? "품절" : product.price;
     const displayTitle = product.title.replace("[예약]", "").replace("[품절]", "").trim();
     const requiresOption = getCardOptionValues(product).length > 0 || product.title.includes("선택");
 
@@ -248,12 +303,19 @@ export default function StoreProductCard({ product }: { product: StoreProduct })
                 <Link href={`/store/${product.productId}`} className="block">
                     <ImageSlot src={product.thumbnail} alt={product.title}
                         className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.04]" />
-                    {isReserve && !isSoldout && (
+                    {isReserve && !isUnavailable && (
                         <span className="absolute left-3 top-3 rounded-full bg-[#7865ff] px-2.5 py-1 text-[11px] font-bold text-white shadow-[0_2px_8px_rgba(120,101,255,0.36)]">예약</span>
                     )}
-                    {isSoldout && (
+                    {badgeLabel && (
+                        <span className={`absolute ${isReserve && !isUnavailable ? "left-3 top-10" : "left-3 top-3"} rounded-full bg-[#826CFF] px-2.5 py-1 text-[11px] font-bold text-white shadow-[0_2px_8px_rgba(17,16,24,0.2)]`}>
+                            {badgeLabel}
+                        </span>
+                    )}
+                    {isUnavailable && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                            <span className="rounded-full bg-white/90 px-4 py-1.5 text-[13px] font-bold text-[#555]">품절</span>
+                            <span className="rounded-full bg-white/90 px-4 py-1.5 text-[13px] font-bold text-[#555]">
+                                {reserveClosed ? "예약 마감" : "품절"}
+                            </span>
                         </div>
                     )}
                 </Link>
@@ -261,7 +323,11 @@ export default function StoreProductCard({ product }: { product: StoreProduct })
                 {/* ✅ Link 완전히 밖 — 이벤트 충돌 없음 */}
                 <div className="absolute bottom-3 right-3 flex gap-1.5 z-5">
                     <WishButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} disabled={isSoldout} />
-                    <CartButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} requiresOption={requiresOption} disabled={isSoldout} />
+                    {reserveClosed ? (
+                        <RestockAlertButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} />
+                    ) : (
+                        <CartButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} requiresOption={requiresOption} disabled={isUnavailable} />
+                    )}
                 </div>
             </div>
 
@@ -269,7 +335,7 @@ export default function StoreProductCard({ product }: { product: StoreProduct })
             <Link href={`/store/${product.productId}`} className="block mt-3">
                 <p className="text-[11px] text-[#8a8494]">{product.category}</p>
                 <p className="mt-0.5 line-clamp-2 text-[14px] font-semibold leading-[1.4] text-[#17151f]">{displayTitle}</p>
-                <p className={`mt-1.5 text-[17px] font-extrabold ${isSoldout ? "text-[#aaa]" : "text-[#111018]"}`}>{displayPrice}</p>
+                <p className={`mt-1.5 text-[17px] font-extrabold ${isUnavailable ? "text-[#aaa]" : "text-[#111018]"}`}>{displayPrice}</p>
             </Link>
         </div>
     );

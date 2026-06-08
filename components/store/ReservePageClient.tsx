@@ -4,11 +4,17 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Product } from "@/types/store";
 import { CartButton, WishButton } from "@/components/store/StoreProductCard";
+import RestockAlertButton from "@/components/store/RestockAlertButton";
 
 const INITIAL_PRODUCT_COUNT = 20;
 const PAGE_GROUP = 5;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const KOREA_TIME_ZONE = "Asia/Seoul";
+const RESERVE_SORT_OPTIONS = ["마감 임박순", "예약 마감", "인기순", "신규 예약순", "낮은 가격순", "높은 가격순"] as const;
+const RESERVE_KIND_OPTIONS = ["전체 종류", "피규어", "아크릴", "인형", "키링", "뱃지", "기타"] as const;
+
+type ReserveSort = (typeof RESERVE_SORT_OPTIONS)[number];
+type ReserveKind = (typeof RESERVE_KIND_OPTIONS)[number];
 
 type DateParts = {
     year: number;
@@ -97,6 +103,24 @@ function isReserveOpen(product: Product, today: DateParts) {
     return deadline ? toSerial(deadline) >= toSerial(today) : false;
 }
 
+function parsePrice(price: string) {
+    return Number(price.replace(/[^0-9]/g, "")) || 0;
+}
+
+function getReserveKind(product: Product): Exclude<ReserveKind, "전체 종류"> {
+    const text = `${product.title} ${product.category} ${product.productdetail.join(" ")}`;
+
+    if (/아크릴|스탠드/.test(text)) return "아크릴";
+    if (/키링|열쇠고리/.test(text)) return "키링";
+    if (/뱃지|배지|캔뱃지|캔배지|badge/i.test(text)) return "뱃지";
+    if (/인형|플러시|누이|봉제/.test(text)) return "인형";
+    if (/피규어|룩업|넨도로이드|POP UP PARADE|Luminasta|SOFVIMATES|Trio-Try-iT|스케일|모형/i.test(text)) {
+        return "피규어";
+    }
+
+    return "기타";
+}
+
 function hasProductOptions(product: Product) {
     const lines = product.productdetail.map((line) => line.trim()).filter(Boolean);
     if (lines.some((line) => /^옵션\s*[A-Z0-9가-힣]?\.?\s*/.test(line))) return true;
@@ -120,57 +144,72 @@ function buildEvents(products: Product[], today: DateParts): CalendarEvent[] {
 
 function ProductCard({ product, today }: { product: Product; today: DateParts }) {
     const showReserveBadge = isReserveOpen(product, today);
+    const isReserveClosed = Boolean(parseDeadlineDate(product, today.year)) && !showReserveBadge;
+    const isUnavailable = product.soldout || isReserveClosed;
     const requiresOption = hasProductOptions(product);
+    const displayTitle = cleanReserveTitle(product.title);
 
     return (
-        <Link href={`/store/${product.productId}`} className="group block min-w-0">
+        <div className="group block min-w-0">
             <div className="relative overflow-hidden rounded-[12px] bg-[#f3f1ff]">
-                <div
-                    className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.04]"
-                    role="img"
-                    aria-label={product.title}
-                    style={{
-                        backgroundImage: `url(${product.thumbnail})`,
-                        backgroundPosition: "center",
-                        backgroundSize: "cover",
-                    }}
-                />
-                {showReserveBadge && (
-                    <span className="absolute left-3 top-3 rounded-full bg-[#7865ff] px-2.5 py-1 text-[11px] font-bold text-white shadow-[0_2px_8px_rgba(120,101,255,0.36)]">
-                        예약
-                    </span>
-                )}
-                {product.soldout && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <span className="rounded-full bg-white/90 px-4 py-1.5 text-[13px] font-bold text-[#555]">품절</span>
-                    </div>
-                )}
-                <div className="absolute bottom-3 right-3 flex gap-1.5">
+                <Link href={`/store/${product.productId}`} className="block">
+                    <div
+                        className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.04]"
+                        role="img"
+                        aria-label={product.title}
+                        style={{
+                            backgroundImage: `url(${product.thumbnail})`,
+                            backgroundPosition: "center",
+                            backgroundSize: "cover",
+                        }}
+                    />
+                    {showReserveBadge && (
+                        <span className="absolute left-3 top-3 rounded-full bg-[#7865ff] px-2.5 py-1 text-[11px] font-bold text-white shadow-[0_2px_8px_rgba(120,101,255,0.36)]">
+                            예약
+                        </span>
+                    )}
+                    {isUnavailable && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <span className="rounded-full bg-white/90 px-4 py-1.5 text-[13px] font-bold text-[#555]">
+                                {isReserveClosed ? "예약 마감" : "품절"}
+                            </span>
+                        </div>
+                    )}
+                </Link>
+                <div className="absolute bottom-3 right-3 z-10 flex gap-1.5">
                     <WishButton
                         productId={product.productId}
-                        title={cleanReserveTitle(product.title)}
+                        title={displayTitle}
                         thumbnail={product.thumbnail}
                         disabled={product.soldout}
                     />
-                    <CartButton
-                        productId={product.productId}
-                        title={cleanReserveTitle(product.title)}
-                        thumbnail={product.thumbnail}
-                        requiresOption={requiresOption}
-                        disabled={product.soldout}
-                    />
+                    {isReserveClosed ? (
+                        <RestockAlertButton
+                            productId={product.productId}
+                            title={displayTitle}
+                            thumbnail={product.thumbnail}
+                        />
+                    ) : (
+                        <CartButton
+                            productId={product.productId}
+                            title={displayTitle}
+                            thumbnail={product.thumbnail}
+                            requiresOption={requiresOption}
+                            disabled={product.soldout}
+                        />
+                    )}
                 </div>
             </div>
-            <div className="mt-3">
+            <Link href={`/store/${product.productId}`} className="mt-3 block">
                 <p className="text-[11px] text-[#8a8494]">{product.category}</p>
                 <p className="mt-0.5 line-clamp-2 text-[14px] font-semibold leading-[1.4] text-[#17151f]">
-                    [예약] {cleanReserveTitle(product.title)}
+                    [예약] {displayTitle}
                 </p>
-                <p className={`mt-1.5 text-[17px] font-extrabold ${product.soldout ? "text-[#aaa]" : "text-[#111018]"}`}>
-                    {product.soldout ? "품절" : product.price}
+                <p className={`mt-1.5 text-[17px] font-extrabold ${isUnavailable ? "text-[#aaa]" : "text-[#111018]"}`}>
+                    {isReserveClosed ? "예약 마감" : product.soldout ? "품절" : product.price}
                 </p>
-            </div>
-        </Link>
+            </Link>
+        </div>
     );
 }
 
@@ -188,11 +227,16 @@ function ReleaseCalendar({
 
     return (
         <section className="rounded-[24px] bg-[#f6f3ff] px-6 py-7">
+
             <p className="mb-3 text-[12px] text-[#9b94b2]">
                 <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
                 <span className="mx-1.5">›</span>
                 <span className="font-medium text-[#7865ff]">예약 굿즈</span>
             </p>
+            <h2 className="text-[30px] font-extrabold text-[#111018] pb-[10px]">예약 구매 굿즈</h2>
+            {/* <p className="mt-2 text-[15px] text-[#8a8494] pb-[20px]">
+                누구보다 빠르게 한정판 피규어와 공식 굿즈를 만나보세요.
+            </p> */}
             <div className="mb-6 flex items-center justify-between">
 
                 <div className="flex items-center gap-2">
@@ -345,9 +389,9 @@ function CalendarModal({
                         })}
                     </div>
                     <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-[#7a8193]">
-                        <span className="flex items-center gap-2"><i className="h-1.5 w-1.5 rounded-full bg-[#7865ff]" />출시 및 예약 시작일</span>
+
                         <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-full bg-[#5a45e8]" />오늘</span>
-                        <span className="flex items-center gap-2"><i className="h-3.5 w-5 rounded bg-[#ede9ff]" />주요 이벤트</span>
+                        <span className="flex items-center gap-2"><i className="h-3.5 w-5 rounded bg-[#ede9ff]" />주요 이벤트 / 예약 마감일</span>
                     </div>
                 </div>
             </div>
@@ -421,10 +465,58 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
 export default function ReservePageClient({ products }: { products: Product[] }) {
     const [calendarOpen, setCalendarOpen] = useState(false);
     const [page, setPage] = useState(1);
+    const [sort, setSort] = useState<ReserveSort>("마감 임박순");
+    const [kind, setKind] = useState<ReserveKind>("전체 종류");
     const today = useMemo(() => getTodayParts(), []);
     const events = useMemo(() => buildEvents(products, today), [products, today]);
-    const totalPages = Math.ceil(products.length / INITIAL_PRODUCT_COUNT);
-    const visibleProducts = products.slice((page - 1) * INITIAL_PRODUCT_COUNT, page * INITIAL_PRODUCT_COUNT);
+    const sortedProducts = useMemo(() => {
+        const filteredByKind = products.filter((product) => {
+            if (kind === "전체 종류") return true;
+            return getReserveKind(product) === kind;
+        });
+        const filtered = sort === "예약 마감"
+            ? filteredByKind.filter((product) => {
+                const deadline = parseDeadlineDate(product, today.year);
+                return Boolean(deadline && toSerial(deadline) < toSerial(today));
+            })
+            : filteredByKind;
+
+        return [...filtered].sort((a, b) => {
+            if (sort === "예약 마감") {
+                const aDeadline = parseDeadlineDate(a, today.year);
+                const bDeadline = parseDeadlineDate(b, today.year);
+                return (bDeadline ? toSerial(bDeadline) : 0) - (aDeadline ? toSerial(aDeadline) : 0);
+            }
+            if (sort === "마감 임박순") {
+                const aDeadline = parseDeadlineDate(a, today.year);
+                const bDeadline = parseDeadlineDate(b, today.year);
+                const todaySerial = toSerial(today);
+                const aDeadlineSerial = aDeadline ? toSerial(aDeadline) : Number.MAX_SAFE_INTEGER;
+                const bDeadlineSerial = bDeadline ? toSerial(bDeadline) : Number.MAX_SAFE_INTEGER;
+                const aClosed = aDeadlineSerial < todaySerial;
+                const bClosed = bDeadlineSerial < todaySerial;
+
+                if (aClosed !== bClosed) return aClosed ? 1 : -1;
+                return aDeadlineSerial - bDeadlineSerial;
+            }
+            if (sort === "신규 예약순") return Number(b.productId) - Number(a.productId);
+            if (sort === "낮은 가격순") return parsePrice(a.price) - parsePrice(b.price);
+            if (sort === "높은 가격순") return parsePrice(b.price) - parsePrice(a.price);
+            return 0;
+        });
+    }, [kind, products, sort, today]);
+    const totalPages = Math.ceil(sortedProducts.length / INITIAL_PRODUCT_COUNT);
+    const visibleProducts = sortedProducts.slice((page - 1) * INITIAL_PRODUCT_COUNT, page * INITIAL_PRODUCT_COUNT);
+
+    const handleSortChange = (nextSort: ReserveSort) => {
+        setSort(nextSort);
+        setPage(1);
+    };
+
+    const handleKindChange = (nextKind: ReserveKind) => {
+        setKind(nextKind);
+        setPage(1);
+    };
 
     const handlePageChange = (nextPage: number) => {
         setPage(nextPage);
@@ -437,19 +529,39 @@ export default function ReservePageClient({ products }: { products: Product[] })
                 <ReleaseCalendar today={today} events={events} onOpenModal={() => setCalendarOpen(true)} />
 
                 <section id="reserve-products" className="mt-10">
-                    <div className="mb-6 flex items-end justify-between gap-6">
-                        <div>
-
-                            <h2 className="text-[30px] font-extrabold text-[#111018]">예약 구매 굿즈</h2>
-                            <p className="mt-2 text-[15px] text-[#8a8494]">
-                                누구보다 빠르게 한정판 피규어와 공식 굿즈를 만나보세요.
-                            </p>
-                        </div>
-                        <div className="flex h-[38px] items-center gap-2 rounded-full border border-[#ddd8f4] bg-white px-4 text-[13px] font-semibold text-[#6b647a]">
-                            인기순
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                                <path d="m6 9 6 6 6-6" />
-                            </svg>
+                    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                        <p className="text-[14px] text-[#6b647a]">
+                            총 <span className="font-semibold text-[#16121f]">{sortedProducts.length}</span>개의 상품
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="relative">
+                                <select
+                                    value={kind}
+                                    onChange={(event) => handleKindChange(event.target.value as ReserveKind)}
+                                    className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer"
+                                >
+                                    {RESERVE_KIND_OPTIONS.map((option) => (
+                                        <option key={option}>{option}</option>
+                                    ))}
+                                </select>
+                                <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M6 9l6 6 6-6" />
+                                </svg>
+                            </div>
+                            <div className="relative">
+                                <select
+                                    value={sort}
+                                    onChange={(event) => handleSortChange(event.target.value as ReserveSort)}
+                                    className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer"
+                                >
+                                    {RESERVE_SORT_OPTIONS.map((option) => (
+                                        <option key={option}>{option}</option>
+                                    ))}
+                                </select>
+                                <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M6 9l6 6 6-6" />
+                                </svg>
+                            </div>
                         </div>
                     </div>
 

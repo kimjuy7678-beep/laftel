@@ -2,7 +2,7 @@ import { db } from '@/firebase/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 
 export const saveStoreNotification = async (uid: string, data: {
-    type: 'point' | 'coupon' | 'membership' | 'event' | 'live' | 'order' | 'cancel'
+    type: 'point' | 'coupon' | 'membership' | 'event' | 'live' | 'order' | 'cancel' | 'restock'
     title: string
     body: string
     link?: string

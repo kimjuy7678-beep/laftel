@@ -89,19 +89,19 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                 onClick={onClose}
             >
                 <div
-                    className="relative bg-[#1a1a1a] rounded-2xl w-full max-w-3xl 2xl:max-w-4xl p-8 2xl:p-10 max-h-[90vh] overflow-y-auto"
+                    className="relative bg-[var(--bg-card)] rounded-2xl w-full max-w-3xl 2xl:max-w-4xl p-8 2xl:p-10 max-h-[90vh] overflow-y-auto"
                     onClick={e => e.stopPropagation()}
                 >
                     {/* 닫기 */}
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer"
+                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
                     >
                         ✕
                     </button>
 
                     <h3 className="text-xl 2xl:text-2xl font-black mb-1">멤버십 선택</h3>
-                    <p className="text-white/40 text-sm mb-6">언제든 해지 가능 · 다음 결제일 전까지 이용 가능</p>
+                    <p className="text-[var(--text-subtle)] text-sm mb-6">언제든 해지 가능 · 다음 결제일 전까지 이용 가능</p>
 
                     {/* 탭 */}
                     <div className="grid grid-cols-3 gap-3 mb-6">
@@ -111,8 +111,8 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                                 onClick={() => setModalPlan(p.id)}
                                 className="py-3 px-4 rounded-xl border text-sm font-bold transition-all cursor-pointer"
                                 style={modalPlan === p.id
-                                    ? { borderColor: p.color, background: `${p.color}18`, color: '#fff' }
-                                    : { borderColor: 'rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)' }
+                                    ? { borderColor: p.color, background: `${p.color}18`, color: 'var(--text-primary)' }
+                                    : { borderColor: 'rgba(255,255,255,0.1)', background: 'transparent', color: 'var(--text-muted)' }
                                 }
                             >
                                 <div>{p.emoji} {p.name}</div>
@@ -126,10 +126,10 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                         {/* 왼쪽 — 플랜 상세 */}
                         <div className="rounded-xl p-6" style={{ background: `${currentPlan.color}15`, border: `1px solid ${currentPlan.color}40` }}>
                             <div className="text-sm font-bold mb-1" style={{ color: currentPlan.color }}>{currentPlan.emoji} {currentPlan.name}</div>
-                            <div className="text-white/40 text-xs mb-4">{currentPlan.desc}</div>
+                            <div className="text-[var(--text-subtle)] text-xs mb-4">{currentPlan.desc}</div>
                             <div className="text-4xl font-black mb-6">
                                 ₩{currentPlan.price}
-                                <span className="text-sm text-white/30 font-normal">/월</span>
+                                <span className="text-sm text-[var(--text-faint)] font-normal">/월</span>
                             </div>
                             <div className="flex flex-col gap-2.5">
                                 {currentPlan.features.map(f => (
@@ -141,7 +141,7 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                                     </div>
                                 ))}
                                 {currentPlan.notIncluded.map(f => (
-                                    <div key={f} className="flex items-center gap-2 text-sm text-white/20">
+                                    <div key={f} className="flex items-center gap-2 text-sm text-[var(--text-faint)]">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2">
                                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                                         </svg>
@@ -153,11 +153,11 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
 
                         {/* 오른쪽 — 비교표 */}
                         <div>
-                            <p className="text-white/40 text-xs mb-3">플랜 비교</p>
+                            <p className="text-[var(--text-subtle)] text-xs mb-3">플랜 비교</p>
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-white/10">
-                                        <th className="text-left text-xs text-white/40 pb-2">기능</th>
+                                    <tr className="border-b border-[var(--border)]">
+                                        <th className="text-left text-xs text-[var(--text-subtle)] pb-2">기능</th>
                                         {plans.map(p => (
                                             <th key={p.id} className="text-center text-xs pb-2" style={{ color: p.color }}>{p.emoji}</th>
                                         ))}
@@ -165,8 +165,8 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                                 </thead>
                                 <tbody>
                                     {compareRows.map(row => (
-                                        <tr key={row.label} className="border-b border-white/5">
-                                            <td className="py-2.5 text-xs text-white/50">{row.label}</td>
+                                        <tr key={row.label} className="border-b border-[var(--border-faint)]">
+                                            <td className="py-2.5 text-xs text-[var(--text-muted)]">{row.label}</td>
                                             {plans.map(p => (
                                                 <td key={p.id} className="py-2.5 text-center">
                                                     {row[p.id as keyof typeof row]

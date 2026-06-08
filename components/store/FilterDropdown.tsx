@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 350000;
 
 interface FilterDropdownProps {
     open: boolean;
+    onClose: () => void; // 추가
     priceRange: [number, number];
     onPriceRange: (v: [number, number]) => void;
     onlyInStock: boolean;
@@ -18,6 +19,7 @@ interface FilterDropdownProps {
 
 export default function FilterDropdown({
     open,
+    onClose,
     priceRange,
     onPriceRange,
     onlyInStock,
@@ -30,9 +32,22 @@ export default function FilterDropdown({
 
     const [localRange, setLocalRange] = useState<[number, number]>(priceRange);
     const [onlyReserve, setOnlyReserve] = useState(onlyReserveProp ?? false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => { setLocalRange(priceRange); }, [priceRange]);
     useEffect(() => { setOnlyReserve(onlyReserveProp ?? false); }, [onlyReserveProp]);
+
+    // 외부 클릭 감지
+    useEffect(() => {
+        if (!open) return;
+        const handleMouseDown = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                onClose();
+            }
+        };
+        document.addEventListener("mousedown", handleMouseDown);
+        return () => document.removeEventListener("mousedown", handleMouseDown);
+    }, [open, onClose]);
 
     const handleMin = (e: React.ChangeEvent<HTMLInputElement>) => {
         setLocalRange([Math.min(Number(e.target.value), localRange[1] - 1000), localRange[1]]);
@@ -61,7 +76,22 @@ export default function FilterDropdown({
     if (!open) return null;
 
     return (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-[16px] border border-[#e2ddf5] bg-white p-5 shadow-[0_8px_32px_rgba(30,24,70,0.14)]">
+        <div
+            ref={dropdownRef}
+            className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-[16px] border border-[#e2ddf5] bg-white p-5 shadow-[0_8px_32px_rgba(30,24,70,0.14)]"
+        >
+            {/* 헤더 + X 버튼 */}
+            <div className="flex items-center justify-end mb-2">
+                <button
+                    onClick={onClose}
+                    className="flex h-[24px] w-[24px] items-center justify-center rounded-full text-[#9e98b0] transition hover:bg-[#f0edf8] hover:text-[#3d3755]"
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
             {/* 가격 */}
             <p className="text-[13px] font-semibold text-[#16121f]">가격별로 보기</p>
             <div className="mt-3 flex items-center gap-2">
@@ -103,7 +133,7 @@ export default function FilterDropdown({
 
             <div className="my-4 border-t border-[#f0edf8]" />
 
-            {/* 재고있음만 보기 */}
+            {/* 재고 */}
             <p className="text-[13px] font-semibold text-[#16121f]">재고</p>
             <button
                 onClick={() => onOnlyInStock(!onlyInStock)}
@@ -118,11 +148,12 @@ export default function FilterDropdown({
                 </div>
             </button>
 
-            {/* 예약 굿즈만 보기 */}
             <div className="my-4 border-t border-[#f0edf8]" />
+
+            {/* 예약 굿즈 */}
             <p className="text-[13px] font-semibold text-[#16121f]">예약 굿즈</p>
             <button
-                onClick={() => handleToggleReserve()}
+                onClick={handleToggleReserve}
                 className={`mt-3 flex w-full items-center justify-between rounded-[10px] border px-3 py-2.5 text-[13px] font-medium transition ${onlyReserve
                     ? "border-[#7865ff] bg-[#f0eeff] text-[#7865ff]"
                     : "border-[#ddd8f4] bg-white text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"

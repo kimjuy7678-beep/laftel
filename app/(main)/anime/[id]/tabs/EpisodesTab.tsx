@@ -20,12 +20,12 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
             <select
                 value={selectedSeason}
                 onChange={e => setSelectedSeason(Number(e.target.value))}
-                className="mb-3 bg-white/[0.06] border border-white/10 text-white text-sm rounded-lg px-3 py-2 w-fit cursor-pointer"
+                className="mb-3 bg-white/[0.06] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 w-fit cursor-pointer"
             >
                 {(detail?.seasons || [])
                     .filter((s: any) => s.season_number > 0)
                     .map((s: any) => (
-                        <option key={s.season_number} value={s.season_number} className="bg-[#1a1a1a]">
+                        <option key={s.season_number} value={s.season_number} className="bg-[var(--bg-card)]">
                             시즌 {s.season_number} ({s.episode_count}화)
                         </option>
                     ))
@@ -33,7 +33,7 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
             </select>
             {episodes.length === 0 ? (
                 <div className="flex items-center justify-center py-10">
-                    <div className="w-5 h-5 border-2 border-white/10 border-t-[#6c63ff] rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-[var(--border)] border-t-[#6c63ff] rounded-full animate-spin" />
                 </div>
             ) : episodes.map((ep: any) => (
                 <div
@@ -41,7 +41,7 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
                     className="flex gap-3 items-center p-3 rounded-xl hover:bg-white/[0.05] cursor-pointer group transition-colors"
                     onClick={() => { router.push(`/anime/${previewId}?ep=${ep.episode_number}`); setPreviewId(null) }}
                 >
-                    <div className="relative w-[120px] min-w-[120px] aspect-video rounded-lg overflow-hidden bg-[#1a1a1a] shrink-0">
+                    <div className="relative w-[120px] min-w-[120px] aspect-video rounded-lg overflow-hidden bg-[var(--bg-card)] shrink-0">
                         {ep.still_path
                             ? <img src={`${IMG}/w300${ep.still_path}`} alt={ep.name} className="w-full h-full object-cover" />
                             : <div className="w-full h-full flex items-center justify-center text-white/10 text-xl font-black">{ep.episode_number}</div>
@@ -51,9 +51,9 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
                         </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-[11px] text-white/30 mb-0.5">{ep.episode_number}화</p>
+                        <p className="text-[11px] text-[var(--text-faint)] mb-0.5">{ep.episode_number}화</p>
                         <p className="text-sm font-semibold text-white/90 truncate">{ep.name}</p>
-                        {ep.runtime && <p className="text-[11px] text-white/30 mt-0.5">{ep.runtime}분</p>}
+                        {ep.runtime && <p className="text-[11px] text-[var(--text-faint)] mt-0.5">{ep.runtime}분</p>}
                     </div>
                 </div>
             ))}

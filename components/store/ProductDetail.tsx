@@ -10,6 +10,9 @@ import { db } from "@/firebase/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import CartAlert from "@/components/store/CartAlert";
 import LoginAlert from "@/components/store/LoginAlert";
+import RestockAlertModal from "@/components/store/RestockAlertModal";
+import { RECENT_STORE_PRODUCT_IDS_KEY } from "@/types/store";
+import { getLimitedRemainingQuantity, isLimitedStoreProduct } from "@/lib/storeLimitedProducts";
 import type { StoreProduct } from "../../store/useStore"; // API 응답 → 정규화된 타입
 import { useRouter } from "next/navigation";
 
@@ -17,6 +20,7 @@ import { useRouter } from "next/navigation";
 const TABS = ["교환/반품 안내", "유의사항", "판매자 정보"];
 const THUMBNAIL_VISIBLE = 5;
 const SKIP_LINES = new Set(["상품정보 제공고시", "교환/반품 안내", "판매자 정보", "유의사항"]);
+const RECENT_STORE_PRODUCTS_UPDATED_EVENT = "laftel:store:recent-products-updated";
 
 const RETURN_POLICY = [
     {
@@ -76,6 +80,53 @@ function isStoredCartItem(value: unknown): value is StoredCartItem {
         "productId" in value &&
         typeof (value as { productId?: unknown }).productId === "string",
     );
+}
+
+function getTodayParts() {
+    const parts = new Intl.DateTimeFormat("ko-KR", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+    }).formatToParts(new Date());
+    const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value);
+
+    return {
+        year: value("year"),
+        month: value("month"),
+        day: value("day"),
+    };
+}
+
+function toSerial(date: { year: number; month: number; day: number }) {
+    return date.year * 10000 + date.month * 100 + date.day;
+}
+
+function normalizeStringArray(value: unknown) {
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function parseReserveDeadline(lines: string[], fallbackYear: number) {
+    const text = lines.join(" ");
+    const fullDate = text.match(/예약 마감일\s*\|?\s*(20\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+    if (fullDate) {
+        return {
+            year: Number(fullDate[1]),
+            month: Number(fullDate[2]),
+            day: Number(fullDate[3]),
+        };
+    }
+
+    const shortDate = text.match(/예약 마감일\s*\|?\s*(\d{1,2})월\s*(\d{1,2})일/);
+    if (shortDate) {
+        return {
+            year: fallbackYear,
+            month: Number(shortDate[1]),
+            day: Number(shortDate[2]),
+        };
+    }
+
+    return null;
 }
 
 function splitSpecLine(line: string) {
@@ -226,9 +277,10 @@ function uniqueOptions(options: unknown[]) {
 }
 
 function getOptionValues(product: StoreProduct): string[] {
-    if (product.options.length > 0) return uniqueOptions(product.options);
+    const rawOptions = Array.isArray(product.options) ? product.options : [];
+    if (rawOptions.length > 0) return uniqueOptions(rawOptions);
 
-    const lines = product.productdetail.map((l) => l.trim()).filter(Boolean);
+    const lines = normalizeStringArray(product.productdetail).map((l) => l.trim()).filter(Boolean);
 
     const optionLines = lines
         .filter((line) => /^옵션\s*[A-Z0-9가-힣]?\.?\s*/.test(line))
@@ -331,18 +383,39 @@ function Lightbox({
 
 // ─── 연관상품 카드 ────────────────────────────────────────────────────────────
 function RelatedCard({ product }: { product: StoreProduct }) {
+    const today = getTodayParts();
+    const detailLines = normalizeStringArray(product.productdetail);
+    const reserveDeadline = parseReserveDeadline(detailLines, today.year);
+    const isReserveClosed = Boolean(reserveDeadline && toSerial(reserveDeadline) < toSerial(today));
+    const isSoldout = product.soldout || product.title.includes("[품절]");
+    const isUnavailable = isSoldout || isReserveClosed;
+    const displayTitle = product.title.replace("[예약]", "").replace("[품절]", "").trim();
+    const displayPrice = isReserveClosed ? "예약 마감" : isSoldout ? "품절" : product.price;
+
     return (
         <Link href={`/store/${product.productId}`} className="group block flex-shrink-0" style={{ width: 180 }}>
-            <div className="overflow-hidden rounded-[14px] bg-[#f5f3ff] aspect-square border border-[#ebe8ff]">
+            <div className="relative overflow-hidden rounded-[14px] bg-[#f5f3ff] aspect-square border border-[#ebe8ff]">
                 <img
                     src={product.thumbnail}
                     alt={product.title}
                     className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-300"
                 />
+                {product.title.includes("[예약]") && !isUnavailable && (
+                    <span className="absolute left-2.5 top-2.5 rounded-full bg-[#7865ff] px-2 py-0.5 text-[10px] font-bold text-white shadow-[0_2px_8px_rgba(120,101,255,0.36)]">
+                        예약
+                    </span>
+                )}
+                {isUnavailable && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <span className="rounded-full bg-white/90 px-3.5 py-1 text-[12px] font-bold text-[#555]">
+                            {isReserveClosed ? "예약 마감" : "품절"}
+                        </span>
+                    </div>
+                )}
             </div>
             <p className="mt-2 text-[11px] text-[#aaa]">{product.category}</p>
-            <p className="mt-0.5 text-[13px] font-semibold text-[#111] line-clamp-2 leading-snug">{product.title}</p>
-            <p className="mt-1 text-[13px] font-bold text-[#111]">{product.soldout ? "품절" : product.price}</p>
+            <p className="mt-0.5 text-[13px] font-semibold text-[#111] line-clamp-2 leading-snug">{displayTitle}</p>
+            <p className={`mt-1 text-[13px] font-bold ${isUnavailable ? "text-[#aaa]" : "text-[#111]"}`}>{displayPrice}</p>
         </Link>
     );
 }
@@ -367,11 +440,16 @@ export function ProductDetail({
     const [showLogin, setShowLogin] = useState(false);
     const [showCart, setShowCart] = useState(false);
     const [cartLoading, setCartLoading] = useState(false);
+    const [restockEnabled, setRestockEnabled] = useState(false);
+    const [restockModalOpen, setRestockModalOpen] = useState(false);
     const swiperRef = useRef<HTMLDivElement>(null);
     const { user } = useAuthStore();
     const router = useRouter();
+    const detailLines = normalizeStringArray(product.productdetail);
+    const displayImages = images.length > 0 ? images : [product.thumbnail].filter(Boolean);
 
     const handleBuy = async () => {
+        if (isReserveClosed) return;
         if (!user?.uid) {
             setShowLogin(true);
             return;
@@ -416,11 +494,11 @@ export function ProductDetail({
         router.push(`/store/order?${params.toString()}`);
     };
 
-    const handlePrev = () => setActiveImg((i) => (i - 1 + images.length) % images.length);
-    const handleNext = () => setActiveImg((i) => (i + 1) % images.length);
+    const handlePrev = () => setActiveImg((i) => (i - 1 + displayImages.length) % displayImages.length);
+    const handleNext = () => setActiveImg((i) => (i + 1) % displayImages.length);
 
-    const showThumbSlider = images.length > THUMBNAIL_VISIBLE;
-    const maxThumbOffset = Math.max(0, images.length - THUMBNAIL_VISIBLE);
+    const showThumbSlider = displayImages.length > THUMBNAIL_VISIBLE;
+    const maxThumbOffset = Math.max(0, displayImages.length - THUMBNAIL_VISIBLE);
 
     const handleThumbClick = (i: number) => {
         setActiveImg(i);
@@ -430,19 +508,38 @@ export function ProductDetail({
         }
     };
 
-    const scrollRelated = (dir: "left" | "right") => {
-        swiperRef.current?.scrollBy({ left: dir === "right" ? 580 : -580, behavior: "smooth" });
-    };
-
-    const { specs, noticelines, isReservation, size, material } = parseDetail(product.productdetail, product.title);
+    const { specs, noticelines, isReservation, size, material } = parseDetail(detailLines, product.title);
+    const today = getTodayParts();
+    const reserveDeadline = parseReserveDeadline(detailLines, today.year);
+    const isReserveClosed = Boolean(reserveDeadline && toSerial(reserveDeadline) < toSerial(today));
+    const isUnavailable = product.soldout || isReserveClosed;
     const visibleSpecs = specs.filter((row) => row.label !== "사이즈" && row.label !== "소재");
     const optionValues = getOptionValues(product);
     const showOptionSelect = optionValues.length > 0 || product.title.includes("선택");
     const showSwiper = related.length > 5;
     const displayTitle = product.title.replace("[예약]", "").trim();
     const cartOption = selectedOption || "기본";
+    const isLimitedProduct = isLimitedStoreProduct(product.productId);
+    const limitedRemainingQuantity = getLimitedRemainingQuantity(product.productId);
+
+    useEffect(() => {
+        if (!product.productId) return;
+
+        try {
+            const stored = window.localStorage.getItem(RECENT_STORE_PRODUCT_IDS_KEY);
+            const parsed = stored ? (JSON.parse(stored) as unknown) : [];
+            const previousIds = Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+            const nextIds = [product.productId, ...previousIds.filter((id) => id !== product.productId)].slice(0, 20);
+            window.localStorage.setItem(RECENT_STORE_PRODUCT_IDS_KEY, JSON.stringify(nextIds));
+            window.dispatchEvent(new Event(RECENT_STORE_PRODUCTS_UPDATED_EVENT));
+        } catch {
+            window.localStorage.setItem(RECENT_STORE_PRODUCT_IDS_KEY, JSON.stringify([product.productId]));
+            window.dispatchEvent(new Event(RECENT_STORE_PRODUCTS_UPDATED_EVENT));
+        }
+    }, [product.productId]);
 
     const addToCart = async () => {
+        if (isReserveClosed) return;
         if (!user?.uid) {
             setShowLogin(true);
             return;
@@ -494,6 +591,33 @@ export function ProductDetail({
         }
     };
 
+    const openRestockAlert = () => {
+        if (!user?.uid) {
+            setShowLogin(true);
+            return;
+        }
+        if (restockEnabled) return;
+
+        setRestockModalOpen(true);
+    };
+
+    useEffect(() => {
+        if (!user?.uid || !isReserveClosed) return;
+        const uid = user.uid;
+        let cancelled = false;
+
+        (async () => {
+            const snap = await getDoc(doc(db, "users", uid));
+            const restockAlerts = snap.data()?.restockAlerts as unknown;
+            const ids = Array.isArray(restockAlerts) ? restockAlerts : [];
+            if (!cancelled) setRestockEnabled(ids.includes(product.productId));
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isReserveClosed, product.productId, user?.uid]);
+
     return (
         <div className="min-h-screen bg-white">
             {showLogin && <LoginAlert onClose={() => setShowLogin(false)} />}
@@ -506,7 +630,20 @@ export function ProductDetail({
                 />
             )}
             {lightboxOpen && (
-                <Lightbox images={images} startIndex={activeImg} onClose={() => setLightboxOpen(false)} />
+                <Lightbox images={displayImages} startIndex={activeImg} onClose={() => setLightboxOpen(false)} />
+            )}
+            {restockModalOpen && user?.uid && (
+                <RestockAlertModal
+                    uid={user.uid}
+                    productId={product.productId}
+                    title={displayTitle}
+                    thumbnail={product.thumbnail}
+                    onClose={() => setRestockModalOpen(false)}
+                    onDone={() => {
+                        setRestockEnabled(true);
+                        setRestockModalOpen(false);
+                    }}
+                />
             )}
 
             <main className="mx-auto max-w-[1600px] px-6 pt-[88px] pb-24">
@@ -521,7 +658,7 @@ export function ProductDetail({
                             onClick={() => setLightboxOpen(true)}
                         >
                             <img
-                                src={images[activeImg]}
+                                src={displayImages[activeImg] ?? ""}
                                 alt={product.title}
                                 className="w-full object-contain aspect-square transition-transform duration-300 group-hover:scale-[1.03]"
                             />
@@ -530,7 +667,7 @@ export function ProductDetail({
                                     <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35M11 8v6M8 11h6" />
                                 </svg>
                             </div>
-                            {images.length > 1 && (
+                            {displayImages.length > 1 && (
                                 <>
                                     <button onClick={(e) => { e.stopPropagation(); handlePrev(); }} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-md flex items-center justify-center transition-all">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
@@ -539,7 +676,7 @@ export function ProductDetail({
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
                                     </button>
                                     <span className="absolute bottom-3 right-3 text-[11px] text-white/90 bg-black/40 rounded-full px-2.5 py-0.5 font-medium">
-                                        {activeImg + 1} / {images.length}
+                                        {activeImg + 1} / {displayImages.length}
                                     </span>
                                 </>
                             )}
@@ -556,7 +693,7 @@ export function ProductDetail({
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6B5CE7" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                                 </button>
                                 <div className="flex gap-2 flex-1 overflow-hidden">
-                                    {images.slice(thumbOffset, thumbOffset + THUMBNAIL_VISIBLE).map((img, relIdx) => {
+                                    {displayImages.slice(thumbOffset, thumbOffset + THUMBNAIL_VISIBLE).map((img, relIdx) => {
                                         const absIdx = thumbOffset + relIdx;
                                         return (
                                             <button
@@ -579,7 +716,7 @@ export function ProductDetail({
                             </div>
                         ) : (
                             <div className="mt-3 flex gap-2 flex-wrap">
-                                {images.map((img, i) => (
+                                {displayImages.map((img, i) => (
                                     <button
                                         key={i}
                                         onClick={() => handleThumbClick(i)}
@@ -601,8 +738,22 @@ export function ProductDetail({
                         <h1 className="text-[22px] font-bold text-[#111018] leading-snug">{product.title}</h1>
 
                         <p className="mt-4 text-[30px] font-extrabold text-[#111018]">
-                            {product.soldout ? "품절" : product.price}
+                            {isReserveClosed ? "예약 마감" : product.soldout ? "품절" : product.price}
                         </p>
+
+                        {isLimitedProduct && limitedRemainingQuantity !== null && (
+                            <div className="mt-4 rounded-[14px] border border-[#ffd06e] bg-[#fffcf0] px-4 py-3 text-white shadow-[0_8px_22px_rgba(17,16,24,0.14)]">
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="inline-flex items-center gap-2 border border-[#ffd06e] rounded-full bg-white px-3 py-1 text-[12px] font-extrabold text-[#a06000]">
+
+                                        한정판
+                                    </span>
+                                    <span className="text-[13px] font-bold text-[#a06000]">
+                                        남은 수량 <b className="text-[#C14822]">{limitedRemainingQuantity}</b>개
+                                    </span>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="my-5 border-t border-[#f0eeff]" />
 
@@ -654,7 +805,7 @@ export function ProductDetail({
                                             setSelectedOption(e.target.value);
                                             setOptionError(false);
                                         }}
-                                        disabled={product.soldout}
+                                        disabled={isUnavailable}
                                         className={`h-[46px] w-full appearance-none rounded-[12px] border bg-white px-4 pr-10 text-[13px] font-semibold text-[#222] outline-none transition-colors hover:border-[#c4bbff] focus:border-[#6B5CE7] disabled:cursor-not-allowed disabled:bg-[#f5f3ff] disabled:text-[#aaa] ${optionError ? "border-[#ff5c7a]" : "border-[#e0daf7]"}`}
                                     >
                                         <option value="">옵션을 선택해주세요</option>
@@ -684,7 +835,7 @@ export function ProductDetail({
                             </div>
                         )}
 
-                        {!product.soldout && (
+                        {!isUnavailable && (
                             <div className="flex items-center gap-4 mb-6">
                                 <span className="text-[13px] text-[#aaa] w-[90px]">수량</span>
                                 <div className="flex items-center border border-[#e0daf7] rounded-full overflow-hidden">
@@ -713,23 +864,41 @@ export function ProductDetail({
                             </div>
                         )}
 
-                        <div className="flex gap-3">
-                            <button onClick={handleBuy} disabled={product.soldout} className="flex-1 h-[52px] rounded-full bg-[#826CFF] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                                {product.soldout ? "품절" : "구매하기"}
-                            </button>
+                        {isReserveClosed ? (
                             <button
                                 type="button"
-                                onClick={addToCart}
-                                disabled={product.soldout || cartLoading}
-                                className="h-[52px] px-5 rounded-full border-2 border-[#826CFF] text-[#6B5CE7] text-[14px] font-bold hover:bg-[#f5f3ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                                onClick={openRestockAlert}
+                                disabled={restockEnabled}
+                                className={`flex h-[52px] w-full items-center justify-center gap-2 rounded-full text-[15px] font-bold text-white transition-colors ${restockEnabled
+                                    ? "cursor-not-allowed bg-[#7865ff] shadow-[0_4px_14px_rgba(120,101,255,0.28)]"
+                                    : "bg-[#826CFF] hover:bg-[#5a4dd6]"
+                                    }`}
                             >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-                                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill={restockEnabled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                                 </svg>
-                                {cartLoading ? "담는 중" : "장바구니"}
+                                {restockEnabled ? "재입고 알림 설정됨" : "재입고 알림설정"}
                             </button>
-                        </div>
+                        ) : (
+                            <div className="flex gap-3">
+                                <button onClick={handleBuy} disabled={product.soldout} className="flex-1 h-[52px] rounded-full bg-[#826CFF] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                    {product.soldout ? "품절" : "구매하기"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={addToCart}
+                                    disabled={product.soldout || cartLoading}
+                                    className="h-[52px] px-5 rounded-full border-2 border-[#826CFF] text-[#6B5CE7] text-[14px] font-bold hover:bg-[#f5f3ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+                                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                                    </svg>
+                                    {cartLoading ? "담는 중" : "장바구니"}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -786,7 +955,7 @@ export function ProductDetail({
                                     전체보기
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                                 </Link>
-                                {showSwiper && (
+                                {/* {showSwiper && (
                                     <div className="flex gap-2 ml-2">
                                         <button onClick={() => scrollRelated("left")} className="w-8 h-8 rounded-full border border-[#e0daf7] flex items-center justify-center hover:bg-[#f5f3ff] transition-colors">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B5CE7" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
@@ -795,7 +964,7 @@ export function ProductDetail({
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B5CE7" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
                                         </button>
                                     </div>
-                                )}
+                                )} */}
                             </div>
                         </div>
                         {showSwiper ? (

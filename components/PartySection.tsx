@@ -41,7 +41,7 @@ export default function PartySection() {
 
             <div className="relative flex flex-col gap-1 mb-5 pt-20">
                 <h2 className="text-xl font-bold text-white">Party Now</h2>
-                <p className="text-sm text-white/60">지금 이 순간, 혼자 보기엔 아쉬우니까</p>
+                <p className="text-sm text-[var(--text-muted)]">지금 이 순간, 혼자 보기엔 아쉬우니까</p>
                 {/* 파티 개설하기 — 그냥 이동, 게이트는 create 페이지에서 처리 */}
                 <button
                     onClick={() => router.push('/live/create')}
@@ -73,21 +73,21 @@ export default function PartySection() {
 
                                 <div className="absolute bottom-2.5 left-2.5 flex flex-col gap-1">
                                     <div className="flex items-center gap-1.5">
-                                        <div className="w-15 h-15 rounded-full border-2 border-white/50 flex-shrink-0 overflow-hidden">
+                                        <div className="w-15 h-15 rounded-full border-2 border-[var(--border-faint)]0 flex-shrink-0 overflow-hidden">
                                             <img src={party.img} alt={party.hostName} className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-[16px] font-bold text-white drop-shadow">{ani.name}</span>
                                             <span className="text-[11px] font-semibold text-white/90 whitespace-nowrap">개설자 : {party.hostName}</span>
-                                            <span className="text-[10px] text-white/60 whitespace-nowrap">개설 시간 : {party.time}</span>
+                                            <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap">개설 시간 : {party.time}</span>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] text-white/70 indent-1 pt-1">
+                                    <span className="text-[10px] text-[var(--text-muted)] indent-1 pt-1">
                                         참여 인원 : {party.attendees} / {party.maxAttendees}명
                                     </span>
                                 </div>
 
-                                <span className="absolute bottom-1 right-3 text-[52px] font-black italic text-white/20 leading-none pointer-events-none select-none">
+                                <span className="absolute bottom-1 right-3 text-[52px] font-black italic text-[var(--text-faint)] leading-none pointer-events-none select-none">
                                     {idx + 1}
                                 </span>
                             </div>
@@ -119,7 +119,7 @@ function RotationTimer({ offset }: { offset: number }) {
     }, [offset])
 
     return (
-        <p className="mt-3 text-xs text-white/30 text-right">
+        <p className="mt-3 text-xs text-[var(--text-faint)] text-right">
             다음 파티 추천까지 {remaining}
         </p>
     )

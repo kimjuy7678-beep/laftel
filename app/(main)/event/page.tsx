@@ -27,19 +27,14 @@ export default function EventPage() {
     const { events, loading, onFetchEvents } = useEventStore()
     const [activeFilter, setActiveFilter] = useState("all")
 
-    useEffect(() => {
-        onFetchEvents()
-    }, [])
+    useEffect(() => { onFetchEvents() }, [])
 
-    const filtered = activeFilter === "all"
-        ? events
-        : events.filter((e) => e.status === activeFilter)
+    const filtered = activeFilter === "all" ? events : events.filter((e) => e.status === activeFilter)
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff' }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
             <div style={{ width: '90%', margin: '0 auto', paddingTop: 64 }}>
-                {/* 헤더 */}
-                <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0' }}>
+                <div style={{ borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0' }}>
                     <PageHeader title="이벤트" sub="라프텔의 다양한 이벤트에 참여하세요" />
                 </div>
 
@@ -51,8 +46,8 @@ export default function EventPage() {
                                 style={{
                                     padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
                                     fontSize: 13, fontWeight: 500, transition: 'all .15s',
-                                    background: activeFilter === f.value ? '#6c63ff' : 'rgba(255,255,255,.06)',
-                                    color: activeFilter === f.value ? '#fff' : 'rgba(255,255,255,.5)',
+                                    background: activeFilter === f.value ? '#6c63ff' : 'var(--bg-card)',
+                                    color: activeFilter === f.value ? '#fff' : 'var(--text-muted)',
                                 }}>
                                 {f.label}
                                 {f.value !== "all" && (
@@ -66,7 +61,7 @@ export default function EventPage() {
 
                     {loading ? (
                         <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-                            <div style={{ width: 32, height: 32, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+                            <div style={{ width: 32, height: 32, border: '2px solid var(--border)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
                             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
                         </div>
                     ) : (
@@ -86,11 +81,14 @@ export default function EventPage() {
                                                 )}
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                                <span style={{ fontSize: 14, fontWeight: 500, color: isPast ? 'rgba(255,255,255,.4)' : '#fff', lineHeight: 1.4 }}
-                                                    className="group-hover:text-[#6c63ff] transition-colors">
+                                                <span style={{
+                                                    fontSize: 14, fontWeight: 500,
+                                                    color: isPast ? 'var(--text-subtle)' : 'var(--text-primary)',
+                                                    lineHeight: 1.4
+                                                }} className="group-hover:text-[#6c63ff] transition-colors">
                                                     {event.name}
                                                 </span>
-                                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
+                                                <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>
                                                     {event.start_datetime.slice(0, 10).replaceAll('-', '.')} ~ {event.end_datetime.slice(0, 10).replaceAll('-', '.')}
                                                 </span>
                                             </div>
@@ -101,7 +99,7 @@ export default function EventPage() {
                         </ul>
                     )}
                     {!loading && filtered.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,.3)', fontSize: 14 }}>
+                        <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-faint)', fontSize: 14 }}>
                             해당하는 이벤트가 없어요.
                         </div>
                     )}
