@@ -58,29 +58,29 @@ function SuccessModal({ amount, onConfirm }: { amount: number; onConfirm: () => 
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-[#1a1a1a] rounded-2xl w-full max-w-sm p-10 flex flex-col items-center text-center gap-6 border border-white/10">
-                <div className="w-20 h-20 rounded-full overflow-hidden" style={{ border: '2px solid #6c63ff' }}>
+            <div className="bg-[var(--bg-card)] rounded-2xl w-full max-w-sm p-10 flex flex-col items-center text-center gap-6 border border-[var(--border)]">
+                <div className="w-20 h-20 rounded-full overflow-hidden" style={{ border: '2px solid var(--main)' }}>
                     <img src="/images/laftel-icon/success-icon.png" alt="포인트 충전" className="w-full h-full object-cover" />
                 </div>
                 <div>
                     <h3 className="text-2xl font-black mb-2">충전 완료!</h3>
-                    <p className="text-white/50 text-base">포인트가 충전되었어요 🎉</p>
+                    <p className="text-[var(--text-muted)] text-base">포인트가 충전되었어요 🎉</p>
                 </div>
                 <div className="w-full rounded-xl p-5 text-left flex flex-col gap-3"
                     style={{ background: 'rgba(108,99,255,0.12)', border: '1px solid rgba(108,99,255,0.4)' }}>
                     <div className="flex justify-between">
-                        <span className="text-white/50 text-base">충전 포인트</span>
-                        <span className="font-bold text-base text-[#6c63ff]">{amount.toLocaleString()}P</span>
+                        <span className="text-[var(--text-muted)] text-base">충전 포인트</span>
+                        <span className="font-bold text-base text-[var(--main)]">{amount.toLocaleString()}P</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-white/50 text-base">결제 금액</span>
-                        <span className="font-bold text-base text-white">{amount.toLocaleString()}원</span>
+                        <span className="text-[var(--text-muted)] text-base">결제 금액</span>
+                        <span className="font-bold text-base text-[var(--text-primary)]">{amount.toLocaleString()}원</span>
                     </div>
                 </div>
                 <button
                     onClick={onConfirm}
                     className="w-full py-4 rounded-xl font-black text-lg text-white transition-all cursor-pointer hover:opacity-90"
-                    style={{ background: '#6c63ff' }}
+                    style={{ background: 'var(--main)' }}
                 >
                     확인
                 </button>
@@ -91,7 +91,10 @@ function SuccessModal({ amount, onConfirm }: { amount: number; onConfirm: () => 
 
 export default function Point() {
     const { user } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
     const { points, loading, fetchPoints, chargePoints } = usePointStore()
+
+    useEffect(() => { setHydrated(true) }, [])
     const router = useRouter()
 
     const [selectedOption, setSelectedOption] = useState<typeof pointOptions[0] | null>(null)
@@ -113,6 +116,7 @@ export default function Point() {
     const [cardLoading, setCardLoading] = useState(false)
 
     useEffect(() => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         fetchPoints((user as any).uid)
         loadCards()
@@ -219,13 +223,13 @@ export default function Point() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingTop: 80, paddingBottom: 80 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', paddingTop: 80, paddingBottom: 80 }}>
             <style>{`
                 .pt-wrap { width: 90%; margin: 0 auto; }
-                .pt-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.35); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 20px; }
-                .pt-divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: 0 0 48px; }
-                .pt-notice-item { font-size: 13px; color: rgba(255,255,255,.4); line-height: 1.7; padding-left: 12px; position: relative; }
-                .pt-notice-item::before { content: '-'; position: absolute; left: 0; color: rgba(255,255,255,.25); }
+                .pt-label { font-size: 12px; font-weight: 700; color: var(--text-subtle); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 20px; }
+                .pt-divider { border: none; border-top: 1px solid var(--border-subtle); margin: 0 0 48px; }
+                .pt-notice-item { font-size: 13px; color: var(--text-subtle); line-height: 1.7; padding-left: 12px; position: relative; }
+                .pt-notice-item::before { content: '-'; position: absolute; left: 0; color: var(--text-faint); }
             `}</style>
 
             <div className="pt-wrap">
@@ -234,11 +238,11 @@ export default function Point() {
                 {/* 포인트 잔액 */}
                 <section style={{ marginBottom: 48 }}>
                     <p className="pt-label">보유 포인트</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', background: '#141420', borderRadius: 14, border: '1px solid rgba(255,255,255,.07)' }}>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border-subtle)' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-primary)]">
                             <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                         </svg>
-                        <span style={{ fontSize: 26, fontWeight: 900, color: '#fff' }}>
+                        <span style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)' }}>
                             {loading ? '...' : `${points.toLocaleString()}P`}
                         </span>
                     </div>
@@ -250,14 +254,14 @@ export default function Point() {
                 <section style={{ marginBottom: 48 }}>
                     <p className="pt-label">포인트 충전</p>
                     {pointOptions.map(opt => (
-                        <div key={opt.amount} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#141420', borderRadius: 12, border: '1px solid rgba(255,255,255,.07)', marginBottom: 8 }}>
-                            <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{opt.label}</span>
+                        <div key={opt.amount} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border-subtle)', marginBottom: 8 }}>
+                            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{opt.label}</span>
                             <button
                                 onClick={() => { setSelectedOption(opt); setAgreed(false) }}
                                 className="cursor-pointer"
-                                style={{ fontSize: 13, padding: '8px 20px', border: '1px solid rgba(255,255,255,.18)', borderRadius: 8, background: 'none', color: 'rgba(255,255,255,.7)', transition: 'all .18s', whiteSpace: 'nowrap' }}
-                                onMouseEnter={e => { (e.target as HTMLButtonElement).style.borderColor = '#6c63ff'; (e.target as HTMLButtonElement).style.color = '#6c63ff' }}
-                                onMouseLeave={e => { (e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,.18)'; (e.target as HTMLButtonElement).style.color = 'rgba(255,255,255,.7)' }}
+                                style={{ fontSize: 13, padding: '8px 20px', border: '1px solid var(--border)', borderRadius: 8, background: 'none', color: 'var(--text-high)', transition: 'all .18s', whiteSpace: 'nowrap' }}
+                                onMouseEnter={e => { (e.target as HTMLButtonElement).style.borderColor = 'var(--main)'; (e.target as HTMLButtonElement).style.color = 'var(--main)' }}
+                                onMouseLeave={e => { (e.target as HTMLButtonElement).style.borderColor = 'var(--border)'; (e.target as HTMLButtonElement).style.color = 'var(--text-high)' }}
                             >
                                 포인트 충전하기
                             </button>
@@ -283,16 +287,16 @@ export default function Point() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
                     onClick={handleClose}
                 >
-                    <div className="relative bg-[#111] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-white/10"
-                        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
+                    <div className="relative bg-[var(--bg-secondary)] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-[var(--border)]"
+                        style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}
                         onClick={e => e.stopPropagation()}
                     >
                         {/* 헤더 */}
-                        <div className="flex items-center justify-between px-8 py-6 border-b border-white/10 sticky top-0 bg-[#111] z-10">
+                        <div className="flex items-center justify-between px-8 py-6 border-b border-[var(--border)] sticky top-0 bg-[var(--bg-secondary)] z-10">
                             <h3 className="text-xl font-black">결제</h3>
                             <button
                                 onClick={handleClose}
-                                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer"
+                                className="w-9 h-9 rounded-full bg-[var(--border)] hover:bg-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                             >
                                 ✕
                             </button>
@@ -301,31 +305,31 @@ export default function Point() {
                         <div className="px-8 py-6 flex flex-col gap-7">
 
                             {/* 포인트 정보 */}
-                            <div className="rounded-xl p-5 border border-white/10 bg-white/5">
+                            <div className="rounded-xl p-5 border border-[var(--border)] bg-[var(--border-faint)]">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--main)" strokeWidth="2">
                                         <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                                     </svg>
-                                    <span className="text-2xl font-black text-[#6c63ff]">{selectedOption.amount.toLocaleString()}P</span>
+                                    <span className="text-2xl font-black text-[var(--main)]">{selectedOption.amount.toLocaleString()}P</span>
                                 </div>
-                                <p className="text-white/50 text-sm">라프텔 포인트로 애니메이션을 소장하거나 대여할 수 있어요!</p>
+                                <p className="text-[var(--text-muted)] text-sm">라프텔 포인트로 애니메이션을 소장하거나 대여할 수 있어요!</p>
                             </div>
 
                             {/* 금액 */}
                             <div className="flex flex-col gap-3">
                                 <div className="flex justify-between">
-                                    <span className="text-white/50 text-base">판매금액</span>
+                                    <span className="text-[var(--text-muted)] text-base">판매금액</span>
                                     <span className="font-bold text-base">{selectedOption.price}</span>
                                 </div>
-                                <div className="flex justify-between border-t border-white/10 pt-4">
-                                    <span className="text-white/60 text-base font-bold">최종 결제 금액</span>
-                                    <span className="text-2xl font-black text-[#6c63ff]">{selectedOption.price}</span>
+                                <div className="flex justify-between border-t border-[var(--border)] pt-4">
+                                    <span className="text-[var(--text-muted)] text-base font-bold">최종 결제 금액</span>
+                                    <span className="text-2xl font-black text-[var(--main)]">{selectedOption.price}</span>
                                 </div>
                             </div>
 
                             {/* 결제 수단 */}
                             <div>
-                                <p className="text-white/60 text-sm font-bold mb-4 tracking-widest uppercase">결제 수단</p>
+                                <p className="text-[var(--text-muted)] text-sm font-bold mb-4 tracking-widest uppercase">결제 수단</p>
 
                                 {/* 탭 */}
                                 <div className="flex gap-3 mb-5">
@@ -338,12 +342,12 @@ export default function Point() {
                                             onClick={() => setPayMethod(m.id)}
                                             className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer"
                                             style={payMethod === m.id
-                                                ? { background: '#6c63ff', color: '#fff' }
-                                                : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }
+                                                ? { background: 'var(--main)', color: '#fff' }
+                                                : { background: 'var(--border-subtle)', color: 'var(--text-muted)' }
                                             }
                                         >
                                             <span className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
-                                                style={payMethod === m.id ? { borderColor: '#fff' } : { borderColor: 'rgba(255,255,255,0.3)' }}>
+                                                style={payMethod === m.id ? { borderColor: '#fff' } : { borderColor: 'var(--border)' }}>
                                                 {payMethod === m.id && <span className="w-1.5 h-1.5 rounded-full bg-white block" />}
                                             </span>
                                             {m.label}
@@ -360,14 +364,14 @@ export default function Point() {
                                                 onClick={() => setEasyType(opt.id)}
                                                 className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all cursor-pointer"
                                                 style={easyType === opt.id
-                                                    ? { borderColor: '#6c63ff', background: 'rgba(108,99,255,0.15)' }
-                                                    : { borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }
+                                                    ? { borderColor: 'var(--main)', background: 'rgba(108,99,255,0.15)' }
+                                                    : { borderColor: 'var(--border)', background: 'var(--border-faint)' }
                                                 }
                                             >
                                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: opt.bg }}>
                                                     <EasyIcon id={opt.id} />
                                                 </div>
-                                                <span className="text-sm font-bold text-white/70">{opt.label}</span>
+                                                <span className="text-sm font-bold text-[var(--text-muted)]">{opt.label}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -383,20 +387,20 @@ export default function Point() {
                                                 onClick={() => { setSelectedCardId(card.id); setShowAddCard(false) }}
                                                 className="flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left cursor-pointer"
                                                 style={selectedCardId === card.id
-                                                    ? { borderColor: '#6c63ff', background: 'rgba(108,99,255,0.15)' }
-                                                    : { borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }
+                                                    ? { borderColor: 'var(--main)', background: 'rgba(108,99,255,0.15)' }
+                                                    : { borderColor: 'var(--border)', background: 'var(--border-faint)' }
                                                 }
                                             >
                                                 <span className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
-                                                    style={selectedCardId === card.id ? { borderColor: '#6c63ff' } : { borderColor: 'rgba(255,255,255,0.3)' }}>
-                                                    {selectedCardId === card.id && <span className="w-2.5 h-2.5 rounded-full block bg-[#6c63ff]" />}
+                                                    style={selectedCardId === card.id ? { borderColor: 'var(--main)' } : { borderColor: 'var(--border)' }}>
+                                                    {selectedCardId === card.id && <span className="w-2.5 h-2.5 rounded-full block bg-[var(--main)]" />}
                                                 </span>
                                                 <div className="flex-1">
                                                     <p className="text-base font-bold">{card.brand} •••• {card.last4}</p>
-                                                    <p className="text-sm text-white/40 mt-0.5">{card.expiry}</p>
+                                                    <p className="text-sm text-[var(--text-muted)] mt-0.5">{card.expiry}</p>
                                                 </div>
                                                 {card.isDefault && (
-                                                    <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-[#6c63ff]/20 text-[#6c63ff]">기본</span>
+                                                    <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-[var(--main)]/20 text-[var(--main)]">기본</span>
                                                 )}
                                             </button>
                                         ))}
@@ -405,7 +409,7 @@ export default function Point() {
                                         {!showAddCard && (
                                             <button
                                                 onClick={() => { setShowAddCard(true); setSelectedCardId(null) }}
-                                                className="flex items-center gap-2 p-4 rounded-xl border border-dashed border-white/20 text-white/40 hover:text-white/60 hover:border-white/40 transition-all text-base cursor-pointer"
+                                                className="flex items-center gap-2 p-4 rounded-xl border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-subtle)] transition-all text-base cursor-pointer"
                                             >
                                                 <span className="text-xl">+</span>
                                                 {cards.length > 0 ? '다른 결제 수단 추가' : '카드 추가하기'}
@@ -414,48 +418,48 @@ export default function Point() {
 
                                         {/* 카드 추가 폼 */}
                                         {showAddCard && (
-                                            <div className="rounded-xl p-5 border border-white/10 bg-white/5 flex flex-col gap-5">
+                                            <div className="rounded-xl p-5 border border-[var(--border)] bg-[var(--border-faint)] flex flex-col gap-5">
                                                 <p className="text-base font-bold">카드 등록</p>
                                                 <div>
-                                                    <p className="text-sm text-white/40 mb-2">카드번호</p>
+                                                    <p className="text-sm text-[var(--text-muted)] mb-2">카드번호</p>
                                                     <input
-                                                        className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors cursor-text"
+                                                        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--main)] outline-none text-base py-2 text-[var(--text-primary)] placeholder-[var(--text-faint)] transition-colors cursor-text"
                                                         value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))}
                                                         placeholder="0000 0000 0000 0000" maxLength={19}
                                                     />
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-5">
                                                     <div>
-                                                        <p className="text-sm text-white/40 mb-2">유효기간</p>
+                                                        <p className="text-sm text-[var(--text-muted)] mb-2">유효기간</p>
                                                         <input
-                                                            className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors cursor-text"
+                                                            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--main)] outline-none text-base py-2 text-[var(--text-primary)] placeholder-[var(--text-faint)] transition-colors cursor-text"
                                                             value={cardExpiry} onChange={e => setCardExpiry(formatExpiry(e.target.value))}
                                                             placeholder="MM/YY" maxLength={5}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm text-white/40 mb-2">CVC</p>
+                                                        <p className="text-sm text-[var(--text-muted)] mb-2">CVC</p>
                                                         <input
-                                                            className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors cursor-text"
+                                                            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--main)] outline-none text-base py-2 text-[var(--text-primary)] placeholder-[var(--text-faint)] transition-colors cursor-text"
                                                             value={cardCvc} onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
                                                             placeholder="000" maxLength={4} type="password"
                                                         />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm text-white/40 mb-2">카드 소유자 이름</p>
+                                                    <p className="text-sm text-[var(--text-muted)] mb-2">카드 소유자 이름</p>
                                                     <input
-                                                        className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors cursor-text"
+                                                        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--main)] outline-none text-base py-2 text-[var(--text-primary)] placeholder-[var(--text-faint)] transition-colors cursor-text"
                                                         value={cardName} onChange={e => setCardName(e.target.value)}
                                                         placeholder="홍길동"
                                                     />
                                                 </div>
                                                 {cardError && <p className="text-sm text-red-400">{cardError}</p>}
-                                                <p className="text-sm text-white/25">🔒 카드번호 뒷 4자리만 저장됩니다.</p>
+                                                <p className="text-sm text-[var(--text-muted)]">🔒 카드번호 뒷 4자리만 저장됩니다.</p>
                                                 <div className="flex gap-3">
                                                     <button
                                                         onClick={() => { setShowAddCard(false); setCardError('') }}
-                                                        className="flex-1 py-3 rounded-xl border border-white/20 text-white/50 text-base font-bold hover:border-white/40 transition-colors cursor-pointer"
+                                                        className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] text-base font-bold hover:border-[var(--border-subtle)] transition-colors cursor-pointer"
                                                     >
                                                         취소
                                                     </button>
@@ -463,7 +467,7 @@ export default function Point() {
                                                         onClick={handleAddCard}
                                                         disabled={cardLoading}
                                                         className="flex-1 py-3 rounded-xl text-white text-base font-bold transition-colors cursor-pointer hover:opacity-90"
-                                                        style={{ background: '#6c63ff', opacity: cardLoading ? 0.5 : 1 }}
+                                                        style={{ background: 'var(--main)', opacity: cardLoading ? 0.5 : 1 }}
                                                     >
                                                         {cardLoading ? '등록 중...' : '카드 등록'}
                                                     </button>
@@ -475,11 +479,11 @@ export default function Point() {
                             </div>
 
                             {/* 유의사항 */}
-                            <div className="rounded-xl p-5 bg-white/5 border border-white/10 max-h-36 overflow-y-auto"
-                                style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
-                                <p className="text-sm font-bold text-white/50 mb-3">이용 안내</p>
+                            <div className="rounded-xl p-5 bg-[var(--border-faint)] border border-[var(--border)] max-h-36 overflow-y-auto"
+                                style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
+                                <p className="text-sm font-bold text-[var(--text-muted)] mb-3">이용 안내</p>
                                 {notices.map((n, i) => (
-                                    <p key={i} className="text-sm text-white/30 leading-relaxed">• {n}</p>
+                                    <p key={i} className="text-sm text-[var(--text-muted)] leading-relaxed">• {n}</p>
                                 ))}
                             </div>
 
@@ -488,19 +492,19 @@ export default function Point() {
                                 onClick={() => setAgreed(!agreed)}
                                 className="flex items-center gap-4 p-5 rounded-xl border transition-all text-left cursor-pointer"
                                 style={agreed
-                                    ? { borderColor: '#6c63ff', background: 'rgba(108,99,255,0.10)' }
-                                    : { borderColor: 'rgba(255,255,255,0.15)', background: 'transparent' }
+                                    ? { borderColor: 'var(--main)', background: 'rgba(108,99,255,0.10)' }
+                                    : { borderColor: 'var(--border)', background: 'transparent' }
                                 }
                             >
                                 <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all"
-                                    style={agreed ? { background: '#6c63ff' } : { border: '2px solid rgba(255,255,255,0.3)' }}>
+                                    style={agreed ? { background: 'var(--main)' } : { border: '2px solid var(--border)' }}>
                                     {agreed && (
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                                             <polyline points="20,6 9,17 4,12" />
                                         </svg>
                                     )}
                                 </div>
-                                <p className="text-base font-bold text-white/70">
+                                <p className="text-base font-bold text-[var(--text-muted)]">
                                     주문 내용 및 유의사항을 확인하였으며 결제에 동의합니다.
                                 </p>
                             </button>
@@ -511,8 +515,8 @@ export default function Point() {
                                 disabled={!isPayable() || charging}
                                 className="w-full py-5 rounded-xl font-black text-xl text-white transition-all"
                                 style={{
-                                    background: isPayable() ? '#6c63ff' : 'rgba(255,255,255,0.1)',
-                                    color: isPayable() ? '#fff' : 'rgba(255,255,255,0.3)',
+                                    background: isPayable() ? 'var(--main)' : 'var(--border-subtle)',
+                                    color: isPayable() ? '#fff' : 'var(--text-subtle)',
                                     opacity: charging ? 0.7 : 1,
                                     cursor: isPayable() && !charging ? 'pointer' : 'default',
                                 }}

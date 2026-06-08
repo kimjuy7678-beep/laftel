@@ -21,46 +21,32 @@ interface OstTrack {
 
 async function fetchOstForAnime(animeName: string): Promise<OstTrack[]> {
     try {
-        const lfRes = await fetch(
-            `${LASTFM_BASE}/?method=album.search&album=${encodeURIComponent(animeName + ' ost')}&api_key=${LASTFM_KEY}&format=json&limit=5`
-        )
-        const lfData = await lfRes.json()
-        const albums = lfData.results?.albummatches?.album || []
-        if (albums.length === 0) return []
-
-        let usedAlbum = albums[0]
-        let tracks: any[] = []
-        for (const album of albums.slice(0, 3)) {
-            const trackRes = await fetch(
-                `${LASTFM_BASE}/?method=album.getinfo&artist=${encodeURIComponent(album.artist)}&album=${encodeURIComponent(album.name)}&api_key=${LASTFM_KEY}&format=json`
+        // iTunes 직접 검색 — サウンドトラック 키워드로 일본 애니 앨범자켓 확보
+        const queries = [
+            `${animeName} サウンドトラック`,
+            `${animeName} ost`,
+            animeName,
+        ]
+        for (const q of queries) {
+            const res = await fetch(
+                `${ITUNES_BASE}?term=${encodeURIComponent(q)}&media=music&entity=song&genreId=27&limit=10&country=JP&lang=ja_jp`
             )
-            const trackData = await trackRes.json()
-            tracks = trackData.album?.tracks?.track || []
-            if (tracks.length > 0) { usedAlbum = album; break }
+            const data = await res.json()
+            const items = (data.results || []).filter((item: any) => item.previewUrl && item.artworkUrl100)
+            if (items.length === 0) continue
+            // previewUrl 있는 첫 번째 트랙 반환
+            const item = items[0]
+            return [{
+                id: `${animeName}-${item.trackId}`,
+                title: item.trackName,
+                artist: item.artistName,
+                animeName,
+                cover: item.artworkUrl100.replace('100x100bb', '600x600bb').replace('100x100', '600x600'),
+                previewUrl: item.previewUrl,
+                duration: item.trackTimeMillis ? Math.floor(item.trackTimeMillis / 1000) : 0,
+            }]
         }
-        if (tracks.length === 0) return []
-
-        const results: OstTrack[] = []
-        for (const track of tracks.slice(0, 4)) {
-            const trackName = typeof track === 'string' ? track : track.name
-            try {
-                const itRes = await fetch(
-                    `${ITUNES_BASE}?term=${encodeURIComponent(trackName + ' ' + animeName)}&media=music&limit=1&country=JP`
-                )
-                const itData = await itRes.json()
-                const item = itData.results?.[0]
-                results.push({
-                    id: `${animeName}-${trackName}`,
-                    title: trackName,
-                    artist: typeof track === 'string' ? usedAlbum.artist : (track.artist?.name || usedAlbum.artist),
-                    animeName,
-                    cover: item?.artworkUrl100?.replace('100x100', '400x400') || usedAlbum.image?.[3]?.['#text'] || '',
-                    previewUrl: item?.previewUrl || null,
-                    duration: item?.trackTimeMillis ? Math.floor(item.trackTimeMillis / 1000) : 0,
-                })
-            } catch { }
-        }
-        return results
+        return []
     } catch { return [] }
 }
 
@@ -81,23 +67,23 @@ function HomeBottomPlayer({ track, isPlaying, progress, onPlayPause, onPrev, onN
     return (
         <>
             <style>{`
-                .hbp-wrap{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(14,12,26,0.97);backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.08);padding:0 32px;height:80px;display:flex;align-items:center;gap:20px;animation:hbp-up .25s ease}
+                .hbp-wrap{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--bg-card);backdrop-filter:blur(24px);border-top:1px solid var(--border-subtle);padding:0 32px;height:80px;display:flex;align-items:center;gap:20px;animation:hbp-up .25s ease}
                 @keyframes hbp-up{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
-                .hbp-bar-wrap{position:absolute;top:0;left:0;right:0;height:4px;background:rgba(255,255,255,.08);cursor:pointer}
+                .hbp-bar-wrap{position:absolute;top:0;left:0;right:0;height:4px;background:var(--border-subtle);cursor:pointer}
                 .hbp-bar-fill{height:100%;background:linear-gradient(to right,#6c63ff,#ec4899);pointer-events:none;transition:width .2s linear}
-                .hbp-cover{width:48px;height:48px;border-radius:8px;overflow:hidden;background:#1a1a1a;flex-shrink:0}
+                .hbp-cover{width:48px;height:48px;border-radius:8px;overflow:hidden;background:var(--bg-secondary);flex-shrink:0}
                 .hbp-cover img{width:100%;height:100%;object-fit:cover}
                 .hbp-info{flex:1;min-width:0}
-                .hbp-title{font-size:14px;font-weight:700;color:#fff;margin:0 0 3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-                .hbp-sub{font-size:12px;color:rgba(255,255,255,0.4);margin:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+                .hbp-title{font-size:14px;font-weight:700;color:var(--text-primary);margin:0 0 3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+                .hbp-sub{font-size:12px;color:var(--text-subtle);margin:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
                 .hbp-controls{display:flex;align-items:center;gap:12px;flex-shrink:0}
-                .hbp-icon-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.6);transition:all .2s}
-                .hbp-icon-btn:hover{background:rgba(255,255,255,0.16);color:#fff}
+                .hbp-icon-btn{width:36px;height:36px;border-radius:50%;background:var(--border-subtle);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition:all .2s}
+                .hbp-icon-btn:hover{background:var(--bg-hover);color:var(--text-primary)}
                 .hbp-play-btn{width:44px;height:44px;border-radius:50%;background:#6c63ff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:background .2s,transform .15s}
                 .hbp-play-btn:hover{background:#5a52e0;transform:scale(1.05)}
-                .hbp-time{font-size:12px;color:rgba(255,255,255,0.3);flex-shrink:0;min-width:80px;text-align:center}
-                .hbp-close-btn{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);transition:all .2s}
-                .hbp-close-btn:hover{background:rgba(255,255,255,0.12);color:#fff}
+                .hbp-time{font-size:12px;color:var(--text-faint);flex-shrink:0;min-width:80px;text-align:center}
+                .hbp-close-btn{width:30px;height:30px;border-radius:50%;background:var(--border-faint);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-faint);transition:all .2s}
+                .hbp-close-btn:hover{background:var(--border);color:var(--text-primary)}
             `}</style>
             <div className="hbp-wrap">
                 <div ref={barRef} className="hbp-bar-wrap" onClick={handleBarClick}>
@@ -147,23 +133,33 @@ export default function OstSection() {
     const nextRef = useRef<HTMLButtonElement>(null)
 
     useEffect(() => { tracksRef.current = tracks }, [tracks])
-
-    useEffect(() => {
-        if (aniList.length === 0) onFetchAni()
-    }, [])
+    useEffect(() => { if (aniList.length === 0) onFetchAni() }, [])
 
     useEffect(() => {
         if (aniList.length === 0) return
         const load = async () => {
             setLoading(true)
-            const top8 = [...aniList]
+            const top20 = [...aniList]
                 .sort((a: any, b: any) => b.popularity - a.popularity)
-                .slice(0, 8)
+                .slice(0, 20)
             const allTracks: OstTrack[] = []
-            for (const ani of top8) {
+            const seenCovers = new Set<string>()
+            const seenAnimes = new Set<string>()
+            for (const ani of top20) {
                 const result = await fetchOstForAnime(ani.original_name || ani.name)
-                allTracks.push(...result)
-                if (allTracks.length > 0) setTracks([...allTracks])
+                // 애니당 1곡만, 커버 중복 제거
+                const pick = result.find(t => t.previewUrl && t.cover)
+                    || result.find(t => t.previewUrl)
+                if (pick) {
+                    const coverKey = pick.cover.replace(/\/[0-9]+x[0-9]+/, '')
+                    const animeKey = pick.animeName.toLowerCase().trim()
+                    if (!seenCovers.has(coverKey) && !seenAnimes.has(animeKey)) {
+                        seenCovers.add(coverKey)
+                        seenAnimes.add(animeKey)
+                        allTracks.push(pick)
+                        setTracks([...allTracks])
+                    }
+                }
                 await new Promise(r => setTimeout(r, 300))
             }
             setLoading(false)
@@ -228,45 +224,22 @@ export default function OstSection() {
                     .ost-wrap { width: 90%; margin: 0 auto; }
                     .ost-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
                     .ost-head-left { display: flex; align-items: center; gap: 12px; }
-                    .ost-title { font-size: 25px; font-weight: 800; color: #fff; margin: 0; }
+                    .ost-title { font-size: 25px; font-weight: 800; color: var(--text-primary); margin: 0; }
                     .ost-badge { font-size: 11px; font-weight: 700; color: #9d97ff; background: rgba(108,99,255,0.15); border: 1px solid rgba(108,99,255,0.3); padding: 3px 10px; border-radius: 20px; }
                     .ost-nav { display: flex; gap: 8px; }
-                    .ost-nav-btn { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.6); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; }
-                    .ost-nav-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
-
-                    /* 카드 — 배경 없음, 앨범자켓만 */
-                    .ost-card {
-                        width: 180px;
-                        cursor: pointer;
-                        transition: transform .22s cubic-bezier(.25,.46,.45,.94);
-                    }
+                    .ost-nav-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--border-subtle); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+                    .ost-nav-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+                    .ost-card { width: 180px; cursor: pointer; transition: transform .22s cubic-bezier(.25,.46,.45,.94); }
                     .ost-card:hover { transform: translateY(-4px); }
                     .ost-card:hover .ost-jacket img { transform: scale(1.05); }
-
-                    /* 앨범 자켓 — border-radius만 */
-                    .ost-jacket {
-                        width: 180px; height: 180px;
-                        border-radius: 10px;
-                        overflow: hidden;
-                        background: #1a1a1a;
-                        position: relative;
-                        margin-bottom: 10px;
-                        border: 2px solid transparent;
-                        transition: border-color .2s;
-                    }
-                    .ost-card.playing .ost-jacket {
-                        border-color: #6c63ff;
-                    }
+                    .ost-jacket { width: 180px; height: 180px; border-radius: 10px; overflow: hidden; background: var(--bg-secondary); position: relative; margin-bottom: 10px; border: 2px solid transparent; transition: border-color .2s; }
+                    .ost-card.playing .ost-jacket { border-color: #6c63ff; }
                     .ost-jacket img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
                     .ost-jacket-np { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 36px; background: linear-gradient(135deg,#1a1535,#0f0f1a); }
-
-                    /* 호버/재생 오버레이 */
                     .ost-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .2s; }
                     .ost-card:hover .ost-overlay { opacity: 1; }
                     .ost-card.playing .ost-overlay { opacity: 1; background: rgba(108,99,255,.3); }
                     .ost-play-btn { width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,0.9); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-                    /* 재생 중 이퀄라이저 */
                     .ost-eq { display: flex; align-items: flex-end; gap: 3px; height: 20px; }
                     .ost-eq span { display: block; width: 3px; background: #fff; border-radius: 2px; animation: ost-bar .6s ease-in-out infinite alternate; }
                     .ost-eq span:nth-child(1) { height: 8px; animation-delay: 0s; }
@@ -274,18 +247,13 @@ export default function OstSection() {
                     .ost-eq span:nth-child(3) { height: 12px; animation-delay: .3s; }
                     .ost-eq span:nth-child(4) { height: 20px; animation-delay: .1s; }
                     @keyframes ost-bar { from{transform:scaleY(.4)} to{transform:scaleY(1)} }
-
-                    /* 재생 중 하단 진행바 */
-                    .ost-prog { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,.15); }
+                    .ost-prog { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--border); }
                     .ost-prog-fill { height: 100%; background: #6c63ff; transition: width .2s linear; }
-
-                    /* 텍스트 — 자켓 밖, 배경 없음 */
                     .ost-anime-name { font-size: 11px; color: #6c63ff; font-weight: 600; margin: 0 0 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-                    .ost-track-name { font-size: 14px; font-weight: 700; color: rgba(255,255,255,.88); margin: 0 0 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-decoration: underline; text-underline-offset: 2px; }
-                    .ost-artist { font-size: 12px; color: rgba(255,255,255,.4); margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-
-                    .ost-loading { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.25); font-size: 13px; height: 200px; }
-                    .ost-spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,.1); border-top-color: #6c63ff; border-radius: 50%; animation: ost-spin .7s linear infinite; }
+                    .ost-track-name { font-size: 14px; font-weight: 700; color: var(--text-high); margin: 0 0 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-decoration: underline; text-underline-offset: 2px; }
+                    .ost-artist { font-size: 12px; color: var(--text-subtle); margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+                    .ost-loading { display: flex; align-items: center; gap: 10px; color: var(--text-faint); font-size: 13px; height: 200px; }
+                    .ost-spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: #6c63ff; border-radius: 50%; animation: ost-spin .7s linear infinite; }
                     @keyframes ost-spin { to { transform: rotate(360deg) } }
                 `}</style>
 
@@ -328,7 +296,6 @@ export default function OstSection() {
                                         className={`ost-card${playingId === track.id ? ' playing' : ''}`}
                                         onClick={() => handlePlay(track.previewUrl, track.id)}
                                     >
-                                        {/* 앨범 자켓만 border-radius */}
                                         <div className="ost-jacket">
                                             {track.cover
                                                 ? <img src={track.cover} alt={track.title} />
@@ -349,8 +316,6 @@ export default function OstSection() {
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* 텍스트 — 자켓 밖, 배경 없음 */}
                                         <p className="ost-anime-name">{track.animeName} ost</p>
                                         <p className="ost-track-name">{track.title}</p>
                                         <p className="ost-artist">{track.artist}</p>

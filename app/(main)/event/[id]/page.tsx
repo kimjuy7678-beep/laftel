@@ -36,6 +36,7 @@ export default function EventDetailPage() {
     const eventId = Number(id)
 
     const { user } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
 
     const {
         events, onFetchEvents,
@@ -59,6 +60,7 @@ export default function EventDetailPage() {
 
 
     const handleLike = (commentId: string, currentLikeCount: number, isLiked: boolean) => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         setLikedIds(prev => {
             const next = new Set(prev)
@@ -73,6 +75,8 @@ export default function EventDetailPage() {
                 : (prev[commentId] ?? currentLikeCount) + 1
         }))
     }
+
+    useEffect(() => { setHydrated(true) }, [])
 
     useEffect(() => {
         if (events.length === 0) onFetchEvents()
@@ -102,6 +106,7 @@ export default function EventDetailPage() {
 
     const handlePostComment = async () => {
         if (!commentText.trim()) return
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         setPosting(true)
         setPostError(null)
@@ -165,14 +170,14 @@ export default function EventDetailPage() {
     const allComments = [...localComments, ...comments]
 
     if (loading) return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingTop: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: 36, height: 36, border: '3px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
     )
 
     if (!detail) return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingTop: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
             <p style={{ fontSize: 48 }}>🎪</p>
             <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 16 }}>이벤트를 찾을 수 없어요</p>
             <button onClick={() => router.push('/event')} style={{ padding: '10px 24px', borderRadius: 10, background: '#6c63ff', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
@@ -187,7 +192,7 @@ export default function EventDetailPage() {
     const userNickname = user?.name || user?.email?.split('@')[0] || null
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingTop: 56, paddingBottom: 80 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 56, paddingBottom: 80 }}>
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg) } }
                 @keyframes fade-in { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
@@ -270,7 +275,7 @@ export default function EventDetailPage() {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                             {related.map(ev => (
                                 <Link key={ev.id} href={`/event/${ev.id}`} style={{ textDecoration: 'none', minWidth: 0 }}>
-                                    <div style={{ width: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,.07)', background: '#111', transition: 'transform .2s, border-color .2s', cursor: 'pointer' }}
+                                    <div style={{ width: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,.07)', background: 'var(--bg-secondary', transition: 'transform .2s, border-color .2s', cursor: 'pointer' }}
                                         onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(108,99,255,.3)' }}
                                         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,.07)' }}>
                                         <div style={{ width: '100%', aspectRatio: '16/9', overflow: 'hidden', background: '#1a1a2e' }}>

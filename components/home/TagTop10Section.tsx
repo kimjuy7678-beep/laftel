@@ -32,19 +32,12 @@ export default function TagTop10Section() {
     const { aniList, onFetchAni } = useAniStore()
     const prevRef = useRef<HTMLButtonElement>(null)
     const nextRef = useRef<HTMLButtonElement>(null)
-
     const [activeTag, setActiveTag] = useState(0)
 
-    useEffect(() => {
-        setActiveTag(Math.floor(Math.random() * TAGS.length))
-    }, [])
-
-    useEffect(() => {
-        if (aniList.length === 0) onFetchAni()
-    }, [])
+    useEffect(() => { setActiveTag(Math.floor(Math.random() * TAGS.length)) }, [])
+    useEffect(() => { if (aniList.length === 0) onFetchAni() }, [])
 
     const tag = TAGS[activeTag]
-
     const items = aniList
         .filter((a: any) => tag.genres.some((g: number) => a.genre_ids?.includes(g)))
         .sort((a: any, b: any) => b.popularity - a.popularity)
@@ -56,76 +49,35 @@ export default function TagTop10Section() {
         <section style={{ padding: '56px 0 80px' }}>
             <style>{`
                 .tt-wrap { width: 90%; margin: 0 auto; }
-
-                .tt-eyebrow { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.32); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
+                .tt-eyebrow { font-size: 13px; font-weight: 700; color: var(--text-faint); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
                 .tt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                .tt-title { font-size: 25px; font-weight: 700; color: #fff; margin: 0; white-space: nowrap; }
+                .tt-title { font-size: 25px; font-weight: 700; color: var(--text-primary); margin: 0; white-space: nowrap; }
                 .tt-title-tag { color: #9d97ff; }
                 .tt-nav { display: flex; gap: 8px; }
-                .tt-nav-btn {
-                    width: 38px; height: 38px; border-radius: 50%;
-                    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
-                    color: rgba(255,255,255,0.6); cursor: pointer;
-                    display: flex; align-items: center; justify-content: center;
-                    transition: all .2s;
-                }
-                .tt-nav-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
-
+                .tt-nav-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--border-subtle); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+                .tt-nav-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
                 .tt-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
-                .tt-tag {
-                    padding: 6px 16px; border-radius: 20px;
-                    border: 1px solid rgba(255,255,255,0.12);
-                    background: none; color: rgba(255,255,255,0.4);
-                    font-size: 13px; font-weight: 600;
-                    cursor: pointer; transition: all .2s;
-                }
-                .tt-tag:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+                .tt-tag { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--text-subtle); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
+                .tt-tag:hover { color: var(--text-primary); border-color: var(--text-muted); }
                 .tt-tag.active { background: rgba(108,99,255,0.2); border-color: #6c63ff; color: #9d97ff; }
-
-                .tt-card {
-                    position: relative; width: ${CARD_W}px;
-                    cursor: pointer; transition: transform .25s;
-                }
+                .tt-card { position: relative; width: ${CARD_W}px; cursor: pointer; transition: transform .25s; }
                 .tt-card:hover { transform: translateY(-6px); }
-
-                .tt-rank {
-                    position: absolute; left: -20px; bottom: 37px;
-                    width: ${NUM_W + 20}px;
-                    font-size: ${NUM_FONT}px; font-weight: 900; line-height: 1;
-                    color: rgba(255,255,255,0.85); text-align: right;
-                    z-index: 3; user-select: none; letter-spacing: -0.06em;
-                    text-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
-                }
-
-                .tt-thumb {
-                    position: absolute; right: 0; top: 0;
-                    width: ${POSTER_W}px; height: ${POSTER_H}px;
-                    border-radius: 12px; overflow: hidden; background: #1e1e1e;
-                    box-shadow: 0 10px 32px rgba(0,0,0,0.7); z-index: 2;
-                    transition: transform .25s, box-shadow .25s;
-                }
+                .tt-rank { position: absolute; left: -20px; bottom: 37px; width: ${NUM_W + 20}px; font-size: ${NUM_FONT}px; font-weight: 900; line-height: 1; color: var(--text-high); text-align: right; z-index: 3; user-select: none; letter-spacing: -0.06em; text-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4); }
+                .tt-thumb { position: absolute; right: 0; top: 0; width: ${POSTER_W}px; height: ${POSTER_H}px; border-radius: 12px; overflow: hidden; background: var(--bg-card); box-shadow: 0 10px 32px rgba(0,0,0,0.7); z-index: 2; transition: transform .25s, box-shadow .25s; }
                 .tt-card:hover .tt-thumb { transform: translateY(-4px); box-shadow: 0 18px 48px rgba(0,0,0,0.9); }
                 .tt-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s; }
                 .tt-card:hover .tt-thumb img { transform: scale(1.04); }
-                .tt-thumb-np { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 800; color: rgba(255,255,255,0.07); }
-
-                .tt-info {
-                    position: relative; z-index: 1;
-                    padding-top: ${POSTER_H + 14}px;
-                    padding-left: ${NUM_W - OVERLAP}px;
-                    text-align: center;
-                }
-                .tt-name { font-size: 24px; font-weight: 700; color: #fff; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-bottom: 4px; line-height: 1.3; }
-                .tt-genre { font-size: 18px; color: rgba(255,255,255,0.35); }
-                .tt-empty { display: flex; align-items: center; justify-content: center; height: ${POSTER_H}px; color: rgba(255,255,255,0.2); font-size: 14px; }
+                .tt-thumb-np { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 800; color: var(--border-subtle); }
+                .tt-info { position: relative; z-index: 1; padding-top: ${POSTER_H + 14}px; padding-left: ${NUM_W - OVERLAP}px; text-align: center; }
+                .tt-name { font-size: 24px; font-weight: 700; color: var(--text-primary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-bottom: 4px; line-height: 1.3; }
+                .tt-genre { font-size: 18px; color: var(--text-subtle); }
+                .tt-empty { display: flex; align-items: center; justify-content: center; height: ${POSTER_H}px; color: var(--text-faint); font-size: 14px; }
             `}</style>
 
             <div className="tt-wrap">
                 <p className="tt-eyebrow">라프텔 서버 터지게 만든 화제의 작품</p>
                 <div className="tt-head">
-                    <h2 className="tt-title">
-                        주간 <span className="tt-title-tag">#{tag.label}</span> TOP 10
-                    </h2>
+                    <h2 className="tt-title">주간 <span className="tt-title-tag">#{tag.label}</span> TOP 10</h2>
                     <div className="tt-nav">
                         <button ref={prevRef} className="tt-nav-btn">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
@@ -138,11 +90,7 @@ export default function TagTop10Section() {
 
                 <div className="tt-tags">
                     {TAGS.map((t, i) => (
-                        <button
-                            key={t.label}
-                            className={`tt-tag${activeTag === i ? ' active' : ''}`}
-                            onClick={() => setActiveTag(i)}
-                        >
+                        <button key={t.label} className={`tt-tag${activeTag === i ? ' active' : ''}`} onClick={() => setActiveTag(i)}>
                             #{t.label}
                         </button>
                     ))}
@@ -164,19 +112,10 @@ export default function TagTop10Section() {
                             style={{ overflow: 'visible' }}
                         >
                             {items.map((ani: any, i: number) => {
-                                const genres = (ani.genre_ids || [])
-                                    .slice(0, 3)
-                                    .map((id: number) => GENRE_MAP[id])
-                                    .filter(Boolean)
-                                    .join(', ')
-
+                                const genres = (ani.genre_ids || []).slice(0, 3).map((id: number) => GENRE_MAP[id]).filter(Boolean).join(', ')
                                 return (
                                     <SwiperSlide key={ani.id} style={{ width: CARD_W }}>
-                                        <div
-                                            className="tt-card"
-                                            style={{ height: POSTER_H + 60 }}
-                                            onClick={() => setPreviewId(ani.id)}
-                                        >
+                                        <div className="tt-card" style={{ height: POSTER_H + 60 }} onClick={() => setPreviewId(ani.id)}>
                                             <span className="tt-rank">{i + 1}</span>
                                             <div className="tt-thumb">
                                                 {ani.poster_path

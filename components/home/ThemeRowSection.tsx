@@ -4,32 +4,20 @@ import { useAniStore } from '@/store/useAniStore'
 import { useEffect } from 'react'
 import { usePreviewStore } from '@/store/usePreviewStore'
 
-interface Props {
-    genre: number
-    title: string
-    rows?: number  // 몇 줄 보여줄지 (기본 2줄 = 8개)
-}
+interface Props { genre: number; title: string; rows?: number }
 
 export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
     const { aniList, onFetchAni } = useAniStore()
     const router = useRouter()
     const { setPreviewId } = usePreviewStore()
 
-    useEffect(() => {
-        if (aniList.length === 0) onFetchAni()
-    }, [])
+    useEffect(() => { if (aniList.length === 0) onFetchAni() }, [])
 
-    const items = aniList
-        .filter((a: any) => a.genre_ids?.includes(genre))
-        .slice(0, rows * 4)
-
+    const items = aniList.filter((a: any) => a.genre_ids?.includes(genre)).slice(0, rows * 4)
     if (items.length === 0) return null
 
     const BADGE_MAP: Record<number, string[]> = {
-        10759: ['선독점'],
-        14: ['더빙'],
-        10749: ['ONLY'],
-        10751: ['더빙', 'ONLY'],
+        10759: ['선독점'], 14: ['더빙'], 10749: ['ONLY'], 10751: ['더빙', 'ONLY'],
     }
 
     return (
@@ -37,55 +25,23 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
             <style>{`
                 .tr-wrap { width: 90%; margin: 0 auto; }
                 .tr-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                .tr-title { font-size: 25px; font-weight: 800; color: #fff; margin: 0; line-height: 1.4;}
-                .tr-more {
-                    font-size: 12px; color: rgba(255,255,255,0.35);
-                    background: none; border: none; cursor: pointer;
-                    display: flex; align-items: center; gap: 3px; transition: color .2s; white-space: nowrap;
-                }
-                .tr-more:hover { color: rgba(255,255,255,0.7); }
-
-                .tr-grid {
-                    display: grid;
-                    grid-template-columns: repeat(4, 1fr);
-                    gap: 12px;
-                }
-
-                .tr-card {
-                    cursor: pointer;
-                    border-radius: 10px;
-                    overflow: hidden;
-                    // background: #111;
-                    transition: transform .22s cubic-bezier(.25,.46,.45,.94);
-                }
+                .tr-title { font-size: 25px; font-weight: 800; color: var(--text-primary); margin: 0; line-height: 1.4; }
+                .tr-more { font-size: 12px; color: var(--text-subtle); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 3px; transition: color .2s; white-space: nowrap; }
+                .tr-more:hover { color: var(--text-high); }
+                .tr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+                .tr-card { cursor: pointer; border-radius: 10px; overflow: hidden; transition: transform .22s cubic-bezier(.25,.46,.45,.94); }
                 .tr-card:hover { transform: translateY(-4px); }
                 .tr-card:hover .tr-img { transform: scale(1.05); }
-
-                .tr-thumb {
-                    width: 100%; aspect-ratio: 16 / 9;
-                    position: relative; overflow: hidden; background: #1a1a1a;
-                }
+                .tr-thumb { width: 100%; aspect-ratio: 16 / 9; position: relative; overflow: hidden; background: var(--bg-secondary); }
                 .tr-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .25s; }
-                .tr-np { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: rgba(255,255,255,0.07); }
-
-                .tr-badges {
-                    position: absolute; bottom: 8px; right: 8px;
-                    display: flex; gap: 4px;
-                }
-                .tr-badge {
-                    font-size: 10px; font-weight: 700;
-                    padding: 2px 7px; border-radius: 4px; line-height: 1.6;
-                }
+                .tr-np { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: var(--border-subtle); }
+                .tr-badges { position: absolute; bottom: 8px; right: 8px; display: flex; gap: 4px; }
+                .tr-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; line-height: 1.6; }
                 .tr-badge-excl { background: #6c5ce7; color: #fff; }
-                .tr-badge-dub  { background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.15); }
+                .tr-badge-dub { background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.15); }
                 .tr-badge-only { background: #6c5ce7; color: #fff; }
-
                 .tr-info { padding: 10px 10px 12px; }
-                .tr-name {
-                    font-size: 18px; font-weight: 600; color: rgba(255,255,255,0.88);
-                    margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-                    line-height: 1.4;
-                }
+                .tr-name { font-size: 18px; font-weight: 600; color: var(--text-high); margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.4; }
             `}</style>
 
             <div className="tr-wrap">
@@ -98,12 +54,10 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
                         </svg>
                     </button>
                 </div>
-
                 <div className="tr-grid">
                     {items.map((ani: any, idx: number) => {
                         const badges = BADGE_MAP[genre] || []
                         const showBadge = idx % 3 === 0 && badges.length > 0
-
                         return (
                             <div key={ani.id} className="tr-card" onClick={() => setPreviewId(ani.id)}>
                                 <div className="tr-thumb">
@@ -114,16 +68,12 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
                                     {showBadge && (
                                         <div className="tr-badges">
                                             {badges.map(b => (
-                                                <span key={b} className={`tr-badge ${b === '선독점' ? 'tr-badge-excl' : b === '더빙' ? 'tr-badge-dub' : 'tr-badge-only'}`}>
-                                                    {b}
-                                                </span>
+                                                <span key={b} className={`tr-badge ${b === '선독점' ? 'tr-badge-excl' : b === '더빙' ? 'tr-badge-dub' : 'tr-badge-only'}`}>{b}</span>
                                             ))}
                                         </div>
                                     )}
                                 </div>
-                                <div className="tr-info">
-                                    <p className="tr-name">{ani.name}</p>
-                                </div>
+                                <div className="tr-info"><p className="tr-name">{ani.name}</p></div>
                             </div>
                         )
                     })}

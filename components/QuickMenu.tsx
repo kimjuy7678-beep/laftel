@@ -29,7 +29,7 @@ export default function QuickMenu() {
         >
             <button
                 onClick={() => setTheme(isDark ? "light" : "dark")}
-                className="w-12 h-12 rounded-full bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+                className="w-12 h-12 rounded-full bg-white dark:bg-[var(--bg-card)] border border-black/10 dark:border-[var(--border)] shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
                 aria-label="테마 변경"
             >
                 {isDark ? (
@@ -46,7 +46,7 @@ export default function QuickMenu() {
 
             <button
                 onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                className="w-12 h-12 rounded-full bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+                className="w-12 h-12 rounded-full bg-white dark:bg-[var(--bg-card)] border border-black/10 dark:border-[var(--border)] shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
                 aria-label="맨 위로"
             >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-black dark:text-white">

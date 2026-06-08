@@ -2,8 +2,15 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
-import { db } from '@/firebase/firebase'
+import { db, auth } from '@/firebase/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { sendPasswordResetEmail } from 'firebase/auth'
+
+async function hashPin(pin: string): Promise<string> {
+    const data = new TextEncoder().encode(pin + '_laftel_salt')
+    const buf = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 const LAFTEL_AVATARS = [
     'https://thumbnail.laftel.net/profiles/default/48363a65-24d6-45a0-9eac-8c1726656c63.png',
@@ -30,7 +37,7 @@ const AGE_OPTIONS = [
     { value: '19', label: '19+', desc: '19세 연령 콘텐츠까지 시청 가능' },
 ]
 
-type Step = 'select' | 'edit' | 'image' | 'age_pw' | 'age_select'
+type Step = 'select' | 'edit' | 'image' | 'age_pw' | 'age_select' | 'pin_enter' | 'pin_setup' | 'pin_setup_confirm'
 type ImageTab = 'laftel' | 'dicebear' | 'custom'
 
 interface ProfileData {
@@ -38,6 +45,7 @@ interface ProfileData {
     nickname: string
     avatarUrl: string
     ageLimit: string
+    pinHash?: string
 }
 
 export default function ProfilePage() {
@@ -62,12 +70,32 @@ export default function ProfilePage() {
     const [agePwError, setAgePwError] = useState('')
     const [selectedAge, setSelectedAge] = useState('19')
 
+    // PIN state
+    const [pinInput, setPinInput] = useState('')
+    const [pinError, setPinError] = useState('')
+    const [pinConfirm, setPinConfirm] = useState('')
+    const [pinConfirmError, setPinConfirmError] = useState('')
+    const [pendingProfile, setPendingProfile] = useState<ProfileData | null>(null)
+    const [pinAttempts, setPinAttempts] = useState(0)
+    const [pinLocked, setPinLocked] = useState(false)
+    const [pinLockTimer, setPinLockTimer] = useState(0)
+    const [showForgotPin, setShowForgotPin] = useState(false)
+    const [forgotPinSent, setForgotPinSent] = useState(false)
+    const [forgotPinLoading, setForgotPinLoading] = useState(false)
+    const pinTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+    const [hydrated, setHydrated] = useState(false)
     const hasMembership = user?.membership && user.membership !== 'none'
 
     useEffect(() => {
+        setHydrated(true)
+    }, [])
+
+    useEffect(() => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         loadProfiles()
-    }, [user])
+    }, [hydrated, user])
 
     const loadProfiles = async () => {
         if (!user?.uid) return
@@ -96,6 +124,113 @@ export default function ProfilePage() {
         } finally {
             setLoading(false)
         }
+    }
+
+    // PIN 잠금 타이머
+    useEffect(() => {
+        if (pinLocked && pinLockTimer > 0) {
+            pinTimerRef.current = setInterval(() => {
+                setPinLockTimer(prev => {
+                    if (prev <= 1) { setPinLocked(false); setPinAttempts(0); if (pinTimerRef.current) clearInterval(pinTimerRef.current); return 0 }
+                    return prev - 1
+                })
+            }, 1000)
+        }
+        return () => { if (pinTimerRef.current) clearInterval(pinTimerRef.current) }
+    }, [pinLocked])
+
+    const enterProfile = (p: ProfileData) => {
+        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit })
+        router.push('/')
+    }
+
+    const handleProfileClick = (p: ProfileData) => {
+        if (selectedProfileId !== p.id) { setSelectedProfileId(p.id); return }
+        if (p.pinHash) {
+            setPendingProfile(p); setPinInput(''); setPinError('')
+            setPinAttempts(0); setPinLocked(false); setShowForgotPin(false); setForgotPinSent(false)
+            setStep('pin_enter')
+        } else { enterProfile(p) }
+    }
+
+    const handlePinDigit = async (d: string) => {
+        if (pinLocked) return
+        const next = (pinInput + d).slice(0, 4); setPinInput(next); setPinError('')
+        if (next.length === 4) await verifyPin(next)
+    }
+    const handlePinDelete = () => { setPinInput(p => p.slice(0, -1)); setPinError('') }
+
+    const verifyPin = async (pin: string) => {
+        if (!pendingProfile) return
+        const hashed = await hashPin(pin)
+        if (hashed === pendingProfile.pinHash) { setPinInput(''); setPinError(''); enterProfile(pendingProfile) }
+        else {
+            const n = pinAttempts + 1; setPinAttempts(n); setPinInput('')
+            if (n >= 5) { setPinLocked(true); setPinLockTimer(30); setPinError('5회 실패 — 30초 잠금') }
+            else setPinError(`PIN이 틀렸습니다 (${n}/5)`)
+        }
+    }
+
+    const handleForgotPin = async () => {
+        if (!user?.email) return
+        setForgotPinLoading(true)
+        try {
+            if (pendingProfile && user.uid) {
+                const newProfiles = profiles.map(p =>
+                    p.id === pendingProfile.id
+                        ? (({ pinHash: _r, ...rest }) => rest)(p) as ProfileData
+                        : p
+                )
+                await setDoc(doc(db, 'users', user.uid), { profiles: newProfiles }, { merge: true })
+                setProfiles(newProfiles)
+            }
+            await sendPasswordResetEmail(auth, user.email)
+            setForgotPinSent(true)
+        } catch (e) { console.error(e) }
+        finally { setForgotPinLoading(false) }
+    }
+
+    const openPinSetup = () => { setPinInput(''); setPinConfirm(''); setPinError(''); setPinConfirmError(''); setStep('pin_setup') }
+
+    const removePin = async () => {
+        if (!user?.uid || !editingId) return
+        setSaving(true)
+        try {
+            const newProfiles = profiles.map(p =>
+                p.id === editingId
+                    ? (({ pinHash: _r, ...rest }) => rest)(p) as ProfileData
+                    : p
+            )
+            await setDoc(doc(db, 'users', user.uid), { profiles: newProfiles }, { merge: true })
+            setProfiles(newProfiles)
+        } catch (e) { console.error(e) }
+        finally { setSaving(false) }
+    }
+
+    const handlePinSetupDigit = (d: string) => {
+        const next = (pinInput + d).slice(0, 4); setPinInput(next); setPinError('')
+        if (next.length === 4) setTimeout(() => setStep('pin_setup_confirm'), 150)
+    }
+
+    const handlePinConfirmDigit = async (d: string) => {
+        const next = (pinConfirm + d).slice(0, 4); setPinConfirm(next); setPinConfirmError('')
+        if (next.length === 4) {
+            if (next !== pinInput) {
+                setPinConfirmError('PIN이 일치하지 않습니다'); setTimeout(() => { setPinConfirm(''); setPinInput(''); setStep('pin_setup') }, 1000)
+            } else { await savePinHash(next) }
+        }
+    }
+
+    const savePinHash = async (pin: string) => {
+        if (!user?.uid || !editingId) return
+        setSaving(true)
+        try {
+            const hashed = await hashPin(pin)
+            const newProfiles = profiles.map(p => p.id === editingId ? { ...p, pinHash: hashed } : p)
+            await setDoc(doc(db, 'users', user.uid), { profiles: newProfiles }, { merge: true })
+            setProfiles(newProfiles); setStep('edit')
+        } catch (e) { console.error(e) }
+        finally { setSaving(false) }
     }
 
     const openEdit = (profile: ProfileData) => {
@@ -199,7 +334,7 @@ export default function ProfilePage() {
     }
 
     if (!user || loading) return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
@@ -207,14 +342,15 @@ export default function ProfilePage() {
 
     const editingProfile = profiles.find(p => p.id === editingId)
     const ageLimitLabel = AGE_OPTIONS.find(a => a.value === editAgeLimit)?.desc || '19세 연령 콘텐츠까지 시청 가능'
+    const editingHasPin = !!(editingProfile?.pinHash)
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg) } }
                 @keyframes fade-up { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
                 .pf-page { animation: fade-up .35s ease; width: 100%; }
-                .pf-box { animation: fade-up .35s ease; width: 100%; max-width: 440px; background: #141420; border-radius: 20px; border: 1px solid rgba(255,255,255,.08); overflow: hidden; }
+                .pf-box { animation: fade-up .35s ease; width: 100%; max-width: 600px; background: #141420; border-radius: 20px; border: 1px solid rgba(255,255,255,.08); overflow: hidden; }
                 .custom-scroll::-webkit-scrollbar { width: 5px; }
                 .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 10px; }
                 .custom-scroll::-webkit-scrollbar-thumb { background: rgba(108,99,255,.5); border-radius: 10px; }
@@ -263,6 +399,8 @@ export default function ProfilePage() {
                 }
                 .pf-card:hover .pf-card-name { color: #fff; }
                 .pf-card.selected .pf-card-name { color: #fff; font-weight: 700; }
+                @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+                @keyframes pin-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
             `}</style>
 
             {/* 프리미엄 모달 */}
@@ -277,6 +415,184 @@ export default function ProfilePage() {
                             <button onClick={() => setShowPremiumModal(false)} style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>아니요</button>
                             <button onClick={() => { setShowPremiumModal(false); router.push('/membership') }} style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>네, 구경할래요</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+
+            {/* ── PIN 입력 ── */}
+            {step === 'pin_enter' && pendingProfile && (
+                <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
+                        <h1 style={{ fontSize: 48, fontWeight: 800, color: '#fff', margin: '0 0 48px', letterSpacing: '-0.02em' }}>프로필 잠금</h1>
+                        <div style={{ width: 120, height: 120, borderRadius: '50%', overflow: 'hidden', margin: '0 auto 20px', border: '4px solid rgba(108,99,255,.4)' }}>
+                            <img src={pendingProfile.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
+                        </div>
+                        <p style={{ color: 'rgba(255,255,255,.4)', fontSize: 15, margin: '0 0 6px' }}>{pendingProfile.nickname}</p>
+                        <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 700, margin: 0 }}>
+                            {pinLocked ? `⏳ ${pinLockTimer}초 후 다시 시도` : 'PIN을 입력해주세요'}
+                        </h2>
+                    </div>
+                    <div style={{ maxWidth: 360, margin: '0 auto', width: '100%' }}>
+
+                        {/* PIN 인풋 — 숨김 인풋 + 커스텀 도트 */}
+                        {!showForgotPin && (
+                            <div style={{ position: 'relative', marginBottom: pinError ? 8 : 40 }}>
+                                <input
+                                    type="password"
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                    value={pinInput}
+                                    disabled={pinLocked}
+                                    autoFocus
+                                    onChange={async e => {
+                                        const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
+                                        setPinInput(v); setPinError('')
+                                        if (v.length === 4) await verifyPin(v)
+                                    }}
+                                    style={{
+                                        position: 'absolute', inset: 0, width: '100%', height: '100%',
+                                        opacity: 0, cursor: 'default',
+                                    }}
+                                />
+                                {/* 커스텀 도트 */}
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 28, padding: '16px 0', borderBottom: `1px solid ${pinError ? '#f87171' : '#6c63ff'}` }}>
+                                    {[0, 1, 2, 3].map(i => (
+                                        <div key={i} style={{
+                                            width: i < pinInput.length ? 14 : 12,
+                                            height: i < pinInput.length ? 14 : 12,
+                                            borderRadius: '50%',
+                                            background: i < pinInput.length
+                                                ? (pinError ? '#f87171' : '#6c63ff')
+                                                : 'rgba(255,255,255,.2)',
+                                            transition: 'all .15s',
+                                            opacity: pinLocked ? .4 : 1,
+                                        }} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {pinError && <p style={{ color: '#f87171', fontSize: 12, margin: '0 0 28px', fontWeight: 600 }}>{pinError}</p>}
+
+                        {!showForgotPin ? (
+                            <button onClick={() => setShowForgotPin(true)}
+                                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.25)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
+                                PIN을 잊으셨나요?
+                            </button>
+                        ) : forgotPinSent ? (
+                            <div style={{ background: 'rgba(108,99,255,.08)', borderRadius: 12, border: '1px solid rgba(108,99,255,.2)', padding: '20px', animation: 'pin-fade .3s ease' }}>
+                                <p style={{ color: '#9d97ff', fontSize: 14, fontWeight: 700, margin: '0 0 8px' }}>✉️ 이메일을 전송했어요</p>
+                                <p style={{ color: 'rgba(255,255,255,.45)', fontSize: 13, margin: '0 0 16px', lineHeight: 1.7 }}>
+                                    <strong style={{ color: '#fff' }}>{user?.email}</strong>으로 안내 메일을 보냈습니다.<br />해당 프로필의 PIN이 제거되었어요.
+                                </p>
+                                <button onClick={() => { setShowForgotPin(false); setForgotPinSent(false); setStep('select') }}
+                                    style={{ width: '100%', padding: '12px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                    프로필 선택으로 돌아가기
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{ animation: 'pin-fade .3s ease' }}>
+                                <p style={{ color: 'rgba(255,255,255,.45)', fontSize: 13, lineHeight: 1.8, margin: '0 0 20px' }}>
+                                    <strong style={{ color: '#fff' }}>{user?.email}</strong>으로<br />PIN 초기화 메일을 보내드릴게요.<br />해당 프로필의 PIN이 즉시 제거됩니다.
+                                </p>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <button onClick={() => setShowForgotPin(false)}
+                                        style={{ flex: 1, padding: '12px', background: 'none', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, color: 'rgba(255,255,255,.5)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>취소</button>
+                                    <button onClick={handleForgotPin} disabled={forgotPinLoading}
+                                        style={{ flex: 1, padding: '12px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: forgotPinLoading ? 'default' : 'pointer', opacity: forgotPinLoading ? .7 : 1, fontFamily: 'inherit' }}>
+                                        {forgotPinLoading ? '처리 중...' : '이메일 전송'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div style={{ textAlign: 'center', marginTop: 32 }}>
+                        <button onClick={() => { setStep('select'); setSelectedProfileId(null) }}
+                            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.25)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.03em' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,.55)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,.25)' }}>
+                            다른 프로필 선택
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── PIN 설정 ── */}
+            {(step === 'pin_setup' || step === 'pin_setup_confirm') && (
+                <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
+                        <h1 style={{ fontSize: 48, fontWeight: 800, color: '#fff', margin: '0 0 16px', letterSpacing: '-0.02em' }}>프로필 잠금 설정</h1>
+                        <p style={{ color: 'rgba(255,255,255,.35)', fontSize: 18, margin: 0 }}>
+                            {step === 'pin_setup' ? '새 PIN 4자리를 입력해주세요' : '한 번 더 입력해주세요'}
+                        </p>
+                    </div>
+                    <div style={{ maxWidth: 360, margin: '0 auto', width: '100%', textAlign: 'center' }}>
+
+                        {/* PIN 인풋 — 숨김 인풋 + 커스텀 도트 */}
+                        {(() => {
+                            const isSetup = step === 'pin_setup'
+                            const val = isSetup ? pinInput : pinConfirm
+                            const err = isSetup ? pinError : pinConfirmError
+                            return (
+                                <div style={{ position: 'relative', marginBottom: err ? 8 : 40 }}>
+                                    <input
+                                        type="password"
+                                        inputMode="numeric"
+                                        maxLength={4}
+                                        value={val}
+                                        autoFocus
+                                        disabled={saving}
+                                        onChange={async e => {
+                                            const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
+                                            if (isSetup) {
+                                                setPinInput(v); setPinError('')
+                                                if (v.length === 4) setTimeout(() => setStep('pin_setup_confirm'), 150)
+                                            } else {
+                                                setPinConfirm(v); setPinConfirmError('')
+                                                if (v.length === 4) {
+                                                    if (v !== pinInput) {
+                                                        setPinConfirmError('PIN이 일치하지 않습니다')
+                                                        setTimeout(() => { setPinConfirm(''); setPinInput(''); setStep('pin_setup') }, 1000)
+                                                    } else { await savePinHash(v) }
+                                                }
+                                            }
+                                        }}
+                                        style={{
+                                            position: 'absolute', inset: 0, width: '100%', height: '100%',
+                                            opacity: 0, cursor: 'default',
+                                        }}
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 28, padding: '16px 0', borderBottom: `1px solid ${err ? '#f87171' : '#6c63ff'}` }}>
+                                        {[0, 1, 2, 3].map(i => (
+                                            <div key={i} style={{
+                                                width: i < val.length ? 14 : 12,
+                                                height: i < val.length ? 14 : 12,
+                                                borderRadius: '50%',
+                                                background: i < val.length
+                                                    ? (err ? '#f87171' : '#6c63ff')
+                                                    : 'rgba(255,255,255,.2)',
+                                                transition: 'all .15s',
+                                                opacity: saving ? .6 : 1,
+                                            }} />
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        })()}
+                        {(pinError || pinConfirmError) && (
+                            <p style={{ color: '#f87171', fontSize: 12, margin: '0 0 28px', fontWeight: 600 }}>
+                                {step === 'pin_setup' ? pinError : pinConfirmError}
+                            </p>
+                        )}
+                    </div>
+                    <div style={{ textAlign: 'center', marginTop: 32 }}>
+                        <button onClick={() => { if (step === 'pin_setup') setStep('edit'); else { setStep('pin_setup'); setPinInput(''); setPinConfirm('') } }}
+                            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.25)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.03em' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,.55)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,.25)' }}>
+                            {step === 'pin_setup' ? '취소' : '다시 입력'}
+                        </button>
                     </div>
                 </div>
             )}
@@ -299,24 +615,25 @@ export default function ProfilePage() {
                                 <div
                                     key={p.id}
                                     className={`pf-card${isSelected ? ' selected' : ''}`}
-                                    onClick={() => {
-                                        if (isSelected) {
-                                            onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit })
-                                            router.push('/')
-                                        } else {
-                                            setSelectedProfileId(p.id)
-                                        }
-                                    }}
+                                    onClick={() => handleProfileClick(p)}
                                 >
-                                    <div className="pf-avatar-wrap">
+                                    <div className="pf-avatar-wrap" style={{ position: 'relative' }}>
                                         <img src={p.avatarUrl} alt={p.nickname}
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
+                                        {p.pinHash && (
+                                            <div style={{ position: 'absolute', bottom: 6, right: 6, width: 26, height: 26, background: 'rgba(10,10,20,.8)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(108,99,255,.5)' }}>
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(108,99,255,.9)" strokeWidth="2.5">
+                                                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
                                     <span className="pf-card-name">{p.nickname}</span>
                                     {isSelected && (
                                         <span style={{ fontSize: 12, color: '#9d97ff', fontWeight: 600, marginTop: -8 }}>
-                                            한 번 더 클릭하여 입장 →
+                                            {p.pinHash ? '🔒 한 번 더 클릭' : '한 번 더 클릭하여 입장 →'}
                                         </span>
                                     )}
                                 </div>
@@ -379,24 +696,28 @@ export default function ProfilePage() {
 
             {/* ── STEP 2: 프로필 편집 ── */}
             {step === 'edit' && (
-                <div className="pf-page" style={{ maxWidth: 440, margin: '0 auto' }}>
-                    <div style={{ textAlign: 'center', marginBottom: 48 }}>
-                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.35)', margin: '0 0 10px' }}>프로필 편집</p>
-                        <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: 0 }}>
-                            {editingId ? '편집할 프로필을 선택해주세요.' : '새 프로필을 만들어주세요.'}
-                        </h1>
+                <div className="pf-page">
+                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
+                        <h1 style={{ fontSize: 48, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>프로필 편집</h1>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, marginBottom: 48 }}>
-                        <div style={{ position: 'relative', cursor: 'pointer', width: 120, height: 120 }} onClick={() => setStep('image')}>
-                            <div style={{ width: 120, height: 120, borderRadius: "50%", overflow: 'hidden', background: '#1a1a22' }}>
-                                <img src={selectedAvatar} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 64, marginBottom: 64, alignItems: 'flex-start' }}>
+                        {/* 아바타 */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                            <div style={{ position: 'relative', cursor: 'pointer', width: 160, height: 160 }} onClick={() => setStep('image')}>
+                                <div style={{ width: 160, height: 160, borderRadius: '50%', overflow: 'hidden', background: '#1a1a22', border: '4px solid transparent', transition: 'border-color .2s' }}
+                                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#fff' }}
+                                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'transparent' }}>
+                                    <img src={selectedAvatar} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
+                                </div>
+                                <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                </div>
                             </div>
-                            <div style={{ position: 'absolute', inset: 0, borderRadius: "50%", background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                            </div>
+                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,.3)' }}>클릭하여 변경</span>
                         </div>
-                        <div style={{ width: '100%' }}>
+                        {/* 폼 */}
+                        <div style={{ width: 380 }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,.2)', paddingBottom: 8, marginBottom: 16 }}>
                                 <input value={editNickname} onChange={e => setEditNickname(e.target.value.slice(0, 15))}
                                     placeholder="닉네임을 입력하세요"
@@ -411,15 +732,56 @@ export default function ProfilePage() {
                                 </div>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                             </div>
+
+                            {/* PIN 잠금 설정 */}
+                            {editingId && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', marginTop: 4 }}>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                                            <p style={{ color: '#fff', fontSize: 14, fontWeight: 600, margin: 0 }}>프로필 잠금 (PIN)</p>
+                                            {editingHasPin && (
+                                                <span style={{ fontSize: 10, background: 'rgba(108,99,255,.2)', color: '#9d97ff', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>설정됨</span>
+                                            )}
+                                        </div>
+                                        <p style={{ color: 'rgba(255,255,255,.35)', fontSize: 12, margin: 0 }}>
+                                            {editingHasPin ? '입장 시 PIN 4자리 필요' : '설정하면 이 프로필 입장 시 번호 입력'}
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                        {editingHasPin ? (
+                                            <>
+                                                <button onClick={openPinSetup}
+                                                    style={{ padding: '7px 14px', background: 'rgba(108,99,255,.12)', border: '1px solid rgba(108,99,255,.3)', borderRadius: 8, color: '#9d97ff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                                    변경
+                                                </button>
+                                                <button onClick={removePin} disabled={saving}
+                                                    style={{ padding: '7px 14px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 8, color: 'rgba(255,255,255,.35)', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving ? .6 : 1 }}>
+                                                    {saving ? '...' : '해제'}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button onClick={openPinSetup}
+                                                style={{ padding: '7px 18px', background: '#6c63ff', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                                PIN 설정
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
                         <button onClick={() => setStep('select')}
-                            style={{ padding: '12px 28px', background: 'none', border: '1px solid rgba(255,255,255,.2)', borderRadius: 10, color: 'rgba(255,255,255,.7)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                            style={{ padding: '13px 52px', background: 'none', border: '1px solid rgba(255,255,255,.3)', borderRadius: 4, color: 'rgba(255,255,255,.6)', fontSize: 15, fontWeight: 400, cursor: 'pointer', letterSpacing: '0.06em', transition: 'all .2s', fontFamily: 'inherit' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#fff' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,.6)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.3)' }}>
                             취소
                         </button>
                         <button onClick={saveProfile} disabled={saving}
-                            style={{ padding: '12px 28px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? .6 : 1 }}>
+                            style={{ padding: '13px 52px', background: '#6c63ff', border: '1px solid #6c63ff', borderRadius: 4, color: '#fff', fontSize: 15, fontWeight: 400, cursor: saving ? 'default' : 'pointer', letterSpacing: '0.06em', opacity: saving ? .6 : 1, transition: 'all .2s', fontFamily: 'inherit' }}
+                            onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#7d74ff' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '#6c63ff' }}>
                             {saving ? '저장 중...' : '저장'}
                         </button>
                     </div>

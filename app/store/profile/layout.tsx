@@ -5,7 +5,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/firebase/firebase";
 
 const MENU_TOP = [
@@ -13,6 +13,7 @@ const MENU_TOP = [
     { label: "위시 리스트", path: "/store/profile/wishlist", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg> },
     { label: "문의 내역", path: "/store/profile/inquiry", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg> },
     { label: "쿠폰함", path: "/store/profile/coupon", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg> },
+    { label: "재입고 알림", path: "/store/profile/restock", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg> },
     { label: "포인트 내역", path: "/store/profile/points", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg> },
 ];
 
@@ -129,15 +130,21 @@ export default function ProfileStoreLayout({ children }: { children: React.React
     // Firebase 실시간 구독 — OTT 연동
     useEffect(() => {
         if (!user?.uid) return;
-        const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+        const unsubUser = onSnapshot(doc(db, "users", user.uid), (snap) => {
             if (snap.exists()) {
                 const data = snap.data();
                 setLivePoints(data.points ?? 0);
-                setLiveCoupons(data.coupons?.length ?? 0);
                 setLiveWishCount(data.wishlist?.length ?? 0);
             }
         });
-        return () => unsub();
+        const unsubCoupons = onSnapshot(collection(db, "users", user.uid, "coupons"), (snap) => {
+            setLiveCoupons(snap.size);
+        });
+
+        return () => {
+            unsubUser();
+            unsubCoupons();
+        };
     }, [user?.uid]);
 
     const isActive = (path: string) =>
@@ -189,7 +196,7 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                                 </div>
                                 <div className="h-7 w-px bg-[#d0caee]" />
                                 <div>
-                                    <p className="text-[12px] text-[#9b94b2]">좋아요</p>
+                                    <p className="text-[12px] text-[#9b94b2]">위시리스트</p>
                                     <p className="text-[15px] font-bold text-[#7865ff]">{liveWishCount}개</p>
                                 </div>
                             </div>
@@ -210,7 +217,7 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                             ))}
                             <div className="my-3 border-t border-[#f0edf8]" />
                             {MENU_BOTTOM.map((m) => (
-                                (m as any).external
+                                "external" in m && m.external
                                     ? (
                                         <a key={m.path} href={m.path}
                                             className="flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition text-[#3d3755] hover:bg-[#f0eeff]">

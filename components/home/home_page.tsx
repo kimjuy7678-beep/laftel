@@ -8,7 +8,7 @@ import TagTop10Section from "@/components/home/TagTop10Section"
 
 export default function Home() {
     return (
-        <div className="min-h-screen bg-[#0a0a0a]">
+        <div className="min-h-screen bg-[var(--bg-primary)]">
             {/* 메인 히어로 */}
             <HeroSection />
 

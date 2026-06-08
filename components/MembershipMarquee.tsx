@@ -16,8 +16,8 @@ export default function MembershipMarquee({ gridAnime, onOpenModal }: Membership
             {/* ── 2. 마퀴 ── */}
             <div className="py-16 overflow-hidden">
                 <div className="text-center mb-12">
-                    <h2 className="text-4xl font-black mb-3">당신의 모든 덕질 취향이 모이는 곳</h2>
-                    <p className="text-white/50 text-sm">최신 화제작부터 숨겨진 명작까지, 장르 제한 없이 무제한으로 파고드세요</p>
+                    <h2 className="text-4xl font-extrabold mb-3">당신의 모든 덕질 취향이 모이는 곳</h2>
+                    <p className="text-white/50 text-[20px]">최신 화제작부터 숨겨진 명작까지, 장르 제한 없이 무제한으로 파고드세요</p>
                 </div>
                 {gridAnime.length > 0 && (
                     <div className="relative">
@@ -44,9 +44,9 @@ export default function MembershipMarquee({ gridAnime, onOpenModal }: Membership
             {/* ── 3. CTA 배너 ── */}
             <button
                 onClick={onOpenModal}
-                className="flex items-center justify-center w-full py-8 bg-[#6c63ff] hover:bg-[#5a52e0] transition-colors cursor-pointer"
+                className="fixed bottom-0 left-0 right-0 flex items-center justify-center w-full py-8 bg-[#6c63ff] hover:bg-[#5a52e0] transition-colors cursor-pointer z-50 shadow-[0_-8px_24px_rgba(108,99,255,0.35)]"
             >
-                <span className="text-3xl font-black text-white">멤버십 시작하기</span>
+                <span className="text-3xl font-bold text-white">멤버십 시작하기</span>
             </button>
         </>
     )
