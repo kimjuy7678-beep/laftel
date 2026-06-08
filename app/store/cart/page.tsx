@@ -8,6 +8,7 @@ import products from "@/data/store.json";
 import { db } from "@/firebase/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import type { Product } from "@/types/store";
+import { useRouter } from "next/navigation";
 
 const STORE_PRODUCTS = products as Product[];
 const SHIPPING_FEE = 3000;
@@ -89,9 +90,12 @@ function cleanOptionValue(value: unknown) {
             : "";
 
     return raw
+        .replace(/[,{\s]*["']?add(?:i)?tional\w*["']?\s*:\s*["']?[-+]?\d[\d,]*(?:원)?["']?\s*[,}]*/gi, " ")
         .replace(/["{,]\s*add(?:i)?tionalAmou?n?t?\s*["]?\s*:\s*[-+]?\d[\d,]*(?:원)?\s*[,}]?/gi, "")
         .replace(/add(?:i)?tionalAmou?n?t?\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
         .replace(/add(?:i)?tional[A-Za-z]*\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
+        .replace(/[{}"]/g, "")
+        .replace(/,\s*$/g, "")
         .replace(/\(\s*[-+]?\d[\d,]*원\s*\)/g, "")
         .replace(/\s*[-+]\s*\d[\d,]*원/g, "")
         .replace(/\s{2,}/g, " ")
@@ -160,7 +164,11 @@ function getLineOptionValues(line: string) {
 }
 
 function uniqueOptions(options: unknown[]) {
-    return Array.from(new Set(options.map(cleanOptionValue).filter(Boolean)));
+    return Array.from(new Set(
+        options
+            .map(cleanOptionValue)
+            .filter((option) => option && !/^add(?:i)?tional/i.test(option)),
+    ));
 }
 
 function getOptionValues(product: Product): string[] {
@@ -227,7 +235,31 @@ export default function CartPage() {
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [optionModal, setOptionModal] = useState<OptionModalState | null>(null);
-    const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const router = useRouter();
+
+    const handleCheckout = () => {
+        if (selectedItems.length === 0) return;
+        const first = selectedItems[0];
+        const params = new URLSearchParams({
+            productId: first.product.productId,
+            title: first.product.title,
+            price: String(parsePrice(first.product.price) * first.quantity),
+            thumbnail: first.product.thumbnail,
+            option: first.option,
+            qty: String(first.quantity),
+            // 여러 상품이면 items에 전체를 담아서 넘겨요
+            items: JSON.stringify(selectedItems.map(item => ({
+                productId: item.product.productId,
+                title: item.product.title,
+                price: parsePrice(item.product.price),
+                thumbnail: item.product.thumbnail,
+                option: item.option,
+                qty: item.quantity,
+            }))),
+            total: String(finalTotal),
+        });
+        router.push(`/store/order?${params.toString()}`);
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -433,7 +465,7 @@ export default function CartPage() {
                     ) : cartItems.length === 0 ? (
                         <div className="flex h-[300px] flex-col items-center justify-center rounded-[16px] bg-[#f7f7f8] text-[14px] text-[#777]">
                             <p>장바구니에 담긴 상품이 없어요.</p>
-                            <Link href="/store" className="mt-5 rounded-full bg-[#826CFF] px-7 py-2.5 text-[13px] font-bold text-white">
+                            <Link href="/store/all" className="mt-5 rounded-full bg-[#826CFF] px-7 py-2.5 text-[13px] font-bold text-white">
                                 굿즈 보러가기
                             </Link>
                         </div>

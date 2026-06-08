@@ -994,7 +994,7 @@ export default function OstPage() {
 
             {/* ── 마우스 커서 이미지 ─────────────────────────── */}
             <div style={{
-                position: 'fixed', top: 0, left: 0, width: 500, height: 500,
+                position: 'fixed', top: 0, left: 0, width: 40, height: 40,
                 pointerEvents: 'none', zIndex: 99999,
                 transform: `translate(${cursor.x + 10}px, ${cursor.y + 10}px)`,
                 transition: 'transform .12s cubic-bezier(.25,.46,.45,.94)',

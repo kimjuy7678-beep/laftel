@@ -10,8 +10,6 @@ import StoreSidebar from "@/components/store/StoreSliaebar";
 import FilterDropdown from "@/components/store/FilterDropdown";
 
 const ALL_PRODUCTS = products as StoreProduct[];
-const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
-const RESERVE_PRODUCTS = ALL_PRODUCTS.filter((p) => p.title.includes("[예약]"));
 const ITEMS_PER_PAGE = 20;
 const PAGE_GROUP = 5;
 
@@ -39,8 +37,8 @@ function parsePrice(priceStr: string): number {
     return isNaN(num) ? 0 : num;
 }
 
-function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return <div className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
+function Inner({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
 }
 
 function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void }) {
@@ -158,7 +156,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     // ✅ 페이지 변경 + 최상단 이동
     const handleChange = (p: number) => {
         onChange(p);
-        window.scrollTo(0, 0);
+        document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     return (
@@ -210,10 +208,7 @@ export default function StoreListPage() {
     const [onlyInStock, setOnlyInStock] = useState(false);
     const [onlyReserve, setOnlyReserve] = useState(false);
 
-    // 예약 굿즈 토글 시 ALL_PRODUCTS 기준으로 전환
-    const BASE_PRODUCTS = onlyReserve ? ALL_PRODUCTS : STORE_PRODUCTS;
-
-    const filtered = BASE_PRODUCTS.filter((p) => {
+    const filtered = ALL_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
         const matchSearch =
             p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -308,7 +303,7 @@ export default function StoreListPage() {
                 <HeroBanner onSeriesSelect={handleSeriesSelect} />
             </Inner>
 
-            <Inner className="mt-8">
+            <Inner id="store-products" className="mt-8">
                 <div className="flex items-center justify-between">
                     <p className="text-[14px] text-[#6b647a]">
                         총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품

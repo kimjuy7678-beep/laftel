@@ -13,8 +13,8 @@ const PAGE_GROUP = 5;
 const BEST_RANK_BY_ID = new Map(BEST_PRODUCTS.map((product, index) => [product.productId, index + 1]));
 
 function parsePrice(s: string) { return parseInt(s.replace(/[^0-9]/g, ""), 10) || 0; }
-function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
+function Inner({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
 }
 
 function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
@@ -27,7 +27,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
 
     const handleChange = (p: number) => {
         onChange(p);
-        window.scrollTo(0, 0);
+        document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     return (
@@ -192,7 +192,7 @@ export default function BestPage() {
             )}
 
             {/* 정렬 */}
-            <Inner className="mt-8">
+            <Inner id="store-products" className="mt-8">
                 <div className="flex items-center justify-between">
                     <p className="text-[14px] text-[#6b647a]">총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품</p>
                     <div className="flex items-center gap-2">

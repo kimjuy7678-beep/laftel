@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useWatchlistStore } from '@/store/useWatchlistStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 import { useRouter } from 'next/navigation'
 
@@ -250,11 +250,26 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
                         disabled={(password.length < 6 || !selectedCardId) || paying}
                         onClick={async () => {
                             setPaying(true)
-                            await new Promise(res => setTimeout(res, 3000))
+                            await new Promise(res => setTimeout(res, 1500))
                             if (user?.uid) {
+                                // watchlist에 추가
                                 for (const epNum of selectedEpisodes) {
                                     await addItem(user.uid, { id: 0, title: detail?.name || '', poster: detail?.poster_path || '', tab: 'purchased' })
                                 }
+                                // purchaseHistory에 저장 (이용내역 페이지용)
+                                try {
+                                    await addDoc(collection(db, 'users', user.uid, 'purchaseHistory'), {
+                                        animeName: detail?.name || detail?.original_name || '알 수 없는 작품',
+                                        animeId: detail?.id || 0,
+                                        poster: detail?.poster_path || '',
+                                        purchaseType,
+                                        rentDays: purchaseType === 'rent' ? rentDays : null,
+                                        episodeCount: selectedEpisodes.size,
+                                        episodeNumbers: Array.from(selectedEpisodes),
+                                        totalPrice: selectedEpisodes.size * pricePerEp,
+                                        createdAt: serverTimestamp(),
+                                    })
+                                } catch (e) { console.warn('purchaseHistory 저장 실패:', e) }
                             }
                             setPaying(false)
                             setPassword('')
