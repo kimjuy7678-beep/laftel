@@ -63,7 +63,7 @@ function classifyTrack(item: any): { type: Track['type']; tags: string[] } {
 function extractAnimeName(item: any): string {
     const col: string = item.collectionName || ''
     const trackName: string = item.trackName || ''
-    
+
     // collectionName에 알려진 애니 키워드가 있으면 그게 애니명
     const knownAnime = [
         '鬼滅の刃', '呪術廻戦', '進撃の巨人', 'ONE PIECE', 'NARUTO', 'BLEACH',
@@ -81,7 +81,7 @@ function extractAnimeName(item: any): string {
         .replace(/\s*-\s*(ost|original soundtrack|soundtrack|opening|ending|bgm|score|music|anime|the animation|season \d+|ep\.?\s*\d*|single)\s*/gi, '')
         .replace(/\s*(ost|original soundtrack|soundtrack)\s*/gi, '')
         .trim()
-    
+
     // 정제된 결과가 아티스트명이랑 같으면 의미없음 → artistName 반환
     if (!cleaned || cleaned === item.artistName) return item.artistName || 'Unknown'
     return cleaned
@@ -132,7 +132,7 @@ async function fetchNewReleases(): Promise<Track[]> {
         const pick = tracks.length === 0
             ? list.find(t => !seen.has(t.id) && t.previewUrl &&
                 (t.artist.includes('LiSA') || t.collectionName.includes('鬼滅') || t.animeName.includes('鬼滅')))
-              || list.find(t => !seen.has(t.id) && t.previewUrl)
+            || list.find(t => !seen.has(t.id) && t.previewUrl)
             : list.find(t => !seen.has(t.id) && t.previewUrl)
         if (pick) { seen.add(pick.id); tracks.push(pick) }
         if (tracks.length >= 7) break
@@ -1073,16 +1073,13 @@ export default function OstPage() {
                         <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '8px 0 0' }}>애니메이션 속 그 노래, 여기서 다시 들어요</p>
                     </div>
                     {loading && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'var(--text-faint)' }}>
-                            <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                            {loadCount}곡 로드 중...
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
                             <Lottie
                                 path="https://assets10.lottiefiles.com/packages/lf20_ikku7ex4.json"
                                 style={{ width: 36, height: 36 }}
                                 loop
                             />
-
+                            <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{loadCount}곡 로드 중...</span>
                         </div>
                     )}
                     <OstTab
