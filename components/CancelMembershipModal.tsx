@@ -30,7 +30,7 @@ export default function CancelMembershipModal({ isOpen, onClose, onConfirm, memb
                 {/* 닫기 버튼 */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer"
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
                 >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -53,8 +53,8 @@ export default function CancelMembershipModal({ isOpen, onClose, onConfirm, memb
                 {/* 텍스트 */}
                 <div className="text-center">
                     <h3 className="text-white font-black text-xl mb-2">멤버십을 해지할까요?</h3>
-                    <p className="text-white/40 text-sm leading-relaxed">
-                        <span className="text-white/70 font-semibold">{membershipName}</span>을 해지하면<br />
+                    <p className="text-[var(--text-subtle)] text-sm leading-relaxed">
+                        <span className="text-[var(--text-muted)] font-semibold">{membershipName}</span>을 해지하면<br />
                         다음 결제일부터 이용이 중단돼요.<br />
                         현재 기간은 끝까지 이용할 수 있어요.
                     </p>
@@ -66,7 +66,7 @@ export default function CancelMembershipModal({ isOpen, onClose, onConfirm, memb
                 <div className="w-full flex gap-3">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-3 rounded-xl border border-white/15 text-white/60 font-bold text-sm hover:border-white/30 hover:text-white transition-colors cursor-pointer"
+                        className="flex-1 py-3 rounded-xl border border-white/15 text-[var(--text-muted)] font-bold text-sm hover:border-white/30 hover:text-white transition-colors cursor-pointer"
                     >
                         취소
                     </button>

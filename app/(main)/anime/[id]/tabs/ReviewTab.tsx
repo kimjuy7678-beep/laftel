@@ -148,13 +148,11 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
     return (
         <div className="flex flex-col gap-6 py-2">
             <div className="flex gap-4">
-                {/* 내 별점 */}
-                <div className="flex-1 flex flex-col gap-4 p-5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
-                    <div className="flex items-center justify-between">
-                        <p className="text-white/50 text-sm font-semibold">내 별점</p>
-                        {myScore > 0 && <span className="text-white/40 text-xs">{scoreLabel(myScore)}</span>}
-                    </div>
-                    <div className="flex items-center gap-1">
+                <div className="flex-1 flex flex-col items-center gap-3 p-5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
+                    <p className="text-[var(--text-subtle)] text-sm font-semibold">내 별점</p>
+                    <p className="text-4xl font-bold text-white">{myScore > 0 ? myScore.toFixed(1) : '0'}</p>
+                    <p className="text-[var(--text-faint)] text-xs">{myScore > 0 ? '별점을 남겼어요' : '별점을 남겨주세요'}</p>
+                    <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map(s => (
                             <svg key={s} width="32" height="32" viewBox="0 0 24 24"
                                 fill={(hoverScore || myScore) >= s ? '#6c63ff' : 'rgba(255,255,255,0.12)'}
@@ -195,14 +193,11 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
                     </div>
                 </div>
 
-                {/* 평균 별점 */}
-                <div className="flex-1 flex flex-col gap-3 p-5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
-                    <p className="text-white/50 text-sm font-semibold">평균 별점</p>
-                    <div className="flex items-end gap-3">
-                        <p className="text-5xl font-bold text-white">4.9</p>
-                        <p className="text-white/30 text-sm mb-1">163개의 별점</p>
-                    </div>
-                    <div className="flex gap-0.5">
+                <div className="flex-1 flex flex-col items-center gap-3 p-5 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
+                    <p className="text-[var(--text-subtle)] text-sm font-semibold">평균 별점</p>
+                    <p className="text-4xl font-bold text-white">4.5</p>
+                    <p className="text-[var(--text-faint)] text-xs">274개의 별점</p>
+                    <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map(s => (
                             <svg key={s} width="24" height="24" viewBox="0 0 24 24"
                                 fill='#6c63ff' stroke="none">
@@ -213,7 +208,7 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
                     <div className="w-full flex flex-col gap-1.5 mt-1">
                         {[{ label: '5.0', pct: 78 }, { label: '4.0', pct: 12 }, { label: '3.0', pct: 5 }, { label: '2.0', pct: 3 }, { label: '1.0', pct: 2 }].map(row => (
                             <div key={row.label} className="flex items-center gap-2">
-                                <span className="text-[10px] text-white/30 w-6 text-right">{row.label}</span>
+                                <span className="text-[10px] text-[var(--text-faint)] w-6 text-right">{row.label}</span>
                                 <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
                                     <div className="h-full bg-[#6c63ff] rounded-full transition-all" style={{ width: `${row.pct}%` }} />
                                 </div>
@@ -226,8 +221,8 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
             {/* 리뷰 목록 */}
             <div>
                 <div className="flex items-center justify-between mb-3">
-                    <p className="text-white font-bold text-sm">리뷰 <span className="text-white/40">({reviews.length})</span></p>
-                    <span className="text-white/30 text-xs">좋아요순 ↕</span>
+                    <p className="text-white font-bold text-sm">리뷰 <span className="text-[var(--text-subtle)]">(114)</span></p>
+                    <span className="text-[var(--text-faint)] text-xs">좋아요순 ↕</span>
                 </div>
                 <div className="flex flex-col gap-3" ref={menuRef}>
                     {reviews.map((r) => (
