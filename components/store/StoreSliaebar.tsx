@@ -5,8 +5,8 @@ import Link from "next/link";
 
 const STORE_MENU = [
     { label: "전체 굿즈", path: "/store/all", icon: "/store/ham/all.png" },
-    { label: "신규 입고", path: "/store/new", icon: "/store/ham/star.png" },
-    { label: "예약 굿즈", path: "/store/reserve", icon: "/store/ham/lyra-icon-endocrine.png" },
+    { label: "한정 굿즈", path: "/store/rare", icon: "/store/ham/star.png" },
+    { label: "인기 상품", path: "/store/best", icon: "/store/ham/lyra-icon-endocrine.png" },
 ];
 
 const CATEGORY_MENU = [

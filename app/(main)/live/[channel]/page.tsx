@@ -8,6 +8,8 @@ import { collection, addDoc, onSnapshot, orderBy, query, serverTimestamp } from 
 import { buildChannels, getCurrentIdx, getTodaySeed, nowInMinutes } from '@/utils/scheduleUtils'
 import channels from '@/data/channels.json'
 import Link from 'next/link'
+import LoginModal from '@/components/LoginModal'
+import MembershipRequiredModal from '@/components/MembershipRequiredModal'
 
 export default function LiveChannelPage() {
     const { channel } = useParams()
@@ -25,6 +27,13 @@ export default function LiveChannelPage() {
     const [nowMin, setNowMin] = useState(nowInMinutes)
     const [relatedAnime, setRelatedAnime] = useState<any[]>([])
 
+    // 게이트 팝업 상태
+    const [showLoginModal, setShowLoginModal] = useState(false)
+    const [showMembershipModal, setShowMembershipModal] = useState(false)
+
+    // 시청 가능 여부: 로그인 + (anime 또는 allinone 멤버십)
+    const canWatch = user && (user.membership === 'anime' || user.membership === 'allinone')
+
     // scheduleUtils 기반 편성표
     const allChannels = useMemo(() => buildChannels(getTodaySeed()), [])
     const chSchedule = allChannels.find(c => c.id === ch?.id)
@@ -36,13 +45,11 @@ export default function LiveChannelPage() {
         return () => clearInterval(timer)
     }, [])
 
-    // ON AIR 애니 영상 fetch
     useEffect(() => {
         if (!currentProgram) return
         onFetchVideo(currentProgram.tmdbId, currentProgram.koTitle)
     }, [currentProgram?.tmdbId])
 
-    // 편성표 애니 포스터 fetch
     useEffect(() => {
         if (!chSchedule) return
         chSchedule.items.forEach(item => onFetchDetail(item.tmdbId))
@@ -72,33 +79,21 @@ export default function LiveChannelPage() {
         }
     }, [messages])
 
-    // ON AIR 애니 기준 관련 작품 fetch
     useEffect(() => {
         if (!currentProgram) return
         const tmdbId = currentProgram.tmdbId
         const fetchRelated = async () => {
             const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
-            // 1. 현재 애니 장르 가져오기
-            const detailRes = await fetch(
-                `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_KEY}&language=ko-KR`
-            )
+            const detailRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_KEY}&language=ko-KR`)
             const detail = await detailRes.json()
             const genreIds = detail.genres?.map((g: any) => g.id).join(',') ?? '16'
-
-            // 2. 같은 장르 애니 가져오기
-            const res = await fetch(
-                `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=${genreIds}&with_original_language=ja&sort_by=popularity.desc&language=ko-KR&page=1`
-            )
+            const res = await fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=${genreIds}&with_original_language=ja&sort_by=popularity.desc&language=ko-KR&page=1`)
             const data = await res.json()
-            const filtered = (data.results || [])
-                .filter((a: any) => a.id !== tmdbId && a.poster_path)
-                .slice(0, 6)
-            setRelatedAnime(filtered)
+            setRelatedAnime((data.results || []).filter((a: any) => a.id !== tmdbId && a.poster_path).slice(0, 6))
         }
         fetchRelated()
     }, [currentProgram?.tmdbId])
 
-    // 편성표 항목 클릭
     const handleScheduleClick = (item: { tmdbId: number; koTitle: string; time: string; minutesFromStart: number }, i: number) => {
         const isPast = i < currentIdx
         const isCurrent = i === currentIdx
@@ -113,6 +108,12 @@ export default function LiveChannelPage() {
             if (item.minutesFromStart >= 24 * 60) today.setDate(today.getDate() + 1)
             router.push(`/live/party/dummy-${item.tmdbId}?scheduledAt=${today.toISOString()}`)
         }
+    }
+
+    // 플레이어 영역 클릭 핸들러
+    const handlePlayerClick = () => {
+        if (!user) { setShowLoginModal(true); return }
+        if (!canWatch) { setShowMembershipModal(true) }
     }
 
     const sendMessage = async () => {
@@ -135,8 +136,24 @@ export default function LiveChannelPage() {
 
     return (
         <div className="min-h-screen">
-            <div className="inner px-6 py-6">
+            {/* 게이트 팝업 */}
+            <LoginModal
+                isOpen={showLoginModal}
+                onClose={() => setShowLoginModal(false)}
+                onLoginSuccess={() => {
+                    const u = useAuthStore.getState().user
+                    if (u?.membership !== 'anime' && u?.membership !== 'allinone') {
+                        setShowMembershipModal(true)
+                    }
+                }}
+            />
+            <MembershipRequiredModal
+                isOpen={showMembershipModal}
+                onClose={() => setShowMembershipModal(false)}
+                type="anime"
+            />
 
+            <div className="inner px-6 py-6">
                 {/* 상단 바 */}
                 <div className="flex items-center justify-between py-4 mb-4 border-b border-white/10">
                     <div className="flex items-center gap-3 mt-10">
@@ -149,9 +166,7 @@ export default function LiveChannelPage() {
                         <div className="w-px h-4 bg-white/10" />
                         <div>
                             <p className="text-white font-bold text-sm">{ch.name}</p>
-                            {currentProgram && (
-                                <p className="text-white/40 text-xs">{currentProgram.koTitle}</p>
-                            )}
+                            {currentProgram && <p className="text-white/40 text-xs">{currentProgram.koTitle}</p>}
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -165,8 +180,47 @@ export default function LiveChannelPage() {
                 <div className="flex gap-6 items-start">
                     {/* 왼쪽: 플레이어 */}
                     <div className="flex-1 min-w-0">
-                        <div className="aspect-video rounded-xl overflow-hidden bg-black" ref={iframeRef}>
-                            {currentProgram && aniVideos[currentProgram.tmdbId] ? (
+                        <div className="aspect-video rounded-xl overflow-hidden bg-black relative" ref={iframeRef}>
+                            {!user ? (
+                                /* 비로그인 */
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-4 cursor-pointer bg-black/80 relative"
+                                    onClick={handlePlayerClick}>
+                                    {currentProgram && aniDetails[currentProgram.tmdbId]?.backdrop_path && (
+                                        <img src={`https://image.tmdb.org/t/p/w780${aniDetails[currentProgram.tmdbId].backdrop_path}`}
+                                            className="absolute inset-0 w-full h-full object-cover opacity-20" alt="" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/60" />
+                                    <div className="relative flex flex-col items-center gap-4">
+                                        <div className="w-16 h-16 rounded-full flex items-center justify-center"
+                                            style={{ background: 'rgba(108,99,255,0.15)', border: '1px solid rgba(108,99,255,0.3)' }}>
+                                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="1.5">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                <circle cx="12" cy="7" r="4" />
+                                            </svg>
+                                        </div>
+                                        <p className="text-white font-bold text-lg">로그인 후 시청할 수 있어요</p>
+                                        <p className="text-white/40 text-sm">클릭해서 로그인하기</p>
+                                    </div>
+                                </div>
+                            ) : !canWatch ? (
+                                /* 로그인 O, 멤버십 없음 */
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-4 cursor-pointer relative"
+                                    onClick={handlePlayerClick}>
+                                    {currentProgram && aniDetails[currentProgram.tmdbId]?.backdrop_path && (
+                                        <img src={`https://image.tmdb.org/t/p/w780${aniDetails[currentProgram.tmdbId].backdrop_path}`}
+                                            className="absolute inset-0 w-full h-full object-cover opacity-20" alt="" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/60" />
+                                    <div className="relative flex flex-col items-center gap-4">
+                                        <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
+                                            style={{ background: 'rgba(108,99,255,0.15)', border: '1px solid rgba(108,99,255,0.3)' }}>
+                                            🎬
+                                        </div>
+                                        <p className="text-white font-bold text-lg">멤버십이 필요해요</p>
+                                        <p className="text-white/40 text-sm">클릭해서 멤버십 시작하기</p>
+                                    </div>
+                                </div>
+                            ) : currentProgram && aniVideos[currentProgram.tmdbId] ? (
                                 <iframe
                                     src={`https://www.youtube.com/embed/${aniVideos[currentProgram.tmdbId]?.key}?autoplay=1&rel=0`}
                                     className="w-full h-full"
@@ -193,9 +247,7 @@ export default function LiveChannelPage() {
                                         LIVE
                                     </span>
                                 </div>
-                                {currentProgram && (
-                                    <p className="text-white/60 text-sm mt-0.5">현재 방영중: {currentProgram.koTitle}</p>
-                                )}
+                                {currentProgram && <p className="text-white/60 text-sm mt-0.5">현재 방영중: {currentProgram.koTitle}</p>}
                             </div>
                         </div>
 
@@ -208,11 +260,8 @@ export default function LiveChannelPage() {
                                     const ocCurrentIdx = ocSchedule ? getCurrentIdx(ocSchedule.items, nowMin) : -1
                                     const ocCurrent = ocSchedule?.items[ocCurrentIdx]
                                     return (
-                                        <Link
-                                            key={oc.id}
-                                            href={`/live/${oc.slug}`}
-                                            className="flex-1 bg-[#1a1a1a] hover:bg-[#242424] border border-white/5 hover:border-white/15 rounded-xl p-4 transition-all group"
-                                        >
+                                        <Link key={oc.id} href={`/live/${oc.slug}`}
+                                            className="flex-1 bg-[#1a1a1a] hover:bg-[#242424] border border-white/5 hover:border-white/15 rounded-xl p-4 transition-all group">
                                             <div className="flex items-center gap-3 mb-3">
                                                 <img src={oc.logo} alt={oc.name} className="w-10 h-10 object-contain shrink-0" />
                                                 <div>
@@ -223,9 +272,7 @@ export default function LiveChannelPage() {
                                                             LIVE
                                                         </span>
                                                     </div>
-                                                    {ocCurrent && (
-                                                        <p className="text-white/40 text-xs mt-0.5 truncate">{ocCurrent.koTitle}</p>
-                                                    )}
+                                                    {ocCurrent && <p className="text-white/40 text-xs mt-0.5 truncate">{ocCurrent.koTitle}</p>}
                                                 </div>
                                             </div>
                                             <div className="w-full aspect-video rounded-lg overflow-hidden bg-black/50 relative">
@@ -239,19 +286,11 @@ export default function LiveChannelPage() {
                                                         : ocDetail?.poster_path
                                                             ? `https://image.tmdb.org/t/p/w780${ocDetail.poster_path}`
                                                             : `https://img.youtube.com/vi/${(oc as any).videoId}/maxresdefault.jpg`
-                                                    return (
-                                                        <img
-                                                            src={imgSrc}
-                                                            alt={oc.name}
-                                                            className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity"
-                                                        />
-                                                    )
+                                                    return <img src={imgSrc} alt={oc.name} className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity" />
                                                 })()}
                                                 <div className="absolute inset-0 flex items-center justify-center">
                                                     <div className="w-8 h-8 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-colors">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-                                                            <polygon points="5,3 19,12 5,21" />
-                                                        </svg>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
                                                     </div>
                                                 </div>
                                                 {(() => {
@@ -279,16 +318,11 @@ export default function LiveChannelPage() {
                                     {relatedAnime.map((ani) => (
                                         <div key={ani.id} className="group cursor-pointer" onClick={() => router.push(`/anime/${ani.id}`)}>
                                             <div className="aspect-[3/4] rounded-lg overflow-hidden relative">
-                                                <img
-                                                    src={`https://image.tmdb.org/t/p/w300${ani.poster_path}`}
-                                                    alt={ani.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                />
+                                                <img src={`https://image.tmdb.org/t/p/w300${ani.poster_path}`} alt={ani.name}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-                                                            <polygon points="5,3 19,12 5,21" />
-                                                        </svg>
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
                                                     </div>
                                                 </div>
                                             </div>
@@ -301,21 +335,15 @@ export default function LiveChannelPage() {
                     </div>
 
                     {/* 오른쪽: 채팅 + 편성표 */}
-                    <div
-                        className="w-[380px] shrink-0 flex flex-col bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/5"
-                        style={{ height: playerHeight > 0 ? `${playerHeight}px` : '500px' }}
-                    >
+                    <div className="w-[380px] shrink-0 flex flex-col bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/5"
+                        style={{ height: playerHeight > 0 ? `${playerHeight}px` : '500px' }}>
                         <div className="flex border-b border-white/10 shrink-0">
-                            <button
-                                onClick={() => setTab('chat')}
-                                className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'chat' ? 'text-white border-b-2 border-[#6c63ff]' : 'text-white/40 hover:text-white/70'}`}
-                            >
+                            <button onClick={() => setTab('chat')}
+                                className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'chat' ? 'text-white border-b-2 border-[#6c63ff]' : 'text-white/40 hover:text-white/70'}`}>
                                 채팅
                             </button>
-                            <button
-                                onClick={() => setTab('schedule')}
-                                className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'schedule' ? 'text-white border-b-2 border-[#6c63ff]' : 'text-white/40 hover:text-white/70'}`}
-                            >
+                            <button onClick={() => setTab('schedule')}
+                                className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'schedule' ? 'text-white border-b-2 border-[#6c63ff]' : 'text-white/40 hover:text-white/70'}`}>
                                 편성표
                             </button>
                         </div>
@@ -323,17 +351,14 @@ export default function LiveChannelPage() {
                         {tab === 'chat' ? (
                             <>
                                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0">
-                                    {messages.length === 0 && (
-                                        <p className="text-white/20 text-xs text-center mt-4">첫 채팅을 남겨보세요!</p>
-                                    )}
+                                    {messages.length === 0 && <p className="text-white/20 text-xs text-center mt-4">첫 채팅을 남겨보세요!</p>}
                                     {messages.map((msg) => (
                                         <div key={msg.id} className="flex items-start gap-2">
                                             <div className="w-7 h-7 rounded-full bg-[#6c63ff] flex items-center justify-center shrink-0 overflow-hidden">
-                                                {msg.photoURL ? (
-                                                    <img src={msg.photoURL} alt={msg.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="text-white text-xs font-bold">{msg.name?.[0]?.toUpperCase() || '?'}</span>
-                                                )}
+                                                {msg.photoURL
+                                                    ? <img src={msg.photoURL} alt={msg.name} className="w-full h-full object-cover" />
+                                                    : <span className="text-white text-xs font-bold">{msg.name?.[0]?.toUpperCase() || '?'}</span>
+                                                }
                                             </div>
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="text-[#6c63ff] text-xs font-medium">{msg.name}</span>
@@ -345,21 +370,17 @@ export default function LiveChannelPage() {
                                 <div className="p-3 border-t border-white/10 shrink-0">
                                     {user ? (
                                         <div className="flex gap-2">
-                                            <input
-                                                value={input}
-                                                onChange={(e) => setInput(e.target.value)}
+                                            <input value={input} onChange={(e) => setInput(e.target.value)}
                                                 onKeyUp={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendMessage() } }}
                                                 placeholder="채팅 입력..."
-                                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#6c63ff]"
-                                            />
-                                            <button onClick={sendMessage} className="px-3 py-2 bg-[#6c63ff] rounded-lg text-white text-sm hover:bg-[#5a52e0] transition-colors">
-                                                전송
-                                            </button>
+                                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#6c63ff]" />
+                                            <button onClick={sendMessage} className="px-3 py-2 bg-[#6c63ff] rounded-lg text-white text-sm hover:bg-[#5a52e0] transition-colors">전송</button>
                                         </div>
                                     ) : (
-                                        <Link href="/login" className="block text-center text-sm text-white/40 hover:text-white/70 py-2 transition-colors">
+                                        <button onClick={() => setShowLoginModal(true)}
+                                            className="w-full text-center text-sm text-white/40 hover:text-white/70 py-2 transition-colors">
                                             로그인 후 채팅 가능
-                                        </Link>
+                                        </button>
                                     )}
                                 </div>
                             </>
@@ -371,45 +392,26 @@ export default function LiveChannelPage() {
                                         const isPast = i < currentIdx
                                         const detail = aniDetails[item.tmdbId]
                                         return (
-                                            <li
-                                                key={item.tmdbId}
-                                                onClick={() => handleScheduleClick(item, i)}
-                                                className={[
-                                                    'relative flex items-center gap-3 px-4 py-3 transition-colors border-b border-white/[0.04]',
+                                            <li key={item.tmdbId} onClick={() => handleScheduleClick(item, i)}
+                                                className={['relative flex items-center gap-3 px-4 py-3 transition-colors border-b border-white/[0.04]',
                                                     isCurrent ? 'bg-[#6c63ff]/15 cursor-pointer' : '',
                                                     isPast ? 'opacity-30 cursor-default' : '',
                                                     !isCurrent && !isPast ? 'hover:bg-white/[0.03] cursor-pointer' : '',
-                                                ].join(' ')}
-                                            >
-                                                {isCurrent && (
-                                                    <span className="absolute left-0 top-2 bottom-2 w-[3px] bg-[#6c63ff] rounded-r" />
-                                                )}
+                                                ].join(' ')}>
+                                                {isCurrent && <span className="absolute left-0 top-2 bottom-2 w-[3px] bg-[#6c63ff] rounded-r" />}
                                                 <div className="w-8 h-11 rounded overflow-hidden bg-white/5 shrink-0">
-                                                    {detail?.poster_path ? (
-                                                        <img
-                                                            src={`https://image.tmdb.org/t/p/w92${detail.poster_path}`}
-                                                            alt={item.koTitle}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-white/20">
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                                                <rect x="2" y="5" width="20" height="14" rx="2" />
-                                                            </svg>
+                                                    {detail?.poster_path
+                                                        ? <img src={`https://image.tmdb.org/t/p/w92${detail.poster_path}`} alt={item.koTitle} className="w-full h-full object-cover" />
+                                                        : <div className="w-full h-full flex items-center justify-center text-white/20">
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="20" height="14" rx="2" /></svg>
                                                         </div>
-                                                    )}
+                                                    }
                                                 </div>
                                                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                                                    <span className={`text-[11px] font-mono ${isCurrent ? 'text-[#6c63ff]' : 'text-white/30'}`}>
-                                                        {item.time}
-                                                    </span>
-                                                    <span className={`text-sm truncate leading-tight ${isCurrent ? 'text-white font-semibold' : 'text-white/70'}`}>
-                                                        {item.koTitle}
-                                                    </span>
+                                                    <span className={`text-[11px] font-mono ${isCurrent ? 'text-[#6c63ff]' : 'text-white/30'}`}>{item.time}</span>
+                                                    <span className={`text-sm truncate leading-tight ${isCurrent ? 'text-white font-semibold' : 'text-white/70'}`}>{item.koTitle}</span>
                                                 </div>
-                                                {isCurrent && (
-                                                    <span className="shrink-0 text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded font-bold">ON</span>
-                                                )}
+                                                {isCurrent && <span className="shrink-0 text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded font-bold">ON</span>}
                                             </li>
                                         )
                                     })}

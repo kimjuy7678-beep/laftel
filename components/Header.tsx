@@ -8,6 +8,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { usePageTransition } from '@/hook/usePageTransition'
 import GradeModal from './GradeModal'
+import { toast } from 'sonner'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
@@ -141,6 +142,7 @@ export default function Header() {
         await onLogout()
         setDropdownOpen(false)
         router.push('/')
+        toast("로그아웃되었습니다")
     }
 
     const DropdownMenu = [

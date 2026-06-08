@@ -12,8 +12,8 @@ import { useAniStore } from '@/store/useAniStore'
 const heroData = [
     { id: 123249, image: '/images/hero/hero01.png', video: '/videos/hero01.mp4', text: '최애를 향한 광기 어린 열정과  순정남의 금손 재능이 만났을 때, \n 보는 내내 광대 폭발하는 청춘 성장물' },
     { id: 105248, image: '/images/hero/hero02.png', video: '/videos/hero02.mp4', text: '달까지 달리는 도파민 급행 열차, \n 엔딩곡 듣는 순간 가슴이 웅장해지다 못해 찢어지는 작품' },
-    { id: 75214,  image: '/images/hero/hero03.png', video: '/videos/hero03.mp4', text: '빛과 연출을 갈아 넣은 영상미의 정점, \n 편지 한 장에 담긴 진심이 가슴을 울리는 인생 명작' },
-    { id: 95479,  image: '/images/hero/hero04.png', video: '/videos/hero04.mp4', text: '작화진의 영혼을 갈아 만든 눈호강 액션, \n 고죠 사토루 얼굴이 서사 그 자체!' },
+    { id: 75214, image: '/images/hero/hero03.png', video: '/videos/hero03.mp4', text: '빛과 연출을 갈아 넣은 영상미의 정점, \n 편지 한 장에 담긴 진심이 가슴을 울리는 인생 명작' },
+    { id: 95479, image: '/images/hero/hero04.png', video: '/videos/hero04.mp4', text: '작화진의 영혼을 갈아 만든 눈호강 액션, \n 고죠 사토루 얼굴이 서사 그 자체!' },
     { id: 271607, image: '/images/hero/hero05.png', video: '/videos/hero05.mp4', text: '순정만화 찢고 나온 역대급 비주얼, \n 서툴러서 더 설레는 맑고 고결한 로맨스의 정석' },
 ]
 
@@ -183,18 +183,34 @@ export default function HeroSection() {
                                             >
                                                 <button
                                                     onClick={() => router.push(`/anime/${hero.id}?play=1`)}
+                                                    onMouseEnter={(e) => {
+                                                        e.stopPropagation()
+                                                        if (hoverTimer.current) clearTimeout(hoverTimer.current)
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.stopPropagation()
+                                                        startVideoTimer(hero.id!)
+                                                    }}
                                                     className="inline-flex items-center justify-center rounded-full border border-white/50 text-white font-semibold
-                                                               backdrop-blur-md bg-white/10 hover:bg-white hover:text-black
-                                                               transition-all duration-300 cursor-pointer whitespace-nowrap"
+                                                    backdrop-blur-md bg-white/10 hover:bg-white hover:text-black
+                                                    transition-all duration-300 cursor-pointer whitespace-nowrap"
                                                     style={{ fontSize: 'clamp(11px, 1vw, 14px)', height: 'clamp(40px, 4vw, 52px)', padding: '0 clamp(16px, 2vw, 32px)' }}
                                                 >
                                                     1화 보러가기
                                                 </button>
                                                 <button
                                                     onClick={() => router.push(`/anime/${hero.id}`)}
+                                                    onMouseEnter={(e) => {
+                                                        e.stopPropagation()
+                                                        if (hoverTimer.current) clearTimeout(hoverTimer.current)
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.stopPropagation()
+                                                        startVideoTimer(hero.id!)
+                                                    }}
                                                     className="inline-flex items-center justify-center rounded-full border border-white/50 text-white font-semibold
-                                                               hover:bg-white hover:text-black
-                                                               transition-all duration-300 cursor-pointer whitespace-nowrap"
+                                                    hover:bg-white hover:text-black
+                                                    transition-all duration-300 cursor-pointer whitespace-nowrap"
                                                     style={{ fontSize: 'clamp(11px, 1vw, 14px)', height: 'clamp(40px, 4vw, 52px)', padding: '0 clamp(16px, 2vw, 32px)' }}
                                                 >
                                                     상세보기

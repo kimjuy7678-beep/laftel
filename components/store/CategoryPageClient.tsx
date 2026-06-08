@@ -17,8 +17,8 @@ function parsePrice(priceStr: string): number {
     return isNaN(num) ? 0 : num;
 }
 
-function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
+function Inner({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
 }
 
 function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
@@ -26,23 +26,30 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     const groupStart = groupIndex * PAGE_GROUP + 1;
     const groupEnd = Math.min(groupStart + PAGE_GROUP - 1, total);
     const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
+
+    // ✅ 페이지 변경 + 최상단 이동
+    const handleChange = (p: number) => {
+        onChange(p);
+        document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
     return (
         <div className="mt-16 flex items-center justify-center gap-2">
-            <button onClick={() => onChange(Math.max(1, current - 1))} disabled={current === 1}
+            <button onClick={() => handleChange(Math.max(1, current - 1))} disabled={current === 1}
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            {groupStart > 1 && <button onClick={() => onChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            {groupStart > 1 && <button onClick={() => handleChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
             {pages.map((p) => (
-                <button key={p} onClick={() => onChange(p)}
+                <button key={p} onClick={() => handleChange(p)}
                     className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${p === current
                         ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]"
                         : "bg-white border border-[#d8d4ee] text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
                     {p}
                 </button>
             ))}
-            {groupEnd < total && <button onClick={() => onChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
-            <button onClick={() => onChange(Math.min(total, current + 1))} disabled={current === total}
+            {groupEnd < total && <button onClick={() => handleChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            <button onClick={() => handleChange(Math.min(total, current + 1))} disabled={current === total}
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
@@ -67,6 +74,7 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [priceRange, setPriceRange] = useState<[number, number]>(PRICE_INITIAL);
     const [onlyInStock, setOnlyInStock] = useState(false);
+    const [onlyReserve, setOnlyReserve] = useState(false); // 추가
 
     const CATEGORY_PRODUCTS = ALL_PRODUCTS.filter((p) =>
         keywords.some((kw) => p.title.toLowerCase().includes(kw.toLowerCase()))
@@ -74,12 +82,14 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
 
     const filtered = CATEGORY_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
+        const isReserve = p.title.includes("[예약]"); // 추가
         const matchSearch =
             p.title.toLowerCase().includes(search.toLowerCase()) ||
             p.category.toLowerCase().includes(search.toLowerCase());
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
         const matchStock = !onlyInStock || !p.soldout;
-        return matchSearch && matchPrice && matchStock;
+        const matchReserve = !onlyReserve || isReserve; // 추가
+        return matchSearch && matchPrice && matchStock && matchReserve;
     });
 
     const sorted = [...filtered].sort((a, b) => {
@@ -91,10 +101,11 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    const handleReset = () => { setPriceRange(PRICE_INITIAL); setOnlyInStock(false); };
+    const handleReset = () => { setPriceRange(PRICE_INITIAL); setOnlyInStock(false); setOnlyReserve(false); }; // 추가
     const activeFilterCount = [
         priceRange[0] > PRICE_INITIAL[0] || priceRange[1] < PRICE_INITIAL[1],
         onlyInStock,
+        onlyReserve, // 추가
     ].filter(Boolean).length;
 
     return (
@@ -117,7 +128,7 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
 
             <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
                 <Inner>
-                    <p className="mb-4 text-[12px] text-[#9b94b2]">
+                    <p className="mb-4 text-[14px] text-[#9b94b2]">
                         <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
                         <span className="mx-1.5">›</span>
                         <Link href="/store/all" className="hover:text-[#7865ff]">전체굿즈</Link>
@@ -150,7 +161,7 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                 </Inner>
             </div>
 
-            <Inner className="mt-8">
+            <Inner id="store-products" className="mt-8">
                 <div className="flex items-center justify-between">
                     <p className="text-[14px] text-[#6b647a]">총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품</p>
                     <div className="flex items-center gap-2">
@@ -175,6 +186,8 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                                 onPriceRange={setPriceRange}
                                 onlyInStock={onlyInStock}
                                 onOnlyInStock={setOnlyInStock}
+                                onlyReserve={onlyReserve}
+                                onOnlyReserve={setOnlyReserve}
                                 onReset={handleReset}
                             />
                         </div>

@@ -10,6 +10,8 @@ import { db } from '@/firebase/firebase'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAniStore } from '@/store/useAniStore'
 import { Party } from '@/types/party'
+import LoginModal from '@/components/LoginModal'
+import MembershipRequiredModal from '@/components/MembershipRequiredModal'
 
 interface ChatMessage {
     id: string
@@ -42,9 +44,9 @@ export default function PartyRoomPage() {
     const { user } = useAuthStore()
     const { aniDetails, aniVideos, onFetchDetail, onFetchVideo } = useAniStore()
 
-    const isDummy = partyId.startsWith('dummy-')       // 편성표/마퀴
-    const isPartySection = partyId.startsWith('party-') // PartySection 더미
-    const isDummyAny = isDummy || isPartySection         // 둘 다 더미
+    const isDummy = partyId.startsWith('dummy-')
+    const isPartySection = partyId.startsWith('party-')
+    const isDummyAny = isDummy || isPartySection
     const tmdbId = isDummy
         ? Number(partyId.replace('dummy-', ''))
         : isPartySection
@@ -62,20 +64,28 @@ export default function PartyRoomPage() {
     const chatContainerRef = useRef<HTMLDivElement>(null)
     const playerRef = useRef<HTMLDivElement>(null)
 
+    // 게이트 팝업 상태
+    const [showLoginModal, setShowLoginModal] = useState(false)
+    const [showMembershipModal, setShowMembershipModal] = useState(false)
+
+    // 시청 가능 여부
+    const canWatch = user && (user.membership === 'anime' || user.membership === 'allinone')
+
     const dummyDetail = (isDummyAny && tmdbId) ? aniDetails[tmdbId] : null
     const dummyInfo = (isDummyAny && tmdbId) ? DUMMY_PARTY_INFO[tmdbId % DUMMY_PARTY_INFO.length] : null
 
-    // 플레이어 높이 측정
+    const handlePlayerClick = () => {
+        if (!user) { setShowLoginModal(true); return }
+        if (!canWatch) { setShowMembershipModal(true) }
+    }
+
     useEffect(() => {
-        const update = () => {
-            if (playerRef.current) setPlayerHeight(playerRef.current.offsetHeight)
-        }
+        const update = () => { if (playerRef.current) setPlayerHeight(playerRef.current.offsetHeight) }
         update()
         window.addEventListener('resize', update)
         return () => window.removeEventListener('resize', update)
     }, [])
 
-    // 더미: 상세 정보 & 영상 fetch
     useEffect(() => {
         if (!isDummyAny || !tmdbId) return
         onFetchDetail(tmdbId)
@@ -86,7 +96,6 @@ export default function PartyRoomPage() {
         onFetchVideo(tmdbId, dummyDetail.name ?? dummyDetail.title ?? '')
     }, [isDummy, tmdbId, dummyDetail])
 
-    // 실제 파티: Firestore fetch
     useEffect(() => {
         if (isDummyAny) return
         const fetchParty = async () => {
@@ -98,11 +107,8 @@ export default function PartyRoomPage() {
                 setParty(data)
                 await onFetchVideo(data.animeId, data.animeName)
                 await updateDoc(docRef, { attendees: increment(1) })
-            } catch (err) {
-                console.error(err)
-            } finally {
-                setLoading(false)
-            }
+            } catch (err) { console.error(err) }
+            finally { setLoading(false) }
         }
         fetchParty()
         return () => {
@@ -111,7 +117,6 @@ export default function PartyRoomPage() {
         }
     }, [partyId, isDummy])
 
-    // 실제 파티: 채팅 구독
     useEffect(() => {
         if (isDummyAny) return
         const q = query(collection(db, 'parties', partyId, 'messages'), orderBy('createdAt', 'asc'))
@@ -121,11 +126,11 @@ export default function PartyRoomPage() {
         return () => unsub()
     }, [partyId, isDummy])
 
-    // 관련 작품 fetch
     useEffect(() => {
         const fetchRelated = async () => {
             const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
-            const id = isDummy ? tmdbId : party?.animeId
+            // isDummyAny(dummy- or party- prefix)면 tmdbId 사용, 실제 파티면 party.animeId 사용
+            const id = isDummyAny ? tmdbId : party?.animeId
             if (!id) return
             const detailRes = await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${TMDB_KEY}&language=ko-KR`)
             const detail = await detailRes.json()
@@ -135,8 +140,8 @@ export default function PartyRoomPage() {
             setRelatedAnime((data.results || []).filter((a: any) => a.id !== id && a.poster_path).slice(0, 6))
         }
         if (isDummyAny && tmdbId) fetchRelated()
-        else if (!isDummy && party) fetchRelated()
-    }, [isDummy, tmdbId, party?.animeId])
+        else if (!isDummyAny && party) fetchRelated()
+    }, [isDummyAny, tmdbId, party?.animeId])
 
     useEffect(() => {
         if (messages.length > 0 && chatContainerRef.current) {
@@ -151,18 +156,10 @@ export default function PartyRoomPage() {
         const text = inputText.trim()
         setInputText('')
         if (isDummyAny) {
-            setMessages(prev => [...prev, {
-                id: `msg-${Date.now()}`,
-                uid: user.uid ?? '익명',
-                name: user.name || '익명',
-                text,
-            }])
+            setMessages(prev => [...prev, { id: `msg-${Date.now()}`, uid: user.uid ?? '익명', name: user.name || '익명', text }])
         } else {
             await addDoc(collection(db, 'parties', partyId, 'messages'), {
-                uid: user.uid,
-                name: user.name || '익명',
-                text,
-                createdAt: serverTimestamp(),
+                uid: user.uid, name: user.name || '익명', text, createdAt: serverTimestamp(),
             })
         }
     }
@@ -177,7 +174,6 @@ export default function PartyRoomPage() {
         </div>
     )
 
-    // 더미 미래 편성 대기 화면
     if (isDummyAny && isDummyUpcoming) {
         const name = dummyDetail?.name ?? dummyDetail?.title ?? ''
         const poster = dummyDetail?.poster_path ?? ''
@@ -205,7 +201,6 @@ export default function PartyRoomPage() {
         )
     }
 
-    // 실제 파티 예약됨 대기 화면
     const isUpcoming = !isDummyAny && party?.status === 'upcoming' && new Date(party.scheduledAt) > new Date()
     if (isUpcoming && party) return (
         <div className="min-h-screen flex flex-col">
@@ -243,15 +238,29 @@ export default function PartyRoomPage() {
 
     return (
         <div className="min-h-screen">
-            <div className="inner px-6 py-6">
+            {/* 게이트 팝업 */}
+            <LoginModal
+                isOpen={showLoginModal}
+                onClose={() => setShowLoginModal(false)}
+                onLoginSuccess={() => {
+                    const u = useAuthStore.getState().user
+                    if (u?.membership !== 'anime' && u?.membership !== 'allinone') {
+                        setShowMembershipModal(true)
+                    }
+                }}
+            />
+            <MembershipRequiredModal
+                isOpen={showMembershipModal}
+                onClose={() => setShowMembershipModal(false)}
+                type="anime"
+            />
 
+            <div className="inner px-6 py-6">
                 {/* 상단 바 */}
                 <div className="flex items-center justify-between py-4 mb-4 border-b border-white/10">
                     <div className="flex items-center gap-3 mt-10">
-                        <button
-                            onClick={() => router.push('/live')}
-                            className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors"
-                        >
+                        <button onClick={() => router.push('/live')}
+                            className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="m15 18-6-6 6-6" />
                             </svg>
@@ -260,11 +269,10 @@ export default function PartyRoomPage() {
                         <div className="w-px h-4 bg-white/10" />
                         <div>
                             <p className="text-white font-bold text-sm">{title}</p>
-                            {(isPartySection || !isDummyAny) ? (
-                                <p className="text-white/40 text-xs">{animeName} · 개설자 {hostName}</p>
-                            ) : (
-                                <p className="text-white/40 text-xs">{animeName}</p>
-                            )}
+                            {(isPartySection || !isDummyAny)
+                                ? <p className="text-white/40 text-xs">{animeName} · 개설자 {hostName}</p>
+                                : <p className="text-white/40 text-xs">{animeName}</p>
+                            }
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -275,10 +283,8 @@ export default function PartyRoomPage() {
                         {(isPartySection || !isDummyAny) && (
                             <>
                                 <span className="text-white/40 text-xs">👥 {attendees}/{maxAttendees}명</span>
-                                <button
-                                    onClick={() => router.push('/live')}
-                                    className="px-3 py-1.5 bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 rounded-lg text-xs text-white/50 hover:text-red-400 transition-all cursor-pointer"
-                                >
+                                <button onClick={() => router.push('/live')}
+                                    className="px-3 py-1.5 bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 rounded-lg text-xs text-white/50 hover:text-red-400 transition-all cursor-pointer">
                                     파티 나가기
                                 </button>
                             </>
@@ -289,14 +295,50 @@ export default function PartyRoomPage() {
                 <div className="flex gap-6 items-start">
                     {/* 왼쪽: 플레이어 + 정보 */}
                     <div className="flex-1 min-w-0">
-                        <div className="aspect-video rounded-xl overflow-hidden bg-black" ref={playerRef}>
-                            {video ? (
+                        <div className="aspect-video rounded-xl overflow-hidden bg-black relative" ref={playerRef}>
+                            {!user ? (
+                                /* 비로그인 */
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-4 cursor-pointer relative"
+                                    onClick={handlePlayerClick}>
+                                    {animePoster && (
+                                        <img src={`https://image.tmdb.org/t/p/w780${animePoster}`}
+                                            className="absolute inset-0 w-full h-full object-cover opacity-20" alt="" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/60" />
+                                    <div className="relative flex flex-col items-center gap-4">
+                                        <div className="w-16 h-16 rounded-full flex items-center justify-center"
+                                            style={{ background: 'rgba(108,99,255,0.15)', border: '1px solid rgba(108,99,255,0.3)' }}>
+                                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="1.5">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                <circle cx="12" cy="7" r="4" />
+                                            </svg>
+                                        </div>
+                                        <p className="text-white font-bold text-lg">로그인 후 시청할 수 있어요</p>
+                                        <p className="text-white/40 text-sm">클릭해서 로그인하기</p>
+                                    </div>
+                                </div>
+                            ) : !canWatch ? (
+                                /* 로그인 O, 멤버십 없음 */
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-4 cursor-pointer relative"
+                                    onClick={handlePlayerClick}>
+                                    {animePoster && (
+                                        <img src={`https://image.tmdb.org/t/p/w780${animePoster}`}
+                                            className="absolute inset-0 w-full h-full object-cover opacity-20" alt="" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/60" />
+                                    <div className="relative flex flex-col items-center gap-4">
+                                        <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
+                                            style={{ background: 'rgba(108,99,255,0.15)', border: '1px solid rgba(108,99,255,0.3)' }}>
+                                            🎬
+                                        </div>
+                                        <p className="text-white font-bold text-lg">멤버십이 필요해요</p>
+                                        <p className="text-white/40 text-sm">클릭해서 멤버십 시작하기</p>
+                                    </div>
+                                </div>
+                            ) : video ? (
                                 <iframe
                                     src={`https://www.youtube.com/embed/${video.key}?autoplay=1&rel=0`}
-                                    className="w-full h-full"
-                                    allow="autoplay; fullscreen"
-                                    allowFullScreen
-                                />
+                                    className="w-full h-full" allow="autoplay; fullscreen" allowFullScreen />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-[#111]">
                                     <p className="text-white/30 text-sm">영상을 불러오는 중...</p>
@@ -304,11 +346,8 @@ export default function PartyRoomPage() {
                             )}
                         </div>
 
-                        {/* 파티 정보 */}
                         <div className="flex items-center gap-3 mt-4">
-                            {animePoster && (
-                                <img src={`https://image.tmdb.org/t/p/w92${animePoster}`} alt={animeName} className="w-10 h-14 object-cover rounded-lg shrink-0" />
-                            )}
+                            {animePoster && <img src={`https://image.tmdb.org/t/p/w92${animePoster}`} alt={animeName} className="w-10 h-14 object-cover rounded-lg shrink-0" />}
                             <div>
                                 <h2 className="text-white font-bold text-lg">{animeName}</h2>
                                 <p className="text-white/50 text-sm mt-0.5">{title}</p>
@@ -320,7 +359,6 @@ export default function PartyRoomPage() {
                             </div>
                         </div>
 
-                        {/* 관련 작품 */}
                         {relatedAnime.length > 0 && (
                             <div className="mt-8">
                                 <h3 className="text-white font-bold text-base mb-4">관련 작품</h3>
@@ -328,16 +366,11 @@ export default function PartyRoomPage() {
                                     {relatedAnime.map((ani) => (
                                         <div key={ani.id} className="group cursor-pointer" onClick={() => router.push(`/anime/${ani.id}`)}>
                                             <div className="aspect-[3/4] rounded-lg overflow-hidden relative">
-                                                <img
-                                                    src={`https://image.tmdb.org/t/p/w300${ani.poster_path}`}
-                                                    alt={ani.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                />
+                                                <img src={`https://image.tmdb.org/t/p/w300${ani.poster_path}`} alt={ani.name}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-                                                            <polygon points="5,3 19,12 5,21" />
-                                                        </svg>
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
                                                     </div>
                                                 </div>
                                             </div>
@@ -351,18 +384,13 @@ export default function PartyRoomPage() {
                     </div>
 
                     {/* 오른쪽: 채팅 */}
-                    <div
-                        className="w-[380px] shrink-0 flex flex-col bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/5"
-                        style={{ height: playerHeight > 0 ? `${playerHeight}px` : '500px' }}
-                    >
+                    <div className="w-[380px] shrink-0 flex flex-col bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/5"
+                        style={{ height: playerHeight > 0 ? `${playerHeight}px` : '500px' }}>
                         <div className="px-4 py-3 border-b border-white/10 shrink-0">
                             <p className="text-white font-medium text-sm">실시간 채팅</p>
                         </div>
-
                         <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0 [&::-webkit-scrollbar]:w-0">
-                            {messages.length === 0 && (
-                                <p className="text-white/20 text-xs text-center mt-4">첫 번째 메시지를 남겨보세요!</p>
-                            )}
+                            {messages.length === 0 && <p className="text-white/20 text-xs text-center mt-4">첫 번째 메시지를 남겨보세요!</p>}
                             {messages.map(msg => (
                                 <div key={msg.id} className="flex items-start gap-2">
                                     <div className="w-7 h-7 rounded-full bg-[#6c63ff] flex items-center justify-center shrink-0">
@@ -375,29 +403,22 @@ export default function PartyRoomPage() {
                                 </div>
                             ))}
                         </div>
-
                         <div className="p-3 border-t border-white/10 shrink-0">
                             {user ? (
                                 <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={inputText}
-                                        onChange={e => setInputText(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        placeholder="메시지 입력..."
-                                        maxLength={100}
-                                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#6c63ff]"
-                                    />
-                                    <button
-                                        onClick={handleSend}
-                                        disabled={!inputText.trim()}
-                                        className="px-3 py-2 bg-[#6c63ff] rounded-lg text-white text-sm hover:bg-[#5a52e0] transition-colors disabled:opacity-30"
-                                    >
+                                    <input type="text" value={inputText} onChange={e => setInputText(e.target.value)}
+                                        onKeyDown={handleKeyDown} placeholder="메시지 입력..." maxLength={100}
+                                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#6c63ff]" />
+                                    <button onClick={handleSend} disabled={!inputText.trim()}
+                                        className="px-3 py-2 bg-[#6c63ff] rounded-lg text-white text-sm hover:bg-[#5a52e0] transition-colors disabled:opacity-30">
                                         전송
                                     </button>
                                 </div>
                             ) : (
-                                <p className="text-white/30 text-xs text-center py-2">채팅하려면 로그인이 필요해요</p>
+                                <button onClick={() => setShowLoginModal(true)}
+                                    className="w-full text-white/30 text-xs text-center py-2 hover:text-white/60 transition-colors">
+                                    채팅하려면 로그인이 필요해요
+                                </button>
                             )}
                         </div>
                     </div>
