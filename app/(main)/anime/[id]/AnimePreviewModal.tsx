@@ -81,7 +81,7 @@ export default function AnimePreviewModal() {
     const status = detail?.status === 'Returning Series' ? '방영중' : '완결'
 
     return (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setPreviewId(null)}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setPreviewId(null)}>
             <div className="relative bg-[#1a1a1a] rounded-2xl overflow-hidden w-full max-w-[1200px] h-[90vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
 
                 {/* 상단 backdrop */}
@@ -164,7 +164,7 @@ export default function AnimePreviewModal() {
                 <div className="overflow-y-auto flex-1 px-6 py-4">
                     {modalTab === 'episodes' && <EpisodesTab detail={detail} episodes={episodes} selectedSeason={selectedSeason} setSelectedSeason={setSelectedSeason} />}
                     {modalTab === 'similar' && <SimilarTab similar={similar} />}
-                    {modalTab === 'review' && <ReviewTab />}
+                    {modalTab === 'review' && <ReviewTab previewId={previewId} user={user} />}
                     {modalTab === 'store' && <StoreTab detail={detail} />}
                 </div>
             </div>
