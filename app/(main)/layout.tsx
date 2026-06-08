@@ -9,10 +9,11 @@ import AnimePreviewModal from "./anime/[id]/AnimePreviewModal"
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
-
+    const hideLayout = pathname === '/profile'    
+    
     return (
         <>
-            <Header />
+            {!hideLayout && <Header />}
             <AnimatePresence mode="wait" initial={false}>
                 <motion.main
                     key={pathname}
@@ -24,8 +25,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     {children}
                 </motion.main>
             </AnimatePresence>
-            <Footer />
-            <QuickMenu />
+            {!hideLayout && <Footer />}
+            {!hideLayout && <QuickMenu />}
             <AnimePreviewModal />
             <Toaster
                 position="top-center"
