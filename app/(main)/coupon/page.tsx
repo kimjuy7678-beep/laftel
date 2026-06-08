@@ -32,6 +32,7 @@ const notices = [
 
 export default function CouponPage() {
     const { user, setMembership } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
     const { chargePoints, fetchPoints } = usePointStore()
     const router = useRouter()
     const [code, setCode] = useState('')
@@ -39,7 +40,10 @@ export default function CouponPage() {
     const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
 
+    useEffect(() => { setHydrated(true) }, [])
+
     useEffect(() => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
     }, [user])
 

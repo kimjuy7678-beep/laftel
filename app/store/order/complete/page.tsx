@@ -1,8 +1,5 @@
 "use client";
 
-// app/store/order/complete/page.tsx
-// 주문 완료 페이지
-
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -30,8 +27,7 @@ function OrderCompleteContent() {
     const total = Number(searchParams.get("total") ?? 0);
     const option = searchParams.get("option") ?? "기본";
     const qty = Number(searchParams.get("qty") ?? 1);
-    // 결제 직후 정상 진입 여부 — order 페이지에서 from=new로 넘어온 경우만 true
-    const isNewOrder = searchParams.get("from") === "new";
+    const category = searchParams.get("category") ?? "";
 
     const [copied, setCopied] = useState(false);
     const [visible, setVisible] = useState(false);
@@ -44,39 +40,15 @@ function OrderCompleteContent() {
         return () => clearTimeout(t);
     }, []);
 
-    // from=new 파라미터 제거해서 히스토리 교체
-    // → 뒤로가기 시 from=new 없는 URL로 돌아옴 → notified 체크 → 잘못된 접근
-    useEffect(() => {
-        if (isNewOrder) {
-            const url = new URL(window.location.href);
-            url.searchParams.delete("from");
-            window.history.replaceState(null, "", url.toString());
-        }
-    }, []);
-
     // ── Firestore에서 실제 주문 데이터 가져오기 ───────────────────────────────
     useEffect(() => {
-        if (!user?.uid || !orderNumber) return;
+        if (!user?.uid || !orderNumber) { setLoading(false); return; }
         getDoc(doc(db, "users", user.uid, "orders", orderNumber))
             .then((snap) => {
-                if (snap.exists()) {
-                    const data = snap.data() as OrderData;
-                    if (isNewOrder) {
-                        // 결제 직후 정상 진입 → notified 무시하고 완료 페이지 표시
-                        setOrderData(data);
-                    } else {
-                        // 뒤로가기 / 직접 URL 접근 → notified 체크
-                        if (data.notified) {
-                            setInvalid(true);
-                        } else {
-                            setOrderData(data);
-                        }
-                    }
-                } else {
-                    setInvalid(true);
-                }
+                if (snap.exists()) setOrderData(snap.data() as OrderData);
+                else setInvalid(true);
             })
-            .catch(() => { setInvalid(true); })
+            .catch(() => setInvalid(true))
             .finally(() => setLoading(false));
     }, [user?.uid, orderNumber]);
 
@@ -197,13 +169,16 @@ function OrderCompleteContent() {
 
                 <div className="w-full max-w-[480px] bg-white rounded-[24px] border border-[#ebe8ff] overflow-hidden shadow-sm">
                     <div className="p-6 border-b border-[#f0eeff]">
-                        <h2 className="text-[14px] font-bold text-[#111018] mb-4">주문상품</h2>
+                        <h2 className="text-[18px] font-bold text-[#111018] mb-4">주문상품</h2>
                         {thumbnail && (
                             <div className="flex gap-4 items-center">
                                 <div className="w-[100px] h-[100px] rounded-[14px] overflow-hidden border border-[#ebe8ff] flex-shrink-0 bg-[#f5f3ff]">
                                     <img src={thumbnail} alt={title} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0">
+                                    {category && (
+                                        <p className="text-[11px] font-semibold text-[#826CFF] mb-1">{category}</p>
+                                    )}
                                     <p className="text-[14px] font-semibold text-[#111] leading-snug line-clamp-2">{title}</p>
                                     {option !== "기본" && (
                                         <p className="mt-1.5 text-[12px] text-[#aaa]">옵션: {option}</p>
@@ -215,12 +190,12 @@ function OrderCompleteContent() {
                     </div>
 
                     <div className="px-6 py-4 border-b border-[#f0eeff] flex items-center justify-between">
-                        <span className="text-[14px] font-bold text-[#111018]">총 결제 금액</span>
+                        <span className="text-[16px] font-bold text-[#111018]">총 결제 금액</span>
                         <span className="text-[20px] font-extrabold text-[#826CFF]">{total.toLocaleString()}원</span>
                     </div>
 
                     <div className="px-6 py-5">
-                        <h2 className="text-[14px] font-bold text-[#111018] mb-3">배송정보</h2>
+                        <h2 className="text-[16px] font-bold text-[#111018] mb-3">배송정보</h2>
                         {orderData?.shipping ? (
                             <div className="space-y-1 text-[13px]">
                                 <p className="font-bold text-[#111]">{orderData.shipping.name}</p>

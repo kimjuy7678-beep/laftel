@@ -292,6 +292,7 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
                                 {activeFilterCount > 0 && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#7865ff] text-[10px] font-bold text-white">{activeFilterCount}</span>}
                             </button>
                             <FilterDropdown
+                                onClose={() => setFilterOpen(false)}
                                 open={filterOpen}
                                 priceRange={priceRange}
                                 onPriceRange={handlePriceRange}

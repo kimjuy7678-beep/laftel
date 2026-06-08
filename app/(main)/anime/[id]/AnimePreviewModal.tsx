@@ -164,7 +164,7 @@ export default function AnimePreviewModal() {
                 <div className="overflow-y-auto flex-1 px-6 py-4">
                     {modalTab === 'episodes' && <EpisodesTab detail={detail} episodes={episodes} selectedSeason={selectedSeason} setSelectedSeason={setSelectedSeason} />}
                     {modalTab === 'similar' && <SimilarTab similar={similar} />}
-                    {modalTab === 'review' && <ReviewTab />}
+                    {modalTab === 'review' && <ReviewTab previewId={previewId} user={user} />}
                     {modalTab === 'store' && <StoreTab detail={detail} />}
                 </div>
             </div>

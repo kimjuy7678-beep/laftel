@@ -36,6 +36,7 @@ export default function EventDetailPage() {
     const eventId = Number(id)
 
     const { user } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
 
     const {
         events, onFetchEvents,
@@ -59,6 +60,7 @@ export default function EventDetailPage() {
 
 
     const handleLike = (commentId: string, currentLikeCount: number, isLiked: boolean) => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         setLikedIds(prev => {
             const next = new Set(prev)
@@ -73,6 +75,8 @@ export default function EventDetailPage() {
                 : (prev[commentId] ?? currentLikeCount) + 1
         }))
     }
+
+    useEffect(() => { setHydrated(true) }, [])
 
     useEffect(() => {
         if (events.length === 0) onFetchEvents()
@@ -102,6 +106,7 @@ export default function EventDetailPage() {
 
     const handlePostComment = async () => {
         if (!commentText.trim()) return
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         setPosting(true)
         setPostError(null)

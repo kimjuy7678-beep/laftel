@@ -13,6 +13,7 @@ type Tab = 'point' | 'membership' | 'purchase'
 
 export default function HistoryPage() {
     const { user } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
     const { history, fetchHistory } = usePointStore()
     const router = useRouter()
     const [tab, setTab] = useState<Tab>('point')
@@ -20,7 +21,10 @@ export default function HistoryPage() {
     const [purchaseHistory, setPurchaseHistory] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
+    useEffect(() => { setHydrated(true) }, [])
+
     useEffect(() => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         const load = async () => {
             setLoading(true)

@@ -91,7 +91,10 @@ function SuccessModal({ amount, onConfirm }: { amount: number; onConfirm: () => 
 
 export default function Point() {
     const { user } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
     const { points, loading, fetchPoints, chargePoints } = usePointStore()
+
+    useEffect(() => { setHydrated(true) }, [])
     const router = useRouter()
 
     const [selectedOption, setSelectedOption] = useState<typeof pointOptions[0] | null>(null)
@@ -113,6 +116,7 @@ export default function Point() {
     const [cardLoading, setCardLoading] = useState(false)
 
     useEffect(() => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         fetchPoints((user as any).uid)
         loadCards()

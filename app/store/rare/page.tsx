@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import products from "@/data/store.json";
-import { useAuthStore } from "@/store/useAuthStore";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 import StoreSidebar from "@/components/store/StoreSliaebar";
 import FilterDropdown from "@/components/store/FilterDropdown";
+import { LIMITED_PRODUCT_IDS } from "@/lib/storeLimitedProducts";
 
 const ALL_PRODUCTS = products as StoreProduct[];
-const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
-const RESERVE_PRODUCTS = ALL_PRODUCTS.filter((p) => p.title.includes("[예약]"));
+const PRODUCTS_BY_ID = new Map(ALL_PRODUCTS.map((product) => [product.productId, product]));
+const LIMITED_PRODUCTS = LIMITED_PRODUCT_IDS
+    .map((id) => PRODUCTS_BY_ID.get(id))
+    .filter((product): product is StoreProduct => Boolean(product));
 const ITEMS_PER_PAGE = 20;
 const PAGE_GROUP = 5;
 
@@ -21,8 +22,8 @@ function parsePrice(priceStr: string): number {
     return isNaN(num) ? 0 : num;
 }
 
-function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return <div className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
+function Inner({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
 }
 
 
@@ -35,10 +36,9 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     const hasPrevGroup = groupStart > 1;
     const hasNextGroup = groupEnd < total;
 
-    // ✅ 페이지 변경 + 최상단 이동
     const handleChange = (p: number) => {
         onChange(p);
-        window.scrollTo(0, 0);
+        document.getElementById("limited-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     return (
@@ -79,8 +79,6 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
 const PRICE_INITIAL: [number, number] = [0, 300000];
 
 export default function StoreListPage() {
-    const { user } = useAuthStore();
-    const router = useRouter();
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState("인기순");
@@ -90,10 +88,7 @@ export default function StoreListPage() {
     const [onlyInStock, setOnlyInStock] = useState(false);
     const [onlyReserve, setOnlyReserve] = useState(false);
 
-    // 예약 굿즈 토글 시 ALL_PRODUCTS 기준으로 전환
-    const BASE_PRODUCTS = onlyReserve ? ALL_PRODUCTS : STORE_PRODUCTS;
-
-    const filtered = BASE_PRODUCTS.filter((p) => {
+    const filtered = LIMITED_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
         const matchSearch =
             p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -113,16 +108,36 @@ export default function StoreListPage() {
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    useEffect(() => { setPage(1); }, [search, priceRange, onlyInStock, onlyReserve, sort]);
-    useEffect(() => {
-        if (user) console.log("👤 [Auth]", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
-        else console.log("👻 [Auth] 비로그인 상태");
-    }, [user]);
-
     const handleReset = () => {
         setPriceRange(PRICE_INITIAL);
         setOnlyInStock(false);
         setOnlyReserve(false);
+        setPage(1);
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value);
+        setPage(1);
+    };
+
+    const handleSortChange = (value: string) => {
+        setSort(value);
+        setPage(1);
+    };
+
+    const handlePriceRange = (value: [number, number]) => {
+        setPriceRange(value);
+        setPage(1);
+    };
+
+    const handleOnlyInStock = (value: boolean) => {
+        setOnlyInStock(value);
+        setPage(1);
+    };
+
+    const handleOnlyReserve = (value: boolean) => {
+        setOnlyReserve(value);
+        setPage(1);
     };
 
     const activeFilterCount = [
@@ -130,10 +145,6 @@ export default function StoreListPage() {
         onlyInStock,
         onlyReserve,
     ].filter(Boolean).length;
-
-    const handleSeriesSelect = (series: string) => {
-        router.push(`/store/series?series=${encodeURIComponent(series)}`);
-    };
 
     return (
         <div className="min-h-screen bg-white pb-20">
@@ -161,7 +172,12 @@ export default function StoreListPage() {
                         <span className="font-medium text-[#7865ff]">한정판</span>
                     </p>
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                        <h1 className="text-[24px] sm:text-[32px] font-bold text-[#16121f]">한정판 : 상품데이터 바꿔야함(all페이지 복붙상태)</h1>
+                        <div>
+                            <h1 className="text-[24px] sm:text-[32px] font-bold text-[#16121f]">한정판 굿즈</h1>
+                            <p className="mt-2 text-[14px] text-[#8a8494]">
+                                다양한 시리즈에서 엄선한 한정판 상품 25개를 모았어요.
+                            </p>
+                        </div>
                         <div className="flex h-[44px] w-full sm:w-[340px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)]">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]">
                                 <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
@@ -171,10 +187,10 @@ export default function StoreListPage() {
                                 className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
                                 placeholder="찾으시는 상품을 검색하세요"
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => handleSearchChange(e.target.value)}
                             />
                             {search && (
-                                <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]">
+                                <button onClick={() => handleSearchChange("")} className="text-[#b0aabb] hover:text-[#7865ff]">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                 </button>
                             )}
@@ -185,14 +201,14 @@ export default function StoreListPage() {
 
 
 
-            <Inner className="mt-8">
+            <Inner id="limited-products" className="mt-8">
                 <div className="flex items-center justify-between">
                     <p className="text-[14px] text-[#6b647a]">
                         총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품
                     </p>
                     <div className="flex items-center gap-2">
                         <div className="relative">
-                            <select value={sort} onChange={(e) => setSort(e.target.value)}
+                            <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
                                 className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
                                 <option>인기순</option>
                                 <option>신상품순</option>
@@ -218,14 +234,15 @@ export default function StoreListPage() {
                                 )}
                             </button>
                             <FilterDropdown
+                                onClose={() => setFilterOpen(false)}
                                 open={filterOpen}
                                 priceRange={priceRange}
-                                onPriceRange={setPriceRange}
+                                onPriceRange={handlePriceRange}
                                 onlyInStock={onlyInStock}
-                                onOnlyInStock={setOnlyInStock}
+                                onOnlyInStock={handleOnlyInStock}
                                 onReset={handleReset}
                                 onlyReserve={onlyReserve}
-                                onOnlyReserve={setOnlyReserve}
+                                onOnlyReserve={handleOnlyReserve}
                             />
                         </div>
                     </div>
@@ -240,7 +257,7 @@ export default function StoreListPage() {
                         </svg>
                         검색 결과가 없어요.
                         {(search || activeFilterCount > 0) && (
-                            <button onClick={() => { setSearch(""); handleReset(); }}
+                            <button onClick={() => { handleSearchChange(""); handleReset(); }}
                                 className="text-[13px] text-[#7865ff] underline">
                                 필터 초기화
                             </button>
@@ -249,7 +266,7 @@ export default function StoreListPage() {
                 ) : (
                     <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-6 lg:gap-y-10">
                         {paginated.map((product) => (
-                            <StoreProductCard key={product.productId} product={product} />
+                            <StoreProductCard key={product.productId} product={product} badgeLabel="한정판" />
                         ))}
                     </div>
                 )}

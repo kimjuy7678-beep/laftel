@@ -15,13 +15,17 @@ const SECTIONS = [
 
 export default function Setting() {
     const { user, onLogout } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
     const router = useRouter()
     const [activeSection, setActiveSection] = useState('notification')
     const [notifications, setNotifications] = useState({
         works: true, community: true, store: true, events: false,
     })
 
+    useEffect(() => { setHydrated(true) }, [])
+
     useEffect(() => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         loadNotifications()
     }, [user])

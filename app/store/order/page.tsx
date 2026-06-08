@@ -8,7 +8,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { useAuthStore } from "@/store/useAuthStore";
 import { db } from "@/firebase/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, arrayRemove, doc, setDoc } from "firebase/firestore";
 
 declare global { interface Window { daum: any; } }
 
@@ -212,7 +212,7 @@ function OrderContent() {
     const searchParams = useSearchParams();
 
     // ── 상품 파싱 (단일 or 장바구니 다중) ──
-    type OrderItem = { productId: string; title: string; price: number; thumbnail: string; option: string; qty: number; };
+    type OrderItem = { productId: string; title: string; price: number; thumbnail: string; option: string; qty: number; category?: string; };
     const itemsParam = searchParams.get("items");
     const items: OrderItem[] = (() => {
         if (itemsParam) {
@@ -225,9 +225,19 @@ function OrderContent() {
         const thumbnail = searchParams.get("thumbnail") ?? "";
         const option = searchParams.get("option") ?? "기본";
         const qty = Number(searchParams.get("qty") ?? 1);
-        return [{ productId, title, price, thumbnail, option, qty }];
+        const category = searchParams.get("category") ?? "";
+        return [{ productId, title, price, thumbnail, option, qty, category }];
     })();
     const totalItemsPrice = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+
+    const cartRawsParam = searchParams.get("cartRaws");
+    const cartRaws: unknown[] = (() => {
+        if (cartRawsParam) {
+            try { return JSON.parse(cartRawsParam) as unknown[]; } catch { }
+        }
+        return [];
+    })();
 
     // ── 멤버십 / 배송비 ──
     const { user } = useAuthStore();
@@ -251,7 +261,7 @@ function OrderContent() {
     const [shipping, setShipping] = useState<ShippingInfo>({
         name: "라프텔", phone: "010-5959-5959",
         address: "서울특별시 영등포구 국제금융로 10, (여의도동, 서울국제금융센터 투아이에프씨)",
-        detail: "13층, 주식회사 라프텔", zip: "03706", memo: "벨리 와주세요",
+        detail: "13층, 주식회사 라프텔", zip: "03706", memo: "빨리 와주세요",
     });
     const [showShippingModal, setShowShippingModal] = useState(false);
 
@@ -315,6 +325,20 @@ function OrderContent() {
                     total: totalPrice,
                     usedPoints: appliedPoint,
                     createdAt: serverTimestamp(),
+                    notified: false,
+                    buyer: {
+                        name: buyer.name,
+                        phone: buyer.phone,
+                        email: buyer.email,
+                    },
+                    shipping: {
+                        name: shipping.name,
+                        phone: shipping.phone,
+                        address: shipping.address,
+                        detail: shipping.detail,
+                        zip: shipping.zip,
+                        memo: shipping.memo,
+                    },
                     items: items.map(item => ({
                         productId: item.productId,
                         title: item.title,
@@ -325,13 +349,22 @@ function OrderContent() {
                     })),
                 }
             );
+            if (cartRaws.length > 0) {
+                await setDoc(
+                    doc(db, "users", user.uid),
+                    { cart: arrayRemove(...cartRaws) },
+                    { merge: true }
+                );
+            }
+            sessionStorage.setItem(`order_new_${orderRef.id}`, "1");
             router.push(
                 `/store/order/complete?orderNumber=${orderRef.id}` +
                 `&title=${encodeURIComponent(title)}` +
                 `&thumbnail=${encodeURIComponent(thumbnail)}` +
                 `&total=${totalPrice}` +
                 `&option=${encodeURIComponent(option)}` +
-                `&qty=${qty}`
+                `&qty=${qty}` +
+                `&category=${encodeURIComponent(items[0]?.category ?? "")}`
             );
         } catch (err) {
             console.error("[Order] Firestore 저장 실패:", err);
@@ -389,10 +422,10 @@ function OrderContent() {
 
             {/* 헤더 */}
             <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[#ebe8ff]">
-                <div className="mx-auto max-w-[1770px] px-[-200px] h-14 flex items-center">
-                    <Link href={`/store/${productId}`} className="flex items-center gap-1.5 text-[13px] text-[#6B5CE7] hover:underline">
+                <div className="mx-auto max-w-[1770px] px-[75px] h-14 flex items-center">
+                    <Link href={`/store/cart`} className="flex items-center gap-1.5 text-[13px] text-[#6B5CE7] hover:underline">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
-                        장바구니로 돌아가기
+                        뒤로 돌아가기
                     </Link>
                 </div>
             </header>
@@ -400,52 +433,56 @@ function OrderContent() {
             <main className="mx-auto w-full max-w-[1770px] px-[75px] py-10">
                 <div className="text-center mb-10">
                     <p className="text-[12px] font-semibold tracking-[0.2em] text-[#826CFF] uppercase mb-1">Laftel Store</p>
-                    <h1 className="text-[28px] font-extrabold text-[#111018] tracking-tight">ORDER & PAY</h1>
-                    <p className="text-[13px] text-[#aaa] mt-1">최종 주문하기</p>
+                    <h1 className="text-[34px] font-extrabold text-[#111018] tracking-tight">ORDER & PAY</h1>
+                    <p className="text-[16px] text-[#aaa] mt-1">최종 주문하기</p>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-5 items-start">
                     {/* ── 왼쪽 ── */}
                     <div className="flex-1 space-y-4">
-
                         {/* 상품 정보 */}
-                        <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
-                            <h3 className="text-[14px] font-bold text-[#111018] mb-4">주문상품 {items.length > 1 ? `(${items.length}개)` : ""}</h3>
+                        <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff] mb-5">
                             <div className="space-y-4">
                                 {items.map((item, i) => (
-                                    <div key={i} className="flex gap-4 pb-4 border-b border-[#f5f3ff] last:border-0 last:pb-0">
+                                    <div key={i} className="flex gap-4 pb-4 border-b border-[#f5f3ff] last:border-0 last:pb-0 items-center">
                                         {item.thumbnail && (
-                                            <div className="w-[80px] h-[80px] rounded-[12px] overflow-hidden bg-[#f5f3ff] flex-shrink-0 border border-[#ebe8ff]">
+                                            <div className="w-[170px] h-[170px] rounded-[12px] overflow-hidden bg-[#f5f3ff] flex-shrink-0 border border-[#ebe8ff]">
                                                 <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
                                             </div>
                                         )}
+
                                         <div className="flex-1 min-w-0">
-                                            <h2 className="text-[13px] font-bold text-[#111018] leading-snug line-clamp-2">{item.title}</h2>
-                                            {item.option !== "기본" && <p className="mt-1 text-[12px] text-[#999]">옵션: {item.option}</p>}
+                                            {item.category && (
+                                                <p className="text-[12px] font-semibold text-[#826CFF] mb-1">{item.category}</p>
+                                            )}
+                                            <h2 className="text-[16px] font-bold text-[#111018] leading-snug line-clamp-2 mb-3">{item.title}</h2>
+                                            {item.option !== "기본" && <p className="mt-1 text-[13px] text-[#999]">옵션: {item.option}</p>}
                                             <p className="mt-0.5 text-[12px] text-[#bbb]">수량: {item.qty}개</p>
-                                            <p className="mt-1.5 text-[15px] font-extrabold text-[#111018]">{(item.price * item.qty).toLocaleString()}원</p>
+                                            <p className="mt-3 text-[12px] text-[#826CFF] font-semibold">
+                                                {Math.floor(item.price * item.qty * 0.01).toLocaleString()}원 적립 예정 (결제금액의 1%)
+                                            </p>
+                                            <p className="mt-0.5 text-[23px] font-extrabold text-[#111018]">{(item.price * item.qty).toLocaleString()}원</p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </section>
-
                         {/* 주문자 정보 */}
                         <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-[15px] font-bold text-[#111018]">주문자 정보</h3>
+                                <h3 className="text-[18px] font-bold text-[#111018]">주문자 정보</h3>
                                 <button onClick={() => setShowBuyerModal(true)}
                                     className="text-[12px] text-[#826CFF] hover:underline font-semibold flex items-center gap-1">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                     정보수정
                                 </button>
                             </div>
-                            <div className="space-y-2 text-[13px]">
+                            <div className="space-y-2 text-[14px]">
                                 <p className="font-bold text-[#111]">{buyer.name}</p>
                                 <div className="flex gap-3"><span className="w-14 text-[#aaa]">휴대폰</span><span className="text-[#333] font-medium">{buyer.phone}</span></div>
                                 <div className="flex gap-3"><span className="w-14 text-[#aaa]">이메일</span><span className="text-[#333] font-medium">{buyer.email}</span></div>
                             </div>
-                            <p className="mt-3 text-[11px] text-[#ccc] leading-relaxed">
+                            <p className="mt-3 text-[12px] text-[#ccc] leading-relaxed">
                                 * 위 연락처 정보는 배송 관련 알림 발송 시 사용됩니다.
                             </p>
                         </section>
@@ -453,14 +490,14 @@ function OrderContent() {
                         {/* 배송지 */}
                         <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-[15px] font-bold text-[#111018]">배송지 주소</h3>
+                                <h3 className="text-[18px] font-bold text-[#111018]">배송지 주소</h3>
                                 <button onClick={() => setShowShippingModal(true)}
                                     className="text-[12px] text-[#826CFF] hover:underline font-semibold flex items-center gap-1">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                     주소변경
                                 </button>
                             </div>
-                            <div className="space-y-1 text-[13px]">
+                            <div className="space-y-1 text-[14px]">
                                 <p className="font-bold text-[#111]">{shipping.name}</p>
                                 <p className="text-[#555]">{shipping.phone}</p>
                                 <p className="text-[#555] leading-relaxed">{shipping.address}<br />{shipping.detail}<br />({shipping.zip})</p>
@@ -470,7 +507,7 @@ function OrderContent() {
 
                         {/* 할인혜택 */}
                         <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
-                            <h3 className="text-[15px] font-bold text-[#111018] mb-4">할인혜택</h3>
+                            <h3 className="text-[18px] font-bold text-[#111018] mb-4">할인혜택</h3>
                             <div className="grid grid-cols-2 gap-4">
 
                                 {/* 쿠폰 */}
@@ -546,7 +583,7 @@ function OrderContent() {
 
                         {/* 최종결제 금액 */}
                         <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff] overflow-hidden">
-                            <h3 className="text-[15px] font-bold text-[#111018] mb-4">최종결제 금액</h3>
+                            <h3 className="text-[18px] font-bold text-[#111018] mb-4">최종결제 금액</h3>
                             <div className="space-y-2.5 text-[13px]">
                                 <div className="flex justify-between">
                                     <span className="text-[#888]">총 상품 금액</span>
@@ -556,8 +593,7 @@ function OrderContent() {
                                     <span className="text-[#888]">배송비</span>
                                     {isMember ? (
                                         <span className="font-semibold text-[#826CFF] flex items-center gap-1 text-[12px]">
-                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                                            멤버십 회원은 무료!
+                                            ✨ 멤버십 회원은 무료!
                                         </span>
                                     ) : rawPrice >= FREE_SHIPPING_THRESHOLD ? (
                                         <span className="font-semibold text-[#826CFF] text-[12px]">무료 (10만원 이상)</span>
@@ -620,14 +656,16 @@ function OrderContent() {
                                 </button>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[
-                                        { id: "kakaopay", label: "카카오페이", color: "#3A1D1D" },
-                                        { id: "naverpay", label: "네이버페이", color: "#03C75A" },
-                                        { id: "tosspay", label: "토스페이", color: "#0064FF" },
-                                        { id: "applepay", label: "Apple Pay", color: "#111" },
+                                        { id: "kakaopay", label: "카카오페이", img: "/images/pay/kakao.png" },
+                                        { id: "naverpay", label: "네이버페이", img: "/images/pay/naver.png" },
+                                        { id: "tosspay", label: "토스페이", img: "/images/pay/toss.png" },
+                                        { id: "applepay", label: "Apple Pay", img: "/images/pay/apple.png" },
                                     ].map((pm) => (
                                         <button key={pm.id} onClick={() => setSelectedPayment(pm.id)}
-                                            className={`h-11 rounded-[12px] text-[13px] font-bold transition-all border-2 ${selectedPayment === pm.id ? "border-[#826CFF] bg-[#f5f3ff]" : "border-[#e0daf7] bg-white hover:border-[#c4bbff]"}`}>
-                                            <span style={{ color: pm.color }}>{pm.label}</span>
+                                            className={`h-11 rounded-[12px] transition-all border-2 flex items-center justify-center ${selectedPayment === pm.id ? "border-[#826CFF] bg-[#f5f3ff]" : "border-[#e0daf7] bg-white hover:border-[#c4bbff]"}`}>
+                                            <img src={pm.img} alt={pm.label}
+                                                className={`object-contain ${pm.id === "applepay" ? "h-8" : "h-5"}`}
+                                            />
                                         </button>
                                     ))}
                                 </div>
@@ -640,27 +678,28 @@ function OrderContent() {
                                     ))}
                                 </div>
                             </div>
-                            <button
-                                id="agree-checkbox"
-                                type="button"
-                                onClick={() => { setAgreed(v => !v); setAgreeError(false); }}
-                                className={`mt-3 w-full flex items-center gap-2 rounded-[10px] px-3 py-2.5 transition-colors ${agreeError ? "bg-[#fff0f3] border border-[#ffb3c1]" : agreed ? "bg-[#f0eeff]" : "bg-[#fafafa] border border-transparent hover:bg-[#f5f3ff]"}`}
-                            >
-                                <span className={`w-5 h-5 rounded-[6px] flex-shrink-0 flex items-center justify-center border-2 transition-colors ${agreed ? "bg-[#826CFF] border-[#826CFF]" : agreeError ? "border-[#ff4d6d]" : "border-[#d0c9f0]"}`}>
-                                    {agreed && (
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                                    )}
-                                </span>
-                                <span className={`text-[11px] font-semibold leading-relaxed ${agreed ? "text-[#826CFF]" : agreeError ? "text-[#ff4d6d]" : "text-[#aaa]"}`}>
-                                    주문 내용을 확인하였으며, 정보 제공 등에 동의합니다. (필수)
-                                </span>
-                            </button>
-                            {agreeError && (
-                                <p className="mt-1.5 text-[11px] text-[#ff4d6d] font-semibold text-center" style={{ animation: "fadeSlideIn 0.2s ease" }}>
-                                    동의 후 결제를 진행해주세요.
-                                </p>
-                            )}
                         </section>
+
+                        <button
+                            id="agree-checkbox"
+                            type="button"
+                            onClick={() => { setAgreed(v => !v); setAgreeError(false); }}
+                            className={`mt-3 w-full flex items-center gap-2 rounded-[10px] px-3 py-2.5 transition-colors ${agreeError ? "bg-[#fff0f3] border border-[#ffb3c1]" : agreed ? "bg-[#f0eeff]" : "bg-[#fafafa] border border-transparent hover:bg-[#f5f3ff]"}`}
+                        >
+                            <span className={`w-5 h-5 rounded-[6px] flex-shrink-0 flex items-center justify-center border-2 transition-colors ${agreed ? "bg-[#826CFF] border-[#826CFF]" : agreeError ? "border-[#ff4d6d]" : "border-[#d0c9f0]"}`}>
+                                {agreed && (
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                                )}
+                            </span>
+                            <span className={`text-[11px] font-semibold leading-relaxed ${agreed ? "text-[#826CFF]" : agreeError ? "text-[#ff4d6d]" : "text-[#aaa]"}`}>
+                                주문 내용을 확인하였으며, 정보 제공 등에 동의합니다. (필수)
+                            </span>
+                        </button>
+                        {agreeError && (
+                            <p className="mt-1.5 text-[11px] text-[#ff4d6d] font-semibold text-center" style={{ animation: "fadeSlideIn 0.2s ease" }}>
+                                동의 후 결제를 진행해주세요.
+                            </p>
+                        )}
 
                         {/* 결제하기 */}
                         <button onClick={handlePay} disabled={loading}
