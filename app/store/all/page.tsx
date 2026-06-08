@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import products from "@/data/store.json";
@@ -42,7 +42,7 @@ function Inner({ children, className = "", id }: { children: React.ReactNode; cl
 }
 
 function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void }) {
-    const [slides, setSlides] = useState(HERO_SLIDES);
+    const [slides] = useState(HERO_SLIDES);
     const [current, setCurrent] = useState(0);
     const [startX, setStartX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
@@ -56,15 +56,15 @@ function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void })
         return () => window.removeEventListener("resize", check);
     }, []);
 
-    const startTimer = () => {
+    const startTimer = useCallback(() => {
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => setCurrent((v) => (v + 1) % slides.length), 4000);
-    };
+    }, [slides.length]);
+
     useEffect(() => {
-        setSlides([...HERO_SLIDES].sort(() => Math.random() - 0.5));
         startTimer();
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, []);
+    }, [startTimer]);
 
     const goTo = (idx: number) => { setCurrent(idx); startTimer(); };
     const onMouseDown = (e: React.MouseEvent) => { setIsDragging(false); setStartX(e.clientX); };
@@ -152,7 +152,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
     const hasPrevGroup = groupStart > 1;
     const hasNextGroup = groupEnd < total;
-
+    const [filterOpen, setFilterOpen] = useState(false);
     // ✅ 페이지 변경 + 최상단 이동
     const handleChange = (p: number) => {
         onChange(p);
@@ -228,7 +228,6 @@ export default function StoreListPage() {
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    useEffect(() => { setPage(1); }, [search, priceRange, onlyInStock, onlyReserve, sort]);
     useEffect(() => {
         if (user) console.log("👤 [Auth]", { uid: user.uid, name: user.name, email: user.email, membership: user.membership, points: user.points });
         else console.log("👻 [Auth] 비로그인 상태");
@@ -238,6 +237,37 @@ export default function StoreListPage() {
         setPriceRange(PRICE_INITIAL);
         setOnlyInStock(false);
         setOnlyReserve(false);
+        setPage(1);
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value);
+        setPage(1);
+    };
+
+    const handleSortChange = (value: string) => {
+        setSort(value);
+        setPage(1);
+    };
+
+    const handlePriceRange = (value: [number, number]) => {
+        setPriceRange(value);
+        setPage(1);
+    };
+
+    const handleOnlyInStock = (value: boolean) => {
+        setOnlyInStock(value);
+        setPage(1);
+    };
+
+    const handleOnlyReserve = (value: boolean) => {
+        setOnlyReserve(value);
+        setPage(1);
+    };
+
+    const handleClearSearch = () => {
+        setSearch("");
+        setPage(1);
     };
 
     const activeFilterCount = [
@@ -286,10 +316,10 @@ export default function StoreListPage() {
                                 className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
                                 placeholder="찾으시는 상품을 검색하세요"
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => handleSearchChange(e.target.value)}
                             />
                             {search && (
-                                <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]">
+                                <button onClick={handleClearSearch} className="text-[#b0aabb] hover:text-[#7865ff]">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                 </button>
                             )}
@@ -310,7 +340,7 @@ export default function StoreListPage() {
                     </p>
                     <div className="flex items-center gap-2">
                         <div className="relative">
-                            <select value={sort} onChange={(e) => setSort(e.target.value)}
+                            <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
                                 className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
                                 <option>인기순</option>
                                 <option>신상품순</option>
@@ -337,13 +367,14 @@ export default function StoreListPage() {
                             </button>
                             <FilterDropdown
                                 open={filterOpen}
+                                onClose={() => setFilterOpen(false)}
                                 priceRange={priceRange}
-                                onPriceRange={setPriceRange}
+                                onPriceRange={handlePriceRange}
                                 onlyInStock={onlyInStock}
-                                onOnlyInStock={setOnlyInStock}
+                                onOnlyInStock={handleOnlyInStock}
                                 onReset={handleReset}
                                 onlyReserve={onlyReserve}
-                                onOnlyReserve={setOnlyReserve}
+                                onOnlyReserve={handleOnlyReserve}
                             />
                         </div>
                     </div>
@@ -358,7 +389,7 @@ export default function StoreListPage() {
                         </svg>
                         검색 결과가 없어요.
                         {(search || activeFilterCount > 0) && (
-                            <button onClick={() => { setSearch(""); handleReset(); }}
+                            <button onClick={() => { handleClearSearch(); handleReset(); }}
                                 className="text-[13px] text-[#7865ff] underline">
                                 필터 초기화
                             </button>

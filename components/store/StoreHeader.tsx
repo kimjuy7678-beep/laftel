@@ -8,6 +8,8 @@ import { usePageTransition } from "@/hook/usePageTransition";
 import { StoreSearchModal } from "@/components/store/StoreSearch";
 import NotificationGNB from "@/components/store/NotificationGNB";
 import HeaderLoginAlert from "@/components/store/HeaderLoginAlert";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/firebase/firebase";
 
 const StoreMenuList = [
     { id: 1, title: "전체 굿즈", path: "/store/all" },
@@ -15,8 +17,22 @@ const StoreMenuList = [
     { id: 3, title: "BEST", path: "/store/best" },
 ];
 
+function getCartItemCount(cart: unknown) {
+    if (!Array.isArray(cart)) return 0;
+
+    return cart.reduce((total, item) => {
+        if (typeof item === "string") return total + 1;
+        if (!item || typeof item !== "object") return total;
+
+        const quantity = Number((item as { quantity?: unknown }).quantity);
+        if (!Number.isFinite(quantity)) return total + 1;
+
+        return total + Math.max(1, quantity);
+    }, 0);
+}
+
 export default function StoreHeader() {
-    const { user } = useAuthStore();
+    const { user, onLogout } = useAuthStore();
     const avatarConfig = useAuthStore(s => s.avatarConfig);
     const router = useRouter();
     const pathname = usePathname();
@@ -24,6 +40,7 @@ export default function StoreHeader() {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [loginAlertOpen, setLoginAlertOpen] = useState(false);
+    const [cartCount, setCartCount] = useState(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -36,10 +53,36 @@ export default function StoreHeader() {
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
+    useEffect(() => {
+        if (!user?.uid) {
+            return;
+        }
+
+        const unsubscribe = onSnapshot(
+            doc(db, "users", user.uid),
+            (snap) => {
+                setCartCount(getCartItemCount(snap.data()?.cart));
+            },
+            () => {
+                setCartCount(0);
+            },
+        );
+
+        return unsubscribe;
+    }, [user?.uid]);
+
     const guardedLink = (path: string) => {
         if (!user) { setLoginAlertOpen(true); return; }
         router.push(path);
     };
+
+    const handleLogout = async () => {
+        await onLogout();
+        setDropdownOpen(false);
+        router.push("/store");
+    };
+
+    const visibleCartCount = user ? cartCount : 0;
 
     return (
         <header className="w-full py-[10px] bg-white px-[10px]">
@@ -59,8 +102,8 @@ export default function StoreHeader() {
                             <button
                                 onClick={() => navigate('/', '#0a0a0a')}
                                 className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${!pathname.startsWith('/store')
-                                        ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : 'text-white/60 hover:text-white'
+                                    ? 'bg-white text-[#826CFF] shadow-sm'
+                                    : 'text-white/60 hover:text-white'
                                     }`}
                             >
                                 OTT
@@ -68,8 +111,8 @@ export default function StoreHeader() {
                             <button
                                 onClick={() => navigate('/store', '#ffffff')}
                                 className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${pathname.startsWith('/store')
-                                        ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : 'text-white/60 hover:text-white'
+                                    ? 'bg-white text-[#826CFF] shadow-sm'
+                                    : 'text-white/60 hover:text-white'
                                     }`}
                             >
                                 Store
@@ -122,12 +165,17 @@ export default function StoreHeader() {
                     <button
                         aria-label="장바구니"
                         onClick={() => guardedLink("/store/cart")}
-                        className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
+                        className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
                             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                         </svg>
+                        {visibleCartCount > 0 && (
+                            <span className="absolute top-1 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                                {visibleCartCount > 99 ? "99+" : visibleCartCount}
+                            </span>
+                        )}
                     </button>
 
                     <div className="w-px h-5 bg-white/20 mx-1" />
@@ -205,16 +253,28 @@ export default function StoreHeader() {
                                         </svg>
                                         문의내역
                                     </Link>
-
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16,17 21,12 16,7" />
+                                            <line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        로그아웃
+                                    </button>
                                     <div className="border-t border-white/10 mt-1 pt-1">
+
                                         <Link
                                             href="/"
                                             onClick={() => setDropdownOpen(false)}
                                             className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors"
                                         >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16,17 21,12 16,7" /><line x1="21" y1="12" x2="9" y2="12" />
-                                            </svg>
+                                            </svg> */}
                                             라프텔로 돌아가기
                                         </Link>
                                     </div>
