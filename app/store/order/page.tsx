@@ -389,7 +389,7 @@ function OrderContent() {
 
             {/* 헤더 */}
             <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[#ebe8ff]">
-                <div className="mx-auto max-w-[1200px] px-6 h-14 flex items-center">
+                <div className="mx-auto max-w-[1770px] px-[-200px] h-14 flex items-center">
                     <Link href={`/store/${productId}`} className="flex items-center gap-1.5 text-[13px] text-[#6B5CE7] hover:underline">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                         장바구니로 돌아가기
