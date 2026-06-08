@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { arrayRemove, arrayUnion, doc, getDoc, setDoc } from "firebase/firestore";
 import products from "@/data/store.json";
 import { db } from "@/firebase/firebase";
@@ -89,9 +90,12 @@ function cleanOptionValue(value: unknown) {
             : "";
 
     return raw
+        .replace(/[,{\s]*["']?add(?:i)?tional\w*["']?\s*:\s*["']?[-+]?\d[\d,]*(?:원)?["']?\s*[,}]*/gi, " ")
         .replace(/["{,]\s*add(?:i)?tionalAmou?n?t?\s*["]?\s*:\s*[-+]?\d[\d,]*(?:원)?\s*[,}]?/gi, "")
         .replace(/add(?:i)?tionalAmou?n?t?\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
         .replace(/add(?:i)?tional[A-Za-z]*\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
+        .replace(/[{}"]/g, "")
+        .replace(/,\s*$/g, "")
         .replace(/\(\s*[-+]?\d[\d,]*원\s*\)/g, "")
         .replace(/\s*[-+]\s*\d[\d,]*원/g, "")
         .replace(/\s{2,}/g, " ")
@@ -160,7 +164,11 @@ function getLineOptionValues(line: string) {
 }
 
 function uniqueOptions(options: unknown[]) {
-    return Array.from(new Set(options.map(cleanOptionValue).filter(Boolean)));
+    return Array.from(new Set(
+        options
+            .map(cleanOptionValue)
+            .filter((option) => option && !/^add(?:i)?tional/i.test(option)),
+    ));
 }
 
 function getOptionValues(product: Product): string[] {
@@ -222,6 +230,7 @@ function CartCheck({ checked }: { checked: boolean }) {
 
 export default function CartPage() {
     const { user } = useAuthStore();
+    const router = useRouter();
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
@@ -376,6 +385,25 @@ export default function CartPage() {
         });
     };
 
+    const handleCheckout = async () => {
+        if (selectedItems.length === 0 || checkoutLoading) return;
+        setCheckoutLoading(true);
+        try {
+            const items = selectedItems.map((item) => ({
+                productId: item.product.productId,
+                title: item.product.title,
+                price: parsePrice(item.product.price),
+                thumbnail: item.product.thumbnail,
+                option: item.option,
+                qty: item.quantity,
+            }));
+            await removeProducts(Array.from(selectedKeys));
+            router.push(`/store/order?items=${encodeURIComponent(JSON.stringify(items))}`);
+        } catch {
+            setCheckoutLoading(false);
+        }
+    };
+
     const openOptionModal = (item: CartItem) => {
         const options = getOptionValues(item.product);
         const cleanCurrentOption = cleanOptionValue(item.option);
@@ -437,7 +465,7 @@ export default function CartPage() {
                     ) : cartItems.length === 0 ? (
                         <div className="flex h-[300px] flex-col items-center justify-center rounded-[16px] bg-[#f7f7f8] text-[14px] text-[#777]">
                             <p>장바구니에 담긴 상품이 없어요.</p>
-                            <Link href="/store" className="mt-5 rounded-full bg-[#826CFF] px-7 py-2.5 text-[13px] font-bold text-white">
+                            <Link href="/store/all" className="mt-5 rounded-full bg-[#826CFF] px-7 py-2.5 text-[13px] font-bold text-white">
                                 굿즈 보러가기
                             </Link>
                         </div>
@@ -536,10 +564,10 @@ export default function CartPage() {
                     <button
                         type="button"
                         onClick={handleCheckout}
-                        disabled={selectedItems.length === 0}
+                        disabled={selectedItems.length === 0 || checkoutLoading}
                         className="mt-5 h-[56px] w-full rounded-[16px] bg-[#826CFF] text-[20px] font-bold text-white transition hover:bg-[#6f5af2] disabled:cursor-not-allowed disabled:bg-[#d8d5ee]"
                     >
-                        {formatWon(finalTotal)} 결제하기
+                        {checkoutLoading ? "이동 중..." : `${formatWon(finalTotal)} 결제하기`}
                     </button>
                 </aside>
             </main>

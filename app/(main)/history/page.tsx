@@ -7,12 +7,17 @@ import { useRouter } from 'next/navigation'
 import { db } from '@/firebase/firebase'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
 
+const IMG = 'https://image.tmdb.org/t/p'
+
+type Tab = 'point' | 'membership' | 'purchase'
+
 export default function HistoryPage() {
     const { user } = useAuthStore()
     const { history, fetchHistory } = usePointStore()
     const router = useRouter()
-    const [tab, setTab] = useState<'point' | 'membership'>('point')
+    const [tab, setTab] = useState<Tab>('point')
     const [membershipHistory, setMembershipHistory] = useState<any[]>([])
+    const [purchaseHistory, setPurchaseHistory] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -21,43 +26,60 @@ export default function HistoryPage() {
             setLoading(true)
             await fetchHistory(user.uid)
             try {
-                const q = query(collection(db, 'users', user.uid, 'membership_history'), orderBy('createdAt', 'desc'))
-                const snap = await getDocs(q)
-                setMembershipHistory(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+                const [memSnap, purSnap] = await Promise.all([
+                    getDocs(query(collection(db, 'users', user.uid, 'membership_history'), orderBy('createdAt', 'desc'))),
+                    getDocs(query(collection(db, 'users', user.uid, 'purchaseHistory'), orderBy('createdAt', 'desc'))),
+                ])
+                setMembershipHistory(memSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+                setPurchaseHistory(purSnap.docs.map(d => ({ id: d.id, ...d.data() })))
             } catch { }
             setLoading(false)
         }
         load()
     }, [user])
 
-    const formatDate = (ts: any) => {
+    const fmt = (ts: any) => {
         if (!ts) return '-'
-        const date = ts.toDate ? ts.toDate() : new Date(ts)
-        return date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+        const d = ts.toDate ? ts.toDate() : new Date(ts)
+        return d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
     }
 
-    const formatEndDate = (ts: any, days: number) => {
+    const fmtEnd = (ts: any, days: number) => {
         if (!ts) return '-'
-        const date = ts.toDate ? ts.toDate() : new Date(ts)
-        const end = new Date(date.getTime() + days * 24 * 60 * 60 * 1000)
+        const d = ts.toDate ? ts.toDate() : new Date(ts)
+        const end = new Date(d.getTime() + days * 86400000)
         return end.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
     }
+
+    const isExpired = (ts: any, days: number) => {
+        if (!ts || !days) return false
+        const d = ts.toDate ? ts.toDate() : new Date(ts)
+        return new Date(d.getTime() + days * 86400000) < new Date()
+    }
+
+    const TABS: { id: Tab; label: string; count: number }[] = [
+        { id: 'point', label: '포인트 충전내역', count: history.length },
+        { id: 'membership', label: '멤버십 이용내역', count: membershipHistory.length },
+        { id: 'purchase', label: '대여/소장 내역', count: purchaseHistory.length },
+    ]
 
     return (
         <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingTop: 80, paddingBottom: 80 }}>
             <style>{`
                 .hs-wrap { width: 90%; margin: 0 auto; }
                 .hs-tabs { display: flex; gap: 4px; background: rgba(255,255,255,.05); border-radius: 12px; padding: 4px; margin-bottom: 32px; }
-                .hs-tab { flex: 1; padding: 10px 0; border-radius: 9px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all .18s; }
+                .hs-tab { flex: 1; padding: 10px 0; border-radius: 9px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: all .18s; }
                 .hs-tab.on { background: #6c63ff; color: #fff; }
                 .hs-tab.off { background: none; color: rgba(255,255,255,.4); }
                 .hs-tab.off:hover { color: rgba(255,255,255,.7); }
-                .hs-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: #141420; border-radius: 12px; border: 1px solid rgba(255,255,255,.07); margin-bottom: 8px; }
+                .hs-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #141420; border-radius: 12px; border: 1px solid rgba(255,255,255,.07); margin-bottom: 8px; transition: border-color .15s; }
+                .hs-item:hover { border-color: rgba(108,99,255,.25); }
                 .hs-item-title { font-size: 14px; font-weight: 600; color: #fff; margin: 0 0 4px; }
                 .hs-item-date { font-size: 12px; color: rgba(255,255,255,.35); margin: 0; }
                 .hs-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; gap: 12px; }
                 .hs-spinner { width: 32px; height: 32px; border: 2px solid rgba(255,255,255,.1); border-top-color: #6c63ff; border-radius: 50%; animation: spin .7s linear infinite; }
                 @keyframes spin { to { transform: rotate(360deg) } }
+                .hs-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
             `}</style>
 
             <div className="hs-wrap">
@@ -65,67 +87,138 @@ export default function HistoryPage() {
 
                 {/* 탭 */}
                 <div className="hs-tabs">
-                    <button className={`hs-tab ${tab === 'point' ? 'on' : 'off'}`} onClick={() => setTab('point')}>포인트 충전내역</button>
-                    <button className={`hs-tab ${tab === 'membership' ? 'on' : 'off'}`} onClick={() => setTab('membership')}>멤버십 이용내역</button>
+                    {TABS.map(t => (
+                        <button key={t.id} className={`hs-tab ${tab === t.id ? 'on' : 'off'}`} onClick={() => setTab(t.id)}>
+                            {t.label}
+                            {t.count > 0 && (
+                                <span style={{ marginLeft: 5, fontSize: 11, background: tab === t.id ? 'rgba(255,255,255,.25)' : 'rgba(255,255,255,.1)', borderRadius: 10, padding: '1px 6px' }}>
+                                    {t.count}
+                                </span>
+                            )}
+                        </button>
+                    ))}
                 </div>
 
                 {loading ? (
                     <div className="hs-empty"><div className="hs-spinner" /></div>
                 ) : (
                     <>
-                        {/* 포인트 내역 */}
+                        {/* ── 포인트 충전내역 ── */}
                         {tab === 'point' && (
-                            history.length === 0 ? (
-                                <div className="hs-empty">
-                                    <img src="/images/laftel-icon/cry.png" alt="" style={{ width: 64, opacity: .4 }} />
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,.35)', margin: 0 }}>이용 내역이 아직 없어요.</p>
-                                </div>
-                            ) : (
+                            history.length === 0 ? <Empty /> : (
                                 <div>
-                                    {history.map(h => (
+                                    {history.map((h: any) => (
                                         <div key={h.id} className="hs-item">
-                                            <div>
-                                                <p className="hs-item-title">{h.label}</p>
-                                                <p className="hs-item-date">{formatDate(h.createdAt)}</p>
+                                            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(108,99,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9d97ff" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                                             </div>
-                                            <span style={{ fontSize: 15, fontWeight: 800, color: '#6c63ff' }}>+{h.amount.toLocaleString()}P</span>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <p className="hs-item-title">{h.label || h.description || '포인트 충전'}</p>
+                                                <p className="hs-item-date">{fmt(h.createdAt)}</p>
+                                            </div>
+                                            <span style={{ fontSize: 15, fontWeight: 800, color: '#6c63ff', flexShrink: 0 }}>+{(h.amount || 0).toLocaleString()}P</span>
                                         </div>
                                     ))}
                                 </div>
                             )
                         )}
 
-                        {/* 멤버십 내역 */}
+                        {/* ── 멤버십 이용내역 ── */}
                         {tab === 'membership' && (
-                            membershipHistory.length === 0 ? (
-                                <div className="hs-empty">
-                                    <img src="/images/laftel-icon/cry.png" alt="" style={{ width: 64, opacity: .4 }} />
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,.35)', margin: 0 }}>이용 내역이 아직 없어요.</p>
-                                </div>
-                            ) : (
+                            membershipHistory.length === 0 ? <Empty /> : (
                                 <div>
-                                    {membershipHistory.map(m => (
+                                    {membershipHistory.map((m: any) => (
                                         <div key={m.id} className="hs-item">
-                                            <div>
-                                                <p className="hs-item-title">{m.label}</p>
-                                                <p className="hs-item-date">{formatDate(m.createdAt)} ~ {formatEndDate(m.createdAt, m.days)}</p>
+                                            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(245,158,11,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
                                             </div>
-                                            <span style={{
-                                                fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <p className="hs-item-title">{m.label || '멤버십 구독'}</p>
+                                                <p className="hs-item-date">
+                                                    {fmt(m.createdAt)}
+                                                    {m.days && ` ~ ${fmtEnd(m.createdAt, m.days)}`}
+                                                </p>
+                                            </div>
+                                            <span className="hs-badge" style={{
                                                 background: m.type === 'premium' ? 'rgba(245,158,11,.15)' : 'rgba(59,130,246,.15)',
                                                 color: m.type === 'premium' ? '#f59e0b' : '#3b82f6',
                                                 border: `1px solid ${m.type === 'premium' ? 'rgba(245,158,11,.3)' : 'rgba(59,130,246,.3)'}`,
                                             }}>
-                                                {m.type === 'premium' ? 'PREMIUM' : 'BASIC'}
+                                                {m.type === 'premium' ? 'PREMIUM' : m.type === 'allinone' ? 'ALL-IN-ONE' : 'BASIC'}
                                             </span>
                                         </div>
                                     ))}
                                 </div>
                             )
                         )}
+
+                        {/* ── 대여/소장 내역 ── */}
+                        {tab === 'purchase' && (
+                            purchaseHistory.length === 0 ? <Empty /> : (
+                                <div>
+                                    {/* 소장 먼저, 대여 나중 정렬 */}
+                                    {[...purchaseHistory]
+                                        .sort((a, b) => {
+                                            if (a.purchaseType === b.purchaseType) return 0
+                                            return a.purchaseType === 'own' ? -1 : 1
+                                        })
+                                        .map((p: any) => {
+                                            const isRent = p.purchaseType === 'rent'
+                                            const expired = isRent && isExpired(p.createdAt, p.rentDays)
+                                            return (
+                                                <div key={p.id} className="hs-item" style={{ opacity: expired ? 0.55 : 1 }}>
+                                                    {/* 포스터 */}
+                                                    <div style={{ width: 44, height: 62, borderRadius: 8, background: '#1a1a1a', overflow: 'hidden', flexShrink: 0 }}>
+                                                        {p.poster
+                                                            ? <img src={`${IMG}/w92${p.poster}`} alt={p.animeName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎬</div>
+                                                        }
+                                                    </div>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <p className="hs-item-title" style={{ marginBottom: 2 }}>{p.animeName || '작품'}</p>
+                                                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', margin: '0 0 4px' }}>
+                                                            {p.episodeCount ? `${p.episodeCount}화` : ''}{p.episodeNumbers?.length ? ` (${p.episodeNumbers.join(', ')}화)` : ''}
+                                                        </p>
+                                                        <p className="hs-item-date">
+                                                            {fmt(p.createdAt)}
+                                                            {isRent && p.rentDays && ` · ${fmtEnd(p.createdAt, p.rentDays)}까지`}
+                                                        </p>
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                                                        <span className="hs-badge" style={{
+                                                            background: isRent ? 'rgba(59,130,246,.12)' : 'rgba(108,99,255,.15)',
+                                                            color: isRent ? '#60a5fa' : '#9d97ff',
+                                                            border: `1px solid ${isRent ? 'rgba(59,130,246,.25)' : 'rgba(108,99,255,.3)'}`,
+                                                        }}>
+                                                            {isRent ? `${p.rentDays}일 대여` : '소장'}
+                                                        </span>
+                                                        {expired && (
+                                                            <span className="hs-badge" style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.3)', border: '1px solid rgba(255,255,255,.1)' }}>
+                                                                만료됨
+                                                            </span>
+                                                        )}
+                                                        <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                                                            {(p.totalPrice || 0).toLocaleString()}P
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                </div>
+                            )
+                        )}
                     </>
                 )}
             </div>
+        </div>
+    )
+}
+
+function Empty() {
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 12 }}>
+            <img src="/images/laftel-icon/cry.png" alt="" style={{ width: 64, opacity: .4 }} />
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,.35)', margin: 0 }}>이용 내역이 아직 없어요.</p>
         </div>
     )
 }

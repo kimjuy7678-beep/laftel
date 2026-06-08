@@ -146,8 +146,19 @@ function ProductCard({ product, today }: { product: Product; today: DateParts })
                     </div>
                 )}
                 <div className="absolute bottom-3 right-3 flex gap-1.5">
-                    <WishButton productId={product.productId} />
-                    <CartButton productId={product.productId} title={cleanReserveTitle(product.title)} thumbnail={product.thumbnail} requiresOption={requiresOption} />
+                    <WishButton
+                        productId={product.productId}
+                        title={cleanReserveTitle(product.title)}
+                        thumbnail={product.thumbnail}
+                        disabled={product.soldout}
+                    />
+                    <CartButton
+                        productId={product.productId}
+                        title={cleanReserveTitle(product.title)}
+                        thumbnail={product.thumbnail}
+                        requiresOption={requiresOption}
+                        disabled={product.soldout}
+                    />
                 </div>
             </div>
             <div className="mt-3">

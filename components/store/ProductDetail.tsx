@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { arrayUnion, doc, setDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import CartAlert from "@/components/store/CartAlert";
@@ -63,6 +63,20 @@ function seriesHref(series: string) {
 // ─── productdetail 파싱 ───────────────────────────────────────────────────────
 type SpecRow = { label: string; value: string; highlight?: boolean; warn?: boolean };
 type ParsedDetail = { specs: SpecRow[]; noticelines: string[]; isReservation: boolean; size?: string; material?: string };
+type StoredCartItem = {
+    productId: string;
+    option?: unknown;
+    quantity?: number;
+};
+
+function isStoredCartItem(value: unknown): value is StoredCartItem {
+    return Boolean(
+        value &&
+        typeof value === "object" &&
+        "productId" in value &&
+        typeof (value as { productId?: unknown }).productId === "string",
+    );
+}
 
 function splitSpecLine(line: string) {
     const match = line.match(/^(.+?)\s*(?:\||ㅣ|l|:)\s*(.+)$/i);
@@ -158,9 +172,12 @@ function cleanOptionValue(value: unknown) {
             : "";
 
     return raw
+        .replace(/[,{\s]*["']?add(?:i)?tional\w*["']?\s*:\s*["']?[-+]?\d[\d,]*(?:원)?["']?\s*[,}]*/gi, " ")
         .replace(/["{,]\s*add(?:i)?tionalAmou?n?t?\s*["]?\s*:\s*[-+]?\d[\d,]*(?:원)?\s*[,}]?/gi, "")
         .replace(/add(?:i)?tionalAmou?n?t?\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
         .replace(/add(?:i)?tional[A-Za-z]*\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
+        .replace(/[{}"]/g, "")
+        .replace(/,\s*$/g, "")
         .replace(/\(\s*[-+]?\d[\d,]*원\s*\)/g, "")
         .replace(/\s*[-+]\s*\d[\d,]*원/g, "")
         .replace(/\s{2,}/g, " ")
@@ -201,7 +218,11 @@ function getLineOptionValues(line: string) {
 }
 
 function uniqueOptions(options: unknown[]) {
-    return Array.from(new Set(options.map(cleanOptionValue).filter(Boolean)));
+    return Array.from(new Set(
+        options
+            .map(cleanOptionValue)
+            .filter((option) => option && !/^add(?:i)?tional/i.test(option)),
+    ));
 }
 
 function getOptionValues(product: StoreProduct): string[] {
@@ -411,13 +432,38 @@ export function ProductDetail({
 
         setCartLoading(true);
         try {
-            await setDoc(doc(db, "users", user.uid), {
-                cart: arrayUnion({
-                    productId: product.productId,
-                    option: selectedOption || "기본",
-                    quantity: qty,
-                }),
-            }, { merge: true });
+            const userRef = doc(db, "users", user.uid);
+            const nextOption = cleanOptionValue(selectedOption || "기본");
+            const snap = await getDoc(userRef);
+            const rawCart = snap.data()?.cart as unknown;
+            const cartItems = Array.isArray(rawCart) ? rawCart : [];
+            const matchedItem = cartItems.find((item) => {
+                const productId = typeof item === "string" ? item : isStoredCartItem(item) ? item.productId : "";
+                if (productId !== product.productId) return false;
+
+                const option = typeof item === "string"
+                    ? "기본"
+                    : isStoredCartItem(item)
+                        ? cleanOptionValue(item.option || "기본")
+                        : "";
+
+                return option === nextOption;
+            });
+            const matchedQuantity = isStoredCartItem(matchedItem) && typeof matchedItem.quantity === "number"
+                ? Math.max(1, matchedItem.quantity)
+                : matchedItem
+                    ? 1
+                    : 0;
+            const nextItem = {
+                productId: product.productId,
+                option: nextOption,
+                quantity: matchedQuantity + qty,
+            };
+
+            if (matchedItem) {
+                await setDoc(userRef, { cart: arrayRemove(matchedItem) }, { merge: true });
+            }
+            await setDoc(userRef, { cart: arrayUnion(nextItem) }, { merge: true });
             setShowCart(true);
         } finally {
             setCartLoading(false);
