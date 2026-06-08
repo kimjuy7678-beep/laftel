@@ -48,10 +48,10 @@ const environmentNotices = [
 function NoticeSection({ title, items }: { title: string; items: string[] }) {
     return (
         <div className="mb-12 2xl:mb-16">
-            <h3 className="text-base 2xl:text-lg font-bold text-white/80 mb-5 pb-3 border-b border-white/10">{title}</h3>
+            <h3 className="text-base 2xl:text-lg font-bold text-white/80 mb-5 pb-3 border-b border-[var(--border)]">{title}</h3>
             <ul className="flex flex-col gap-2.5">
                 {items.map((text, i) => (
-                    <li key={i} className="flex gap-2 text-white/50 text-xs 2xl:text-sm leading-relaxed">
+                    <li key={i} className="flex gap-2 text-[var(--text-muted)] text-xs 2xl:text-sm leading-relaxed">
                         <span className="shrink-0">•</span>
                         <span>{text}</span>
                     </li>
@@ -63,21 +63,21 @@ function NoticeSection({ title, items }: { title: string; items: string[] }) {
 
 export default function MembershipNotice() {
     return (
-        <div className="w-full py-20 2xl:py-28 px-16 2xl:px-32 bg-[#0a0a0a]">
+        <div className="w-full py-20 2xl:py-28 px-16 2xl:px-32 bg-[var(--bg-primary)]">
             <h2 className="text-xl 2xl:text-2xl font-black mb-12 2xl:mb-16">멤버십 유의사항</h2>
             <NoticeSection title="멤버십 구독 및 결제 안내" items={subscriptionNotices} />
             <NoticeSection title="콘텐츠 이용 안내" items={contentNotices} />
             <div>
-                <h3 className="text-base 2xl:text-lg font-bold text-white/80 mb-5 pb-3 border-b border-white/10">재생 및 이용 환경 안내</h3>
+                <h3 className="text-base 2xl:text-lg font-bold text-white/80 mb-5 pb-3 border-b border-[var(--border)]">재생 및 이용 환경 안내</h3>
                 <ul className="flex flex-col gap-2.5">
                     {environmentNotices.map((text, i) => (
-                        <li key={i} className="flex gap-2 text-white/50 text-xs 2xl:text-sm leading-relaxed">
+                        <li key={i} className="flex gap-2 text-[var(--text-muted)] text-xs 2xl:text-sm leading-relaxed">
                             <span className="shrink-0">•</span>
                             <span>{text}</span>
                         </li>
                     ))}
                 </ul>
-                <p className="text-white/30 text-xs mt-6">기타 궁금하신 점은 고객센터를 통해 1:1 문의해 주시기 바랍니다.</p>
+                <p className="text-[var(--text-faint)] text-xs mt-6">기타 궁금하신 점은 고객센터를 통해 1:1 문의해 주시기 바랍니다.</p>
             </div>
         </div>
     )

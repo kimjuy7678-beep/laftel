@@ -17,12 +17,8 @@ const CATEGORIES = [
     { label: '👻 호러', genre: 27 },
 ]
 
-// 띄어쓰기 무시 정규화
-function normalize(v: string) {
-    return v.toLowerCase().replace(/[\s\-_·.,!?'"()\[\]]+/g, '')
-}
+function normalize(v: string) { return v.toLowerCase().replace(/[\s\-_·.,!?'"()\[\]]+/g, '') }
 
-// 캐릭터명 → 작품명 매핑
 const CHARACTER_MAP: Record<string, string> = {
     '탄지로': '귀멸의 칼날', '네즈코': '귀멸의 칼날', '이노스케': '귀멸의 칼날', '젠이츠': '귀멸의 칼날',
     '고죠': '주술회전', '이타도리': '주술회전', '메구미': '주술회전', '노바라': '주술회전',
@@ -34,15 +30,12 @@ const CHARACTER_MAP: Record<string, string> = {
     '로이드': '스파이 패밀리', '아냐': '스파이 패밀리', '요르': '스파이 패밀리',
     '데쿠': '나의 히어로 아카데미아', '바쿠고': '나의 히어로 아카데미아', '쇼토': '나의 히어로 아카데미아',
     '엔': '블루 록', '이사기': '블루 록', '바기': '블루 록',
-    '데nji': '체인소맨', '파워': '체인소맨', '아키': '체인소맨',
 }
 
 function resolveQuery(q: string): string {
     const norm = normalize(q)
     for (const [char, anime] of Object.entries(CHARACTER_MAP)) {
-        if (normalize(char).includes(norm) || norm.includes(normalize(char))) {
-            return anime
-        }
+        if (normalize(char).includes(norm) || norm.includes(normalize(char))) return anime
     }
     return q
 }
@@ -64,14 +57,14 @@ function PopularAnime({ onClose }: { onClose: () => void }) {
                 <div key={item.id}
                     onClick={() => { onClose(); router.push(`/anime/${item.id}`) }}
                     style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 10, cursor: 'pointer', transition: 'background .12s' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,.05)'}
+                    onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)'}
                     onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
                 >
-                    <div style={{ width: 44, height: 62, borderRadius: 8, background: '#1a1a22', backgroundImage: item.poster_path ? `url(${IMG}/w92${item.poster_path})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0 }} />
+                    <div style={{ width: 44, height: 62, borderRadius: 8, background: 'var(--bg-card)', backgroundImage: item.poster_path ? `url(${IMG}/w92${item.poster_path})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 10, color: '#9d97ff', margin: '0 0 2px', fontWeight: 600 }}>애니메이션</p>
-                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontWeight: 600 }}>{item.name}</p>
-                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', margin: 0 }}>{item.first_air_date?.slice(0, 4)}</p>
+                        <p style={{ fontSize: 13, color: 'var(--text-high)', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontWeight: 600 }}>{item.name}</p>
+                        <p style={{ fontSize: 11, color: 'var(--text-subtle)', margin: 0 }}>{item.first_air_date?.slice(0, 4)}</p>
                     </div>
                 </div>
             ))}
@@ -98,18 +91,11 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
     const search = useCallback(async (q: string) => {
         if (!q.trim()) { setResults([]); setCharHint(null); return }
         setLoading(true)
-
-        // 캐릭터명 → 작품명 변환
         const resolved = resolveQuery(q)
-        if (normalize(resolved) !== normalize(q)) {
-            setCharHint(resolved)
-        } else {
-            setCharHint(null)
-        }
-
-        // 3가지 형태로 검색: 원본 / 공백정리 / 띄어쓰기제거
-        const trimmed = resolved.replace(/\s+/g, ' ').trim()           // '귀 멸의  칼날' → '귀 멸의 칼날'
-        const noSpace = resolved.replace(/\s/g, '')                    // '귀멸의칼날'
+        if (normalize(resolved) !== normalize(q)) setCharHint(resolved)
+        else setCharHint(null)
+        const trimmed = resolved.replace(/\s+/g, ' ').trim()
+        const noSpace = resolved.replace(/\s/g, '')
         const queries = Array.from(new Set([trimmed, noSpace]))
         try {
             const allResults = await Promise.all(queries.map(async tq => {
@@ -117,7 +103,6 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                 const data = await res.json()
                 return (data.results || []).filter((r: any) => r.original_language === 'ja')
             }))
-            // 중복 제거 후 병합
             const seen = new Set<number>()
             const merged = allResults.flat().filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true })
             setResults(merged.slice(0, 8))
@@ -144,17 +129,16 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                 @keyframes spin { to { transform:rotate(360deg) } }
                 .so-wrap { animation: so-up .2s ease; }
                 .so-scroll::-webkit-scrollbar { width: 4px; }
-                .so-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
+                .so-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
             `}</style>
 
             <div
                 className="so-wrap"
-                style={{ width: 'min(720px, 92vw)', background: '#111118', border: '1px solid rgba(255,255,255,.08)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.8)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+                style={{ width: 'min(720px, 92vw)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.8)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
                 onClick={e => e.stopPropagation()}
             >
-                {/* 인풋 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: 16, height: 50, borderRadius: 25, border: '1px solid rgba(255,255,255,.1)', padding: '0 18px', background: 'rgba(255,255,255,.05)', flexShrink: 0 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="2">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: 16, height: 50, borderRadius: 25, border: '1px solid var(--border)', padding: '0 18px', background: 'var(--bg-hover)', flexShrink: 0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2">
                         <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                     </svg>
                     <input
@@ -163,53 +147,44 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                         onChange={handleChange}
                         onKeyDown={e => { if (e.key === 'Enter' && query.trim()) { onClose(); router.push(`/anime/search?q=${encodeURIComponent(query)}`) } }}
                         placeholder="애니메이션 제목, 캐릭터명으로 검색해 보세요"
-                        style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 14 }}
+                        style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 14 }}
                     />
-                    {loading && <div style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite', flexShrink: 0 }} />}
+                    {loading && <div style={{ width: 15, height: 15, border: '2px solid var(--border)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite', flexShrink: 0 }} />}
                     {query && (
-                        <button onClick={() => { setQuery(''); setResults([]); setCharHint(null) }} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => { setQuery(''); setResults([]); setCharHint(null) }} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'var(--border)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
                         </button>
                     )}
-                    {/* X 닫기 버튼 */}
-                    <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 2 }}>
+                    <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'var(--border-faint)', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 2 }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
                     </button>
                 </div>
 
-                {/* 캐릭터 힌트 */}
                 {charHint && (
                     <div style={{ margin: '-8px 16px 8px', padding: '6px 14px', background: 'rgba(108,99,255,.12)', borderRadius: 8, border: '1px solid rgba(108,99,255,.2)', fontSize: 12, color: '#a5a0ff' }}>
                         💡 <strong>"{query}"</strong> 캐릭터 기준으로 <strong>"{charHint}"</strong> 검색 중
                     </div>
                 )}
 
-                {/* 바디 */}
                 <div className="so-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 20px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-                        {/* 자동완성 */}
                         <div>
-                            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.25)', margin: '0 0 10px' }}>자동완성</p>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 10px' }}>자동완성</p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                                {(isSearching && results.length > 0
-                                    ? results.map(r => r.name).slice(0, 6)
-                                    : SUGGESTIONS
-                                ).map(s => (
+                                {(isSearching && results.length > 0 ? results.map(r => r.name).slice(0, 6) : SUGGESTIONS).map(s => (
                                     <button key={s}
                                         onClick={() => { setQuery(s); search(s) }}
-                                        style={{ padding: '5px 13px', borderRadius: 20, border: '1px solid rgba(255,255,255,.12)', background: 'none', color: 'rgba(255,255,255,.55)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .15s' }}
+                                        style={{ padding: '5px 13px', borderRadius: 20, border: '1px solid var(--border)', background: 'none', color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .15s' }}
                                         onMouseEnter={e => { e.currentTarget.style.borderColor = '#6c63ff'; e.currentTarget.style.color = '#a5a0ff' }}
-                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.12)'; e.currentTarget.style.color = 'rgba(255,255,255,.55)' }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
                                     >{s}</button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* 장르 */}
                         {!isSearching && (
                             <div>
-                                <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.25)', margin: '0 0 10px' }}>장르</p>
+                                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 10px' }}>장르</p>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                                     {CATEGORIES.map(cat => (
                                         <button key={cat.label}
@@ -223,14 +198,13 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                             </div>
                         )}
 
-                        {/* 결과 / 인기 */}
                         <div>
-                            <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.25)', margin: '0 0 10px' }}>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', margin: '0 0 10px' }}>
                                 {isSearching ? `검색 결과 ${results.length}개` : '인기 애니'}
                             </p>
                             {isSearching ? (
                                 results.length === 0 && !loading ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 100, borderRadius: 12, background: 'rgba(255,255,255,.03)', color: 'rgba(255,255,255,.2)', fontSize: 13 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 100, borderRadius: 12, background: 'var(--bg-hover)', color: 'var(--text-faint)', fontSize: 13 }}>
                                         검색 결과가 없어요.
                                     </div>
                                 ) : (
@@ -238,14 +212,14 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                                         <div key={item.id}
                                             onClick={() => { onClose(); router.push(`/anime/${item.id}`) }}
                                             style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 10, cursor: 'pointer', transition: 'background .12s' }}
-                                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,.05)'}
+                                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)'}
                                             onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
                                         >
-                                            <div style={{ width: 44, height: 62, borderRadius: 8, background: '#1a1a22', backgroundImage: item.poster_path ? `url(${IMG}/w92${item.poster_path})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0 }} />
+                                            <div style={{ width: 44, height: 62, borderRadius: 8, background: 'var(--bg-card)', backgroundImage: item.poster_path ? `url(${IMG}/w92${item.poster_path})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0 }} />
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <p style={{ fontSize: 10, color: '#9d97ff', margin: '0 0 2px', fontWeight: 600 }}>애니메이션</p>
-                                                <p style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontWeight: 600 }}>{item.name}</p>
-                                                <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', margin: 0 }}>{item.first_air_date?.slice(0, 4)}</p>
+                                                <p style={{ fontSize: 13, color: 'var(--text-high)', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontWeight: 600 }}>{item.name}</p>
+                                                <p style={{ fontSize: 11, color: 'var(--text-subtle)', margin: 0 }}>{item.first_air_date?.slice(0, 4)}</p>
                                             </div>
                                         </div>
                                     ))
@@ -254,7 +228,6 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                                 <PopularAnime onClose={onClose} />
                             )}
                         </div>
-
                     </div>
                 </div>
             </div>

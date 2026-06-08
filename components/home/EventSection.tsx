@@ -9,14 +9,15 @@ const STATUS_LABEL: Record<string, string> = {
     past: '종료',
 }
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-    ongoing: { bg: 'rgba(108,99,255,0.9)', color: '#fff' },
-    result: { bg: 'rgba(234,179,8,0.85)', color: '#fff' },
-    past: { bg: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.5)' },
+    ongoing: { bg: 'rgba(108,99,255,0.9)', color: '#fff' },       // 배지는 항상 흰 글씨 (보라 배경 위)
+    result: { bg: 'rgba(234,179,8,0.85)', color: '#fff' },        // 배지는 항상 흰 글씨 (노랑 배경 위)
+    past: { bg: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.5)' }, // 배지는 항상 흰 글씨 (검정 배경 위)
 }
 
 const FILTERS = [
+    { label: '전체', value: 'all' },
     { label: '진행중', value: 'ongoing' },
-
+    { label: '종료', value: 'past' },
 ]
 
 export default function EventSection() {
@@ -32,7 +33,6 @@ export default function EventSection() {
         ? events
         : events.filter(e => e.status === activeFilter)
 
-    // 상단 6개만 홈에 노출
     const display = filtered.slice(0, 6)
 
     return (
@@ -41,18 +41,18 @@ export default function EventSection() {
                 .ev-wrap { width: 90%; margin: 0 auto; }
 
                 .ev-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                .ev-title { font-size: 25px; font-weight: 700; color: #fff; margin: 0; }
-                .ev-more { font-size: 12px; color: rgba(255,255,255,.35); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 3px; transition: color .2s; }
-                .ev-more:hover { color: rgba(255,255,255,.7); }
+                .ev-title { font-size: 25px; font-weight: 700; color: var(--text-primary); margin: 0; }
+                .ev-more { font-size: 12px; color: var(--text-subtle); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 3px; transition: color .2s; }
+                .ev-more:hover { color: var(--text-high); }
 
                 .ev-filters { display: flex; gap: 8px; margin-bottom: 24px; }
                 .ev-filter {
                     padding: 7px 18px; border-radius: 20px;
-                    border: 1px solid rgba(255,255,255,0.12);
-                    background: transparent; color: rgba(255,255,255,0.45);
+                    border: 1px solid var(--border);
+                    background: transparent; color: var(--text-muted);
                     font-size: 13px; font-weight: 600; cursor: pointer; transition: all .18s;
                 }
-                .ev-filter:hover { color: #fff; border-color: rgba(255,255,255,.3); }
+                .ev-filter:hover { color: var(--text-primary); border-color: var(--border); }
                 .ev-filter.active { background: #6c5ce7; border-color: #6c5ce7; color: #fff; }
 
                 .ev-grid {
@@ -65,7 +65,8 @@ export default function EventSection() {
                     cursor: pointer;
                     border-radius: 14px;
                     overflow: hidden;
-                    background: #1a1a22;
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-subtle);
                     transition: transform .22s cubic-bezier(.25,.46,.45,.94);
                 }
                 .ev-card:hover { transform: translateY(-4px); }
@@ -73,10 +74,10 @@ export default function EventSection() {
 
                 .ev-thumb {
                     width: 100%; aspect-ratio: 16 / 9;
-                    overflow: hidden; position: relative; background: #111;
+                    overflow: hidden; position: relative; background: var(--bg-secondary);
                 }
                 .ev-thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
-                .ev-thumb-np { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: rgba(255,255,255,.05); }
+                .ev-thumb-np { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: var(--border-subtle); }
 
                 .ev-status {
                     position: absolute; top: 10px; left: 10px;
@@ -86,17 +87,17 @@ export default function EventSection() {
 
                 .ev-info { padding: 12px 14px 14px; }
                 .ev-name {
-                    font-size: 16px; font-weight: 600; color: rgba(255,255,255,.88);
+                    font-size: 16px; font-weight: 600; color: var(--text-high);
                     margin: 0 0 5px; line-height: 1.4;
                     overflow: hidden;
                     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
                 }
-                .ev-period { font-size: 13px; color: rgba(255,255,255,.3); margin: 0; }
+                .ev-period { font-size: 13px; color: var(--text-faint); margin: 0; }
 
-                .ev-loading { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.25); font-size: 13px; height: 200px; }
-                .ev-spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.1); border-top-color: #6c63ff; border-radius: 50%; animation: ev-spin .7s linear infinite; }
+                .ev-loading { display: flex; align-items: center; gap: 10px; color: var(--text-faint); font-size: 13px; height: 200px; }
+                .ev-spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: #6c63ff; border-radius: 50%; animation: ev-spin .7s linear infinite; }
                 @keyframes ev-spin { to { transform: rotate(360deg) } }
-                .ev-empty { text-align: center; padding: 60px 0; color: rgba(255,255,255,.2); font-size: 14px; }
+                .ev-empty { text-align: center; padding: 60px 0; color: var(--text-faint); font-size: 14px; }
             `}</style>
 
             <div className="ev-wrap">
@@ -133,8 +134,6 @@ export default function EventSection() {
                     <div className="ev-grid">
                         {display.map(ev => {
                             const st = STATUS_STYLE[ev.status] || STATUS_STYLE.past
-
-                            // period 파싱
                             const start = ev.start_datetime?.slice(0, 10).replace(/-/g, '.')
                             const end = ev.end_datetime?.slice(0, 10).replace(/-/g, '.')
                             const period = start && end ? `${start} ~ ${end}` : ''
