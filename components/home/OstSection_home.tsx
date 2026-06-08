@@ -21,46 +21,32 @@ interface OstTrack {
 
 async function fetchOstForAnime(animeName: string): Promise<OstTrack[]> {
     try {
-        const lfRes = await fetch(
-            `${LASTFM_BASE}/?method=album.search&album=${encodeURIComponent(animeName + ' ost')}&api_key=${LASTFM_KEY}&format=json&limit=5`
-        )
-        const lfData = await lfRes.json()
-        const albums = lfData.results?.albummatches?.album || []
-        if (albums.length === 0) return []
-
-        let usedAlbum = albums[0]
-        let tracks: any[] = []
-        for (const album of albums.slice(0, 3)) {
-            const trackRes = await fetch(
-                `${LASTFM_BASE}/?method=album.getinfo&artist=${encodeURIComponent(album.artist)}&album=${encodeURIComponent(album.name)}&api_key=${LASTFM_KEY}&format=json`
+        // iTunes 직접 검색 — サウンドトラック 키워드로 일본 애니 앨범자켓 확보
+        const queries = [
+            `${animeName} サウンドトラック`,
+            `${animeName} ost`,
+            animeName,
+        ]
+        for (const q of queries) {
+            const res = await fetch(
+                `${ITUNES_BASE}?term=${encodeURIComponent(q)}&media=music&entity=song&genreId=27&limit=10&country=JP&lang=ja_jp`
             )
-            const trackData = await trackRes.json()
-            tracks = trackData.album?.tracks?.track || []
-            if (tracks.length > 0) { usedAlbum = album; break }
+            const data = await res.json()
+            const items = (data.results || []).filter((item: any) => item.previewUrl && item.artworkUrl100)
+            if (items.length === 0) continue
+            // previewUrl 있는 첫 번째 트랙 반환
+            const item = items[0]
+            return [{
+                id: `${animeName}-${item.trackId}`,
+                title: item.trackName,
+                artist: item.artistName,
+                animeName,
+                cover: item.artworkUrl100.replace('100x100bb', '600x600bb').replace('100x100', '600x600'),
+                previewUrl: item.previewUrl,
+                duration: item.trackTimeMillis ? Math.floor(item.trackTimeMillis / 1000) : 0,
+            }]
         }
-        if (tracks.length === 0) return []
-
-        const results: OstTrack[] = []
-        for (const track of tracks.slice(0, 4)) {
-            const trackName = typeof track === 'string' ? track : track.name
-            try {
-                const itRes = await fetch(
-                    `${ITUNES_BASE}?term=${encodeURIComponent(trackName + ' ' + animeName)}&media=music&limit=1&country=JP`
-                )
-                const itData = await itRes.json()
-                const item = itData.results?.[0]
-                results.push({
-                    id: `${animeName}-${trackName}`,
-                    title: trackName,
-                    artist: typeof track === 'string' ? usedAlbum.artist : (track.artist?.name || usedAlbum.artist),
-                    animeName,
-                    cover: item?.artworkUrl100?.replace('100x100', '400x400') || usedAlbum.image?.[3]?.['#text'] || '',
-                    previewUrl: item?.previewUrl || null,
-                    duration: item?.trackTimeMillis ? Math.floor(item.trackTimeMillis / 1000) : 0,
-                })
-            } catch { }
-        }
-        return results
+        return []
     } catch { return [] }
 }
 
@@ -156,14 +142,27 @@ export default function OstSection() {
         if (aniList.length === 0) return
         const load = async () => {
             setLoading(true)
-            const top8 = [...aniList]
+            const top20 = [...aniList]
                 .sort((a: any, b: any) => b.popularity - a.popularity)
-                .slice(0, 8)
+                .slice(0, 20)
             const allTracks: OstTrack[] = []
-            for (const ani of top8) {
+            const seenCovers = new Set<string>()
+            const seenAnimes = new Set<string>()
+            for (const ani of top20) {
                 const result = await fetchOstForAnime(ani.original_name || ani.name)
-                allTracks.push(...result)
-                if (allTracks.length > 0) setTracks([...allTracks])
+                // 애니당 1곡만, 커버 중복 제거
+                const pick = result.find(t => t.previewUrl && t.cover)
+                    || result.find(t => t.previewUrl)
+                if (pick) {
+                    const coverKey = pick.cover.replace(/\/[0-9]+x[0-9]+/, '')
+                    const animeKey = pick.animeName.toLowerCase().trim()
+                    if (!seenCovers.has(coverKey) && !seenAnimes.has(animeKey)) {
+                        seenCovers.add(coverKey)
+                        seenAnimes.add(animeKey)
+                        allTracks.push(pick)
+                        setTracks([...allTracks])
+                    }
+                }
                 await new Promise(r => setTimeout(r, 300))
             }
             setLoading(false)

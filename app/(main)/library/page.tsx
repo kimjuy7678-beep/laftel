@@ -10,26 +10,28 @@ const TMDB_IMG = 'https://image.tmdb.org/t/p/w300'
 const TABS: { id: WatchlistTab; label: string }[] = [
     { id: 'recent', label: '최근 본' },
     { id: 'wishlist', label: '보고싶다' },
-    { id: 'purchased', label: '구매한' },
-    { id: 'series', label: '정주행' },
+    { id: 'purchased', label: '구매한' }
 ]
 
 const EMPTY_MSG: Record<WatchlistTab, { icon: string; text: string }> = {
     recent: { icon: '/images/laftel-icon/cry.png', text: '최근 본 작품이 아직 없어요.' },
     wishlist: { icon: '/images/laftel-icon/cry.png', text: '보고싶은 작품을 추가해보세요.' },
     purchased: { icon: '/images/laftel-icon/cry.png', text: '구매한 작품이 없어요.' },
-    series: { icon: '/images/laftel-icon/cry.png', text: '정주행 중인 작품이 없어요.' },
 }
 
 export default function LibraryPage() {
     const router = useRouter()
     const { user, avatarConfig } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
     const { items, loading, fetchWatchlist, removeItem } = useWatchlistStore()
     const [activeTab, setActiveTab] = useState<WatchlistTab>('recent')
     const [selectMode, setSelectMode] = useState(false)
     const [selected, setSelected] = useState<Set<number>>(new Set())
 
+    useEffect(() => { setHydrated(true) }, [])
+
     useEffect(() => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         if (user?.uid) fetchWatchlist(user.uid)
     }, [user])
@@ -137,7 +139,7 @@ export default function LibraryPage() {
                             </button>
                         </Link>
                         <Link href="/membership" className="lib-member-banner">
-                            <span style={{ fontSize: 28 }}>🐱</span>
+                            <img src="/images/laftel-icon/new.png" alt="icon" style={{ width: '70px' }} />
                             <div>
                                 <p className="lib-member-text"><span style={{ color: '#9d97ff' }}>멤버십</span> 시작하기</p>
                                 <p className="lib-member-sub">한일 동시방영 신작부터 역대 인기애니까지 무제한</p>

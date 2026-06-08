@@ -1,6 +1,7 @@
 'use client'
 import PageHeader from '@/components/PageHeader'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import Lottie from 'lottie-react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
@@ -895,14 +896,39 @@ export default function OstPage() {
     useEffect(() => {
         const load = async () => {
             setLoading(true)
-            const queries = [
+
+            // ── 1단계: 인기 6개만 먼저 빠르게 (로딩 끝내기)
+            const priorityQueries = [
+                '呪術廻戦 サウンドトラック',
+                '鬼滅の刃 サウンドトラック',
+                '進撃の巨人 サウンドトラック',
+                'スパイファミリー サウンドトラック',
+                '葬送のフリーレン サウンドトラック',
+                'チェンソーマン サウンドトラック',
+            ]
+            const seen = new Set<string>()
+            const firstResults = await Promise.all(priorityQueries.map(q => fetchItunesAnime(q, 20)))
+            const firstTracks: Track[] = []
+            firstResults.flat().forEach(t => { if (!seen.has(t.id)) { seen.add(t.id); firstTracks.push(t) } })
+            setTracks(firstTracks)
+            setLoadCount(firstTracks.length)
+            setLoading(false)  // ← 여기서 먼저 로딩 해제 → 화면 바로 표시
+
+            // ── 2단계: newTracks + hotAnimes (섹션 표시용)
+            const [newT, hotA] = await Promise.all([fetchNewReleases(), fetchHotAnimeOst()])
+            const hotFirstTrack = hotA[0]?.tracks?.find(t => t.previewUrl)
+            const mergedNewT = hotFirstTrack
+                ? [hotFirstTrack, ...newT.filter(t => t.id !== hotFirstTrack.id).slice(0, 6)]
+                : newT
+            setNewTracks(mergedNewT)
+            setHotAnimes(hotA)
+
+            // ── 3단계: 나머지 쿼리 배경에서 추가 로딩 (UX 안 막음)
+            const restQueries = [
                 'アニメ オープニング サウンドトラック', 'アニメ エンディング サウンドトラック',
                 'アニメ BGM サウンドトラック 2023', 'アニメ サウンドトラック 2024',
-                '呪術廻戦 サウンドトラック', '鬼滅の刃 サウンドトラック',
-                '進撃の巨人 サウンドトラック', 'ナルト疾風伝 サウンドトラック',
-                'BLEACH サウンドトラック', 'ワンピース サウンドトラック',
-                'スパイファミリー サウンドトラック', '葬送のフリーレン サウンドトラック',
-                'チェンソーマン サウンドトラック', 'ヴァイオレット エヴァーガーデン サウンドトラック',
+                'ナルト疾風伝 サウンドトラック', 'BLEACH サウンドトラック',
+                'ワンピース サウンドトラック', 'ヴァイオレット エヴァーガーデン サウンドトラック',
                 '鋼の錬金術師 BROTHERHOOD サウンドトラック', 'ハイキュー サウンドトラック',
                 'モブサイコ100 サウンドトラック', 'ブルーロック サウンドトラック',
                 'リゼロ サウンドトラック', 'オーバーロード サウンドトラック',
@@ -913,22 +939,22 @@ export default function OstPage() {
                 'ヴィンランドサガ サウンドトラック', 'HUNTER HUNTER サウンドトラック',
                 'フェアリーテイル サウンドトラック', 'ブラッククローバー サウンドトラック',
             ]
-            const seen = new Set<string>()
-            const results = await Promise.all(queries.map(q => fetchItunesAnime(q, 50)))
-            const allTracks: Track[] = []
-            results.flat().forEach(t => { if (!seen.has(t.id)) { seen.add(t.id); allTracks.push(t) } })
-            setTracks(allTracks)
-            setLoadCount(allTracks.length)
-
-            const [newT, hotA] = await Promise.all([fetchNewReleases(), fetchHotAnimeOst()])
-            // hotA[0](주술회전)의 트랙을 첫 번째로 교체 → 썸네일·재생 트랙 일치
-            const hotFirstTrack = hotA[0]?.tracks?.find(t => t.previewUrl)
-            const mergedNewT = hotFirstTrack
-                ? [hotFirstTrack, ...newT.filter(t => t.id !== hotFirstTrack.id).slice(0, 6)]
-                : newT
-            setNewTracks(mergedNewT)
-            setHotAnimes(hotA)
-            setLoading(false)
+            // 4개씩 배치로 나눠서 순차 로딩 → 서버 부하 줄이기
+            const batchSize = 4
+            for (let i = 0; i < restQueries.length; i += batchSize) {
+                const batch = restQueries.slice(i, i + batchSize)
+                const batchResults = await Promise.all(batch.map(q => fetchItunesAnime(q, 30)))
+                const newBatchTracks: Track[] = []
+                batchResults.flat().forEach(t => {
+                    if (!seen.has(t.id)) { seen.add(t.id); newBatchTracks.push(t) }
+                })
+                if (newBatchTracks.length > 0) {
+                    setTracks(prev => [...prev, ...newBatchTracks])
+                    setLoadCount(prev => prev + newBatchTracks.length)
+                }
+                // 배치 사이 살짝 텀 줘서 API 레이트리밋 방지
+                await new Promise(r => setTimeout(r, 300))
+            }
         }
         load()
     }, [])
@@ -1035,8 +1061,7 @@ export default function OstPage() {
 
             <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: currentTrack ? 96 : 0 }}>
                 <style>{`
-                .ost-loading-bar{height:3px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
-                .ost-loading-bar::after{content:'';position:absolute;left:-40%;width:40%;height:100%;background:linear-gradient(to right,transparent,#6c63ff,transparent);animation:ost-shimmer 1.2s infinite}
+
                 @keyframes ost-shimmer{to{left:100%}}
                 @keyframes eq{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
                 @keyframes spin{to{transform:rotate(360deg)}}
@@ -1047,11 +1072,14 @@ export default function OstPage() {
                         <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.2, letterSpacing: '-0.02em' }}>OST</h1>
                         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: '8px 0 0' }}>애니메이션 속 그 노래, 여기서 다시 들어요</p>
                     </div>
-                    {loading && <div className="ost-loading-bar" />}
                     {loading && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
-                            <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                            {loadCount}곡 로드 중...
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                            <Lottie
+                                path="https://assets10.lottiefiles.com/packages/lf20_ikku7ex4.json"
+                                style={{ width: 36, height: 36 }}
+                                loop
+                            />
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>{loadCount}곡 로드 중...</span>
                         </div>
                     )}
                     <OstTab
