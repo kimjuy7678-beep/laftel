@@ -22,7 +22,7 @@ export default function WishAlert({
     return createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/10" onClick={onClose}>
             <div onClick={e => e.stopPropagation()}
-                className="w-[480px] rounded-[20px] backdrop-blur-[12px] shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden">
+                className="w-[480px] rounded-[20px] bg-white shadow-[0_12px_48px_rgba(0,0,0,0.25)] overflow-hidden">
                 {/* 상단 */}
                 <div className="relative px-8 pt-7 pb-5 flex flex-col items-center gap-3">
                     <button onClick={onClose} className="absolute right-5 top-5 text-[#c0bcd0] hover:text-[#ff4d6d]">

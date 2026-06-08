@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useWatchlistStore } from '@/store/useWatchlistStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
@@ -148,6 +148,22 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
     const [cards, setCards] = useState<any[]>([])
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
     const [showAddCard, setShowAddCard] = useState(false)
+
+    // Firestore에서 저장된 카드 불러오기
+    useEffect(() => {
+        if (!user?.uid) return
+        getDoc(doc(db, 'users', user.uid)).then(snap => {
+            if (!snap.exists()) return
+            const savedCards: any[] = snap.data()?.cards || []
+            setCards(savedCards)
+            // 기본 카드 자동 선택
+            const defaultCard = savedCards.find(c => c.isDefault) ?? savedCards[0]
+            if (defaultCard) {
+                setSelectedCardId(defaultCard.id)
+                setShowAddCard(false)
+            }
+        }).catch(() => {})
+    }, [user?.uid])
     const [cardNumber, setCardNumber] = useState('')
     const [cardExpiry, setCardExpiry] = useState('')
     const [cardCvc, setCardCvc] = useState('')

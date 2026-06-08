@@ -1,6 +1,7 @@
 'use client'
 import PageHeader from '@/components/PageHeader'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import Lottie from 'lottie-react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
@@ -61,21 +62,39 @@ function classifyTrack(item: any): { type: Track['type']; tags: string[] } {
 
 function extractAnimeName(item: any): string {
     const col: string = item.collectionName || ''
-    return col
+    const trackName: string = item.trackName || ''
+    
+    // collectionName에 알려진 애니 키워드가 있으면 그게 애니명
+    const knownAnime = [
+        '鬼滅の刃', '呪術廻戦', '進撃の巨人', 'ONE PIECE', 'NARUTO', 'BLEACH',
+        'ハイキュー', 'ヒロアカ', 'チェンソーマン', 'スパイファミリー', '葬送のフリーレン',
+        'エヴァンゲリオン', 'コードギアス', 'HUNTER', 'ドラゴンボール', 'フェアリーテイル',
+        'ソードアートオンライン', 'オーバーロード', 'リゼロ', 'モブサイコ',
+    ]
+    for (const anime of knownAnime) {
+        if (col.includes(anime) || trackName.includes(anime)) return anime
+    }
+
+    // 일반 파싱
+    const cleaned = col
         .replace(/\s*\(.*?\)\s*/g, '')
-        .replace(/\s*-\s*(ost|original soundtrack|soundtrack|opening|ending|bgm|score|music|anime|the animation|season \d+)\s*/gi, '')
+        .replace(/\s*-\s*(ost|original soundtrack|soundtrack|opening|ending|bgm|score|music|anime|the animation|season \d+|ep\.?\s*\d*|single)\s*/gi, '')
         .replace(/\s*(ost|original soundtrack|soundtrack)\s*/gi, '')
-        .trim() || item.artistName || 'Unknown'
+        .trim()
+    
+    // 정제된 결과가 아티스트명이랑 같으면 의미없음 → artistName 반환
+    if (!cleaned || cleaned === item.artistName) return item.artistName || 'Unknown'
+    return cleaned
 }
 
 const ft = (s: number) => s ? `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}` : '0:30'
 
 async function fetchItunesAnime(term: string, limit = 50): Promise<Track[]> {
     try {
-        const res = await fetch(`${ITUNES_BASE}?term=${encodeURIComponent(term)}&media=music&genreId=27&limit=${limit}&country=JP`)
+        const res = await fetch(`${ITUNES_BASE}?term=${encodeURIComponent(term)}&media=music&entity=song&genreId=27&limit=${limit}&country=JP&lang=ja_jp`)
         const data = await res.json()
         return (data.results || [])
-            .filter((item: any) => item.previewUrl && item.artworkUrl100)
+            .filter((item: any) => item.previewUrl && item.artworkUrl100 && item.artworkUrl100.includes('mzstatic'))
             .map((item: any) => {
                 const { type, tags } = classifyTrack(item)
                 return {
@@ -83,7 +102,7 @@ async function fetchItunesAnime(term: string, limit = 50): Promise<Track[]> {
                     title: item.trackName,
                     artist: item.artistName,
                     animeName: extractAnimeName(item),
-                    cover: item.artworkUrl100.replace('100x100', '400x400'),
+                    cover: item.artworkUrl100.replace('100x100bb', '600x600bb').replace('100x100', '600x600'),
                     previewUrl: item.previewUrl,
                     duration: item.trackTimeMillis ? Math.floor(item.trackTimeMillis / 1000) : 0,
                     type, tags,
@@ -95,8 +114,9 @@ async function fetchItunesAnime(term: string, limit = 50): Promise<Track[]> {
 }
 
 async function fetchNewReleases(): Promise<Track[]> {
+    // 첫 번째는 귀멸의칼날 紅蓮華 고정
     const queries = [
-        '紅蓮華 LiSA 鬼滅の刃',
+        '紅蓮華 LiSA 鬼滅の刃 EP',   // 귀멸 — 첫 번째 고정
         'Ado うた ワンピース',
         'YOASOBI アニメ 推しの子',
         '廻廻奇譚 Eve 呪術廻戦',
@@ -104,11 +124,16 @@ async function fetchNewReleases(): Promise<Track[]> {
         'スパイファミリー OP アニメ',
         '進撃の巨人 Linked Horizon',
     ]
-    const results = await Promise.all(queries.map(q => fetchItunesAnime(q, 5)))
+    const results = await Promise.all(queries.map(q => fetchItunesAnime(q, 10)))
     const seen = new Set<string>()
     const tracks: Track[] = []
     for (const list of results) {
-        const pick = list.find(t => !seen.has(t.id) && t.previewUrl)
+        // 귀멸 쿼리(첫 번째)는 LiSA + 鬼滅 키워드가 있는 트랙을 엄격하게 선택
+        const pick = tracks.length === 0
+            ? list.find(t => !seen.has(t.id) && t.previewUrl &&
+                (t.artist.includes('LiSA') || t.collectionName.includes('鬼滅') || t.animeName.includes('鬼滅')))
+              || list.find(t => !seen.has(t.id) && t.previewUrl)
+            : list.find(t => !seen.has(t.id) && t.previewUrl)
         if (pick) { seen.add(pick.id); tracks.push(pick) }
         if (tracks.length >= 7) break
     }
@@ -116,36 +141,36 @@ async function fetchNewReleases(): Promise<Track[]> {
 }
 
 const HOT_ANIME_LIST = [
-    { name: '呪術廻戦', query: '呪術廻戦 ost' },
-    { name: '鬼滅の刃', query: '鬼滅の刃 ost' },
-    { name: '進撃の巨人', query: '進撃の巨人 ost' },
-    { name: 'Spy x Family', query: 'spy x family ost' },
-    { name: 'Frieren', query: 'frieren beyond journey end ost' },
-    { name: 'Chainsaw Man', query: 'chainsaw man ost' },
-    { name: 'Blue Lock', query: 'blue lock ost' },
-    { name: 'Mob Psycho 100', query: 'mob psycho 100 ost' },
-    { name: 'Violet Evergarden', query: 'violet evergarden ost' },
-    { name: 'Re:Zero', query: 're zero starting life ost' },
-    { name: 'Overlord', query: 'overlord anime ost' },
-    { name: 'Haikyuu', query: 'haikyuu ost' },
-    { name: 'Fullmetal Alchemist Brotherhood', query: 'fullmetal alchemist brotherhood ost' },
-    { name: 'Death Note', query: 'death note anime ost' },
-    { name: 'Bleach TYBW', query: 'bleach thousand year blood war ost' },
-    { name: 'One Piece', query: 'one piece ost' },
-    { name: 'Naruto Shippuden', query: 'naruto shippuden ost' },
-    { name: 'My Hero Academia', query: 'my hero academia ost' },
-    { name: 'Demon Slayer', query: 'demon slayer kimetsu no yaiba ost' },
-    { name: 'Vinland Saga', query: 'vinland saga ost' },
-    { name: 'Steins;Gate', query: 'steins gate ost' },
-    { name: 'Code Geass', query: 'code geass ost' },
-    { name: 'Hunter x Hunter', query: 'hunter x hunter 2011 ost' },
-    { name: 'Attack on Titan', query: 'attack on titan ost' },
-    { name: 'Tokyo Ghoul', query: 'tokyo ghoul ost' },
-    { name: 'Sword Art Online', query: 'sword art online ost' },
-    { name: 'Evangelion', query: 'neon genesis evangelion ost' },
-    { name: 'Dragon Ball Z', query: 'dragon ball z ost' },
-    { name: 'Black Clover', query: 'black clover ost' },
-    { name: 'Fairy Tail', query: 'fairy tail ost' },
+    { name: '呪術廻戦', query: '呪術廻戦 サウンドトラック' },
+    { name: '鬼滅の刃', query: '鬼滅の刃 サウンドトラック' },
+    { name: '進撃の巨人', query: '進撃の巨人 サウンドトラック' },
+    { name: 'スパイファミリー', query: 'SPY FAMILY アニメ サウンドトラック' },
+    { name: '葬送のフリーレン', query: '葬送のフリーレン サウンドトラック' },
+    { name: 'チェンソーマン', query: 'チェンソーマン サウンドトラック' },
+    { name: 'ブルーロック', query: 'ブルーロック アニメ サウンドトラック' },
+    { name: 'モブサイコ100', query: 'モブサイコ100 サウンドトラック' },
+    { name: 'ヴァイオレット・エヴァーガーデン', query: 'ヴァイオレット エヴァーガーデン サウンドトラック' },
+    { name: 'Re:ゼロ', query: 'リゼロ サウンドトラック アニメ' },
+    { name: 'オーバーロード', query: 'オーバーロード アニメ サウンドトラック' },
+    { name: 'ハイキュー!!', query: 'ハイキュー サウンドトラック' },
+    { name: '鋼の錬金術師', query: '鋼の錬金術師 BROTHERHOOD サウンドトラック' },
+    { name: 'デスノート', query: 'デスノート アニメ サウンドトラック' },
+    { name: 'BLEACH', query: 'BLEACH サウンドトラック アニメ' },
+    { name: 'ワンピース', query: 'ONE PIECE サウンドトラック' },
+    { name: 'ナルト疾風伝', query: 'ナルト疾風伝 サウンドトラック' },
+    { name: '僕のヒーローアカデミア', query: '僕のヒーローアカデミア サウンドトラック' },
+    { name: '鬼滅の刃 遊郭編', query: '鬼滅の刃 遊郭編 サウンドトラック' },
+    { name: 'ヴィンランド・サガ', query: 'ヴィンランド サガ サウンドトラック' },
+    { name: 'STEINS;GATE', query: 'シュタインズゲート サウンドトラック' },
+    { name: 'コードギアス', query: 'コードギアス サウンドトラック' },
+    { name: 'HUNTER×HUNTER', query: 'HUNTER HUNTER 2011 サウンドトラック' },
+    { name: '進撃の巨人 Final', query: '進撃の巨人 Final Season サウンドトラック' },
+    { name: '東京喰種', query: '東京喰種 トーキョーグール サウンドトラック' },
+    { name: 'ソードアートオンライン', query: 'ソードアートオンライン サウンドトラック' },
+    { name: '新世紀エヴァンゲリオン', query: 'エヴァンゲリオン サウンドトラック' },
+    { name: 'ドラゴンボールZ', query: 'ドラゴンボールZ サウンドトラック' },
+    { name: 'ブラッククローバー', query: 'ブラッククローバー サウンドトラック' },
+    { name: 'フェアリーテイル', query: 'フェアリーテイル サウンドトラック' },
 ]
 
 async function fetchHotAnimeOst(): Promise<HotAnime[]> {
@@ -158,7 +183,7 @@ async function fetchHotAnimeOst(): Promise<HotAnime[]> {
             const data = await res.json()
                 ; (data.results || []).forEach((anime: any) => {
                     const n = (anime.name || anime.original_name || '').toLowerCase()
-                    if (anime.poster_path) tmdbPosters[n] = `https://image.tmdb.org/t/p/w200${anime.poster_path}`
+                    if (anime.poster_path) tmdbPosters[n] = `https://image.tmdb.org/t/p/w342${anime.poster_path}`
                 })
         }
     } catch { }
@@ -174,7 +199,7 @@ async function fetchHotAnimeOst(): Promise<HotAnime[]> {
             return {
                 id: idx,
                 name: anime.name,
-                poster: tmdbPoster || (tracks[0]?.cover || ''),
+                poster: tracks[0]?.cover || tmdbPoster || '',
                 track: tracks[0] || null,
                 tracks,
             }
@@ -353,15 +378,18 @@ function TrackRow({ track, index, isPlaying, onPlay }: { track: Track; index: nu
 }
 
 // ── 신곡 섹션 ──────────────────────────────────────────────────
-function NewSection({ tracks, playingId, onPlay }: {
+function NewSection({ tracks, playingId, onPlay, hotAnimePoster }: {
     tracks: Track[]
     playingId: string | null
     onPlay: (t: Track) => void
+    hotAnimePoster?: string
 }) {
     const main = tracks[0]
     const subs = tracks.slice(1, 7)
     if (!main) return null
     const GAP = 25
+    // hotAnimes[0](주술회전) 포스터 우선, 없으면 iTunes 앨범자켓
+    const mainImg = hotAnimePoster || main.cover
     return (
         <section style={{ marginBottom: 60 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -384,7 +412,7 @@ function NewSection({ tracks, playingId, onPlay }: {
                     }}
                     onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.02)'}
                     onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
-                    {main.cover && <img src={main.cover} alt={main.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                    {mainImg && <img src={mainImg} alt={main.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.88) 0%, transparent 55%)' }} />
                     {playingId === main.id && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(108,99,255,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -425,34 +453,11 @@ function NewSection({ tracks, playingId, onPlay }: {
     )
 }
 
-// ── 주간 TOP 10 ────────────────────────────────────────────────
 function WeeklyTop10({ tracks, playingId, onPlay }: {
     tracks: Track[]
     playingId: string | null
     onPlay: (t: Track) => void
 }) {
-    const [posters, setPosters] = useState<Record<string, string>>({})
-
-    useEffect(() => {
-        if (!tracks.length) return
-        // animeName으로 TMDB 포스터 fetch
-        Promise.all(
-            tracks.map(async t => {
-                try {
-                    const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(t.animeName)}&language=ko-KR`)
-                    const data = await res.json()
-                    const hit = (data.results || []).find((r: any) => r.original_language === 'ja' && r.poster_path)
-                    if (hit?.poster_path) return { id: t.id, poster: `https://image.tmdb.org/t/p/w342${hit.poster_path}` }
-                } catch { }
-                return { id: t.id, poster: '' }
-            })
-        ).then(results => {
-            const map: Record<string, string> = {}
-            results.forEach(r => { if (r.poster) map[r.id] = r.poster })
-            setPosters(map)
-        })
-    }, [tracks.map(t => t.id).join(',')])
-
     if (!tracks.length) return null
     return (
         <section style={{ marginBottom: 60, position: 'relative', zIndex: 1 }}>
@@ -463,11 +468,11 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                 modules={[FreeMode]}
                 freeMode={{ sticky: false }}
                 slidesPerView={'auto'}
-                spaceBetween={24}
+                spaceBetween={16}
                 style={{ overflow: 'visible', marginRight: 'calc(-5vw - 20px)', paddingRight: 'calc(5vw + 20px)' }}>
                 {tracks.map((t, i) => {
                     const playing = playingId === t.id
-                    const thumb = posters[t.id] || t.cover
+                    const thumb = t.cover
                     return (
                         <SwiperSlide key={t.id} style={{ width: 210 }}>
                             <div
@@ -476,7 +481,7 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                                 onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-6px)'}
                                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
                                 <div style={{
-                                    position: 'relative', width: 210, height: 300, borderRadius: 14,
+                                    position: 'relative', width: 210, height: 210, borderRadius: 14,
                                     overflow: 'hidden', background: '#1a1a1a',
                                     border: `3px solid ${playing ? '#6c63ff' : 'transparent'}`,
                                     boxShadow: playing
@@ -491,12 +496,12 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                                     {/* 하단 그라디언트 + 숫자 */}
                                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 50%)' }} />
                                     <span style={{
-                                        position: 'absolute', left: 10, bottom: 0,
-                                        fontSize: 88, fontWeight: 900, lineHeight: 1,
+                                        position: 'absolute', left: 8, bottom: -8,
+                                        fontSize: 72, fontWeight: 900, lineHeight: 1,
                                         color: playing ? '#a5a0ff' : '#fff',
                                         textShadow: '0 2px 12px rgba(0,0,0,.9)',
                                         userSelect: 'none', pointerEvents: 'none',
-                                        transition: 'color .2s', letterSpacing: '-4px',
+                                        transition: 'color .2s', letterSpacing: '-3px',
                                     }}>
                                         {i + 1}
                                     </span>
@@ -586,7 +591,7 @@ function HotAnimeSection({
                                 onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-6px)'}
                                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.transform = ''}>
                                 <div style={{
-                                    width: 180, height: 255, borderRadius: 14,
+                                    width: 180, height: 180, borderRadius: 14,
                                     overflow: 'hidden', background: '#1a1a1a', marginBottom: 10,
                                     position: 'relative',
                                     border: `3px solid ${isActive ? '#6c63ff' : 'transparent'}`,
@@ -647,7 +652,22 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
 
     const top10 = useMemo(() => {
         if (!tracks.length) return []
-        return [...tracks].sort((a, b) => (b.popularity || b.duration || 0) - (a.popularity || a.duration || 0)).slice(0, 10)
+        const sorted = [...tracks].sort((a, b) => (b.popularity || b.duration || 0) - (a.popularity || a.duration || 0))
+        // 커버 이미지 중복 제거 (같은 앨범 트랙 반복 방지)
+        const seenCovers = new Set<string>()
+        const seenAnimes = new Set<string>()
+        const unique: typeof sorted = []
+        for (const t of sorted) {
+            const coverKey = t.cover.replace(/\/\d+x\d+/, '')  // 해상도 부분 무시
+            const animeKey = t.animeName.toLowerCase().trim()
+            if (!seenCovers.has(coverKey) && !seenAnimes.has(animeKey)) {
+                seenCovers.add(coverKey)
+                seenAnimes.add(animeKey)
+                unique.push(t)
+                if (unique.length >= 10) break
+            }
+        }
+        return unique
     }, [tracks.length > 0 ? tracks[0].id : ''])
 
     const allTags = ['전체', '오프닝', '엔딩', 'BGM', '전투', '감성', '로맨스', '새벽감성', '열혈', '힐링']
@@ -802,6 +822,7 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                             tracks={newTracks}
                             playingId={playingId}
                             onPlay={onPlay}
+                            hotAnimePoster={hotAnimes[0]?.poster || hotAnimes[0]?.tracks[0]?.cover}
                         />
                         <WeeklyTop10
                             tracks={top10}
@@ -858,11 +879,13 @@ export default function OstPage() {
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const tracksRef = useRef<Track[]>([])
+    const volumeRef = useRef(0.8)           // ← 클로저 stale 방지
+    const currentTrackRef = useRef<Track | null>(null)  // ← 플레이어바 동기화용
     const userName = user?.name || user?.email?.split('@')[0] || '라프텔'
 
     useEffect(() => { tracksRef.current = tracks }, [tracks])
+    useEffect(() => { volumeRef.current = volume; if (audioRef.current) audioRef.current.volume = volume }, [volume])
     const getPlayableTracks = useCallback(() => tracksRef.current.filter(t => t.previewUrl), [])
-    useEffect(() => { if (audioRef.current) audioRef.current.volume = volume }, [volume])
 
     useEffect(() => {
         const onMove = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY })
@@ -873,38 +896,90 @@ export default function OstPage() {
     useEffect(() => {
         const load = async () => {
             setLoading(true)
-            const queries = [
-                'アニメ オープニング', 'アニメ エンディング', 'アニメ サウンドトラック',
-                '呪術廻戦 ost', '鬼滅の刃 ost', '進撃の巨人 ost',
-                'naruto shippuden ost', 'bleach tybw ost', 'one piece ost',
-                'spy x family ost', 'frieren ost', 'chainsaw man ost',
-                'violet evergarden ost', 'fullmetal alchemist brotherhood ost',
-                'haikyuu ost', 'mob psycho 100 ost', 'blue lock ost',
-                're zero ost', 'overlord ost', 'death note ost',
-                'sword art online ost', 'dragon ball z ost', 'evangelion ost',
-                'my hero academia ost', 'demon slayer ost', 'vinland saga ost',
-                'steins gate ost', 'code geass ost', 'hunter x hunter ost',
-                'tokyo ghoul ost', 'black clover ost', 'fairy tail ost',
+
+            // ── 1단계: 인기 6개만 먼저 빠르게 (로딩 끝내기)
+            const priorityQueries = [
+                '呪術廻戦 サウンドトラック',
+                '鬼滅の刃 サウンドトラック',
+                '進撃の巨人 サウンドトラック',
+                'スパイファミリー サウンドトラック',
+                '葬送のフリーレン サウンドトラック',
+                'チェンソーマン サウンドトラック',
             ]
             const seen = new Set<string>()
-            const results = await Promise.all(queries.map(q => fetchItunesAnime(q, 50)))
-            const allTracks: Track[] = []
-            results.flat().forEach(t => { if (!seen.has(t.id)) { seen.add(t.id); allTracks.push(t) } })
-            setTracks(allTracks)
-            setLoadCount(allTracks.length)
+            const firstResults = await Promise.all(priorityQueries.map(q => fetchItunesAnime(q, 20)))
+            const firstTracks: Track[] = []
+            firstResults.flat().forEach(t => { if (!seen.has(t.id)) { seen.add(t.id); firstTracks.push(t) } })
+            setTracks(firstTracks)
+            setLoadCount(firstTracks.length)
+            setLoading(false)  // ← 여기서 먼저 로딩 해제 → 화면 바로 표시
 
+            // ── 2단계: newTracks + hotAnimes (섹션 표시용)
             const [newT, hotA] = await Promise.all([fetchNewReleases(), fetchHotAnimeOst()])
-            setNewTracks(newT)
+            const hotFirstTrack = hotA[0]?.tracks?.find(t => t.previewUrl)
+            const mergedNewT = hotFirstTrack
+                ? [hotFirstTrack, ...newT.filter(t => t.id !== hotFirstTrack.id).slice(0, 6)]
+                : newT
+            setNewTracks(mergedNewT)
             setHotAnimes(hotA)
-            setLoading(false)
+
+            // ── 3단계: 나머지 쿼리 배경에서 추가 로딩 (UX 안 막음)
+            const restQueries = [
+                'アニメ オープニング サウンドトラック', 'アニメ エンディング サウンドトラック',
+                'アニメ BGM サウンドトラック 2023', 'アニメ サウンドトラック 2024',
+                'ナルト疾風伝 サウンドトラック', 'BLEACH サウンドトラック',
+                'ワンピース サウンドトラック', 'ヴァイオレット エヴァーガーデン サウンドトラック',
+                '鋼の錬金術師 BROTHERHOOD サウンドトラック', 'ハイキュー サウンドトラック',
+                'モブサイコ100 サウンドトラック', 'ブルーロック サウンドトラック',
+                'リゼロ サウンドトラック', 'オーバーロード サウンドトラック',
+                'デスノート サウンドトラック', 'ソードアートオンライン サウンドトラック',
+                'エヴァンゲリオン サウンドトラック', 'ドラゴンボールZ サウンドトラック',
+                '僕のヒーローアカデミア サウンドトラック', '東京喰種 サウンドトラック',
+                'シュタインズゲート サウンドトラック', 'コードギアス サウンドトラック',
+                'ヴィンランドサガ サウンドトラック', 'HUNTER HUNTER サウンドトラック',
+                'フェアリーテイル サウンドトラック', 'ブラッククローバー サウンドトラック',
+            ]
+            // 4개씩 배치로 나눠서 순차 로딩 → 서버 부하 줄이기
+            const batchSize = 4
+            for (let i = 0; i < restQueries.length; i += batchSize) {
+                const batch = restQueries.slice(i, i + batchSize)
+                const batchResults = await Promise.all(batch.map(q => fetchItunesAnime(q, 30)))
+                const newBatchTracks: Track[] = []
+                batchResults.flat().forEach(t => {
+                    if (!seen.has(t.id)) { seen.add(t.id); newBatchTracks.push(t) }
+                })
+                if (newBatchTracks.length > 0) {
+                    setTracks(prev => [...prev, ...newBatchTracks])
+                    setLoadCount(prev => prev + newBatchTracks.length)
+                }
+                // 배치 사이 살짝 텀 줘서 API 레이트리밋 방지
+                await new Promise(r => setTimeout(r, 300))
+            }
         }
         load()
     }, [])
 
     const stopAudio = useCallback(() => {
-        audioRef.current?.pause()
-        if (progressRef.current) clearInterval(progressRef.current)
+        if (audioRef.current) {
+            audioRef.current.pause()
+            audioRef.current.onended = null
+            audioRef.current.src = ''
+            audioRef.current = null
+        }
+        if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null }
         setPlayingId(null); setProgress(0)
+    }, [])
+
+    // 페이지 이탈 시 오디오 완전 정리
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause()
+                audioRef.current.onended = null
+                audioRef.current.src = ''
+            }
+            if (progressRef.current) clearInterval(progressRef.current)
+        }
     }, [])
 
     const startPlay = useCallback((track: Track) => {
@@ -917,10 +992,16 @@ export default function OstPage() {
         const audio = new Audio()
         audio.crossOrigin = 'anonymous'
         audio.src = track.previewUrl
-        audio.volume = volume
+        audio.volume = volumeRef.current   // ← ref 사용으로 stale 방지
         audioRef.current = audio
+
+        // currentTrack을 재생 직전에 동기적으로 ref에 저장 → 플레이어바 즉시 반영
+        currentTrackRef.current = track
+        setCurrentTrack(track)
+        setPlayingId(track.id)
+        setProgress(0)
+
         audio.play().catch(err => console.warn('play error:', err))
-        setPlayingId(track.id); setCurrentTrack(track); setProgress(0)
         if (progressRef.current) clearInterval(progressRef.current)
         progressRef.current = setInterval(() => {
             if (!audioRef.current) return
@@ -928,10 +1009,10 @@ export default function OstPage() {
         }, 200)
         audioRef.current.onended = () => {
             const all = getPlayableTracks()
-            const idx = all.findIndex(t => t.id === track.id)
+            const idx = all.findIndex(t => t.id === currentTrackRef.current?.id)
             if (idx >= 0 && idx < all.length - 1) startPlay(all[idx + 1]); else stopAudio()
         }
-    }, [stopAudio, volume, getPlayableTracks])
+    }, [stopAudio, getPlayableTracks])
 
     const handlePlayAnime = useCallback((anime: HotAnime) => {
         if (!anime.tracks.length) return
@@ -980,8 +1061,7 @@ export default function OstPage() {
 
             <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: currentTrack ? 96 : 0 }}>
                 <style>{`
-                .ost-loading-bar{height:3px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
-                .ost-loading-bar::after{content:'';position:absolute;left:-40%;width:40%;height:100%;background:linear-gradient(to right,transparent,#6c63ff,transparent);animation:ost-shimmer 1.2s infinite}
+
                 @keyframes ost-shimmer{to{left:100%}}
                 @keyframes eq{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
                 @keyframes spin{to{transform:rotate(360deg)}}
@@ -992,11 +1072,14 @@ export default function OstPage() {
                         <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.2, letterSpacing: '-0.02em' }}>OST</h1>
                         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: '8px 0 0' }}>애니메이션 속 그 노래, 여기서 다시 들어요</p>
                     </div>
-                    {loading && <div className="ost-loading-bar" />}
                     {loading && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
-                            <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                            {loadCount}곡 로드 중...
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                            <Lottie
+                                path="https://assets10.lottiefiles.com/packages/lf20_ikku7ex4.json"
+                                style={{ width: 36, height: 36 }}
+                                loop
+                            />
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>{loadCount}곡 로드 중...</span>
                         </div>
                     )}
                     <OstTab
@@ -1013,7 +1096,7 @@ export default function OstPage() {
 
             {currentTrack && (
                 <BottomPlayer
-                    track={currentTrack} isPlaying={playingId === currentTrack.id}
+                    track={currentTrackRef.current || currentTrack} isPlaying={playingId === (currentTrackRef.current || currentTrack)?.id}
                     progress={progress} volume={volume}
                     onPlayPause={() => playingId === currentTrack.id ? stopAudio() : startPlay(currentTrack)}
                     onSeek={handleSeek} onPrev={handlePrev} onNext={handleNext}
