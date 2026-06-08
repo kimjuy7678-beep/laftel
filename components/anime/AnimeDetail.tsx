@@ -36,13 +36,13 @@ export default function AnimeDetailPage() {
     }, [detail])
 
     if (loading) return (
-        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-            <div className="w-9 h-9 border-[3px] border-white/10 border-t-[#6c63ff] rounded-full animate-spin" />
+        <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+            <div className="w-9 h-9 border-[3px] border-[var(--border-subtle)] border-t-[#6c63ff] rounded-full animate-spin" />
         </div>
     )
 
     if (!detail || detail.status_code === 34) return (
-        <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center gap-4">
+        <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-4">
             <p className="text-white/40 text-base">작품을 찾을 수 없어요</p>
             <button onClick={() => router.back()} className="px-6 py-2.5 bg-[#6c63ff] border-none rounded-lg text-white cursor-pointer text-sm">
                 돌아가기
@@ -68,11 +68,11 @@ export default function AnimeDetailPage() {
     ] as const
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] text-white pt-16">
+        <div className="min-h-screen bg-[var(--bg-primary)] text-white pt-16">
             <SimilarPreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
 
             {modalOpen && (
-                <div className="fixed inset-0 z-[2100] bg-[#0a0a0a] flex flex-col">
+                <div className="fixed inset-0 z-[2100] bg-[var(--bg-primary)] flex flex-col">
                     {/* 헤더 제거됨 — 뒤로/X 버튼 없음 */}
 
                     <div className="flex flex-1 overflow-hidden">
@@ -82,7 +82,7 @@ export default function AnimeDetailPage() {
                             <div className="flex-1 relative">
                                 {videoLoading ? (
                                     <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-                                        <div className="w-10 h-10 border-[3px] border-white/10 border-t-[#6c63ff] rounded-full animate-spin" />
+                                        <div className="w-10 h-10 border-[3px] border-[var(--border-subtle)] border-t-[#6c63ff] rounded-full animate-spin" />
                                         <p className="text-white/30 text-sm">영상 불러오는 중...</p>
                                     </div>
                                 ) : videoInfo ? (
@@ -131,10 +131,10 @@ export default function AnimeDetailPage() {
                                 <select
                                     value={selectedSeason}
                                     onChange={e => setSelectedSeason(Number(e.target.value))}
-                                    className="bg-white/[0.06] border border-white/10 text-white text-sm rounded-lg px-3 py-1.5 w-full cursor-pointer"
+                                    className="bg-white/[0.06] border border-[var(--border-subtle)] text-white text-sm rounded-lg px-3 py-1.5 w-full cursor-pointer"
                                 >
                                     {seasonList.map((s: any) => (
-                                        <option key={s.season_number} value={s.season_number} className="bg-[#1a1a1a]">
+                                        <option key={s.season_number} value={s.season_number} className="bg-[var(--bg-card)]">
                                             시즌 {s.season_number} ({s.episode_count}화)
                                         </option>
                                     ))}
@@ -147,7 +147,7 @@ export default function AnimeDetailPage() {
                                         className={`flex gap-3 p-3 cursor-pointer transition-colors hover:bg-white/[0.05] ${currentEpisode?.episode_number === ep.episode_number ? 'bg-[#6c63ff]/15 border-l-2 border-[#6c63ff]' : ''}`}
                                         onClick={() => setCurrentEpisode(ep)}
                                     >
-                                        <div className="relative w-[100px] min-w-[100px] aspect-video rounded-lg overflow-hidden bg-[#1a1a1a] shrink-0">
+                                        <div className="relative w-[100px] min-w-[100px] aspect-video rounded-lg overflow-hidden bg-[var(--bg-card)] shrink-0">
                                             {ep.still_path
                                                 ? <img src={`https://image.tmdb.org/t/p/w300${ep.still_path}`} alt={ep.name} className="w-full h-full object-cover" />
                                                 : <div className="w-full h-full flex items-center justify-center text-white/10 font-black">{ep.episode_number}</div>
@@ -172,7 +172,7 @@ export default function AnimeDetailPage() {
             )}
 
             <button
-                className="fixed top-[70px] left-6 z-[100] flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-white/60 text-[13px] cursor-pointer transition-all hover:text-white hover:bg-black/80"
+                className="fixed top-[70px] left-6 z-[100] flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-black/60 backdrop-blur-sm border border-[var(--border-subtle)] text-white/60 text-[13px] cursor-pointer transition-all hover:text-white hover:bg-black/80"
                 onClick={() => router.back()}
             >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -358,7 +358,7 @@ export default function AnimeDetailPage() {
 
                                 {episodeLoading ? (
                                     <div className="flex items-center justify-center py-16 gap-2.5 text-white/30 text-sm">
-                                        <div className="w-5 h-5 border-2 border-white/10 border-t-[#6c63ff] rounded-full animate-spin" />
+                                        <div className="w-5 h-5 border-2 border-[var(--border-subtle)] border-t-[#6c63ff] rounded-full animate-spin" />
                                         불러오는 중...
                                     </div>
                                 ) : (
@@ -369,7 +369,7 @@ export default function AnimeDetailPage() {
                                                 className="flex gap-4 items-start bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 transition-all hover:bg-[#6c63ff]/[0.07] hover:border-[#6c63ff]/20 cursor-pointer group"
                                                 onClick={() => { setCurrentEpisode(ep); openPlayer() }}
                                             >
-                                                <div className="relative w-[140px] min-w-[140px] aspect-video rounded-lg overflow-hidden bg-[#1a1a1a] shrink-0">
+                                                <div className="relative w-[140px] min-w-[140px] aspect-video rounded-lg overflow-hidden bg-[var(--bg-card)] shrink-0">
                                                     {ep.still_path
                                                         ? <img src={`${IMG}/w300${ep.still_path}`} alt={ep.name} loading="lazy" className="w-full h-full object-cover" />
                                                         : <div className="w-full h-full flex items-center justify-center text-[22px] font-black text-white/[0.06]">{ep.episode_number}</div>

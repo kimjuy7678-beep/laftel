@@ -78,9 +78,9 @@ export default function NaverCallbackPage() {
     }, [])
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
             <div style={{ width: 36, height: 36, border: '3px solid rgba(255,255,255,.1)', borderTopColor: '#03C75A', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
-            <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 14 }}>네이버 로그인 처리 중...</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>네이버 로그인 처리 중...</p>
             <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
     )

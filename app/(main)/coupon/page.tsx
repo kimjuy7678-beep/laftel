@@ -52,15 +52,11 @@ export default function CouponPage() {
             const coupon = VALID_COUPONS[upperCode]
             if (!coupon) { setError('유효하지 않은 쿠폰번호입니다.'); return }
 
-            // 중복 사용 체크
             const usedRef = doc(db, 'used_coupons', `${user.uid}_${upperCode}`)
             const usedSnap = await getDoc(usedRef)
             if (usedSnap.exists()) { setError('이미 사용한 쿠폰입니다.'); return }
 
-            // 사용 처리
             await setDoc(usedRef, { uid: user.uid, code: upperCode, usedAt: new Date() })
-
-            // 쿠폰 이력 저장
             await addDoc(collection(db, 'users', user.uid, 'coupon_history'), {
                 code: upperCode,
                 label: coupon.label,
@@ -109,27 +105,26 @@ export default function CouponPage() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingTop: 80, paddingBottom: 80 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', paddingTop: 80, paddingBottom: 80 }}>
             <style>{`
-              .cp-wrap { width: 90%; margin: 0 auto; }
-                .cp-input { width: 100%; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,.2); outline: none; color: #fff; font-size: 18px; font-weight: 600; padding: 12px 0; letter-spacing: 2px; transition: border-color .2s; box-sizing: border-box; caret-color: #6c63ff; }
-                .cp-input:focus { border-color: #6c63ff; }
-                .cp-input::placeholder { color: rgba(255,255,255,.2); font-weight: 400; letter-spacing: 1px; }
-                .cp-submit { width: 100%; padding: 16px; background: #6c63ff; border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s; }
+                .cp-wrap { width: 90%; margin: 0 auto; }
+                .cp-input { width: 100%; background: none; border: none; border-bottom: 1px solid var(--border); outline: none; color: var(--text-primary); font-size: 18px; font-weight: 600; padding: 12px 0; letter-spacing: 2px; transition: border-color .2s; box-sizing: border-box; caret-color: var(--main); }
+                .cp-input:focus { border-color: var(--main); }
+                .cp-input::placeholder { color: var(--text-faint); font-weight: 400; letter-spacing: 1px; }
+                .cp-submit { width: 100%; padding: 16px; background: var(--main); border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s; }
                 .cp-submit:hover:not(:disabled) { background: #5a52e0; }
-                .cp-submit:disabled { background: rgba(255,255,255,.1); color: rgba(255,255,255,.3); cursor: default; }
-                .cp-notice-item { font-size: 13px; color: rgba(255,255,255,.4); line-height: 1.7; padding-left: 12px; position: relative; }
-                .cp-notice-item::before { content: '-'; position: absolute; left: 0; color: rgba(255,255,255,.25); }
-                .cp-test-btn { font-size: 11px; color: #6c63ff; background: rgba(108,99,255,.1); padding: 4px 10px; border-radius: 6px; border: none; cursor: pointer; font-family: monospace; transition: background .15s; }
-                .cp-test-btn:hover { background: rgba(108,99,255,.2); }
+                .cp-submit:disabled { background: var(--border-subtle); color: var(--text-subtle); cursor: default; }
+                .cp-notice-item { font-size: 13px; color: var(--text-subtle); line-height: 1.7; padding-left: 12px; position: relative; }
+                .cp-notice-item::before { content: '-'; position: absolute; left: 0; color: var(--text-faint); }
+                .cp-test-btn { font-size: 11px; color: var(--main); background: var(--border-faint); padding: 4px 10px; border-radius: 6px; border: none; cursor: pointer; font-family: monospace; transition: background .15s; }
+                .cp-test-btn:hover { background: var(--border-subtle); }
             `}</style>
 
             <div className="cp-wrap">
                 <PageHeader title="쿠폰 등록" />
 
-                {/* 입력 */}
                 <div style={{ marginBottom: 32 }}>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', marginBottom: 12 }}>쿠폰번호 입력</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>쿠폰번호 입력</p>
                     <input
                         className="cp-input"
                         type="text"
@@ -139,17 +134,15 @@ export default function CouponPage() {
                         placeholder="ABCD-EF01-G23H"
                     />
                     {error && <p style={{ fontSize: 13, color: '#f87171', marginTop: 10 }}>{error}</p>}
-                    {success && <p style={{ fontSize: 13, color: '#6c63ff', marginTop: 10 }}>{success}</p>}
+                    {success && <p style={{ fontSize: 13, color: 'var(--main)', marginTop: 10 }}>{success}</p>}
                 </div>
 
-                {/* 등록 버튼 */}
                 <button className="cp-submit" onClick={handleRegister} disabled={!code.trim() || loading} style={{ marginBottom: 48 }}>
                     {loading ? '처리 중...' : '등록'}
                 </button>
 
-                {/* 이용 안내 */}
                 <div style={{ marginBottom: 40 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.6)', marginBottom: 14 }}>이용 안내</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 14 }}>이용 안내</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {notices.map((n, i) => (
                             <p key={i} className="cp-notice-item">{n}</p>
@@ -157,11 +150,10 @@ export default function CouponPage() {
                     </div>
                 </div>
 
-                {/* 테스트 쿠폰 */}
-                <div style={{ padding: '16px 20px', background: 'rgba(255,255,255,.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,.08)' }}>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 10, fontWeight: 600 }}>테스트 쿠폰 번호</p>
+                <div style={{ padding: '16px 20px', background: 'var(--border-faint)', borderRadius: 12, border: '1px solid var(--border-subtle)' }}>
+                    <p style={{ fontSize: 12, color: 'var(--text-subtle)', marginBottom: 10, fontWeight: 600 }}>테스트 쿠폰 번호</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {Object.entries(VALID_COUPONS).map(([c, v]) => (
+                        {Object.entries(VALID_COUPONS).map(([c]) => (
                             <button key={c} className="cp-test-btn" onClick={() => setCode(c)}>
                                 {c}
                             </button>

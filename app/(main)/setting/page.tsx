@@ -64,32 +64,32 @@ export default function Setting() {
     if (!user) return null
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingBottom: 80 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', paddingBottom: 80 }}>
             <style>{`
                 .st-wrap { width: 90%; margin: 0 auto; display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start; }
-                
+
                 /* 좌측 네비 */
                 .st-nav { position: sticky; top: 80px; }
-                .st-nav-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: none; background: none; color: rgba(255,255,255,.45); font-size: 14px; font-weight: 500; cursor: pointer; transition: all .18s; text-align: left; }
-                .st-nav-btn:hover { background: rgba(255,255,255,.05); color: rgba(255,255,255,.8); }
+                .st-nav-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: none; background: none; color: var(--text-subtle); font-size: 14px; font-weight: 500; cursor: pointer; transition: all .18s; text-align: left; }
+                .st-nav-btn:hover { background: var(--border-faint); color: var(--text-muted); }
                 .st-nav-btn.active { background: rgba(108,99,255,.15); color: #a5a0ff; font-weight: 700; }
 
                 /* 우측 콘텐츠 */
-                .st-section-title { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.4); margin: 0 0 14px; }
-                .st-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 16px; overflow: hidden; margin-bottom: 32px; }
-                .st-row { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,.06); }
+                .st-section-title { font-size: 13px; font-weight: 700; color: var(--text-subtle); margin: 0 0 14px; }
+                .st-card { background: var(--border-faint); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; margin-bottom: 32px; }
+                .st-row { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border-faint); }
                 .st-row:last-child { border-bottom: none; }
-                .st-row-title { font-size: 14px; color: rgba(255,255,255,.85); margin: 0; font-weight: 500; }
-                .st-row-sub { font-size: 12px; color: rgba(255,255,255,.35); margin: 4px 0 0; }
-                .st-btn { font-size: 12px; padding: 7px 16px; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background: none; color: rgba(255,255,255,.55); cursor: pointer; transition: all .18s; white-space: nowrap; font-weight: 500; }
-                .st-btn:hover { border-color: rgba(255,255,255,.4); color: #fff; background: rgba(255,255,255,.05); }
+                .st-row-title { font-size: 14px; color: var(--text-high); margin: 0; font-weight: 500; }
+                .st-row-sub { font-size: 12px; color: var(--text-subtle); margin: 4px 0 0; }
+                .st-btn { font-size: 12px; padding: 7px 16px; border: 1px solid var(--border); border-radius: 8px; background: none; color: var(--text-muted); cursor: pointer; transition: all .18s; white-space: nowrap; font-weight: 500; }
+                .st-btn:hover { border-color: var(--border-subtle); color: var(--text-primary); background: var(--border-faint); }
 
                 /* 토글 */
                 .st-toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
                 .st-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-                .st-toggle-slider { position: absolute; inset: 0; background: rgba(255,255,255,.15); border-radius: 24px; cursor: pointer; transition: background .2s; }
+                .st-toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 24px; cursor: pointer; transition: background .2s; }
                 .st-toggle-slider::before { content:''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-                .st-toggle input:checked + .st-toggle-slider { background: #6c63ff; }
+                .st-toggle input:checked + .st-toggle-slider { background: var(--main); }
                 .st-toggle input:checked + .st-toggle-slider::before { transform: translateX(18px); }
             `}</style>
 
@@ -165,9 +165,9 @@ export default function Setting() {
                             </div>
 
                             <button onClick={handleWithdraw}
-                                style={{ background: 'none', border: 'none', fontSize: 13, color: 'rgba(255,255,255,.2)', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0, transition: 'color .2s' }}
+                                style={{ background: 'none', border: 'none', fontSize: 13, color: 'var(--text-faint)', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0, transition: 'color .2s' }}
                                 onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-                                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,.2)')}>
+                                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-faint)')}>
                                 라프텔 탈퇴하기
                             </button>
                         </section>

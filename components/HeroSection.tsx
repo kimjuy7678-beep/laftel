@@ -144,7 +144,7 @@ export default function HeroSection() {
                                         <button
                                             onClick={handleCloseVideo}
                                             className="absolute top-[5%] right-6 z-50 flex items-center gap-2
-                                                       text-white/70 hover:text-white text-sm transition-colors duration-200 cursor-pointer"
+                                                       text-[var(--text-muted)] hover:text-white text-sm transition-colors duration-200 cursor-pointer"
                                         >
                                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                                                 <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5" />
@@ -162,7 +162,7 @@ export default function HeroSection() {
                                                     bottom: '28%',
                                                     left: '8%',
                                                     fontSize: 'clamp(14px, 1.4vw, 26px)',
-                                                    color: '#fff',
+                                                    color: 'var(--text-primary)',
                                                     whiteSpace: 'pre-line',
                                                     lineHeight: 1.6,
                                                 }}
@@ -191,7 +191,7 @@ export default function HeroSection() {
                                                         e.stopPropagation()
                                                         startVideoTimer(hero.id!)
                                                     }}
-                                                    className="inline-flex items-center justify-center rounded-full border border-white/50 text-white font-semibold
+                                                    className="inline-flex items-center justify-center rounded-full border border-[var(--border-faint)]0 text-white font-semibold
                                                     backdrop-blur-md bg-white/10 hover:bg-white hover:text-black
                                                     transition-all duration-300 cursor-pointer whitespace-nowrap"
                                                     style={{ fontSize: 'clamp(11px, 1vw, 14px)', height: 'clamp(40px, 4vw, 52px)', padding: '0 clamp(16px, 2vw, 32px)' }}
@@ -208,7 +208,7 @@ export default function HeroSection() {
                                                         e.stopPropagation()
                                                         startVideoTimer(hero.id!)
                                                     }}
-                                                    className="inline-flex items-center justify-center rounded-full border border-white/50 text-white font-semibold
+                                                    className="inline-flex items-center justify-center rounded-full border border-[var(--border-faint)]0 text-white font-semibold
                                                     hover:bg-white hover:text-black
                                                     transition-all duration-300 cursor-pointer whitespace-nowrap"
                                                     style={{ fontSize: 'clamp(11px, 1vw, 14px)', height: 'clamp(40px, 4vw, 52px)', padding: '0 clamp(16px, 2vw, 32px)' }}

@@ -97,40 +97,40 @@ function AddCardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: C
             onClick={onClose}
         >
             <div
-                className="relative bg-[#111] rounded-2xl w-full max-w-md border border-white/10"
+                className="relative bg-[var(--bg-secondary)] rounded-2xl w-full max-w-md border border-white/10"
                 onClick={e => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between px-7 py-5 border-b border-white/10">
                     <h3 className="text-lg font-black">카드 등록</h3>
-                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer">✕</button>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer">✕</button>
                 </div>
                 <div className="px-7 py-6 flex flex-col gap-5">
                     <div>
-                        <p className="text-sm text-white/40 mb-2">카드번호</p>
+                        <p className="text-sm text-[var(--text-muted)] mb-2">카드번호</p>
                         <input className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
                             value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))} placeholder="0000 0000 0000 0000" maxLength={19} />
                     </div>
                     <div className="grid grid-cols-2 gap-5">
                         <div>
-                            <p className="text-sm text-white/40 mb-2">유효기간</p>
+                            <p className="text-sm text-[var(--text-muted)] mb-2">유효기간</p>
                             <input className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
                                 value={cardExpiry} onChange={e => setCardExpiry(formatExpiry(e.target.value))} placeholder="MM/YY" maxLength={5} />
                         </div>
                         <div>
-                            <p className="text-sm text-white/40 mb-2">CVC</p>
+                            <p className="text-sm text-[var(--text-muted)] mb-2">CVC</p>
                             <input className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
                                 value={cardCvc} onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="000" maxLength={4} type="password" />
                         </div>
                     </div>
                     <div>
-                        <p className="text-sm text-white/40 mb-2">카드 소유자 이름</p>
+                        <p className="text-sm text-[var(--text-muted)] mb-2">카드 소유자 이름</p>
                         <input className="w-full bg-transparent border-b border-white/20 focus:border-white/60 outline-none text-base py-2 text-white placeholder-white/25 transition-colors"
                             value={cardName} onChange={e => setCardName(e.target.value)} placeholder="홍길동" onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
                     </div>
                     {cardError && <p className="text-sm text-red-400">{cardError}</p>}
-                    <p className="text-sm text-white/25">🔒 카드번호 뒷 4자리만 저장됩니다.</p>
+                    <p className="text-sm text-[var(--text-muted)]">🔒 카드번호 뒷 4자리만 저장됩니다.</p>
                     <div className="flex gap-3 pt-1">
-                        <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-white/20 text-white/50 text-base font-bold hover:border-white/40 transition-colors cursor-pointer">취소</button>
+                        <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-white/20 text-[var(--text-muted)] text-base font-bold hover:border-white/40 transition-colors cursor-pointer">취소</button>
                         <button onClick={handleSubmit} disabled={cardLoading} className="flex-1 py-3 rounded-xl text-white text-base font-bold transition-colors cursor-pointer hover:opacity-90"
                             style={{ background: '#6c63ff', opacity: cardLoading ? 0.5 : 1 }}>
                             {cardLoading ? '등록 중...' : '카드 등록하기'}
@@ -278,35 +278,35 @@ export default function MyPage() {
     if (!user) return null
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingTop: 80, paddingBottom: 80 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', paddingTop: 80, paddingBottom: 80 }}>
             <style>{`
                 .mp-wrap { width: 90%; margin: 0 auto; }
-                .mp-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.35); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 20px; }
-                .mp-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
-                .mp-row-title { font-size: 14px; color: rgba(255,255,255,.55); margin: 0 0 4px; }
-                .mp-row-value { font-size: 14px; color: #fff; margin: 0; }
-                .mp-row-value.accent { color: #6c63ff; }
-                .mp-btn { font-size: 12px; padding: 7px 14px; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; background: none; color: rgba(255,255,255,.6); cursor: pointer; transition: all .18s; white-space: nowrap; flex-shrink: 0; }
-                .mp-btn:hover { border-color: rgba(255,255,255,.4); color: #fff; }
+                .mp-label { font-size: 12px; font-weight: 700; color: var(--text-subtle); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 20px; }
+                .mp-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border-faint); }
+                .mp-row-title { font-size: 14px; color: var(--text-muted); margin: 0 0 4px; }
+                .mp-row-value { font-size: 14px; color: var(--text-primary); margin: 0; }
+                .mp-row-value.accent { color: var(--main); }
+                .mp-btn { font-size: 12px; padding: 7px 14px; border: 1px solid var(--border); border-radius: 8px; background: none; color: var(--text-muted); cursor: pointer; transition: all .18s; white-space: nowrap; flex-shrink: 0; }
+                .mp-btn:hover { border-color: var(--border); color: var(--text-primary); }
                 .mp-btn.danger { border-color: rgba(248,113,113,.3); color: rgba(248,113,113,.7); }
                 .mp-btn.danger:hover { border-color: #f87171; color: #f87171; }
-                .mp-form { background: #141420; border-radius: 14px; padding: 20px; margin-top: 8px; display: flex; flex-direction: column; gap: 16px; border: 1px solid rgba(255,255,255,.07); }
-                .mp-form-label { font-size: 11px; color: rgba(255,255,255,.4); margin: 0 0 6px; }
-                .mp-input { width: 100%; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,.15); outline: none; color: #fff; font-size: 14px; padding: 8px 0; transition: border-color .2s; box-sizing: border-box; }
-                .mp-input:focus { border-color: #6c63ff; }
-                .mp-input::placeholder { color: rgba(255,255,255,.25); }
-                .mp-submit { width: 100%; padding: 13px; background: #6c63ff; border: none; border-radius: 10px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .2s; }
+                .mp-form { background: var(--bg-card); border-radius: 14px; padding: 20px; margin-top: 8px; display: flex; flex-direction: column; gap: 16px; border: 1px solid var(--border-subtle); }
+                .mp-form-label { font-size: 11px; color: var(--text-subtle); margin: 0 0 6px; }
+                .mp-input { width: 100%; background: none; border: none; border-bottom: 1px solid var(--border); outline: none; color: var(--text-primary); font-size: 14px; padding: 8px 0; transition: border-color .2s; box-sizing: border-box; }
+                .mp-input:focus { border-color: var(--main); }
+                .mp-input::placeholder { color: var(--text-faint); }
+                .mp-submit { width: 100%; padding: 13px; background: var(--main); border: none; border-radius: 10px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .2s; }
                 .mp-submit:hover:not(:disabled) { background: #5a52e0; }
                 .mp-submit:disabled { opacity: .5; cursor: default; }
                 .mp-error { font-size: 12px; color: #f87171; margin: 0; }
-                .mp-success { font-size: 12px; color: #6c63ff; margin: 0; }
-                .mp-divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: 0 0 48px; }
+                .mp-success { font-size: 12px; color: var(--main); margin: 0; }
+                .mp-divider { border: none; border-top: 1px solid var(--border-subtle); margin: 0 0 48px; }
                 .mp-social-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
-                .mp-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: #141420; border-radius: 12px; border: 1px solid rgba(255,255,255,.07); margin-bottom: 10px; }
+                .mp-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-subtle); margin-bottom: 10px; }
                 .mp-card-icon { width: 46px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: #fff; flex-shrink: 0; }
                 .mp-card-info { flex: 1; min-width: 0; }
-                .mp-card-num { font-size: 14px; font-weight: 600; color: #fff; margin: 0 0 2px; }
-                .mp-card-exp { font-size: 12px; color: rgba(255,255,255,.4); margin: 0; }
+                .mp-card-num { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0 0 2px; }
+                .mp-card-exp { font-size: 12px; color: var(--text-subtle); margin: 0; }
                 .mp-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
                 .mp-default-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: rgba(108,99,255,.2); color: #9d97ff; border: 1px solid rgba(108,99,255,.3); }
             `}</style>
@@ -341,14 +341,14 @@ export default function MyPage() {
                                     </div>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                                            <span style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{membership.name}</span>
+                                            <span style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-primary)' }}>{membership.name}</span>
                                             <span style={{
                                                 fontSize: 10, fontWeight: 700, padding: '2px 8px',
                                                 borderRadius: 10, background: `${membership.color}25`,
                                                 color: membership.color, border: `1px solid ${membership.color}40`,
                                             }}>이용 중</span>
                                         </div>
-                                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,.45)' }}>
+                                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                                             월 ₩{membership.price}
                                         </span>
                                     </div>
@@ -371,7 +371,7 @@ export default function MyPage() {
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={membership.color} strokeWidth="3">
                                             <polyline points="20,6 9,17 4,12" />
                                         </svg>
-                                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,.75)' }}>{f}</span>
+                                        <span style={{ fontSize: 13, color: 'var(--text-high)' }}>{f}</span>
                                     </div>
                                 ))}
                             </div>
@@ -380,26 +380,26 @@ export default function MyPage() {
                             <div style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 padding: '12px 14px', borderRadius: 10,
-                                background: 'rgba(255,255,255,0.04)',
-                                border: '1px solid rgba(255,255,255,0.07)',
+                                background: 'var(--border-faint)',
+                                border: '1px solid var(--border-subtle)',
                             }}>
-                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>다음 결제일</span>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.8)' }}>{nextBillingDate}</span>
+                                <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>다음 결제일</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-high)' }}>{nextBillingDate}</span>
                             </div>
                         </div>
                     ) : (
                         /* 멤버십 없는 상태 */
                         <div style={{
                             borderRadius: 16, padding: '28px 24px',
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.07)',
+                            background: 'var(--border-faint)',
+                            border: '1px solid var(--border-subtle)',
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
                         }}>
                             <div>
-                                <p style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,.7)', margin: '0 0 5px' }}>
+                                <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-high)', margin: '0 0 5px' }}>
                                     이용 중인 멤버십이 없어요
                                 </p>
-                                <p style={{ fontSize: 13, color: 'rgba(255,255,255,.35)', margin: 0 }}>
+                                <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: 0 }}>
                                     멤버십을 구독하고 애니·OST를 즐겨보세요
                                 </p>
                             </div>
@@ -408,7 +408,7 @@ export default function MyPage() {
                                 className="mp-btn"
                                 style={{
                                     background: '#6c63ff', borderColor: '#6c63ff',
-                                    color: '#fff', padding: '9px 18px', fontSize: 13, fontWeight: 700,
+                                    color: 'var(--text-primary)', padding: '9px 18px', fontSize: 13, fontWeight: 700,
                                     flexShrink: 0,
                                 }}
                             >
@@ -489,12 +489,12 @@ export default function MyPage() {
                                 <p className="mp-row-title">로그인 방식</p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                                     <span className="mp-social-badge" style={{
-                                        background: socialLabel === '카카오' ? '#FEE500' : socialLabel === '네이버' ? '#03C75A' : 'rgba(255,255,255,.1)',
-                                        color: socialLabel === '카카오' ? '#3C1E1E' : '#fff',
+                                        background: socialLabel === '카카오' ? '#FEE500' : socialLabel === '네이버' ? '#03C75A' : 'var(--border)',
+                                        color: socialLabel === '카카오' ? '#3C1E1E' : 'var(--text-primary)',
                                     }}>
                                         {socialLabel} 로그인 연결됨
                                     </span>
-                                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,.35)' }}>이메일/비밀번호 변경 불가</span>
+                                    <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>이메일/비밀번호 변경 불가</span>
                                 </div>
                             </div>
                         </div>
@@ -511,7 +511,7 @@ export default function MyPage() {
                     </div>
 
                     {cards.length === 0 && (
-                        <div style={{ padding: '32px 0', textAlign: 'center', color: 'rgba(255,255,255,.25)', fontSize: 14 }}>
+                        <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-faint)', fontSize: 14 }}>
                             등록된 결제수단이 없어요
                         </div>
                     )}

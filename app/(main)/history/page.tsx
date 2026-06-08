@@ -64,20 +64,20 @@ export default function HistoryPage() {
     ]
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingTop: 80, paddingBottom: 80 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', paddingTop: 80, paddingBottom: 80 }}>
             <style>{`
                 .hs-wrap { width: 90%; margin: 0 auto; }
-                .hs-tabs { display: flex; gap: 4px; background: rgba(255,255,255,.05); border-radius: 12px; padding: 4px; margin-bottom: 32px; }
+                .hs-tabs { display: flex; gap: 4px; background: var(--border-faint); border-radius: 12px; padding: 4px; margin-bottom: 32px; }
                 .hs-tab { flex: 1; padding: 10px 0; border-radius: 9px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: all .18s; }
-                .hs-tab.on { background: #6c63ff; color: #fff; }
-                .hs-tab.off { background: none; color: rgba(255,255,255,.4); }
-                .hs-tab.off:hover { color: rgba(255,255,255,.7); }
-                .hs-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #141420; border-radius: 12px; border: 1px solid rgba(255,255,255,.07); margin-bottom: 8px; transition: border-color .15s; }
+                .hs-tab.on { background: var(--main); color: #fff; }
+                .hs-tab.off { background: none; color: var(--text-subtle); }
+                .hs-tab.off:hover { color: var(--text-muted); }
+                .hs-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-subtle); margin-bottom: 8px; transition: border-color .15s; }
                 .hs-item:hover { border-color: rgba(108,99,255,.25); }
-                .hs-item-title { font-size: 14px; font-weight: 600; color: #fff; margin: 0 0 4px; }
-                .hs-item-date { font-size: 12px; color: rgba(255,255,255,.35); margin: 0; }
+                .hs-item-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px; }
+                .hs-item-date { font-size: 12px; color: var(--text-subtle); margin: 0; }
                 .hs-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; gap: 12px; }
-                .hs-spinner { width: 32px; height: 32px; border: 2px solid rgba(255,255,255,.1); border-top-color: #6c63ff; border-radius: 50%; animation: spin .7s linear infinite; }
+                .hs-spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--main); border-radius: 50%; animation: spin .7s linear infinite; }
                 @keyframes spin { to { transform: rotate(360deg) } }
                 .hs-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
             `}</style>
@@ -85,13 +85,16 @@ export default function HistoryPage() {
             <div className="hs-wrap">
                 <PageHeader title="이용내역" />
 
-                {/* 탭 */}
                 <div className="hs-tabs">
                     {TABS.map(t => (
                         <button key={t.id} className={`hs-tab ${tab === t.id ? 'on' : 'off'}`} onClick={() => setTab(t.id)}>
                             {t.label}
                             {t.count > 0 && (
-                                <span style={{ marginLeft: 5, fontSize: 11, background: tab === t.id ? 'rgba(255,255,255,.25)' : 'rgba(255,255,255,.1)', borderRadius: 10, padding: '1px 6px' }}>
+                                <span style={{
+                                    marginLeft: 5, fontSize: 11,
+                                    background: tab === t.id ? 'rgba(255,255,255,.25)' : 'var(--border)',
+                                    borderRadius: 10, padding: '1px 6px'
+                                }}>
                                     {t.count}
                                 </span>
                             )}
@@ -103,34 +106,34 @@ export default function HistoryPage() {
                     <div className="hs-empty"><div className="hs-spinner" /></div>
                 ) : (
                     <>
-                        {/* ── 포인트 충전내역 ── */}
+                        {/* 포인트 충전내역 */}
                         {tab === 'point' && (
                             history.length === 0 ? <Empty /> : (
                                 <div>
                                     {history.map((h: any) => (
                                         <div key={h.id} className="hs-item">
                                             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(108,99,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9d97ff" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9d97ff" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <p className="hs-item-title">{h.label || h.description || '포인트 충전'}</p>
                                                 <p className="hs-item-date">{fmt(h.createdAt)}</p>
                                             </div>
-                                            <span style={{ fontSize: 15, fontWeight: 800, color: '#6c63ff', flexShrink: 0 }}>+{(h.amount || 0).toLocaleString()}P</span>
+                                            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--main)', flexShrink: 0 }}>+{(h.amount || 0).toLocaleString()}P</span>
                                         </div>
                                     ))}
                                 </div>
                             )
                         )}
 
-                        {/* ── 멤버십 이용내역 ── */}
+                        {/* 멤버십 이용내역 */}
                         {tab === 'membership' && (
                             membershipHistory.length === 0 ? <Empty /> : (
                                 <div>
                                     {membershipHistory.map((m: any) => (
                                         <div key={m.id} className="hs-item">
                                             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(245,158,11,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" /></svg>
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <p className="hs-item-title">{m.label || '멤버십 구독'}</p>
@@ -152,11 +155,10 @@ export default function HistoryPage() {
                             )
                         )}
 
-                        {/* ── 대여/소장 내역 ── */}
+                        {/* 대여/소장 내역 */}
                         {tab === 'purchase' && (
                             purchaseHistory.length === 0 ? <Empty /> : (
                                 <div>
-                                    {/* 소장 먼저, 대여 나중 정렬 */}
                                     {[...purchaseHistory]
                                         .sort((a, b) => {
                                             if (a.purchaseType === b.purchaseType) return 0
@@ -167,8 +169,7 @@ export default function HistoryPage() {
                                             const expired = isRent && isExpired(p.createdAt, p.rentDays)
                                             return (
                                                 <div key={p.id} className="hs-item" style={{ opacity: expired ? 0.55 : 1 }}>
-                                                    {/* 포스터 */}
-                                                    <div style={{ width: 44, height: 62, borderRadius: 8, background: '#1a1a1a', overflow: 'hidden', flexShrink: 0 }}>
+                                                    <div style={{ width: 44, height: 62, borderRadius: 8, background: 'var(--bg-card)', overflow: 'hidden', flexShrink: 0 }}>
                                                         {p.poster
                                                             ? <img src={`${IMG}/w92${p.poster}`} alt={p.animeName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎬</div>
@@ -176,7 +177,7 @@ export default function HistoryPage() {
                                                     </div>
                                                     <div style={{ flex: 1, minWidth: 0 }}>
                                                         <p className="hs-item-title" style={{ marginBottom: 2 }}>{p.animeName || '작품'}</p>
-                                                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', margin: '0 0 4px' }}>
+                                                        <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '0 0 4px' }}>
                                                             {p.episodeCount ? `${p.episodeCount}화` : ''}{p.episodeNumbers?.length ? ` (${p.episodeNumbers.join(', ')}화)` : ''}
                                                         </p>
                                                         <p className="hs-item-date">
@@ -193,11 +194,11 @@ export default function HistoryPage() {
                                                             {isRent ? `${p.rentDays}일 대여` : '소장'}
                                                         </span>
                                                         {expired && (
-                                                            <span className="hs-badge" style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.3)', border: '1px solid rgba(255,255,255,.1)' }}>
+                                                            <span className="hs-badge" style={{ background: 'var(--border-faint)', color: 'var(--text-faint)', border: '1px solid var(--border)' }}>
                                                                 만료됨
                                                             </span>
                                                         )}
-                                                        <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                                                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
                                                             {(p.totalPrice || 0).toLocaleString()}P
                                                         </span>
                                                     </div>
@@ -218,7 +219,7 @@ function Empty() {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 12 }}>
             <img src="/images/laftel-icon/cry.png" alt="" style={{ width: 64, opacity: .4 }} />
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,.35)', margin: 0 }}>이용 내역이 아직 없어요.</p>
+            <p style={{ fontSize: 14, color: 'var(--text-subtle)', margin: 0 }}>이용 내역이 아직 없어요.</p>
         </div>
     )
 }
