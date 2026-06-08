@@ -8,7 +8,6 @@ import products from "@/data/store.json";
 import { db } from "@/firebase/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import type { Product } from "@/types/store";
-import { useRouter } from "next/navigation";
 
 const STORE_PRODUCTS = products as Product[];
 const SHIPPING_FEE = 3000;
@@ -235,31 +234,9 @@ export default function CartPage() {
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [optionModal, setOptionModal] = useState<OptionModalState | null>(null);
-    const router = useRouter();
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-    const handleCheckout = () => {
-        if (selectedItems.length === 0) return;
-        const first = selectedItems[0];
-        const params = new URLSearchParams({
-            productId: first.product.productId,
-            title: first.product.title,
-            price: String(parsePrice(first.product.price) * first.quantity),
-            thumbnail: first.product.thumbnail,
-            option: first.option,
-            qty: String(first.quantity),
-            // 여러 상품이면 items에 전체를 담아서 넘겨요
-            items: JSON.stringify(selectedItems.map(item => ({
-                productId: item.product.productId,
-                title: item.product.title,
-                price: parsePrice(item.product.price),
-                thumbnail: item.product.thumbnail,
-                option: item.option,
-                qty: item.quantity,
-            }))),
-            total: String(finalTotal),
-        });
-        router.push(`/store/order?${params.toString()}`);
-    };
+
 
     useEffect(() => {
         let cancelled = false;
