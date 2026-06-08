@@ -145,7 +145,10 @@ function AddCardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (card: C
 // ── 메인 ──────────────────────────────────────────────────────
 export default function MyPage() {
     const { user, setMembership } = useAuthStore()
+    const [hydrated, setHydrated] = useState(false)
     const router = useRouter()
+
+    useEffect(() => { setHydrated(true) }, [])
 
     const [emailStep, setEmailStep] = useState<'idle' | 'form'>('idle')
     const [newEmail, setNewEmail] = useState('')
@@ -179,6 +182,7 @@ export default function MyPage() {
     const socialLabel = provider.includes('google') ? '구글' : provider.includes('naver') ? '네이버' : provider.includes('kakao') ? '카카오' : '소셜'
 
     useEffect(() => {
+        if (!hydrated) return
         if (!user) { router.push('/login'); return }
         loadCards()
     }, [user])
