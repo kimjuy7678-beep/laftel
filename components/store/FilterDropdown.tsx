@@ -94,8 +94,8 @@ export default function FilterDropdown({
                 onClick={handleConfirm}
                 disabled={!isPriceChanged}
                 className={`mt-3 flex w-full items-center justify-center rounded-[10px] py-2 text-[13px] font-semibold transition ${isPriceChanged
-                        ? "bg-[#7865ff] text-white hover:bg-[#6754e8] cursor-pointer"
-                        : "bg-[#f0edf8] text-[#c0bcd0] cursor-default"
+                    ? "bg-[#7865ff] text-white hover:bg-[#6754e8] cursor-pointer"
+                    : "bg-[#f0edf8] text-[#c0bcd0] cursor-default"
                     }`}
             >
                 가격 적용
@@ -112,7 +112,7 @@ export default function FilterDropdown({
                     : "border-[#ddd8f4] bg-white text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"
                     }`}
             >
-                <span>재고 있음만 보기</span>
+                <span>품절 제외</span>
                 <div className={`relative h-[20px] w-[36px] rounded-full transition-colors ${onlyInStock ? "bg-[#7865ff]" : "bg-[#ddd8f4]"}`}>
                     <div className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow transition-transform ${onlyInStock ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
                 </div>
