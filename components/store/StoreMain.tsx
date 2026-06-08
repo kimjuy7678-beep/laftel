@@ -52,6 +52,26 @@ const topProducts = BEST_PRODUCTS.slice(0, 5).map((p, i) =>
     toProduct(p, i === 0 ? "HOT" : i === 2 ? "NEW" : undefined),
 );
 
+function isPokemonProduct(product: StoreMainSourceProduct) {
+    return product.category.includes("포켓몬") || product.title.includes("포켓몬");
+}
+
+function isHololiveProduct(product: StoreMainSourceProduct) {
+    return product.category.includes("홀로라이브") ||
+        product.title.includes("홀로라이브") ||
+        product.title.toLowerCase().includes("hololive");
+}
+
+const pokemonProducts = STORE_PRODUCTS
+    .filter(isPokemonProduct)
+    .slice(0, 5)
+    .map((product, index) => toProduct(product, index < 2 ? "POKEMON" : undefined));
+
+const hololiveProducts = STORE_PRODUCTS
+    .filter(isHololiveProduct)
+    .slice(0, 5)
+    .map((product, index) => toProduct(product, index < 2 ? "HOLOLIVE" : undefined));
+
 const characterCollections = [
     { name: "히나타 쇼요", keyword: "히나타", series: "하이큐", imageSrc: "/images/store/characters/hinata.png", accent: "#f5a623" },
     { name: "고죠 사토루", keyword: "고죠", series: "주술회전", imageSrc: "/images/store/characters/gojo.png", accent: "#74b9ff" },
@@ -60,6 +80,7 @@ const characterCollections = [
     { name: "하츠네 미쿠", keyword: "미쿠", series: "하츠네미쿠", imageSrc: "/images/store/characters/miku.png", accent: "#31c7c7" },
 ];
 
+const RECENT_STORE_PRODUCTS_UPDATED_EVENT = "laftel:store:recent-products-updated";
 const EMPTY_RECENT_PRODUCTS: StoreMainProduct[] = [];
 let cachedRecentStorage: string | null = null;
 let cachedRecentProducts: StoreMainProduct[] = EMPTY_RECENT_PRODUCTS;
@@ -97,7 +118,11 @@ function getRecentProducts() {
 
 function subscribeRecentProducts(onStoreChange: () => void) {
     window.addEventListener("storage", onStoreChange);
-    return () => window.removeEventListener("storage", onStoreChange);
+    window.addEventListener(RECENT_STORE_PRODUCTS_UPDATED_EVENT, onStoreChange);
+    return () => {
+        window.removeEventListener("storage", onStoreChange);
+        window.removeEventListener(RECENT_STORE_PRODUCTS_UPDATED_EVENT, onStoreChange);
+    };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -238,6 +263,75 @@ function TopProductCard({ product, rank }: { product: StoreMainProduct; rank: nu
     );
 }
 
+function ProductFeatureCard({ product }: { product: StoreMainProduct }) {
+    const displayTitle = product.title.replace("[예약]", "").replace("[품절]", "").trim();
+    const isReserve = product.title.includes("[예약]");
+    const isSoldout = product.price === "품절";
+
+    return (
+        <Link href={`/store/${product.id}`} className="group block min-w-0">
+            <div className="relative overflow-hidden rounded-[12px] bg-[#eeeeef]">
+                <ImageSlot
+                    src={product.imageSrc}
+                    alt={displayTitle}
+                    className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                />
+
+                {isReserve && !isSoldout && (
+                    <span className="absolute left-3 top-3 rounded-full bg-[#7865ff] px-2.5 py-1 text-[11px] font-bold text-white">
+                        예약
+                    </span>
+                )}
+                {isSoldout && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <span className="rounded-full bg-white/90 px-4 py-1.5 text-[13px] font-bold text-[#555]">
+                            품절
+                        </span>
+                    </div>
+                )}
+            </div>
+            <p className="mt-3 text-[11px] font-semibold text-[#7865ff]">{product.category}</p>
+            <p className="mt-1 line-clamp-2 text-[15px] font-semibold leading-snug text-[#111018]">{displayTitle}</p>
+            <p className={`mt-1.5 text-[14px] font-bold ${isSoldout ? "text-[#aaa]" : "text-[#111018]"}`}>{product.price}</p>
+        </Link>
+    );
+}
+
+function ProductSeriesSection({
+    title,
+    subtitle,
+    series,
+    products,
+}: {
+    title: string;
+    subtitle: string;
+    series: string;
+    products: StoreMainProduct[];
+}) {
+    if (products.length === 0) return null;
+
+    return (
+        <section className="py-16">
+            <Inner>
+                <div className="mb-8 flex items-end justify-between">
+                    <div>
+                        <h2 className="text-[32px] font-bold leading-none text-[#15121d]">{title}</h2>
+                        <p className="mt-2 text-[18px] font-medium text-[#8a8494]">{subtitle}</p>
+                    </div>
+                    <Link href={seriesHref(series)} className="text-[16px] font-semibold text-[#7865ff]">
+                        전체보기 →
+                    </Link>
+                </div>
+                <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
+                    {products.map((product) => (
+                        <ProductFeatureCard key={product.id} product={product} />
+                    ))}
+                </div>
+            </Inner>
+        </section>
+    );
+}
+
 // ─── BestTopSection ───────────────────────────────────────────────────────────
 
 function BestTopSection() {
@@ -347,15 +441,16 @@ function CollectionBanner() {
                     <div className="absolute left-12 top-1/2 max-w-[560px] -translate-y-1/2 sm:left-20">
                         {/* section title: 32px */}
                         <h2 className="text-[32px] font-bold leading-tight text-white">
-                            Complete Your Collection with the Hololive Anniversary Set
+                            지금만 만날 수 있는 한정판 굿즈
                         </h2>
                         {/* section sub: 18px */}
                         <p className="mt-3 text-[18px] font-medium text-white/80">
-                            한정판 굿즈를 지금 바로 만나보세요
+                            수량 한정! 지금 바로 만나보세요
+                            망설이는 순간 품절될지도 몰라요
                         </p>
                         {/* all-btn: 16px */}
                         <button className="mt-8 rounded-[10px] bg-white px-10 py-4 text-[16px] font-semibold text-[#7865ff] shadow-[0_10px_24px_rgba(0,0,0,0.15)]">
-                            Explore Collection
+                            <Link href="/store/rare">   한정판 보러가기</Link>
                         </button>
                     </div>
                 </div>
@@ -373,6 +468,19 @@ export default function StoreBanner() {
             <FeaturedRecent />
             <CategoryStrip />
             <BestTopSection />
+            <ProductSeriesSection
+                title="포켓몬 굿즈"
+                subtitle="지금 가장 사랑받는 포켓몬 굿즈
+피카츄부터 이브이까지, 인기 아이템 한곳에"
+                series="포켓몬"
+                products={pokemonProducts}
+            />
+            <ProductSeriesSection
+                title="홀로라이브 굿즈"
+                subtitle="오늘도 최애를 가장 가까이"
+                series="홀로라이브"
+                products={hololiveProducts}
+            />
             <CharacterCollectionSection />
             <CollectionBanner />
         </div>

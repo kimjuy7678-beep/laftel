@@ -1,7 +1,9 @@
 // components/store/WishAlert.tsx
 "use client";
 
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useBodyScrollLock } from "@/hook/useBodyScrollLock";
 
 export default function WishAlert({
     title,
@@ -13,8 +15,12 @@ export default function WishAlert({
     onClose: () => void;
 }) {
     const router = useRouter();
-    return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/10" onClick={onClose}>
+    useBodyScrollLock();
+
+    if (typeof document === "undefined") return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/10" onClick={onClose}>
             <div onClick={e => e.stopPropagation()}
                 className="w-[480px] rounded-[20px] backdrop-blur-[12px] shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden">
                 {/* 상단 */}
@@ -23,6 +29,13 @@ export default function WishAlert({
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                     </button>
                     <span className="rounded-full bg-[#ff4d6d] px-3 py-1 text-[12px] font-bold text-white">위시리스트 담기 완료</span>
+                    {thumbnail && (
+                        <div
+                            className="h-[64px] w-[64px] rounded-[12px] bg-[#f3f1ff] bg-cover bg-center"
+                            style={{ backgroundImage: `url(${thumbnail})` }}
+                            aria-label={title}
+                        />
+                    )}
                     <p className="text-[22px] font-bold text-[#16121f] text-center">위시리스트에 상품이 담겼습니다 !</p>
                     <p className="text-[13px] text-[#9b94b2] text-center line-clamp-1">{title}</p>
                 </div>
@@ -39,6 +52,7 @@ export default function WishAlert({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
