@@ -1,51 +1,100 @@
 "use client";
 
-// app/admin/page.tsx
-// 접근 제한: ADMIN_EMAIL 과 일치하는 계정만 진입 가능
+// app/store/admin/page.tsx
 
-import { useState, useEffect } from "react";
-import { useAuthStore } from "@/store/useAuthStore";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
 import { db } from "@/firebase/firebase";
 import {
-    collectionGroup, collection, getDocs, query, orderBy,
+    collection, getDocs, query, orderBy,
     doc, updateDoc, serverTimestamp, where
 } from "firebase/firestore";
 import { saveStoreNotification } from "@/utils/storeNotification";
 
-// ── 관리자 이메일 (본인 이메일로 교체) ──────────────────────────────────────
-const ADMIN_EMAIL = "cky0u0@gmail.com";
+const ADMIN_ID = "laftel";
+const ADMIN_PW = "000";
+const PAGE_SIZE = 20;
 
 type InquiryStatus = "답변대기" | "답변완료";
+type AdminTab = "문의관리" | "배송관리" | "주문취소" | "환불관리";
+
+interface UserInfo { uid: string; email: string; nickname: string; }
 
 interface Inquiry {
-    id: string;
-    uid: string;          // 문의 작성자 uid
-    category: string;
-    title: string;
-    content: string;
-    status: InquiryStatus;
-    answer?: string;
-    answeredAt?: any;
-    createdAt: any;
-    date: string;
-    userEmail?: string;
+    id: string; uid: string; category: string; title: string; content: string;
+    status: InquiryStatus; answer?: string; answeredAt?: any; createdAt: any;
+    date: string; userEmail: string; userNickname: string;
+}
+interface Order {
+    id: string; uid: string; status: string;
+    items: { title: string; thumbnail?: string; option: string; qty: number; price: number }[];
+    total: number; createdAt: any; date: string;
+    cancelReason?: string; refundReason?: string;
+    userEmail: string; userNickname: string;
+    usedPoints?: number;
 }
 
-const STATUS_STYLE: Record<InquiryStatus, { bg: string; color: string }> = {
-    "답변대기": { bg: "#fff8e6", color: "#d97706" },
-    "답변완료": { bg: "#f0eeff", color: "#7865ff" },
-};
+// ─── 로그인 화면 ─────────────────────────────────────────────────────────────
+function LoginView({ onLogin }: { onLogin: () => void }) {
+    const [id, setId] = useState("");
+    const [pw, setPw] = useState("");
+    const [error, setError] = useState("");
+
+    const handleLogin = () => {
+        if (!id || !pw) { setError("아이디와 비밀번호를 입력해주세요."); return; }
+        if (id === ADMIN_ID && pw === ADMIN_PW) { onLogin(); }
+        else { setError("아이디 또는 비밀번호가 올바르지 않습니다."); }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#f5f3ff] flex items-center justify-center px-4">
+            <div className="w-full max-w-[400px] bg-white rounded-[24px] border border-[#ebe8ff] shadow-xl overflow-hidden">
+                <div className="bg-[#7865ff] px-8 py-8 text-center">
+                    <span className="inline-block text-[11px] font-bold bg-white/20 text-white px-3 py-1 rounded-full mb-3">ADMIN</span>
+                    <h1 className="text-[22px] font-extrabold text-white">라프텔 스토어</h1>
+                    <p className="text-[13px] text-white/70 mt-1">관리자 전용</p>
+                </div>
+                <div className="px-8 py-8 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[12px] font-semibold text-[#6b647a]">아이디</label>
+                        <input type="text" value={id} onChange={e => setId(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="관리자 아이디"
+                            className="h-11 rounded-[10px] border border-[#e2ddf5] px-4 text-[13px] outline-none focus:border-[#7865ff] transition" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[12px] font-semibold text-[#6b647a]">비밀번호</label>
+                        <input type="password" value={pw} onChange={e => setPw(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="••••••••"
+                            className="h-11 rounded-[10px] border border-[#e2ddf5] px-4 text-[13px] outline-none focus:border-[#7865ff] transition" />
+                    </div>
+                    {error && <p className="text-[12px] text-[#ff4d6d]">{error}</p>}
+                    <button onClick={handleLogin}
+                        className="mt-2 h-12 rounded-[12px] bg-[#7865ff] text-[14px] font-bold text-white hover:bg-[#6b55f0] transition">
+                        로그인
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── 유저 뱃지 ───────────────────────────────────────────────────────────────
+function UserBadge({ email, nickname }: { email: string; nickname: string }) {
+    return (
+        <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#ede9ff] text-[10px] font-bold text-[#7865ff] shrink-0">
+                {(nickname || email)?.[0]?.toUpperCase() ?? "?"}
+            </div>
+            <div className="hidden md:flex flex-col leading-tight">
+                {nickname && <span className="text-[11px] font-semibold text-[#6b647a]">{nickname}</span>}
+                <span className="text-[10px] text-[#c0bcd0]">{email}</span>
+            </div>
+        </div>
+    );
+}
 
 // ─── 답변 모달 ───────────────────────────────────────────────────────────────
-function AnswerModal({
-    inquiry,
-    onClose,
-    onSave,
-}: {
-    inquiry: Inquiry;
-    onClose: () => void;
-    onSave: (answer: string) => Promise<void>;
+function AnswerModal({ inquiry, onClose, onSave }: {
+    inquiry: Inquiry; onClose: () => void; onSave: (a: string) => Promise<void>;
 }) {
     const [answer, setAnswer] = useState(inquiry.answer ?? "");
     const [loading, setLoading] = useState(false);
@@ -54,14 +103,9 @@ function AnswerModal({
     const handleSave = async () => {
         if (answer.trim().length < 5) { setError("답변을 5자 이상 입력해주세요."); return; }
         setLoading(true);
-        try {
-            await onSave(answer.trim());
-            onClose();
-        } catch {
-            setError("저장 중 오류가 발생했어요. 다시 시도해주세요.");
-        } finally {
-            setLoading(false);
-        }
+        try { await onSave(answer.trim()); onClose(); }
+        catch { setError("저장 중 오류가 발생했어요."); }
+        finally { setLoading(false); }
     };
 
     useEffect(() => {
@@ -71,64 +115,37 @@ function AnswerModal({
     }, [onClose]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-            onClick={onClose}>
-            <div className="w-full max-w-[560px] bg-white rounded-[20px] shadow-2xl overflow-hidden"
-                onClick={e => e.stopPropagation()}>
-                {/* 헤더 */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+            <div className="w-full max-w-[560px] bg-white rounded-[20px] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between border-b border-[#f0edf8] px-6 py-5">
                     <div>
                         <h3 className="text-[15px] font-bold text-[#16121f]">답변 작성</h3>
                         <p className="mt-0.5 text-[12px] text-[#9b94b2] truncate max-w-[380px]">{inquiry.title}</p>
                     </div>
-                    <button onClick={onClose}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[#e2ddf5] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] transition">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
+                    <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#e2ddf5] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                     </button>
                 </div>
-
                 <div className="px-6 py-5 flex flex-col gap-4">
-                    {/* 원문 */}
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[#faf9ff] border border-[#ebe8ff]">
+                        <UserBadge email={inquiry.userEmail} nickname={inquiry.userNickname} />
+                        <span className="text-[11px] text-[#9b94b2]">의 문의</span>
+                    </div>
                     <div className="rounded-[12px] bg-[#faf9ff] border border-[#ebe8ff] px-4 py-3">
                         <p className="mb-1.5 text-[11px] font-bold text-[#9b94b2]">고객 문의</p>
-                        <p className="text-[13px] text-[#3d3755] leading-relaxed whitespace-pre-wrap line-clamp-4">
-                            {inquiry.content}
-                        </p>
+                        <p className="text-[13px] text-[#3d3755] leading-relaxed whitespace-pre-wrap line-clamp-6">{inquiry.content}</p>
                     </div>
-
-                    {/* 답변 입력 */}
                     <div>
                         <p className="mb-2 text-[12px] font-semibold text-[#6b647a]">답변 내용</p>
-                        <textarea
-                            value={answer}
-                            onChange={e => setAnswer(e.target.value)}
-                            placeholder="고객에게 전달할 답변을 입력해주세요."
-                            rows={6}
-                            className="w-full resize-none rounded-[10px] border border-[#e2ddf5] bg-[#faf9ff] px-4 py-3 text-[13px] text-[#16121f] outline-none placeholder:text-[#c0bcd0] focus:border-[#7865ff] transition"
-                        />
+                        <textarea value={answer} onChange={e => setAnswer(e.target.value)}
+                            placeholder="고객에게 전달할 답변을 입력해주세요." rows={6}
+                            className="w-full resize-none rounded-[10px] border border-[#e2ddf5] bg-[#faf9ff] px-4 py-3 text-[13px] text-[#16121f] outline-none placeholder:text-[#c0bcd0] focus:border-[#7865ff] transition" />
                         <p className="mt-1 text-right text-[11px] text-[#c0bcd0]">{answer.length}자</p>
                     </div>
-
-                    {error && (
-                        <p className="text-[12px] text-[#ff4d6d] flex items-center gap-1.5">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                            </svg>
-                            {error}
-                        </p>
-                    )}
-
+                    {error && <p className="text-[12px] text-[#ff4d6d]">{error}</p>}
                     <div className="flex gap-2 pt-1">
-                        <button onClick={onClose}
-                            className="flex-1 h-[42px] rounded-[10px] border border-[#e2ddf5] text-[13px] font-semibold text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition">
-                            취소
-                        </button>
-                        <button onClick={handleSave} disabled={loading}
-                            className="flex-1 h-[42px] rounded-[10px] bg-[#7865ff] text-[13px] font-semibold text-white hover:bg-[#6b55f0] disabled:opacity-50 transition">
-                            {loading ? "저장 중..." : "답변 등록"}
-                        </button>
+                        <button onClick={onClose} className="flex-1 h-[42px] rounded-[10px] border border-[#e2ddf5] text-[13px] font-semibold text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition">취소</button>
+                        <button onClick={handleSave} disabled={loading} className="flex-1 h-[42px] rounded-[10px] bg-[#7865ff] text-[13px] font-semibold text-white hover:bg-[#6b55f0] disabled:opacity-50 transition">{loading ? "저장 중..." : "답변 등록"}</button>
                     </div>
                 </div>
             </div>
@@ -137,72 +154,39 @@ function AnswerModal({
 }
 
 // ─── 문의 카드 ───────────────────────────────────────────────────────────────
-function InquiryRow({
-    inquiry,
-    onAnswer,
-}: {
-    inquiry: Inquiry;
-    onAnswer: (inquiry: Inquiry) => void;
-}) {
+function InquiryRow({ inquiry, onAnswer }: { inquiry: Inquiry; onAnswer: (i: Inquiry) => void }) {
     const [open, setOpen] = useState(false);
-    const s = STATUS_STYLE[inquiry.status];
-
+    const isPending = inquiry.status === "답변대기";
     return (
-        <div className="rounded-[12px] border border-[#ebe8ff] overflow-hidden">
-            <button
-                onClick={() => setOpen(v => !v)}
-                className="w-full flex items-center gap-4 px-5 py-4 text-left bg-white hover:bg-[#faf9ff] transition">
-                <span className="shrink-0 rounded-[6px] bg-[#f0eeff] px-2.5 py-1 text-[11px] font-bold text-[#7865ff]">
-                    {inquiry.category}
-                </span>
-                <p className="flex-1 min-w-0 truncate text-[13px] font-semibold text-[#16121f]">
-                    {inquiry.title}
-                </p>
-                {inquiry.userEmail && (
-                    <span className="shrink-0 text-[11px] text-[#c0bcd0] hidden md:block">{inquiry.userEmail}</span>
-                )}
-                <span className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
-                    style={{ background: s.bg, color: s.color }}>
-                    {inquiry.status}
-                </span>
+        <div className={`rounded-[12px] border overflow-hidden ${isPending ? "border-[#ebe8ff]" : "border-[#f0f0f0]"}`}>
+            <button onClick={() => setOpen(v => !v)}
+                className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${isPending ? "bg-white hover:bg-[#faf9ff]" : "bg-[#fafafa] hover:bg-[#f5f5f5]"}`}>
+                <span className="shrink-0 rounded-[6px] bg-[#f0eeff] px-2.5 py-1 text-[11px] font-bold text-[#7865ff]">{inquiry.category}</span>
+                <p className={`flex-1 min-w-0 truncate text-[13px] font-semibold ${isPending ? "text-[#16121f]" : "text-[#888]"}`}>{inquiry.title}</p>
+                <UserBadge email={inquiry.userEmail} nickname={inquiry.userNickname} />
+                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${isPending ? "bg-[#fff8e6] text-[#d97706]" : "bg-[#f0eeff] text-[#7865ff]"}`}>{inquiry.status}</span>
                 <span className="shrink-0 text-[11px] text-[#9b94b2] hidden sm:block">{inquiry.date}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b94b2" strokeWidth="2"
-                    className="shrink-0 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>
-                    <path d="M6 9l6 6 6-6" />
-                </svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b94b2" strokeWidth="2" className="shrink-0 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
-
             {open && (
                 <div className="border-t border-[#f0edf8]">
-                    {/* 문의 내용 */}
                     <div className="px-5 py-4 bg-[#faf9ff]">
                         <p className="mb-1.5 text-[11px] font-bold text-[#9b94b2]">고객 문의</p>
                         <p className="text-[13px] text-[#3d3755] leading-relaxed whitespace-pre-wrap">{inquiry.content}</p>
                     </div>
-
-                    {/* 기존 답변 or 답변 대기 */}
                     {inquiry.status === "답변완료" && inquiry.answer ? (
                         <div className="px-5 py-4 bg-[#f0eeff] border-t border-[#e8e2ff]">
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-[11px] font-bold text-[#7865ff]">라프텔 스토어 답변</p>
-                                <button
-                                    onClick={() => onAnswer(inquiry)}
-                                    className="text-[11px] text-[#9b94b2] hover:text-[#7865ff] transition underline underline-offset-2">
-                                    수정
-                                </button>
+                                <button onClick={() => onAnswer(inquiry)} className="text-[11px] text-[#9b94b2] hover:text-[#7865ff] transition underline underline-offset-2">수정</button>
                             </div>
                             <p className="text-[13px] text-[#3d3755] leading-relaxed whitespace-pre-wrap">{inquiry.answer}</p>
                         </div>
                     ) : (
                         <div className="px-5 py-4 border-t border-[#f0edf8] flex items-center justify-between">
                             <p className="text-[12px] text-[#d97706]">아직 답변이 등록되지 않았어요.</p>
-                            <button
-                                onClick={() => onAnswer(inquiry)}
-                                className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#7865ff] text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
+                            <button onClick={() => onAnswer(inquiry)} className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#7865ff] text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                 답변 달기
                             </button>
                         </div>
@@ -213,163 +197,567 @@ function InquiryRow({
     );
 }
 
+// ─── 배송 카드 ───────────────────────────────────────────────────────────────
+function ShippingRow({ order, onAction }: {
+    order: Order;
+    onAction: (order: Order, type: "cancel_confirm" | "refund_complete" | "shipping_start" | "shipping_complete") => void;
+}) {
+    const [open, setOpen] = useState(false);
+
+    const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
+        "결제완료": { label: "결제완료", color: "#7865ff", bg: "#f0eeff" },
+        "배송시작": { label: "배송시작", color: "#3b82f6", bg: "#eff6ff" },
+        "배송중": { label: "배송중", color: "#3b82f6", bg: "#eff6ff" },
+        "배송완료": { label: "배송완료", color: "#16a34a", bg: "#f0fdf4" },
+    };
+    const s = STATUS_LABEL[order.status] ?? { label: order.status, color: "#888", bg: "#f5f5f5" };
+    const isDone = order.status === "배송완료";
+
+    return (
+        <div className={`rounded-[12px] border overflow-hidden ${isDone ? "border-[#f0f0f0]" : "border-[#ebe8ff]"}`}>
+            <button onClick={() => setOpen(v => !v)}
+                className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${isDone ? "bg-[#fafafa] hover:bg-[#f5f5f5]" : "bg-white hover:bg-[#faf9ff]"}`}>
+                <div className="flex-1 min-w-0">
+                    <p className={`truncate text-[13px] font-semibold ${isDone ? "text-[#888]" : "text-[#16121f]"}`}>
+                        {order.items?.[0]?.title ?? "상품명 없음"}
+                        {order.items?.length > 1 && <span className="ml-1 text-[11px] text-[#9b94b2]">외 {order.items.length - 1}건</span>}
+                    </p>
+                </div>
+                <UserBadge email={order.userEmail} nickname={order.userNickname} />
+                <span className="shrink-0 text-[13px] font-bold text-[#7865ff]">{order.total?.toLocaleString()}원</span>
+                <span className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: s.bg, color: s.color }}>{s.label}</span>
+                <span className="shrink-0 text-[11px] text-[#9b94b2] hidden sm:block">{order.date}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b94b2" strokeWidth="2" className="shrink-0 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+
+            {open && (
+                <div className="border-t border-[#f0edf8] px-5 py-4 bg-[#faf9ff] flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-[12px] text-[#6b647a]">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                        <span className="font-semibold">{order.userNickname || "-"}</span>
+                        <span className="text-[#c0bcd0]">{order.userEmail}</span>
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-bold text-[#9b94b2] mb-1.5">주문 상품</p>
+                        <div className="flex flex-col gap-1">
+                            {order.items?.map((item, i) => (
+                                <div key={i} className="flex items-center gap-2 text-[13px] text-[#3d3755]">
+                                    <span className="text-[#c0bcd0]">·</span>
+                                    <span>{item.title}</span>
+                                    {item.option && item.option !== "기본" && <span className="text-[#9b94b2]">({item.option})</span>}
+                                    <span className="text-[#9b94b2]">{item.qty}개</span>
+                                    <span className="ml-auto font-semibold text-[#7865ff]">{item.price?.toLocaleString()}원</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between text-[13px] border-t border-[#ebe8ff] pt-3">
+                        <span className="text-[#9b94b2]">총 결제금액</span>
+                        <span className="font-bold text-[#16121f]">{order.total?.toLocaleString()}원</span>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                        {order.status === "결제완료" && (
+                            <button onClick={() => onAction(order, "shipping_start")}
+                                className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#3b82f6] text-[12px] font-semibold text-white hover:bg-[#2563eb] transition">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3" /><rect x="9" y="11" width="14" height="10" rx="1" /><circle cx="12" cy="21" r="1" /><circle cx="20" cy="21" r="1" /></svg>
+                                배송 시작
+                            </button>
+                        )}
+                        {(order.status === "배송시작" || order.status === "배송중") && (
+                            <button onClick={() => onAction(order, "shipping_complete")}
+                                className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#16a34a] text-[12px] font-semibold text-white hover:bg-[#15803d] transition">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                배송 완료 처리
+                            </button>
+                        )}
+                        {isDone && (
+                            <span className="text-[12px] text-[#16a34a] flex items-center gap-1">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                배송 완료
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── 주문 카드 (취소/환불) ───────────────────────────────────────────────────
+function OrderRow({ order, onAction }: {
+    order: Order;
+    onAction: (order: Order, type: "cancel_confirm" | "refund_complete") => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const isProcessing = order.status === "처리중";
+    const isCancelled = order.status === "주문취소";
+    const isRefundPending = order.status === "교환환불신청";
+    const isRefundDone = order.status === "환불완료";
+
+    const statusStyle = isProcessing ? "bg-[#fff8e6] text-[#f59e0b]"
+        : isCancelled ? "bg-[#f5f5f5] text-[#888]"
+            : isRefundPending ? "bg-[#fff8e6] text-[#d97706]"
+                : "bg-[#f0fdf4] text-[#16a34a]";
+
+    return (
+        <div className={`rounded-[12px] border overflow-hidden ${isRefundDone ? "border-[#f0f0f0]" : "border-[#ebe8ff]"}`}>
+            <button onClick={() => setOpen(v => !v)}
+                className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${isRefundDone ? "bg-[#fafafa] hover:bg-[#f5f5f5]" : "bg-white hover:bg-[#faf9ff]"}`}>
+                <div className="flex-1 min-w-0">
+                    <p className={`truncate text-[13px] font-semibold ${isRefundDone ? "text-[#888]" : "text-[#16121f]"}`}>
+                        {order.items?.[0]?.title ?? "상품명 없음"}
+                        {order.items?.length > 1 && <span className="ml-1 text-[11px] text-[#9b94b2]">외 {order.items.length - 1}건</span>}
+                    </p>
+                </div>
+                <UserBadge email={order.userEmail} nickname={order.userNickname} />
+                <span className="shrink-0 text-[13px] font-bold text-[#7865ff]">{order.total?.toLocaleString()}원</span>
+                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusStyle}`}>{order.status}</span>
+                <span className="shrink-0 text-[11px] text-[#9b94b2] hidden sm:block">{order.date}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b94b2" strokeWidth="2" className="shrink-0 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+
+            {open && (
+                <div className="border-t border-[#f0edf8] px-5 py-4 bg-[#faf9ff] flex flex-col gap-3">
+                    {/* 유저 정보 */}
+                    <div className="flex items-center gap-2 text-[12px] text-[#6b647a]">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                        <span className="font-semibold">{order.userNickname || "-"}</span>
+                        <span className="text-[#c0bcd0]">{order.userEmail}</span>
+                    </div>
+
+                    {/* 사유 */}
+                    <div>
+                        <p className="text-[11px] font-bold text-[#9b94b2] mb-1">
+                            {isCancelled ? "취소 사유" : "환불/교환 사유"}
+                        </p>
+                        <p className="text-[13px] text-[#3d3755]">{order.cancelReason || order.refundReason || "-"}</p>
+                    </div>
+
+                    {/* 주문 상품 */}
+                    <div>
+                        <p className="text-[11px] font-bold text-[#9b94b2] mb-1.5">주문 상품</p>
+                        <div className="flex flex-col gap-1">
+                            {order.items?.map((item, i) => (
+                                <div key={i} className="flex items-center gap-2 text-[13px] text-[#3d3755]">
+                                    <span className="text-[#c0bcd0]">·</span>
+                                    <span>{item.title}</span>
+                                    {item.option && item.option !== "기본" && <span className="text-[#9b94b2]">({item.option})</span>}
+                                    <span className="text-[#9b94b2]">{item.qty}개</span>
+                                    <span className="ml-auto font-semibold text-[#7865ff]">{item.price?.toLocaleString()}원</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 결제 정보 */}
+                    <div className="flex items-center justify-between text-[13px] border-t border-[#ebe8ff] pt-3">
+                        <span className="text-[#9b94b2]">총 결제금액</span>
+                        <span className="font-bold text-[#16121f]">{order.total?.toLocaleString()}원</span>
+                    </div>
+
+                    {/* 액션 버튼 */}
+                    <div className="flex gap-2 pt-1">
+                        {(isCancelled || order.status === "처리중") && (
+                            <button onClick={() => onAction(order, "cancel_confirm")}
+                                className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#7865ff] text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                취소 확인 처리
+                            </button>
+                        )}
+                        {isRefundPending && (
+                            <button onClick={() => onAction(order, "refund_complete")}
+                                className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#16a34a] text-[12px] font-semibold text-white hover:bg-[#15803d] transition">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                환불 완료 처리
+                            </button>
+                        )}
+                        {isRefundDone && (
+                            <span className="text-[12px] text-[#16a34a] flex items-center gap-1">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                환불 처리 완료
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── 페이지네이션 ────────────────────────────────────────────────────────────
+function Pagination({ total, page, onPage }: { total: number; page: number; onPage: (p: number) => void }) {
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    if (totalPages <= 1) return null;
+    return (
+        <div className="flex items-center justify-center gap-1 mt-6">
+            <button onClick={() => onPage(page - 1)} disabled={page === 1}
+                className="h-8 w-8 rounded-full border border-[#e2ddf5] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] disabled:opacity-30 transition flex items-center justify-center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button key={p} onClick={() => onPage(p)}
+                    className={`h-8 w-8 rounded-full text-[13px] font-semibold transition ${p === page ? "bg-[#7865ff] text-white" : "border border-[#e2ddf5] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
+                    {p}
+                </button>
+            ))}
+            <button onClick={() => onPage(page + 1)} disabled={page === totalPages}
+                className="h-8 w-8 rounded-full border border-[#e2ddf5] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] disabled:opacity-30 transition flex items-center justify-center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
+        </div>
+    );
+}
+
 // ─── 메인 ────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
-    const { user } = useAuthStore();
-    const router = useRouter();
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [adminTab, setAdminTab] = useState<AdminTab>("문의관리");
     const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [tab, setTab] = useState<"전체" | "답변대기" | "답변완료">("전체");
+
+    const [inquiryTab, setInquiryTab] = useState<"전체" | "답변대기" | "답변완료">("답변대기");
+    const [inquiryPage, setInquiryPage] = useState(1);
+
+    const [orderTab, setOrderTab] = useState<"주문취소" | "환불신청" | "환불완료">("환불신청");
+    const [orderPage, setOrderPage] = useState(1);
+
     const [target, setTarget] = useState<Inquiry | null>(null);
 
-    // ── 접근 제한 ──────────────────────────────────────────────────────────
-    useEffect(() => {
-        if (user === null) return; // 아직 로드 중
-        if (user?.email !== ADMIN_EMAIL) {
-            router.replace("/");
-        }
-    }, [user]);
-
-    // ── 전체 유저 문의 로드 (collectionGroup) ──────────────────────────────
-    const fetchAll = async () => {
+    // ── 전체 유저 순회 데이터 로드 ────────────────────────────────────────────
+    const fetchAllData = async () => {
         setLoading(true);
         try {
-            const snap = await getDocs(
-                query(collectionGroup(db, "inquiries"), orderBy("createdAt", "desc"))
-            );
-            const data = snap.docs.map(d => {
-                // path: users/{uid}/inquiries/{id}
-                const uid = d.ref.parent.parent?.id ?? "";
-                return {
-                    id: d.id,
-                    uid,
-                    ...d.data(),
-                    date: d.data().createdAt?.toDate?.()?.toLocaleDateString("ko-KR", {
-                        year: "numeric", month: "2-digit", day: "2-digit",
-                    }) ?? "-",
-                };
-            }) as Inquiry[];
-            setInquiries(data);
-        } catch (err) {
-            console.error("[Admin] inquiries load error:", err);
-        } finally {
-            setLoading(false);
-        }
+            const usersSnap = await getDocs(collection(db, "users"));
+            const allInquiries: Inquiry[] = [];
+            const allOrders: Order[] = [];
+
+            await Promise.all(usersSnap.docs.map(async (userDoc) => {
+                const uid = userDoc.id;
+                const userData = userDoc.data();
+                const userEmail = userData.email ?? "";
+                const userNickname = userData.nickname ?? userData.name ?? "";
+
+                // 문의
+                try {
+                    const iqSnap = await getDocs(query(
+                        collection(db, "users", uid, "inquiries"),
+                        orderBy("createdAt", "desc")
+                    ));
+                    iqSnap.docs.forEach(d => allInquiries.push({
+                        id: d.id, uid, userEmail, userNickname, ...d.data(),
+                        date: d.data().createdAt?.toDate?.()?.toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }) ?? "-",
+                    } as Inquiry));
+                } catch { }
+
+                // 주문 (취소/환불)
+                try {
+                    const orSnap = await getDocs(query(
+                        collection(db, "users", uid, "orders"),
+                        where("status", "in", ["결제완료", "배송시작", "배송중", "배송완료", "처리중", "주문취소", "교환환불신청", "환불완료"])
+                    ));
+                    orSnap.docs.forEach(d => allOrders.push({
+                        id: d.id, uid, userEmail, userNickname, ...d.data(),
+                        date: d.data().createdAt?.toDate?.()?.toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }) ?? "-",
+                    } as Order));
+                } catch { }
+            }));
+
+            allInquiries.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+            allOrders.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+
+            setInquiries(allInquiries);
+            setOrders(allOrders);
+        } catch (e) { console.error(e); }
+        finally { setLoading(false); }
     };
 
-    useEffect(() => {
-        if (user?.email === ADMIN_EMAIL) fetchAll();
-    }, [user]);
+    useEffect(() => { if (isAdmin) fetchAllData(); }, [isAdmin]);
 
-    // ── 답변 저장 ──────────────────────────────────────────────────────────
-    const handleSave = async (answer: string) => {
+    // ── 답변 저장 ──────────────────────────────────────────────────────────────
+    const handleSaveAnswer = async (answer: string) => {
         if (!target) return;
-        const ref = doc(db, "users", target.uid, "inquiries", target.id);
-        await updateDoc(ref, {
-            answer,
-            status: "답변완료",
-            answeredAt: serverTimestamp(),
+        await updateDoc(doc(db, "users", target.uid, "inquiries", target.id), {
+            answer, status: "답변완료", answeredAt: serverTimestamp(),
         });
-
-        // 알림 저장 — 문의 작성자에게
         await saveStoreNotification(target.uid, {
-            type: "event",
-            title: "문의 답변이 등록됐어요",
-            body: `'${target.title}' 문의에 답변이 달렸어요.`,
-            link: "/store/mypage/inquiry",
+            type: "event", title: "문의 답변이 등록됐어요",
+            body: `'${target.title}' 문의에 답변이 달렸어요.`, link: "/store/profile/inquiry",
         });
-
-        // 로컬 state 업데이트
         setInquiries(prev => prev.map(i =>
-            i.id === target.id && i.uid === target.uid
-                ? { ...i, answer, status: "답변완료" }
-                : i
+            i.id === target.id && i.uid === target.uid ? { ...i, answer, status: "답변완료" } : i
         ));
     };
 
-    const filtered = inquiries.filter(i => tab === "전체" || i.status === tab);
-    const waitCount = inquiries.filter(i => i.status === "답변대기").length;
+    // ── 주문 액션 처리 ─────────────────────────────────────────────────────────
+    const handleOrderAction = async (order: Order, type: "cancel_confirm" | "refund_complete" | "shipping_start" | "shipping_complete") => {
+        const confirmMsg = type === "cancel_confirm"
+            ? `취소 처리완료 알림을 보낼까요?\n${order.userNickname || order.userEmail}`
+            : `환불 완료 처리할까요?\n${order.items?.[0]?.title} · ${order.total?.toLocaleString()}원`;
+        if (!confirm(confirmMsg)) return;
 
-    // 접근 제한 중 렌더 방지
-    if (!user || user.email !== ADMIN_EMAIL) {
-        return (
-            <div className="min-h-screen bg-[#f5f3ff] flex items-center justify-center">
-                <p className="text-[14px] text-[#9b94b2]">접근 권한이 없습니다.</p>
-            </div>
-        );
-    }
+        if (type === "cancel_confirm") {
+            // 처리중 → 주문취소로 상태 변경 + 알림
+            await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
+                status: "주문취소",
+                cancelConfirmedAt: serverTimestamp(),
+            });
+            await saveStoreNotification(order.uid, {
+                type: "cancel",
+                title: "주문 취소가 처리됐어요",
+                body: `취소 요청이 확인됐어요. 결제금액은 3~5일 내 환불돼요.`,
+                link: "/store/profile",
+            });
+            setOrders(prev => prev.map(o =>
+                o.id === order.id && o.uid === order.uid ? { ...o, status: "주문취소" } : o
+            ));
+        } else if (type === "shipping_start") {
+            await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
+                status: "배송시작", shippingStartedAt: serverTimestamp(),
+            });
+            await saveStoreNotification(order.uid, {
+                type: "order",
+                title: "상품이 출발했어요 🚚",
+                body: `${order.items?.[0]?.title} 배송이 시작됐어요.`,
+                link: "/store/profile",
+            });
+            setOrders(prev => prev.map(o =>
+                o.id === order.id && o.uid === order.uid ? { ...o, status: "배송시작" } : o
+            ));
+        } else if (type === "shipping_complete") {
+            await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
+                status: "배송완료", deliveredAt: serverTimestamp(),
+            });
+            await saveStoreNotification(order.uid, {
+                type: "order",
+                title: "배송이 완료됐어요 📦",
+                body: `${order.items?.[0]?.title} 배송이 완료됐어요. 상품을 확인해주세요!`,
+                link: "/store/profile",
+            });
+            setOrders(prev => prev.map(o =>
+                o.id === order.id && o.uid === order.uid ? { ...o, status: "배송완료" } : o
+            ));
+        } else {
+            // 교환환불신청 → 환불완료로 상태 변경 + 알림
+            await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
+                status: "환불완료", refundCompletedAt: serverTimestamp(),
+            });
+            await saveStoreNotification(order.uid, {
+                type: "cancel",
+                title: "환불이 완료되었어요",
+                body: `${order.items?.[0]?.title} 환불이 처리됐어요. 3~5일 내 입금돼요.`,
+                link: "/store/profile",
+            });
+            setOrders(prev => prev.map(o =>
+                o.id === order.id && o.uid === order.uid ? { ...o, status: "환불완료" } : o
+            ));
+        }
+    };
+
+    // ── 필터/페이지 ───────────────────────────────────────────────────────────
+    const filteredInquiries = useMemo(() =>
+        inquiryTab === "전체" ? inquiries : inquiries.filter(i => i.status === inquiryTab),
+        [inquiries, inquiryTab]
+    );
+    const pagedInquiries = useMemo(() =>
+        filteredInquiries.slice((inquiryPage - 1) * PAGE_SIZE, inquiryPage * PAGE_SIZE),
+        [filteredInquiries, inquiryPage]
+    );
+
+    // 주문취소 탭 전용 (orderTab과 무관)
+    const cancelOrders = useMemo(() => orders.filter(o => o.status === "처리중" || o.status === "주문취소"), [orders]);
+    const pagedCancelOrders = useMemo(() =>
+        cancelOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE),
+        [cancelOrders, orderPage]
+    );
+
+    // 배송관리 탭 전용
+    const shippingOrders = useMemo(() =>
+        orders.filter(o => ["결제완료", "배송시작", "배송중", "배송완료"].includes(o.status)),
+        [orders]
+    );
+    const [shippingPage, setShippingPage] = useState(1);
+    const [shippingTab, setShippingTab] = useState<"진행중" | "배송완료">("진행중");
+    const filteredShipping = useMemo(() =>
+        shippingTab === "진행중"
+            ? shippingOrders.filter(o => ["결제완료", "배송시작", "배송중"].includes(o.status))
+            : shippingOrders.filter(o => o.status === "배송완료"),
+        [shippingOrders, shippingTab]
+    );
+    const pagedShipping = useMemo(() =>
+        filteredShipping.slice((shippingPage - 1) * PAGE_SIZE, shippingPage * PAGE_SIZE),
+        [filteredShipping, shippingPage]
+    );
+
+    // 환불관리 탭 전용
+    const filteredOrders = useMemo(() => {
+        if (orderTab === "환불신청") return orders.filter(o => o.status === "교환환불신청");
+        return orders.filter(o => o.status === "환불완료");
+    }, [orders, orderTab]);
+    const pagedOrders = useMemo(() =>
+        filteredOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE),
+        [filteredOrders, orderPage]
+    );
+
+    const waitCount = inquiries.filter(i => i.status === "답변대기").length;
+    const shippingPendingCount = shippingOrders.filter(o => ["결제완료", "배송시작", "배송중"].includes(o.status)).length;
+    const cancelCount = orders.filter(o => o.status === "처리중" || o.status === "주문취소").length;
+    const refundPendingCount = orders.filter(o => o.status === "교환환불신청").length;
+    const refundDoneCount = orders.filter(o => o.status === "환불완료").length;
+
+    if (!isAdmin) return <LoginView onLogin={() => setIsAdmin(true)} />;
 
     return (
         <div className="min-h-screen bg-[#f5f3ff]">
-            {target && (
-                <AnswerModal
-                    inquiry={target}
-                    onClose={() => setTarget(null)}
-                    onSave={handleSave}
-                />
-            )}
+            {target && <AnswerModal inquiry={target} onClose={() => setTarget(null)} onSave={handleSaveAnswer} />}
 
-            {/* 헤더 */}
             <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[#ebe8ff]">
                 <div className="mx-auto max-w-[1200px] px-6 h-14 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <span className="text-[11px] font-bold bg-[#7865ff] text-white px-2 py-0.5 rounded-full">ADMIN</span>
                         <span className="text-[14px] font-bold text-[#16121f]">라프텔 스토어 관리자</span>
                     </div>
-                    <span className="text-[12px] text-[#9b94b2]">{user.email}</span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[12px] text-[#9b94b2]">{ADMIN_ID}</span>
+                        <button onClick={() => setIsAdmin(false)}
+                            className="text-[12px] text-[#9b94b2] hover:text-[#ff4d6d] transition">로그아웃</button>
+                    </div>
                 </div>
             </header>
 
             <main className="mx-auto max-w-[1200px] px-6 py-10">
-                <div className="mb-8">
-                    <h1 className="text-[24px] font-bold text-[#16121f]">문의 관리</h1>
-                    <p className="mt-1 text-[13px] text-[#9b94b2]">전체 고객 문의를 확인하고 답변을 등록하세요.</p>
-                </div>
-
-                {/* 요약 */}
-                <div className="mb-6 grid grid-cols-3 gap-3">
-                    {[
-                        { label: "전체 문의", value: inquiries.length, color: "#7865ff", bg: "#f0eeff" },
-                        { label: "답변대기", value: waitCount, color: "#d97706", bg: "#fff8e6" },
-                        { label: "답변완료", value: inquiries.length - waitCount, color: "#16a34a", bg: "#f0fdf4" },
-                    ].map(s => (
-                        <div key={s.label} className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4">
-                            <p className="text-[12px] text-[#9b94b2]">{s.label}</p>
-                            <p className="mt-1 text-[22px] font-bold" style={{ color: s.color }}>{s.value}<span className="text-[13px] font-medium ml-1">건</span></p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* 탭 */}
-                <div className="mb-4 flex items-center gap-5 border-b border-[#f0edf8]">
-                    {(["전체", "답변대기", "답변완료"] as const).map(t => (
-                        <button key={t} onClick={() => setTab(t)}
-                            className={`pb-3 text-[13px] font-semibold transition border-b-2 ${tab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
+                {/* 상단 탭 */}
+                <div className="mb-8 flex gap-2 flex-wrap">
+                    {(["문의관리", "배송관리", "주문취소", "환불관리"] as AdminTab[]).map(t => (
+                        <button key={t} onClick={() => setAdminTab(t)}
+                            className={`relative h-10 px-5 rounded-full text-[13px] font-bold transition ${adminTab === t ? "bg-[#7865ff] text-white" : "bg-white border border-[#e2ddf5] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
                             {t}
-                            {t === "답변대기" && waitCount > 0 && (
-                                <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#7865ff] px-1 text-[10px] font-bold text-white">
-                                    {waitCount}
-                                </span>
+                            {t === "배송관리" && shippingPendingCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#7865ff] px-1 text-[10px] font-bold text-white">{shippingPendingCount}</span>
+                            )}
+                            {t === "주문취소" && cancelCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#888] px-1 text-[10px] font-bold text-white">{cancelCount}</span>
+                            )}
+                            {t === "환불관리" && refundPendingCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ff4d6d] px-1 text-[10px] font-bold text-white">{refundPendingCount}</span>
                             )}
                         </button>
                     ))}
+                    <button onClick={fetchAllData}
+                        className="ml-auto h-10 px-4 rounded-full bg-white border border-[#e2ddf5] text-[12px] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition flex items-center gap-1.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+                        새로고침
+                    </button>
                 </div>
 
-                {/* 목록 */}
-                {loading ? (
-                    <div className="flex h-[200px] items-center justify-center">
-                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e2ddf5] border-t-[#7865ff]" />
-                    </div>
-                ) : filtered.length === 0 ? (
-                    <div className="flex h-[200px] items-center justify-center">
-                        <p className="text-[13px] text-[#9b94b2]">문의가 없어요.</p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col gap-2.5">
-                        {filtered.map(i => (
-                            <InquiryRow key={`${i.uid}-${i.id}`} inquiry={i} onAnswer={setTarget} />
-                        ))}
-                    </div>
+                {/* ── 문의관리 ── */}
+                {adminTab === "문의관리" && (
+                    <>
+                        <div className="mb-6 grid grid-cols-3 gap-3">
+                            {[
+                                { label: "전체 문의", value: inquiries.length, color: "#7865ff" },
+                                { label: "답변대기", value: waitCount, color: "#d97706" },
+                                { label: "답변완료", value: inquiries.length - waitCount, color: "#16a34a" },
+                            ].map(s => (
+                                <div key={s.label} className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4">
+                                    <p className="text-[12px] text-[#9b94b2]">{s.label}</p>
+                                    <p className="mt-1 text-[22px] font-bold" style={{ color: s.color }}>{s.value}<span className="text-[13px] font-medium ml-1">건</span></p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mb-4 flex items-center gap-5 border-b border-[#f0edf8]">
+                            {(["전체", "답변대기", "답변완료"] as const).map(t => (
+                                <button key={t} onClick={() => { setInquiryTab(t); setInquiryPage(1); }}
+                                    className={`pb-3 text-[13px] font-semibold transition border-b-2 ${inquiryTab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
+                                    {t}
+                                    {t === "답변대기" && waitCount > 0 && <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#7865ff] px-1 text-[10px] font-bold text-white">{waitCount}</span>}
+                                </button>
+                            ))}
+                            <span className="ml-auto text-[12px] text-[#c0bcd0]">{filteredInquiries.length}건</span>
+                        </div>
+                        {loading ? <div className="flex h-[200px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e2ddf5] border-t-[#7865ff]" /></div>
+                            : pagedInquiries.length === 0 ? <div className="flex h-[200px] items-center justify-center"><p className="text-[13px] text-[#9b94b2]">문의가 없어요.</p></div>
+                                : <div className="flex flex-col gap-2.5">{pagedInquiries.map(i => <InquiryRow key={`${i.uid}-${i.id}`} inquiry={i} onAnswer={setTarget} />)}</div>}
+                        <Pagination total={filteredInquiries.length} page={inquiryPage} onPage={setInquiryPage} />
+                    </>
+                )}
+
+                {/* ── 배송관리 ── */}
+                {adminTab === "배송관리" && (
+                    <>
+                        <div className="mb-6 grid grid-cols-2 gap-3">
+                            {[
+                                { label: "배송진행중", value: shippingPendingCount, color: "#7865ff" },
+                                { label: "배송완료", value: shippingOrders.filter(o => o.status === "배송완료").length, color: "#16a34a" },
+                            ].map(s => (
+                                <div key={s.label} className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4">
+                                    <p className="text-[12px] text-[#9b94b2]">{s.label}</p>
+                                    <p className="mt-1 text-[22px] font-bold" style={{ color: s.color }}>{s.value}<span className="text-[13px] font-medium ml-1">건</span></p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mb-4 flex items-center gap-5 border-b border-[#f0edf8]">
+                            {(["진행중", "배송완료"] as const).map(t => (
+                                <button key={t} onClick={() => { setShippingTab(t); setShippingPage(1); }}
+                                    className={`pb-3 text-[13px] font-semibold transition border-b-2 ${shippingTab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
+                                    {t}
+                                </button>
+                            ))}
+                            <span className="ml-auto text-[12px] text-[#c0bcd0]">{filteredShipping.length}건</span>
+                        </div>
+                        {loading ? <div className="flex h-[200px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e2ddf5] border-t-[#7865ff]" /></div>
+                            : pagedShipping.length === 0 ? <div className="flex h-[200px] items-center justify-center"><p className="text-[13px] text-[#9b94b2]">내역이 없어요.</p></div>
+                                : <div className="flex flex-col gap-2.5">{pagedShipping.map(o => <ShippingRow key={`${o.uid}-${o.id}`} order={o} onAction={handleOrderAction} />)}</div>}
+                        <Pagination total={filteredShipping.length} page={shippingPage} onPage={setShippingPage} />
+                    </>
+                )}
+
+                {/* ── 주문취소 ── */}
+                {adminTab === "주문취소" && (
+                    <>
+                        <div className="mb-6 grid grid-cols-1 gap-3">
+                            <div className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4">
+                                <p className="text-[12px] text-[#9b94b2]">주문취소 건수</p>
+                                <p className="mt-1 text-[22px] font-bold text-[#888]">{cancelCount}<span className="text-[13px] font-medium ml-1">건</span></p>
+                            </div>
+                        </div>
+                        <p className="mb-4 text-[12px] text-[#9b94b2]">취소 처리완료 버튼을 누르면 고객에게 알림이 발송돼요.</p>
+                        {loading ? <div className="flex h-[200px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e2ddf5] border-t-[#7865ff]" /></div>
+                            : pagedCancelOrders.length === 0 ? <div className="flex h-[200px] items-center justify-center"><p className="text-[13px] text-[#9b94b2]">주문취소 내역이 없어요.</p></div>
+                                : <div className="flex flex-col gap-2.5">{pagedCancelOrders.map(o => <OrderRow key={`${o.uid}-${o.id}`} order={o} onAction={handleOrderAction} />)}</div>}
+                        <Pagination total={cancelOrders.length} page={orderPage} onPage={setOrderPage} />
+                    </>
+                )}
+
+                {/* ── 환불관리 ── */}
+                {adminTab === "환불관리" && (
+                    <>
+                        <div className="mb-6 grid grid-cols-2 gap-3">
+                            {[
+                                { label: "환불신청", value: refundPendingCount, color: "#d97706" },
+                                { label: "환불완료", value: refundDoneCount, color: "#16a34a" },
+                            ].map(s => (
+                                <div key={s.label} className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4">
+                                    <p className="text-[12px] text-[#9b94b2]">{s.label}</p>
+                                    <p className="mt-1 text-[22px] font-bold" style={{ color: s.color }}>{s.value}<span className="text-[13px] font-medium ml-1">건</span></p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mb-4 flex items-center gap-5 border-b border-[#f0edf8]">
+                            {(["환불신청", "환불완료"] as const).map(t => (
+                                <button key={t} onClick={() => { setOrderTab(t); setOrderPage(1); }}
+                                    className={`pb-3 text-[13px] font-semibold transition border-b-2 ${orderTab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
+                                    {t}
+                                    {t === "환불신청" && refundPendingCount > 0 && <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ff4d6d] px-1 text-[10px] font-bold text-white">{refundPendingCount}</span>}
+                                </button>
+                            ))}
+                            <span className="ml-auto text-[12px] text-[#c0bcd0]">{filteredOrders.length}건</span>
+                        </div>
+                        {loading ? <div className="flex h-[200px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e2ddf5] border-t-[#7865ff]" /></div>
+                            : pagedOrders.length === 0 ? <div className="flex h-[200px] items-center justify-center"><p className="text-[13px] text-[#9b94b2]">내역이 없어요.</p></div>
+                                : <div className="flex flex-col gap-2.5">{pagedOrders.map(o => <OrderRow key={`${o.uid}-${o.id}`} order={o} onAction={handleOrderAction} />)}</div>}
+                        <Pagination total={filteredOrders.length} page={orderPage} onPage={setOrderPage} />
+                    </>
                 )}
             </main>
         </div>

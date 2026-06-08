@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import { db } from '@/firebase/firebase'
-import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, writeBatch } from 'firebase/firestore'
+import {
+    collection,
+    query,
+    orderBy,
+    limit,
+    onSnapshot,
+    updateDoc,
+    doc,
+    writeBatch
+} from 'firebase/firestore'
 
 interface Notification {
     id: string
@@ -9,6 +18,7 @@ interface Notification {
     body: string
     link?: string
     read: boolean
+    source?: string
     createdAt: any
 }
 
@@ -29,28 +39,60 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     subscribeNotifications: (uid) => {
         const prev = get().unsubscribe
         if (prev) prev()
+
         const q = query(
             collection(db, 'users', uid, 'notifications'),
             orderBy('createdAt', 'desc'),
-            limit(30)
+            limit(50)
         )
+
         const unsub = onSnapshot(q, (snap) => {
-            const notifications = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Notification[]
-            set({ notifications, unreadCount: notifications.filter(n => !n.read).length })
+            const all = snap.docs.map(
+                d => ({ id: d.id, ...d.data() })
+            ) as Notification[]
+
+            // OTT 헤더용 알림만 표시
+            const notifications = all.filter(
+                n =>
+                    n.source !== 'store' &&
+                    (
+                        n.type === 'point' ||
+                        n.type === 'membership' ||
+                        n.type === 'live' ||
+                        n.type === 'event'
+                    )
+            )
+
+            set({
+                notifications,
+                unreadCount: notifications.filter(n => !n.read).length
+            })
         })
+
         set({ unsubscribe: unsub })
     },
 
     markAllRead: async (uid) => {
         const { notifications } = get()
+
         const batch = writeBatch(db)
-        notifications.filter(n => !n.read).forEach(n => {
-            batch.update(doc(db, 'users', uid, 'notifications', n.id), { read: true })
-        })
+
+        notifications
+            .filter(n => !n.read)
+            .forEach(n => {
+                batch.update(
+                    doc(db, 'users', uid, 'notifications', n.id),
+                    { read: true }
+                )
+            })
+
         await batch.commit()
     },
 
     markOneRead: async (uid, nid) => {
-        await updateDoc(doc(db, 'users', uid, 'notifications', nid), { read: true })
+        await updateDoc(
+            doc(db, 'users', uid, 'notifications', nid),
+            { read: true }
+        )
     },
 }))

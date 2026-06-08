@@ -14,7 +14,7 @@ export default function WishAlert({
 }) {
     const router = useRouter();
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/10" onClick={onClose}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/10" onClick={onClose}>
             <div onClick={e => e.stopPropagation()}
                 className="w-[480px] rounded-[20px] backdrop-blur-[12px] shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden">
                 {/* 상단 */}
@@ -33,7 +33,7 @@ export default function WishAlert({
                         className="flex-1 h-[56px] text-[15px] font-semibold text-[#6b647a] transition hover:bg-[#f8f6ff] border-r border-[#f0edf8]">
                         쇼핑 계속하기
                     </button>
-                    <button onClick={() => { onClose(); router.push("/store/wishlist"); }}
+                    <button onClick={() => { onClose(); router.push("/store/profile/wishlist"); }}
                         className="flex-1 h-[56px] text-[15px] font-bold text-white bg-[#ff4d6d] transition hover:bg-[#e8395a]">
                         위시리스트 보기
                     </button>

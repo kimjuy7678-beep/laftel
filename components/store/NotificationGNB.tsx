@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useNotificationStore } from "@/store/useNotificationStore";
+import { useStoreNotificationStore } from "@/store/useStoreNotificationStore";
+
 
 export default function NotificationGNB() {
     const { user } = useAuthStore();
@@ -11,7 +12,12 @@ export default function NotificationGNB() {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
-    const { notifications, unreadCount, subscribeNotifications, markAllRead } = useNotificationStore();
+    const {
+        notifications,
+        unreadCount,
+        subscribeNotifications,
+        markAllRead
+    } = useStoreNotificationStore();
 
     // 로그인 시 구독 시작
     useEffect(() => {
@@ -87,8 +93,8 @@ export default function NotificationGNB() {
                             >
                                 {/* 타입 아이콘 */}
                                 <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${n.type === "point" ? "bg-[#ede9ff]" :
-                                        n.type === "cancel" ? "bg-[#fff0f0]" :
-                                            "bg-[#e6faf4]"
+                                    n.type === "cancel" ? "bg-[#fff0f0]" :
+                                        "bg-[#e6faf4]"
                                     }`}>
                                     <NotifIcon type={n.type} />
                                 </div>
