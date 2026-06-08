@@ -448,7 +448,7 @@ export function ProductDetail({
     const detailLines = normalizeStringArray(product.productdetail);
     const displayImages = images.length > 0 ? images : [product.thumbnail].filter(Boolean);
 
-    const handleBuy = () => {
+    const handleBuy = async () => {
         if (isReserveClosed) return;
         if (!user?.uid) {
             setShowLogin(true);
