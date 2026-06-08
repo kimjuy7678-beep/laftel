@@ -10,10 +10,9 @@ import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductC
 import FilterDropdown from "@/components/store/FilterDropdown";
 
 const ALL_PRODUCTS = products as StoreProduct[];
-const STORE_PRODUCTS = ALL_PRODUCTS.filter((p) => !p.title.includes("[예약]"));
 const ITEMS_PER_PAGE = 20;
 const PAGE_GROUP = 5;
-const SERIES_LIST = ["전체", ...Array.from(new Set(STORE_PRODUCTS.map((p) => p.category)))];
+const SERIES_LIST = ["전체", ...Array.from(new Set(ALL_PRODUCTS.map((p) => p.category)))];
 
 function parsePrice(s: string) { return parseInt(s.replace(/[^0-9]/g, ""), 10) || 0; }
 function normalizeSearch(value: string) {
@@ -33,8 +32,8 @@ function matchesSearch(product: StoreProduct, search: string) {
     return text.includes(query);
 }
 
-function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return <div className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
+function Inner({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
 }
 
 function SeriesTab({ selected, onSelect }: { selected: string; onSelect: (s: string) => void }) {
@@ -96,7 +95,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
 
     const handleChange = (p: number) => {
         onChange(p);
-        window.scrollTo(0, 0);
+        document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     return (
@@ -139,12 +138,12 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
 
     const filtered = ALL_PRODUCTS.filter((p) => { // ALL_PRODUCTS로 변경 (예약 포함)
         const price = parsePrice(p.price);
-        const isReserve = p.title.includes("예약"); // 추가
+        const isReserve = p.title.includes("[예약]"); // 추가
         const matchSeries = selectedSeries === "전체" || p.category === selectedSeries;
         const matchSearch = matchesSearch(p, search);
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
         const matchStock = !onlyInStock || !p.soldout;
-        const matchReserve = onlyReserve ? isReserve : !isReserve; // 추가
+        const matchReserve = !onlyReserve || isReserve; // 추가
         return matchSeries && matchSearch && matchPrice && matchStock && matchReserve;
     });
 
@@ -269,7 +268,7 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
                 </Inner>
             </div>
 
-            <Inner className="mt-8">
+            <Inner id="store-products" className="mt-8">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <p className="text-[14px] text-[#6b647a]">
                         총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품
