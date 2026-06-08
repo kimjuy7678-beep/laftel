@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { arrayRemove, arrayUnion, doc, getDoc, setDoc } from "firebase/firestore";
 import products from "@/data/store.json";
 import { db } from "@/firebase/firebase";
@@ -229,6 +230,7 @@ function CartCheck({ checked }: { checked: boolean }) {
 
 export default function CartPage() {
     const { user } = useAuthStore();
+    const router = useRouter();
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
@@ -381,6 +383,25 @@ export default function CartPage() {
             keys.forEach((key) => next.delete(key));
             return next;
         });
+    };
+
+    const handleCheckout = async () => {
+        if (selectedItems.length === 0 || checkoutLoading) return;
+        setCheckoutLoading(true);
+        try {
+            const items = selectedItems.map((item) => ({
+                productId: item.product.productId,
+                title: item.product.title,
+                price: parsePrice(item.product.price),
+                thumbnail: item.product.thumbnail,
+                option: item.option,
+                qty: item.quantity,
+            }));
+            await removeProducts(Array.from(selectedKeys));
+            router.push(`/store/order?items=${encodeURIComponent(JSON.stringify(items))}`);
+        } catch {
+            setCheckoutLoading(false);
+        }
     };
 
     const openOptionModal = (item: CartItem) => {
@@ -543,10 +564,10 @@ export default function CartPage() {
                     <button
                         type="button"
                         onClick={handleCheckout}
-                        disabled={selectedItems.length === 0}
+                        disabled={selectedItems.length === 0 || checkoutLoading}
                         className="mt-5 h-[56px] w-full rounded-[16px] bg-[#826CFF] text-[20px] font-bold text-white transition hover:bg-[#6f5af2] disabled:cursor-not-allowed disabled:bg-[#d8d5ee]"
                     >
-                        {formatWon(finalTotal)} 결제하기
+                        {checkoutLoading ? "이동 중..." : `${formatWon(finalTotal)} 결제하기`}
                     </button>
                 </aside>
             </main>
