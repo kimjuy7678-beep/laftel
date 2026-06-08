@@ -7,6 +7,7 @@ import products from "@/data/store.json";
 import { db } from "@/firebase/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import type { Product } from "@/types/store";
+import { useRouter } from "next/navigation";
 
 const STORE_PRODUCTS = products as Product[];
 const SHIPPING_FEE = 3000;
@@ -232,6 +233,31 @@ export default function CartPage() {
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [optionModal, setOptionModal] = useState<OptionModalState | null>(null);
+    const router = useRouter();
+
+    const handleCheckout = () => {
+        if (selectedItems.length === 0) return;
+        const first = selectedItems[0];
+        const params = new URLSearchParams({
+            productId: first.product.productId,
+            title: first.product.title,
+            price: String(parsePrice(first.product.price) * first.quantity),
+            thumbnail: first.product.thumbnail,
+            option: first.option,
+            qty: String(first.quantity),
+            // 여러 상품이면 items에 전체를 담아서 넘겨요
+            items: JSON.stringify(selectedItems.map(item => ({
+                productId: item.product.productId,
+                title: item.product.title,
+                price: parsePrice(item.product.price),
+                thumbnail: item.product.thumbnail,
+                option: item.option,
+                qty: item.quantity,
+            }))),
+            total: String(finalTotal),
+        });
+        router.push(`/store/order?${params.toString()}`);
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -516,10 +542,11 @@ export default function CartPage() {
 
                     <button
                         type="button"
+                        onClick={handleCheckout}
                         disabled={selectedItems.length === 0}
                         className="mt-5 h-[56px] w-full rounded-[16px] bg-[#826CFF] text-[20px] font-bold text-white transition hover:bg-[#6f5af2] disabled:cursor-not-allowed disabled:bg-[#d8d5ee]"
-                    >    <Link href="/store/order">
-                            {formatWon(finalTotal)} 결제하기</Link>
+                    >
+                        {formatWon(finalTotal)} 결제하기
                     </button>
                 </aside>
             </main>

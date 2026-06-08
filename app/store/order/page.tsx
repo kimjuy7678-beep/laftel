@@ -5,9 +5,12 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Script from "next/script";
 import { useAuthStore } from "@/store/useAuthStore";
 import { db } from "@/firebase/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
+declare global { interface Window { daum: any; } }
 
 // ─── 더미 데이터 ─────────────────────────────────────────────────────────────
 const DUMMY_COUPONS = [
@@ -103,19 +106,38 @@ function EditShippingModal({ info, onSave, onClose }: {
     const set = (k: keyof ShippingInfo) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
         setForm((f) => ({ ...f, [k]: e.target.value }));
 
+    const handleAddressSearch = () => {
+        if (!window.daum?.Postcode) {
+            alert("주소 검색 서비스를 불러오는 중이에요. 잠시 후 다시 시도해주세요.");
+            return;
+        }
+        new window.daum.Postcode({
+            oncomplete: (data: any) => {
+                const address = data.roadAddress || data.jibunAddress;
+                setForm((f) => ({ ...f, zip: data.zonecode, address }));
+            },
+            theme: { bgColor: "#826CFF", searchBgColor: "#6B5CE7", contentBgColor: "#faf9ff", pageBgColor: "#f5f3ff", textColor: "#111018", queryTextColor: "#ffffff" },
+        }).open();
+    };
+
     return (
         <ModalWrap onClose={onClose} title="배송지 변경">
             <div className="space-y-3">
                 <Field label="수령인" value={form.name} onChange={set("name")} placeholder="홍길동" />
                 <Field label="연락처" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" />
-                <div className="flex gap-2">
-                    <Field label="우편번호" value={form.zip} onChange={set("zip")} placeholder="03706" />
-                    <button className="mt-5 h-10 px-4 rounded-[10px] bg-[#826CFF] text-white text-[12px] font-bold flex-shrink-0 hover:bg-[#6B5CE7] transition-colors whitespace-nowrap">
+                <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                        <Field label="우편번호" value={form.zip} onChange={set("zip")} placeholder="03706" />
+                    </div>
+                    <button
+                        onClick={handleAddressSearch}
+                        className="h-10 px-4 rounded-[10px] bg-[#826CFF] text-white text-[12px] font-bold flex-shrink-0 hover:bg-[#6B5CE7] transition-colors whitespace-nowrap flex items-center gap-1.5 mb-[1px]">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
                         주소검색
                     </button>
                 </div>
-                <Field label="주소" value={form.address} onChange={set("address")} placeholder="서울시 영등포구..." />
-                <Field label="상세주소" value={form.detail} onChange={set("detail")} placeholder="13층, 라프텔" />
+                <Field label="주소" value={form.address} onChange={set("address")} placeholder="주소검색 버튼을 눌러주세요" />
+                <Field label="상세주소" value={form.detail} onChange={set("detail")} placeholder="동/호수, 층 등 상세주소 입력" />
                 <div>
                     <label className="block text-[12px] font-semibold text-[#666] mb-1.5">배송 메모</label>
                     <select value={form.memo} onChange={set("memo")}
@@ -124,7 +146,7 @@ function EditShippingModal({ info, onSave, onClose }: {
                         <option>문 앞에 놔주세요</option>
                         <option>경비실에 맡겨 주세요</option>
                         <option>직접 받겠습니다</option>
-                        <option>벨리 와주세요</option>
+                        <option>빨리 와주세요</option>
                     </select>
                 </div>
             </div>
@@ -189,20 +211,37 @@ function OrderContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    const productId = searchParams.get("productId") ?? "unknown";
-    const title = searchParams.get("title") ?? "상품명";
-    const price = searchParams.get("price") ?? "0원";
-    const thumbnail = searchParams.get("thumbnail") ?? "";
-    const option = searchParams.get("option") ?? "기본";
-    const qty = Number(searchParams.get("qty") ?? 1);
-    const rawPrice = parseInt(price.replace(/[^0-9]/g, ""), 10) || 0;
+    // ── 상품 파싱 (단일 or 장바구니 다중) ──
+    type OrderItem = { productId: string; title: string; price: number; thumbnail: string; option: string; qty: number; };
+    const itemsParam = searchParams.get("items");
+    const items: OrderItem[] = (() => {
+        if (itemsParam) {
+            try { return JSON.parse(itemsParam) as OrderItem[]; } catch { }
+        }
+        // 단일 상품 (ProductDetail에서 직접 구매)
+        const productId = searchParams.get("productId") ?? "unknown";
+        const title = searchParams.get("title") ?? "상품명";
+        const price = parseInt((searchParams.get("price") ?? "0").replace(/[^0-9]/g, ""), 10) || 0;
+        const thumbnail = searchParams.get("thumbnail") ?? "";
+        const option = searchParams.get("option") ?? "기본";
+        const qty = Number(searchParams.get("qty") ?? 1);
+        return [{ productId, title, price, thumbnail, option, qty }];
+    })();
+    const totalItemsPrice = items.reduce((sum, i) => sum + i.price * i.qty, 0);
 
     // ── 멤버십 / 배송비 ──
-    // user.membership 필드명이 다르면 아래 한 줄만 수정하세요
     const { user } = useAuthStore();
     const isMember = !!user?.membership;
     const FREE_SHIPPING_THRESHOLD = 100000;
-    const shippingFee = isMember ? 0 : rawPrice >= FREE_SHIPPING_THRESHOLD ? 0 : 3000;
+    const shippingFee = isMember ? 0 : totalItemsPrice >= FREE_SHIPPING_THRESHOLD ? 0 : 3000;
+
+    // ── 단일 상품 호환용 (Firestore 저장 등에서 사용) ──
+    const productId = items[0]?.productId ?? "unknown";
+    const title = items[0]?.title ?? "상품명";
+    const thumbnail = items[0]?.thumbnail ?? "";
+    const option = items[0]?.option ?? "기본";
+    const qty = items[0]?.qty ?? 1;
+    const rawPrice = totalItemsPrice;
 
     // ── 주문자 정보 ──
     const [buyer, setBuyer] = useState<BuyerInfo>({ name: "라프텔", phone: "010-5959-5958", email: "laftel@naver.com" });
@@ -231,18 +270,18 @@ function OrderContent() {
 
     const baseDiscount = 8000;
     const totalDiscount = baseDiscount + couponDiscount + appliedPoint;
-    const totalPrice = Math.max(0, rawPrice + shippingFee - totalDiscount);
+    const totalPrice = Math.max(0, totalItemsPrice + shippingFee - totalDiscount);
 
     // ── 포인트 적용 ──
     const applyPoint = () => {
         const v = parseInt(pointInput.replace(/[^0-9]/g, ""), 10) || 0;
         if (v > MAX_POINTS) { setPointError(`최대 ${MAX_POINTS.toLocaleString()}P까지 사용 가능해요.`); return; }
-        if (v > rawPrice + shippingFee - baseDiscount - couponDiscount) { setPointError("사용 포인트가 결제 금액을 초과해요."); return; }
+        if (v > totalItemsPrice + shippingFee - baseDiscount - couponDiscount) { setPointError("사용 포인트가 결제 금액을 초과해요."); return; }
         setPointError("");
         setAppliedPoint(v);
     };
     const useAllPoints = () => {
-        const max = Math.min(MAX_POINTS, Math.max(0, rawPrice + shippingFee - baseDiscount - couponDiscount));
+        const max = Math.min(MAX_POINTS, Math.max(0, totalItemsPrice + shippingFee - baseDiscount - couponDiscount));
         setPointInput(String(max));
         setAppliedPoint(max);
         setPointError("");
@@ -276,14 +315,14 @@ function OrderContent() {
                     total: totalPrice,
                     usedPoints: appliedPoint,
                     createdAt: serverTimestamp(),
-                    items: [{
-                        productId,
-                        title,
-                        thumbnail,
-                        option,
-                        price: rawPrice,
-                        qty,
-                    }],
+                    items: items.map(item => ({
+                        productId: item.productId,
+                        title: item.title,
+                        thumbnail: item.thumbnail,
+                        option: item.option,
+                        price: item.price,
+                        qty: item.qty,
+                    })),
                 }
             );
             router.push(
@@ -303,6 +342,7 @@ function OrderContent() {
 
     return (
         <div className="min-h-screen bg-[#f5f3ff]">
+            <Script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" strategy="lazyOnload" />
             {showBuyerModal && (
                 <EditBuyerModal info={buyer} onSave={setBuyer} onClose={() => setShowBuyerModal(false)} />
             )}
@@ -349,10 +389,10 @@ function OrderContent() {
 
             {/* 헤더 */}
             <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[#ebe8ff]">
-                <div className="mx-auto max-w-[1770px] px-1 h-14 flex items-center">
+                <div className="mx-auto max-w-[1770px] px-[-200px] h-14 flex items-center">
                     <Link href={`/store/${productId}`} className="flex items-center gap-1.5 text-[13px] text-[#6B5CE7] hover:underline">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
-                        뒤로 돌아가기
+                        장바구니로 돌아가기
                     </Link>
                 </div>
             </header>
@@ -370,19 +410,23 @@ function OrderContent() {
 
                         {/* 상품 정보 */}
                         <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
-                            <div className="flex gap-4">
-                                {thumbnail && (
-                                    <div className="w-[100px] h-[100px] rounded-[12px] overflow-hidden bg-[#f5f3ff] flex-shrink-0 border border-[#ebe8ff]">
-                                        <img src={thumbnail} alt={title} className="w-full h-full object-cover" />
+                            <h3 className="text-[14px] font-bold text-[#111018] mb-4">주문상품 {items.length > 1 ? `(${items.length}개)` : ""}</h3>
+                            <div className="space-y-4">
+                                {items.map((item, i) => (
+                                    <div key={i} className="flex gap-4 pb-4 border-b border-[#f5f3ff] last:border-0 last:pb-0">
+                                        {item.thumbnail && (
+                                            <div className="w-[80px] h-[80px] rounded-[12px] overflow-hidden bg-[#f5f3ff] flex-shrink-0 border border-[#ebe8ff]">
+                                                <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <h2 className="text-[13px] font-bold text-[#111018] leading-snug line-clamp-2">{item.title}</h2>
+                                            {item.option !== "기본" && <p className="mt-1 text-[12px] text-[#999]">옵션: {item.option}</p>}
+                                            <p className="mt-0.5 text-[12px] text-[#bbb]">수량: {item.qty}개</p>
+                                            <p className="mt-1.5 text-[15px] font-extrabold text-[#111018]">{(item.price * item.qty).toLocaleString()}원</p>
+                                        </div>
                                     </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                    <span className="inline-block text-[10px] font-bold bg-[#f0eeff] text-[#826CFF] px-2 py-0.5 rounded-full mb-1.5">예약</span>
-                                    <h2 className="text-[14px] font-bold text-[#111018] leading-snug line-clamp-2">{title}</h2>
-                                    {option !== "기본" && <p className="mt-1 text-[12px] text-[#999]">옵션: {option}</p>}
-                                    <p className="mt-1 text-[12px] text-[#bbb]">수량: {qty}개</p>
-                                    <p className="mt-2 text-[18px] font-extrabold text-[#111018]">{rawPrice.toLocaleString()}원</p>
-                                </div>
+                                ))}
                             </div>
                         </section>
 

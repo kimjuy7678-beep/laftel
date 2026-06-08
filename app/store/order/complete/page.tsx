@@ -76,7 +76,7 @@ function OrderCompleteContent() {
                 {/* CTA 버튼 */}
                 <div className="flex gap-3 mb-10">
                     <Link
-                        href="/store/profile/payment"
+                        href="/store/profile"
                         className="h-10 px-6 rounded-full bg-[#826CFF] text-white text-[13px] font-bold hover:bg-[#6B5CE7] transition-colors shadow-md shadow-[#826cff25] flex items-center"
                     >
                         주문상세 보기
