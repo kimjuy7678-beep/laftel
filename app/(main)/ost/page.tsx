@@ -5,9 +5,6 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useRouter } from 'next/navigation'
-import MembershipRequiredModal from '@/components/MembershipRequiredModal'
-import LoginModal from '@/components/LoginModal'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const ITUNES_BASE = 'https://itunes.apple.com/search'
@@ -159,10 +156,10 @@ async function fetchHotAnimeOst(): Promise<HotAnime[]> {
                 `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=ko-KR&page=1`
             )
             const data = await res.json()
-            ;(data.results || []).forEach((anime: any) => {
-                const n = (anime.name || anime.original_name || '').toLowerCase()
-                if (anime.poster_path) tmdbPosters[n] = `https://image.tmdb.org/t/p/w200${anime.poster_path}`
-            })
+                ; (data.results || []).forEach((anime: any) => {
+                    const n = (anime.name || anime.original_name || '').toLowerCase()
+                    if (anime.poster_path) tmdbPosters[n] = `https://image.tmdb.org/t/p/w200${anime.poster_path}`
+                })
         }
     } catch { }
 
@@ -491,6 +488,7 @@ function WeeklyTop10({ tracks, playingId, onPlay }: {
                                         ? <img src={thumb} alt={t.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🎵</div>
                                     }
+                                    {/* 하단 그라디언트 + 숫자 */}
                                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 50%)' }} />
                                     <span style={{
                                         position: 'absolute', left: 10, bottom: 0,
@@ -688,8 +686,11 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
 
     return (
         <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', width: '100%', position: 'relative' }}>
+
+            {/* 사이드바 필터 — sidebarOpen 토글 */}
             {sidebarOpen && (
                 <div style={{ width: 280, flexShrink: 0, alignSelf: 'stretch', position: 'relative' }}>
+                    {/* 배경: 화면 왼쪽 끝 ~ 사이드바 오른쪽 끝, 위아래 전체 */}
                     <div style={{
                         position: 'absolute',
                         top: 0, bottom: 0,
@@ -699,6 +700,7 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                         zIndex: 28,
                         pointerEvents: 'none',
                     }} />
+                    {/* 필터: sticky로 스크롤 따라옴 */}
                     <div style={{ position: 'sticky', top: 75, maxHeight: 'calc(100vh - 75px)', overflowY: 'auto', zIndex: 30, paddingRight: 28 }}>
                         <div style={{ marginBottom: 24 }}>
                             <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em', margin: '0 0 10px' }}>타입</p>
@@ -759,7 +761,9 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                 </div>
             )}
 
+            {/* 메인 콘텐츠 */}
             <div style={{ flex: 1, minWidth: 0, paddingLeft: 10, position: 'relative', zIndex: 25 }}>
+                {/* 검색 + 필터 토글 */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 24, alignItems: 'center' }}>
                     <button onClick={() => setSidebarOpen(v => !v)}
                         style={{
@@ -794,10 +798,27 @@ function OstTab({ tracks, playingId, onPlay, onPlayAnime, newTracks, hotAnimes, 
                     </div>
                 ) : (
                     <>
-                        <NewSection tracks={newTracks} playingId={playingId} onPlay={onPlay} />
-                        <WeeklyTop10 tracks={top10} playingId={playingId} onPlay={onPlay} />
-                        <RecommendSection tracks={tracks} playingId={playingId} onPlay={onPlay} userName={userName} />
-                        <HotAnimeSection hotAnimes={hotAnimes} playingId={playingId} onPlayAnime={onPlayAnime} />
+                        <NewSection
+                            tracks={newTracks}
+                            playingId={playingId}
+                            onPlay={onPlay}
+                        />
+                        <WeeklyTop10
+                            tracks={top10}
+                            playingId={playingId}
+                            onPlay={onPlay}
+                        />
+                        <RecommendSection
+                            tracks={tracks}
+                            playingId={playingId}
+                            onPlay={onPlay}
+                            userName={userName}
+                        />
+                        <HotAnimeSection
+                            hotAnimes={hotAnimes}
+                            playingId={playingId}
+                            onPlayAnime={onPlayAnime}
+                        />
                         {['전투', '감성', '로맨스', '새벽감성', '열혈', '힐링', '오프닝', '엔딩'].map(tag => {
                             const tagged = tracks.filter(t => t.tags.includes(tag))
                             if (!tagged.length) return null
@@ -834,12 +855,6 @@ export default function OstPage() {
     const [progress, setProgress] = useState(0)
     const [volume, setVolume] = useState(0.8)
     const [cursor, setCursor] = useState({ x: -100, y: -100 })
-
-    // ── 게이트 팝업 state ──────────────────────────────────────
-    const [showLoginModal, setShowLoginModal] = useState(false)
-    const [showMembershipModal, setShowMembershipModal] = useState(false)
-    const router = useRouter()
-
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const tracksRef = useRef<Track[]>([])
@@ -918,39 +933,19 @@ export default function OstPage() {
         }
     }, [stopAudio, volume, getPlayableTracks])
 
-    const playingIdRef = useRef<string | null>(null)
-    useEffect(() => { playingIdRef.current = playingId }, [playingId])
-
-    // ── 로그인·멤버십 게이트가 적용된 handlePlay ──────────────
-    const handlePlay = useCallback((track: Track) => {
-        const currentUser = useAuthStore.getState().user
-        if (!currentUser) {
-            setShowLoginModal(true)
-            return
-        }
-        if (currentUser.membership !== 'ost' && currentUser.membership !== 'allinone') {
-            setShowMembershipModal(true)
-            return
-        }
-        if (playingIdRef.current === track.id) { stopAudio(); return }
-        startPlay(track)
-    }, [startPlay, stopAudio])
-
-    // ── 로그인·멤버십 게이트가 적용된 handlePlayAnime ─────────
     const handlePlayAnime = useCallback((anime: HotAnime) => {
-        const currentUser = useAuthStore.getState().user
-        if (!currentUser) {
-            setShowLoginModal(true)
-            return
-        }
-        if (currentUser.membership !== 'ost' && currentUser.membership !== 'allinone') {
-            setShowMembershipModal(true)
-            return
-        }
         if (!anime.tracks.length) return
         const firstPlayable = anime.tracks.find(t => t.previewUrl)
         if (firstPlayable) startPlay(firstPlayable)
-    }, [startPlay])
+    }, [startPlay, playingId])
+
+    const playingIdRef = useRef<string | null>(null)
+    useEffect(() => { playingIdRef.current = playingId }, [playingId])
+
+    const handlePlay = useCallback((track: Track) => {
+        if (playingIdRef.current === track.id) { stopAudio(); return }
+        startPlay(track)
+    }, [startPlay, stopAudio])
 
     const handleSeek = useCallback((pct: number) => {
         if (!audioRef.current) return
@@ -974,27 +969,8 @@ export default function OstPage() {
 
     return (
         <>
-            {/* ── 로그인 팝업 ────────────────────────────────── */}
-            <LoginModal
-                isOpen={showLoginModal}
-                onClose={() => setShowLoginModal(false)}
-                onLoginSuccess={() => {
-                    const u = useAuthStore.getState().user
-                    if (u?.membership !== 'ost' && u?.membership !== 'allinone') {
-                        setShowMembershipModal(true)
-                    }
-                }}
-            />
-            {/* ── 멤버십 안내 팝업 ────────────────────────────── */}
-            <MembershipRequiredModal
-                isOpen={showMembershipModal}
-                onClose={() => setShowMembershipModal(false)}
-                type="ost"
-            />
-
-            {/* ── 마우스 커서 이미지 ─────────────────────────── */}
             <div style={{
-                position: 'fixed', top: 0, left: 0, width: 40, height: 40,
+                position: 'fixed', top: 0, left: 0, width: 50, height: 50,
                 pointerEvents: 'none', zIndex: 99999,
                 transform: `translate(${cursor.x + 10}px, ${cursor.y + 10}px)`,
                 transition: 'transform .12s cubic-bezier(.25,.46,.45,.94)',
