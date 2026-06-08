@@ -6,13 +6,14 @@ import { Toaster } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import AnimePreviewModal from "./anime/[id]/AnimePreviewModal"
+import ThemeProvider from "@/components/ThemeProvider"
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const hideLayout = pathname === '/profile'    
     
     return (
-        <>
+        <ThemeProvider>
             {!hideLayout && <Header />}
             <AnimatePresence mode="wait" initial={false}>
                 <motion.main
@@ -53,6 +54,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     },
                 }}
             />
-        </>
+            </ThemeProvider>
     )
 }

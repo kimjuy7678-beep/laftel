@@ -27,7 +27,9 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
 
     const handleChange = (p: number) => {
         onChange(p);
-        document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.setTimeout(() => {
+            document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
     };
 
     return (
@@ -62,6 +64,7 @@ export default function BestPage() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 300000]);
     const [onlyInStock, setOnlyInStock] = useState(false);
+
 
     const filtered = BEST_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
@@ -211,7 +214,8 @@ export default function BestPage() {
                                 필터
                                 {activeFilterCount > 0 && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#7865ff] text-[10px] font-bold text-white">{activeFilterCount}</span>}
                             </button>
-                            <FilterDropdown open={filterOpen} priceRange={priceRange} onPriceRange={setPriceRange}
+                            <FilterDropdown onClose={() => setFilterOpen(false)}
+                                open={filterOpen} priceRange={priceRange} onPriceRange={setPriceRange}
                                 onlyInStock={onlyInStock} onOnlyInStock={setOnlyInStock} onReset={handleReset} />
                         </div>
                     </div>

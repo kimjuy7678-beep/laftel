@@ -34,7 +34,7 @@ export default function NoticePage() {
     const totalPages = Math.ceil(total / limit)
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#fff', paddingTop: 80, paddingBottom: 80 }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', paddingTop: 80, paddingBottom: 80 }}>
             <style>{`
                 .nt-wrap { width: 90%; margin: 0 auto; }
                 .nt-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 8px; border-bottom: 1px solid rgba(255,255,255,.06); text-decoration: none; transition: background .15s; }
@@ -42,12 +42,12 @@ export default function NoticePage() {
                 .nt-item:hover .nt-title { color: #6c63ff; }
                 .nt-item:hover .nt-arrow { opacity: .6; }
                 .nt-num { font-size: 13px; color: rgba(255,255,255,.25); width: 36px; text-align: center; flex-shrink: 0; }
-                .nt-title { font-size: 14px; color: rgba(255,255,255,.85); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .15s; }
+                .nt-title { font-size: 14px; color: var(--text-); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .15s; }
                 .nt-date { font-size: 12px; color: rgba(255,255,255,.3); flex-shrink: 0; margin-left: 16px; }
                 .nt-arrow { opacity: .2; flex-shrink: 0; margin-left: 10px; transition: opacity .15s; }
                 .nt-page-btn { padding: 8px 14px; border-radius: 8px; background: rgba(255,255,255,.06); border: none; color: rgba(255,255,255,.6); font-size: 13px; cursor: pointer; transition: background .15s; }
                 .nt-page-btn:hover:not(:disabled) { background: rgba(255,255,255,.12); color: #fff; }
-                .nt-page-btn:disabled { opacity: .3; cursor: default; }
+                .nt-page-btn:disabled { opacity: .3; cursor: default;primary }
                 .nt-page-num { width: 32px; height: 32px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; transition: all .15s; }
                 .nt-page-num.on { background: #6c63ff; color: #fff; }
                 .nt-page-num.off { background: rgba(255,255,255,.06); color: rgba(255,255,255,.5); }

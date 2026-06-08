@@ -51,14 +51,14 @@ function AniCard({ ani }: { ani: AniItem }) {
 
     return (
         <li
-            className="relative rounded-xl overflow-hidden bg-[#111] border border-white/[0.06] cursor-pointer
+            className="relative rounded-xl overflow-hidden bg-[var(--bg-secondary)] border border-white/[0.06] cursor-pointer
                        transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,0,0,0.7)] hover:border-white/[0.12]"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             onClick={goDetail}
         >
             {/* 미디어 영역 */}
-            <div className="relative w-full aspect-video bg-[#1a1a1a] overflow-hidden">
+            <div className="relative w-full aspect-video bg-[var(--bg-card)] overflow-hidden">
                 {/* 썸네일 */}
                 {poster ? (
                     <img
@@ -92,7 +92,7 @@ function AniCard({ ani }: { ani: AniItem }) {
 
                 {/* 평점 뱃지 */}
                 {score > 0 && (
-                    <span className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm border border-white/10
+                    <span className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm border border-[var(--border)]
                                      rounded-md px-[7px] py-[3px] text-[11px] font-bold text-amber-400 pointer-events-none">
                         ★ {score}
                     </span>
@@ -115,9 +115,9 @@ function AniCard({ ani }: { ani: AniItem }) {
                     <div>
                         <p className="text-[13px] font-bold text-white/90 truncate mb-1">{ani.name}</p>
                         <div className="flex items-center gap-[5px]">
-                            {year && <span className="text-[11px] text-white/30">{year}</span>}
+                            {year && <span className="text-[11px] text-[var(--text-faint)]">{year}</span>}
                             {genres.map(g => (
-                                <span key={g} className="text-[11px] text-white/30 bg-white/[0.06] px-[7px] py-[2px] rounded-[3px]">
+                                <span key={g} className="text-[11px] text-[var(--text-faint)] bg-white/[0.06] px-[7px] py-[2px] rounded-[3px]">
                                     {g}
                                 </span>
                             ))}
@@ -142,8 +142,8 @@ function AniCard({ ani }: { ani: AniItem }) {
                         <button
                             className="w-7 h-7 flex items-center justify-center
                                        bg-white/[0.07] hover:bg-white/[0.13]
-                                       border border-white/10 rounded-md
-                                       text-white/50 hover:text-white
+                                       border border-[var(--border)] rounded-md
+                                       text-[var(--text-muted)] hover:text-white
                                        cursor-pointer transition-all duration-200"
                             onClick={e => e.stopPropagation()}
                             title="찜하기"

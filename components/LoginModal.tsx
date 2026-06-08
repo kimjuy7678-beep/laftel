@@ -41,7 +41,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: Props) {
                 {/* 닫기 */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer"
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
                 >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -59,7 +59,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: Props) {
 
                 <div className="text-center">
                     <h3 className="text-white font-black text-xl mb-2">로그인이 필요해요</h3>
-                    <p className="text-white/40 text-sm leading-relaxed">
+                    <p className="text-[var(--text-subtle)] text-sm leading-relaxed">
                         영상을 시청하려면<br />먼저 로그인해 주세요
                     </p>
                 </div>
@@ -78,7 +78,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: Props) {
 
                 <button
                     onClick={onClose}
-                    className="text-white/25 text-xs hover:text-white/50 transition-colors cursor-pointer"
+                    className="text-[var(--text-faint)] text-xs hover:text-[var(--text-muted)] transition-colors cursor-pointer"
                 >
                     나중에 하기
                 </button>

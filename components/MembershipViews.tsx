@@ -15,7 +15,7 @@ const reviews = [
 
 export default function MembershipReviews() {
     return (
-        <div className="py-16 2xl:py-24 overflow-hidden bg-[#0a0a0a]">
+        <div className="py-16 2xl:py-24 overflow-hidden bg-[var(--bg-primary)]">
             <div className="flex flex-col items-center pt-4 pb-12 2xl:pb-16">
                 <svg className="mb-6 2xl:mb-8 3xl:mb-12" width="60" height="60" viewBox="0 0 24 24" fill="#FFD700">
                     <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
@@ -24,25 +24,25 @@ export default function MembershipReviews() {
                     <span className="text-[#6c63ff] text-4xl 2xl:text-6xl 3xl:text-8xl">150만 유저</span>
                     <span className="text-white text-4xl 2xl:text-6xl 3xl:text-8xl">의 생생한 후기</span>
                 </h2>
-                <p className="text-white/50 text-base 2xl:text-xl 3xl:text-3xl">★ 스토어 평균 별점 4.5 ★</p>
+                <p className="text-[var(--text-muted)] text-base 2xl:text-xl 3xl:text-3xl">★ 스토어 평균 별점 4.5 ★</p>
             </div>
             <div className="flex gap-6 mb-6 animate-marquee-left">
                 {[...reviews, ...reviews].map((r, i) => (
-                    <div key={i} className="shrink-0 w-96 2xl:w-[480px] 3xl:w-[640px] bg-[#1a1a1a] border border-white/5 rounded-2xl p-6 2xl:p-8">
+                    <div key={i} className="shrink-0 w-96 2xl:w-[480px] 3xl:w-[640px] bg-[var(--bg-card)] border border-[var(--border-faint)] rounded-2xl p-6 2xl:p-8">
                         <div className="flex items-center gap-1 mb-3">{[...Array(5)].map((_, j) => <span key={j} className="text-yellow-400 text-sm 2xl:text-base">★</span>)}</div>
                         <h4 className="text-white text-base 2xl:text-lg font-bold mb-2 line-clamp-1">{r.title}</h4>
-                        <p className="text-white/50 text-sm 2xl:text-base line-clamp-2">{r.body}</p>
-                        <p className="text-white/30 text-sm mt-3">{r.name}</p>
+                        <p className="text-[var(--text-muted)] text-sm 2xl:text-base line-clamp-2">{r.body}</p>
+                        <p className="text-[var(--text-faint)] text-sm mt-3">{r.name}</p>
                     </div>
                 ))}
             </div>
             <div className="flex gap-6 animate-marquee-right">
                 {[...reviews.slice(5), ...reviews, ...reviews.slice(0, 5)].map((r, i) => (
-                    <div key={i} className="shrink-0 w-96 2xl:w-[480px] 3xl:w-[640px] bg-[#1a1a1a] border border-white/5 rounded-2xl p-6 2xl:p-8">
+                    <div key={i} className="shrink-0 w-96 2xl:w-[480px] 3xl:w-[640px] bg-[var(--bg-card)] border border-[var(--border-faint)] rounded-2xl p-6 2xl:p-8">
                         <div className="flex items-center gap-1 mb-3">{[...Array(5)].map((_, j) => <span key={j} className="text-yellow-400 text-sm 2xl:text-base">★</span>)}</div>
                         <h4 className="text-white text-base 2xl:text-lg font-bold mb-2 line-clamp-1">{r.title}</h4>
-                        <p className="text-white/50 text-sm 2xl:text-base line-clamp-2">{r.body}</p>
-                        <p className="text-white/30 text-sm mt-3">{r.name}</p>
+                        <p className="text-[var(--text-muted)] text-sm 2xl:text-base line-clamp-2">{r.body}</p>
+                        <p className="text-[var(--text-faint)] text-sm mt-3">{r.name}</p>
                     </div>
                 ))}
             </div>

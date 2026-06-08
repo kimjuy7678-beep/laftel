@@ -7,7 +7,7 @@
 .title {
     font-size: 25px;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     letter-spacing: -0.4px;
     margin-bottom: 16px;
 }
@@ -22,9 +22,9 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    border: 1.5px solid var(--border);
     background: transparent;
-    color: rgba(255, 255, 255, 0.45);
+    color: var(--text-subtle);
     font-size: 25px;
     font-weight: 600;
     cursor: pointer;
@@ -36,13 +36,12 @@
 }
 
 .tab:hover {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: var(--border);
 }
 
 .tabActive {
-    background: #6c5ce7;
-    border-color: #6c5ce7;
+    background: var(--main);
+    border-color: var(--main);
     color: #fff;
 }
 
@@ -57,7 +56,7 @@
     border-radius: 10px;
     overflow: hidden;
     position: relative;
-    background: #1e1e24;
+    background: var(--bg-card);
     transition: transform .22s cubic-bezier(.25, .46, .45, .94);
 }
 
@@ -85,13 +84,13 @@
 .imgFallback {
     width: 100%;
     aspect-ratio: 16 / 9;
-    background: #1e1e24;
+    background: var(--bg-card);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 28px;
     font-weight: 800;
-    color: rgba(255, 255, 255, 0.05);
+    color: var(--text-faint);
 }
 
 .gradient {
@@ -110,7 +109,7 @@
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: rgba(108, 92, 231, 0.88);
+    background: rgba(130, 108, 255, 0.88);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -131,7 +130,7 @@
     top: 8px;
     left: 8px;
     z-index: 2;
-    background: #e84040;
+    background: var(--red);
     color: #fff;
     font-size: 13px;
     font-weight: 700;
@@ -171,7 +170,7 @@
 
 .tags {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     gap: 5px;
@@ -183,7 +182,7 @@
 }
 
 .tagsSep {
-    color: rgba(255, 255, 255, 0.2);
+    color: var(--text-faint);
 }
 
 .age {
@@ -210,7 +209,7 @@
 
 .age12 {
     background: #f5c518;
-    color: #1e1e24;
+    color: var(--bg-card);
 }
 
 .age15 {
@@ -219,12 +218,12 @@
 }
 
 .age19 {
-    background: #e84040;
+    background: var(--red);
     color: #fff;
 }
 
 .exclusive {
-    background: #6c5ce7;
+    background: var(--main);
     color: #fff;
     font-size: 10px;
     font-weight: 700;

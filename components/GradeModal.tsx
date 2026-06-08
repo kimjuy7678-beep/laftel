@@ -87,12 +87,12 @@ export default function GradeModal({ onClose }: Props) {
                 {/* 헤더 */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <h2 style={{ color: '#fff', fontSize: 17, fontWeight: 800, margin: 0 }}>라프텔 등급</h2>
+                        <h2 style={{ color: 'var(--text-primary)', fontSize: 17, fontWeight: 800, margin: 0 }}>라프텔 등급</h2>
                         <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                            <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 11, fontWeight: 700 }}>i</span>
+                            <span style={{ color: 'var(--text-subtle)', fontSize: 11, fontWeight: 700 }}>i</span>
                         </div>
                     </div>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>✕</button>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 4 }}>✕</button>
                 </div>
 
                 {/* 슬라이더 영역 */}
@@ -109,8 +109,8 @@ export default function GradeModal({ onClose }: Props) {
 
                                 {/* 등급명 */}
                                 <div style={{ textAlign: 'center' }}>
-                                    <h3 style={{ color: '#fff', fontSize: 32, fontWeight: 900, margin: '0 0 6px' }}>{g.name}</h3>
-                                    <p style={{ color: 'rgba(255,255,255,.4)', fontSize: 14, margin: 0 }}>{g.desc}</p>
+                                    <h3 style={{ color: 'var(--text-primary)', fontSize: 32, fontWeight: 900, margin: '0 0 6px' }}>{g.name}</h3>
+                                    <p style={{ color: 'var(--text-subtle)', fontSize: 14, margin: 0 }}>{g.desc}</p>
                                 </div>
 
                                 {/* 이미지 */}
@@ -119,7 +119,7 @@ export default function GradeModal({ onClose }: Props) {
                                 </div>
 
                                 {/* 설명 */}
-                                <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, textAlign: 'center', margin: 0 }}>
+                                <p style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 700, textAlign: 'center', margin: 0 }}>
                                     {g.condition}
                                 </p>
 
@@ -127,8 +127,8 @@ export default function GradeModal({ onClose }: Props) {
                                 {g.level === currentGrade.level && nextGrade && (
                                     <div style={{ width: '100%', marginTop: 4 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>다음 등급: {nextGrade.name}</span>
-                                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>{watched} / {nextGrade.req}편</span>
+                                            <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>다음 등급: {nextGrade.name}</span>
+                                            <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>{watched} / {nextGrade.req}편</span>
                                         </div>
                                         <div style={{ height: 4, background: 'rgba(255,255,255,.1)', borderRadius: 2 }}>
                                             <div style={{ height: '100%', background: g.color, borderRadius: 2, width: `${Math.min((watched / nextGrade.req) * 100, 100)}%`, transition: 'width .5s ease' }} />

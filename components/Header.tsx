@@ -59,14 +59,14 @@ function EventNotifications() {
     if (events.length === 0) return null
 
     return (
-        <div className="border-t border-white/10">
-            <p className="text-[10px] text-white/30 px-4 py-2 font-medium">진행중인 이벤트</p>
+        <div className="border-t border-[var(--border)]">
+            <p className="text-[10px] text-[var(--text-faint)] px-4 py-2 font-medium">진행중인 이벤트</p>
             {events.map((e: any) => (
                 <div key={e.id} onClick={() => router.push(`/event/${e.id}`)}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 cursor-pointer transition-colors border-b border-white/5 last:border-0">
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-hover)] cursor-pointer transition-colors border-b border-[var(--border-faint)] last:border-0">
                     <img src={e.img} alt={e.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
                     <div className="min-w-0">
-                        <p className="text-xs text-white/70 truncate">{e.name}</p>
+                        <p className="text-xs text-[var(--text-muted)] truncate">{e.name}</p>
                         <p className="text-[10px] text-[#6c63ff]">진행중</p>
                     </div>
                 </div>
@@ -163,28 +163,26 @@ export default function Header() {
 
             <header
                 className="fixed top-0 left-0 w-full z-[9999] transition-colors duration-300 py-[10px] px-[10px]"
-                style={{ background: scrolled ? '#000' : 'transparent' }}
+                style={{ background: scrolled ? 'var(--bg-primary)' : 'transparent' }}
             >
                 <div
                     className="w-full h-[55px] flex items-center justify-between px-[28px] rounded-full transition-colors duration-300"
-                    style={{ background: scrolled ? 'rgba(0,0,0,0.85)' : 'transparent' }}
+                    style={{ background: scrolled ? 'var(--bg-card)' : 'transparent' }}
                 >
-
                     {/* 좌측: 로고 + 네비게이션 */}
                     <div className="flex items-center gap-[42px]">
-                        {/* 로고 */}
                         <div className="flex items-center gap-[14px]">
                             <Link href="/" className="flex items-center gap-[12px]">
                                 <img src="/images/stone.svg" alt="" className="h-10" />
-                                <img src="/images/logo-white.svg" alt="logo" className="h-[22px] w-auto" />
+                                <img src="/images/logo-white.svg" alt="logo" className="h-[22px] w-auto dark:block hidden" />
+                                <img src="/images/logo-dark.png" alt="logo" className="h-[22px] w-auto dark:hidden block" />
                             </Link>
-                            {/* OTT / Store 토글 */}
-                            <div className="flex items-center bg-white/10 rounded-full p-[3px] gap-[2px]">
+                            <div className="flex items-center bg-[var(--border)] rounded-full p-[3px] gap-[2px]">
                                 <button
-                                    onClick={() => navigate('/', '#0a0a0a')}
+                                    onClick={() => navigate('/', 'var(--bg-primary)')}
                                     className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${!pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : 'text-white/60 hover:text-white'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                         }`}
                                 >
                                     OTT
@@ -193,7 +191,7 @@ export default function Header() {
                                     onClick={() => navigate('/store', '#ffffff')}
                                     className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : 'text-white/60 hover:text-white'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                         }`}
                                 >
                                     Store
@@ -211,8 +209,8 @@ export default function Header() {
                                                 href={menu.path}
                                                 className={`flex items-center gap-1.5 text-[15px] transition-all duration-200
                                                     ${isActive
-                                                        ? 'text-white font-extrabold'
-                                                        : 'text-white/70 font-medium hover:text-white hover:font-bold'
+                                                        ? 'text-[var(--text-primary)] font-extrabold'
+                                                        : 'text-[var(--text-muted)] font-medium hover:text-[var(--text-primary)] hover:font-bold'
                                                     }`}
                                             >
                                                 {menu.title}
@@ -222,7 +220,7 @@ export default function Header() {
                                                     </span>
                                                 )}
                                                 {menu.badge && (
-                                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#6c5ce7]/100 text-[10px] font-bold text-white">
+                                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#6c5ce7] text-[10px] font-bold text-white">
                                                         {menu.badge}
                                                     </span>
                                                 )}
@@ -236,24 +234,21 @@ export default function Header() {
 
                     {/* 우측: 아이콘 + 유저 */}
                     <div className="flex items-center gap-[8px]">
-
-                        {/* 검색 */}
                         <button
                             type="button"
                             aria-label="검색"
                             onClick={() => setSearchOpen(true)}
-                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 cursor-pointer text-[var(--text-primary)]"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                             </svg>
                         </button>
 
-                        {/* 멤버십 */}
                         <Link
                             href="/membership"
                             aria-label="멤버십"
-                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 text-white"
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
@@ -269,7 +264,7 @@ export default function Header() {
                                     if (!notiOpen && user?.uid && unreadCount > 0) markAllRead(user.uid)
                                 }}
                                 aria-label="알림"
-                                className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 text-white"
+                                className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -282,9 +277,9 @@ export default function Header() {
                             </button>
 
                             {notiOpen && (
-                                <div className="absolute right-0 top-[calc(100%+8px)] w-[320px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                                        <span className="text-sm font-bold text-white">알림</span>
+                                <div className="absolute right-0 top-[calc(100%+8px)] w-[320px] bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden z-50">
+                                    <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+                                        <span className="text-sm font-bold text-[var(--text-primary)]">알림</span>
                                         {unreadCount > 0 && (
                                             <button onClick={() => user?.uid && markAllRead(user.uid)} className="text-xs text-[#6c63ff] hover:text-[#5a52e0]">모두 읽음</button>
                                         )}
@@ -292,21 +287,21 @@ export default function Header() {
                                     <div className="overflow-y-auto max-h-[360px]">
                                         {notifications.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center py-12 gap-2">
-                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20">
+                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--text-faint)]">
                                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
                                                 </svg>
-                                                <p className="text-white/30 text-xs">알림이 없어요</p>
+                                                <p className="text-[var(--text-faint)] text-xs">알림이 없어요</p>
                                             </div>
                                         ) : (
                                             notifications.map((n) => (
                                                 <div key={n.id}
                                                     onClick={() => { if (user?.uid) markOneRead(user.uid, n.id); if (n.link) router.push(n.link); setNotiOpen(false) }}
-                                                    className={`flex items-start gap-3 px-4 py-3 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-colors ${!n.read ? 'bg-[#6c63ff]/5' : ''}`}>
+                                                    className={`flex items-start gap-3 px-4 py-3 border-b border-[var(--border-faint)] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors ${!n.read ? 'bg-[#6c63ff]/5' : ''}`}>
                                                     <span className="text-lg shrink-0">{typeIcon[n.type] || '🔔'}</span>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className={`text-xs font-medium ${!n.read ? 'text-white' : 'text-white/70'}`}>{n.title}</p>
-                                                        <p className="text-xs text-white/40 mt-0.5 leading-relaxed">{n.body}</p>
-                                                        <p className="text-[10px] text-white/25 mt-1">{formatTime(n.createdAt)}</p>
+                                                        <p className={`text-xs font-medium ${!n.read ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>{n.title}</p>
+                                                        <p className="text-xs text-[var(--text-subtle)] mt-0.5 leading-relaxed">{n.body}</p>
+                                                        <p className="text-[10px] text-[var(--text-faint)] mt-1">{formatTime(n.createdAt)}</p>
                                                     </div>
                                                     {!n.read && <div className="w-2 h-2 rounded-full bg-[#6c63ff] shrink-0 mt-1" />}
                                                 </div>
@@ -318,15 +313,10 @@ export default function Header() {
                             )}
                         </div>
 
-                        {/* 구분선 */}
-                        <div className="w-px h-5 bg-white/20 mx-1" />
+                        <div className="w-px h-5 bg-[var(--border)] mx-1" />
 
-                        {/* 유저 프로필 */}
                         {!user ? (
-                            <Link
-                                href="/login"
-                                className="text-sm text-white/80 hover:text-white transition-colors px-2"
-                            >
+                            <Link href="/login" className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors px-2">
                                 로그인
                             </Link>
                         ) : (
@@ -336,7 +326,7 @@ export default function Header() {
                                     className="flex items-center gap-[8px] cursor-pointer group h-[55px]"
                                 >
                                     <div
-                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white/30 group-hover:ring-white/60 transition-all duration-200 shrink-0"
+                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-[var(--border)] group-hover:ring-[var(--text-muted)] transition-all duration-200 shrink-0"
                                         style={{ background: memberInfo.color || '#5a52e0' }}
                                     >
                                         {avatarConfig?.svgDataUrl ? (
@@ -349,25 +339,24 @@ export default function Header() {
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-sm text-white/90 group-hover:text-white transition-colors">
+                                    <span className="text-sm text-[var(--text-high)] group-hover:text-[var(--text-primary)] transition-colors">
                                         {user.name}
                                     </span>
                                     <svg
                                         width="13" height="13" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2"
-                                        className={`text-white/60 transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
+                                        className={`text-[var(--text-muted)] transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
                                     >
                                         <path d="m6 9 6 6 6-6" />
                                     </svg>
                                 </button>
 
                                 {dropdownOpen && (
-                                    <div className="absolute right-0 top-[calc(100%+4px)] w-[300px] bg-[#141420] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-                                        {/* 프로필 헤더 */}
-                                        <div className="flex flex-col items-center gap-2 px-5 py-6 border-b border-white/10">
+                                    <div className="absolute right-0 top-[calc(100%+4px)] w-[300px] bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden z-50">
+                                        <div className="flex flex-col items-center gap-2 px-5 py-6 border-b border-[var(--border)]">
                                             <Link href="/profile" onClick={() => setDropdownOpen(false)}>
                                                 <div
-                                                    className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden mb-1 ring-2 ring-white/20 hover:ring-white/40 transition-all"
+                                                    className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden mb-1 ring-2 ring-[var(--border)] hover:ring-[var(--text-subtle)] transition-all"
                                                     style={{ background: memberInfo.color || '#6c63ff' }}
                                                 >
                                                     {avatarConfig?.svgDataUrl ? (
@@ -381,13 +370,13 @@ export default function Header() {
                                             </Link>
                                             <div className="text-center">
                                                 <Link href="/profile" onClick={() => setDropdownOpen(false)}
-                                                    className="text-white font-bold text-sm flex items-center gap-1 justify-center hover:text-white/70 transition-colors cursor-pointer">
+                                                    className="text-[var(--text-primary)] font-bold text-sm flex items-center gap-1 justify-center hover:text-[var(--text-muted)] transition-colors cursor-pointer">
                                                     {user.name || user.email?.split('@')[0]}
-                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-subtle)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                                                 </Link>
                                                 <button
                                                     onClick={() => { setGradeOpen(true); setDropdownOpen(false) }}
-                                                    className="text-white/40 text-xs mt-0.5 hover:text-white/70 transition-colors bg-transparent border-none cursor-pointer p-0 block mx-auto">
+                                                    className="text-[var(--text-subtle)] text-xs mt-0.5 hover:text-[var(--text-muted)] transition-colors bg-transparent border-none cursor-pointer p-0 block mx-auto">
                                                     😊 Lv.0 베이비
                                                 </button>
                                                 {membership !== 'none' && (
@@ -400,27 +389,26 @@ export default function Header() {
                                             <div className="flex gap-6 mt-2">
                                                 {[{ label: '별점', val: 0 }, { label: '리뷰', val: 0 }, { label: '댓글', val: 0 }].map(s => (
                                                     <div key={s.label} className="text-center">
-                                                        <p className="text-white font-black text-base">{s.val}</p>
-                                                        <p className="text-white/35 text-[11px]">{s.label}</p>
+                                                        <p className="text-[var(--text-primary)] font-black text-base">{s.val}</p>
+                                                        <p className="text-[var(--text-subtle)] text-[11px]">{s.label}</p>
                                                     </div>
                                                 ))}
                                             </div>
                                             <Link href="/library" onClick={() => setDropdownOpen(false)}
-                                                className="w-full mt-3 py-2.5 rounded-xl border border-white/10 bg-white/4 text-white/70 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-white/8 hover:text-white transition-colors">
+                                                className="w-full mt-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-muted)] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors">
                                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></svg>
                                                 보관함
                                             </Link>
                                         </div>
-                                        {/* 메뉴 리스트 */}
                                         <ul className="py-1">
                                             {DropdownMenu.map((item) => (
                                                 <li key={item.title}>
                                                     <Link href={item.path} onClick={() => setDropdownOpen(false)}
                                                         target={item.path.startsWith('http') ? '_blank' : undefined}
                                                         rel={item.path.startsWith('http') ? 'noopener noreferrer' : undefined}
-                                                        className="flex items-center justify-between px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors">
+                                                        className="flex items-center justify-between px-4 py-2.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors">
                                                         <span className="flex items-center gap-3">
-                                                            <span style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : 'rgba(255,255,255,0.5)' }}>
+                                                            <span style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : 'var(--text-subtle)' }}>
                                                                 {item.icon}
                                                             </span>
                                                             <span style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : undefined }}>
@@ -432,8 +420,8 @@ export default function Header() {
                                                 </li>
                                             ))}
                                         </ul>
-                                        <div className="border-t border-white/10 py-1">
-                                            <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors">
+                                        <div className="border-t border-[var(--border)] py-1">
+                                            <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-[var(--bg-hover)] transition-colors">
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16,17 21,12 16,7" /><line x1="21" y1="12" x2="9" y2="12" />
                                                 </svg>
