@@ -371,7 +371,7 @@ export function ProductDetail({
     const { user } = useAuthStore();
     const router = useRouter();
 
-    const handleBuy = () => {
+    const handleBuy = async () => {
         if (!user?.uid) {
             setShowLogin(true);
             return;
@@ -381,6 +381,29 @@ export function ProductDetail({
             document.getElementById("product-option")?.focus();
             return;
         }
+
+        // 중복 주문 체크
+        try {
+            const { collection, getDocs, query, where } = await import("firebase/firestore");
+            const ordersSnap = await getDocs(
+                query(
+                    collection(db, "users", user.uid, "orders"),
+                    where("status", "!=", "주문취소")
+                )
+            );
+            const alreadyOrdered = ordersSnap.docs.some((d) =>
+                (d.data().items ?? []).some((item: any) => item.productId === product.productId)
+            );
+            if (alreadyOrdered) {
+                const confirmed = window.confirm(
+                    "이미 주문한 상품이에요.\n그래도 다시 구매하시겠어요?"
+                );
+                if (!confirmed) return;
+            }
+        } catch {
+            // 체크 실패 시 그냥 진행
+        }
+
         const params = new URLSearchParams({
             productId: product.productId,
             title: product.title,
@@ -388,6 +411,7 @@ export function ProductDetail({
             thumbnail: product.thumbnail,
             option: selectedOption || "기본",
             qty: String(qty),
+            category: product.category,
         });
         router.push(`/store/order?${params.toString()}`);
     };
