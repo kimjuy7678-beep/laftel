@@ -17,6 +17,36 @@ const CATEGORIES = [
     { label: '👻 호러', genre: 27 },
 ]
 
+// 띄어쓰기 무시 정규화
+function normalize(v: string) {
+    return v.toLowerCase().replace(/[\s\-_·.,!?'"()\[\]]+/g, '')
+}
+
+// 캐릭터명 → 작품명 매핑
+const CHARACTER_MAP: Record<string, string> = {
+    '탄지로': '귀멸의 칼날', '네즈코': '귀멸의 칼날', '이노스케': '귀멸의 칼날', '젠이츠': '귀멸의 칼날',
+    '고죠': '주술회전', '이타도리': '주술회전', '메구미': '주술회전', '노바라': '주술회전',
+    '히나타': '하이큐', '카게야마': '하이큐', '니시노야': '하이큐', '아사히': '하이큐',
+    '프리렌': '장송의 프리렌', '페른': '장송의 프리렌', '슈타르크': '장송의 프리렌',
+    '나루토': '나루토', '사스케': '나루토', '사쿠라': '나루토', '카카시': '나루토',
+    '루피': '원피스', '조로': '원피스', '나미': '원피스', '상디': '원피스',
+    '에렌': '진격의 거인', '미카사': '진격의 거인', '아르민': '진격의 거인', '리바이': '진격의 거인',
+    '로이드': '스파이 패밀리', '아냐': '스파이 패밀리', '요르': '스파이 패밀리',
+    '데쿠': '나의 히어로 아카데미아', '바쿠고': '나의 히어로 아카데미아', '쇼토': '나의 히어로 아카데미아',
+    '엔': '블루 록', '이사기': '블루 록', '바기': '블루 록',
+    '데nji': '체인소맨', '파워': '체인소맨', '아키': '체인소맨',
+}
+
+function resolveQuery(q: string): string {
+    const norm = normalize(q)
+    for (const [char, anime] of Object.entries(CHARACTER_MAP)) {
+        if (normalize(char).includes(norm) || norm.includes(normalize(char))) {
+            return anime
+        }
+    }
+    return q
+}
+
 function PopularAnime({ onClose }: { onClose: () => void }) {
     const [items, setItems] = useState<any[]>([])
     const router = useRouter()
@@ -53,6 +83,7 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
+    const [charHint, setCharHint] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const router = useRouter()
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -65,12 +96,31 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
     }, [])
 
     const search = useCallback(async (q: string) => {
-        if (!q.trim()) { setResults([]); return }
+        if (!q.trim()) { setResults([]); setCharHint(null); return }
         setLoading(true)
+
+        // 캐릭터명 → 작품명 변환
+        const resolved = resolveQuery(q)
+        if (normalize(resolved) !== normalize(q)) {
+            setCharHint(resolved)
+        } else {
+            setCharHint(null)
+        }
+
+        // 3가지 형태로 검색: 원본 / 공백정리 / 띄어쓰기제거
+        const trimmed = resolved.replace(/\s+/g, ' ').trim()           // '귀 멸의  칼날' → '귀 멸의 칼날'
+        const noSpace = resolved.replace(/\s/g, '')                    // '귀멸의칼날'
+        const queries = Array.from(new Set([trimmed, noSpace]))
         try {
-            const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&language=ko-KR`)
-            const data = await res.json()
-            setResults((data.results || []).filter((r: any) => r.original_language === 'ja').slice(0, 8))
+            const allResults = await Promise.all(queries.map(async tq => {
+                const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(tq)}&language=ko-KR`)
+                const data = await res.json()
+                return (data.results || []).filter((r: any) => r.original_language === 'ja')
+            }))
+            // 중복 제거 후 병합
+            const seen = new Set<number>()
+            const merged = allResults.flat().filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true })
+            setResults(merged.slice(0, 8))
         } catch { }
         finally { setLoading(false) }
     }, [])
@@ -112,16 +162,27 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                         value={query}
                         onChange={handleChange}
                         onKeyDown={e => { if (e.key === 'Enter' && query.trim()) { onClose(); router.push(`/anime/search?q=${encodeURIComponent(query)}`) } }}
-                        placeholder="애니메이션 제목, 장르로 검색해 보세요"
+                        placeholder="애니메이션 제목, 캐릭터명으로 검색해 보세요"
                         style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 14 }}
                     />
                     {loading && <div style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite', flexShrink: 0 }} />}
                     {query && (
-                        <button onClick={() => { setQuery(''); setResults([]) }} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <button onClick={() => { setQuery(''); setResults([]); setCharHint(null) }} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
                         </button>
                     )}
+                    {/* X 닫기 버튼 */}
+                    <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 2 }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                    </button>
                 </div>
+
+                {/* 캐릭터 힌트 */}
+                {charHint && (
+                    <div style={{ margin: '-8px 16px 8px', padding: '6px 14px', background: 'rgba(108,99,255,.12)', borderRadius: 8, border: '1px solid rgba(108,99,255,.2)', fontSize: 12, color: '#a5a0ff' }}>
+                        💡 <strong>"{query}"</strong> 캐릭터 기준으로 <strong>"{charHint}"</strong> 검색 중
+                    </div>
+                )}
 
                 {/* 바디 */}
                 <div className="so-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 20px' }}>

@@ -16,7 +16,7 @@ export default function CartAlert({
 }) {
     const router = useRouter();
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/10" onClick={onClose}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/10" onClick={onClose}>
             <div onClick={e => e.stopPropagation()}
                 className="w-[480px] rounded-[20px]  backdrop-blur-[12px] shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden">
                 {/* 상단 */}

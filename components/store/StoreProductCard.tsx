@@ -185,18 +185,23 @@ export function CartButton({
             return;
         }
 
-        //if (requiresOption) { router.push(`/store/${productId}`); return; }
-
         try {
             const ref = doc(db, "users", user.uid!);
-            await setDoc(ref, { cart: arrayUnion(productId) }, { merge: true });
-            setInCart(true);
-            setShowCart(true);
-
-            // ✅ useRef로 타이머 관리 → 언마운트 시 clearTimeout으로 안전하게 정리
-            timerRef.current = setTimeout(() => {
+            if (inCart) {
+                // 이미 담긴 경우 → 취소
+                await setDoc(ref, { cart: arrayRemove(productId) }, { merge: true });
+                setInCart(false);
                 setShowCart(false);
-            }, 4000);
+                if (timerRef.current) clearTimeout(timerRef.current);
+            } else {
+                // 새로 담기
+                await setDoc(ref, { cart: arrayUnion(productId) }, { merge: true });
+                setInCart(true);
+                setShowCart(true);
+                timerRef.current = setTimeout(() => {
+                    setShowCart(false);
+                }, 4000);
+            }
         } catch (err) { console.error("🔥 [Cart ERROR]", err); }
     };
 
@@ -254,7 +259,7 @@ export default function StoreProductCard({ product }: { product: StoreProduct })
                 </Link>
 
                 {/* ✅ Link 완전히 밖 — 이벤트 충돌 없음 */}
-                <div className="absolute bottom-3 right-3 flex gap-1.5 z-10">
+                <div className="absolute bottom-3 right-3 flex gap-1.5 z-5">
                     <WishButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} disabled={isSoldout} />
                     <CartButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} requiresOption={requiresOption} disabled={isSoldout} />
                 </div>
