@@ -9,7 +9,7 @@ import SeasonSelect from "@/components/anime/SeasonSelect"
 // import EpisodeComments from "./Episodecomments"
 import EpisodeComments from "@/app/(main)/anime/[id]/Episodecomments"
 import Button from "@/components/Button"
-import VideoPlayer from "@/components/VideoPlayer"
+import VideoPlayer from "@/components/Videoplayer"
 
 export default function AnimeDetailPage() {
     const {

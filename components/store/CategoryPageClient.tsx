@@ -17,8 +17,8 @@ function parsePrice(priceStr: string): number {
     return isNaN(num) ? 0 : num;
 }
 
-function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-    return <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
+function Inner({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
 }
 
 function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
@@ -30,7 +30,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     // ✅ 페이지 변경 + 최상단 이동
     const handleChange = (p: number) => {
         onChange(p);
-        window.scrollTo(0, 0);
+        document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
     return (
@@ -82,13 +82,13 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
 
     const filtered = CATEGORY_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
-        const isReserve = p.title.includes("예약"); // 추가
+        const isReserve = p.title.includes("[예약]"); // 추가
         const matchSearch =
             p.title.toLowerCase().includes(search.toLowerCase()) ||
             p.category.toLowerCase().includes(search.toLowerCase());
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
         const matchStock = !onlyInStock || !p.soldout;
-        const matchReserve = onlyReserve ? isReserve : !isReserve; // 추가
+        const matchReserve = !onlyReserve || isReserve; // 추가
         return matchSearch && matchPrice && matchStock && matchReserve;
     });
 
@@ -128,7 +128,7 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
 
             <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
                 <Inner>
-                    <p className="mb-4 text-[12px] text-[#9b94b2]">
+                    <p className="mb-4 text-[14px] text-[#9b94b2]">
                         <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
                         <span className="mx-1.5">›</span>
                         <Link href="/store/all" className="hover:text-[#7865ff]">전체굿즈</Link>
@@ -161,7 +161,7 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                 </Inner>
             </div>
 
-            <Inner className="mt-8">
+            <Inner id="store-products" className="mt-8">
                 <div className="flex items-center justify-between">
                     <p className="text-[14px] text-[#6b647a]">총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품</p>
                     <div className="flex items-center gap-2">
