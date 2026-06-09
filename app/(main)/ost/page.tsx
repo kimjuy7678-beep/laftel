@@ -1,7 +1,6 @@
 'use client'
 import PageHeader from '@/components/PageHeader'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import Lottie from 'lottie-react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
@@ -63,6 +62,7 @@ function classifyTrack(item: any): { type: Track['type']; tags: string[] } {
 function extractAnimeName(item: any): string {
     const col: string = item.collectionName || ''
     const trackName: string = item.trackName || ''
+
 
     // collectionName에 알려진 애니 키워드가 있으면 그게 애니명
     const knownAnime = [
@@ -1073,9 +1073,8 @@ export default function OstPage() {
                         <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '8px 0 0' }}>애니메이션 속 그 노래, 여기서 다시 들어요</p>
                     </div>
                     {loading && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, fontSize: 12, color: 'var(--text-faint)' }}>
-                            <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                            {loadCount}곡 로드 중...
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                            <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{loadCount}곡 로드 중...</span>
                         </div>
                     )}
                     <OstTab
