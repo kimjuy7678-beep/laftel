@@ -102,8 +102,8 @@ function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void })
     const isLeft = slide.textAlign === "left";
 
     return (
-        <div className="relative w-full overflow-hidden rounded-[20px] cursor-grab active:cursor-grabbing select-none"
-            style={{ backgroundColor: slide.bg, minHeight: 620 }}
+        <div className="relative min-h-[430px] w-full cursor-grab select-none overflow-hidden rounded-[16px] active:cursor-grabbing sm:min-h-[500px] sm:rounded-[20px] lg:min-h-[620px]"
+            style={{ backgroundColor: slide.bg }}
             onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={() => setIsDragging(false)}
             onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
             <div className="hidden md:block">
@@ -114,17 +114,29 @@ function HeroBanner({ onSeriesSelect }: { onSeriesSelect: (s: string) => void })
             </div>
             <div className="absolute inset-0 md:hidden" style={{ backgroundColor: slide.bg }} />
             <div className="absolute inset-0 hidden md:block"
-                style={{ background: isLeft ? "linear-gradient(to right, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, transparent 100%)" : "linear-gradient(to left, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, transparent 100%)" }} />
-            <div className="absolute top-4 right-4 z-20 md:hidden" style={{ animation: "pulse 3s ease-in-out infinite" }}>
-                <span className="rounded-full bg-white/20 px-3 py-1.5 text-[12px] font-bold text-white/90 backdrop-blur-sm tracking-wide">더 큰 화면에서 이미지를 확인하세요</span>
+                style={{
+                    background: isLeft
+                        ? "linear-gradient(to right, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, transparent 100%)"
+                        : "linear-gradient(to left, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, transparent 100%)"
+                }} />
+            {/* 모바일 안내 문구 */}
+            <div className="absolute right-3 top-3 z-20 md:hidden" style={{ animation: "pulse 3s ease-in-out infinite" }}>
+                <span className="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white/90 backdrop-blur-sm sm:px-3 sm:py-1.5 sm:text-[12px]">
+                    더 큰 화면에서 이미지를 확인하세요
+                </span>
             </div>
-            <div className="relative z-10 flex min-h-[620px] flex-col justify-center px-8 py-12 md:px-14 md:py-14">
-                <div className="flex flex-col w-full" style={{ alignItems: isMobile ? "flex-start" : (isLeft ? "flex-start" : "flex-end"), textAlign: isMobile ? "left" : (isLeft ? "left" : "right") }}>
-                    <span className="mb-3 text-[11px] md:text-[13px] font-bold uppercase tracking-widest opacity-80" style={{ color: slide.tagColor }}>{slide.tag}</span>
-                    <h2 className="mb-3 text-[32px] md:text-[58px] font-extrabold leading-tight whitespace-pre-line drop-shadow-lg" style={{ color: slide.textColor }}>{slide.title}</h2>
-                    <p className="mb-8 max-w-[480px] md:max-w-[540px] whitespace-pre-line text-[13px] md:text-[15px] leading-[1.9] opacity-90" style={{ color: slide.textColor }}>{slide.desc}</p>
-                    <button onClick={() => { if (!isDragging) onSeriesSelect(slide.series); }}
-                        className="inline-flex w-fit items-center gap-2 rounded-full border-2 px-6 py-2.5 md:px-7 md:py-3 text-[13px] md:text-[14px] font-semibold transition hover:opacity-80"
+            {/* 텍스트 콘텐츠 */}
+            <div className="relative z-10 flex min-h-[430px] flex-col justify-center px-5 py-12 sm:min-h-[500px] sm:px-8 md:px-14 md:py-14 lg:min-h-[620px]">
+                <div className="flex flex-col w-full" style={{
+                    alignItems: isMobile ? "flex-start" : (isLeft ? "flex-start" : "flex-end"),
+                    textAlign: isMobile ? "left" : (isLeft ? "left" : "right"),
+                }}>
+                    <span className="mb-3 text-[10px] font-bold uppercase tracking-widest opacity-80 md:text-[13px]" style={{ color: slide.tagColor }}>{slide.tag}</span>
+                    <h2 className="mb-3 whitespace-pre-line text-[30px] font-extrabold leading-tight drop-shadow-lg sm:text-[38px] md:text-[58px]" style={{ color: slide.textColor }}>{slide.title}</h2>
+                    <p className="mb-6 max-w-[92%] whitespace-pre-line text-[12px] leading-[1.75] opacity-90 sm:mb-8 sm:max-w-[480px] sm:text-[13px] md:max-w-[540px] md:text-[15px] md:leading-[1.9]" style={{ color: slide.textColor }}>{slide.desc}</p>
+                    <button
+                        onClick={() => { if (!isDragging) onSeriesSelect(slide.series); }}
+                        className="inline-flex w-fit items-center gap-2 rounded-full border-2 px-5 py-2.5 text-[12px] font-semibold transition hover:opacity-80 md:px-7 md:py-3 md:text-[14px]"
                         style={{ borderColor: slide.btnBorder, color: slide.textColor }}>
                         굿즈보러가기
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
@@ -146,6 +158,9 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     const groupStart = groupIndex * PAGE_GROUP + 1;
     const groupEnd = Math.min(groupStart + PAGE_GROUP - 1, total);
     const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
+    const hasPrevGroup = groupStart > 1;
+    const hasNextGroup = groupEnd < total;
+    // ✅ 페이지 변경 + 최상단 이동
     const handleChange = (p: number) => {
         onChange(p);
         document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -244,7 +259,8 @@ export default function StoreListPage() {
                 </Inner>
             </div>
 
-            <Inner className="mt-6">
+            {/* 히어로 배너 */}
+            <Inner className="mt-6 hidden md:block">
                 <HeroBanner onSeriesSelect={handleSeriesSelect} />
             </Inner>
 

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import products from "@/data/store.json";
-import { useAuthStore } from "@/store/useAuthStore";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 import StoreSidebar from "@/components/store/StoreSliaebar";
 import FilterDropdown from "@/components/store/FilterDropdown";
@@ -19,7 +18,7 @@ function parsePrice(priceStr: string): number {
 }
 
 function Inner({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
-    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
+    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
 }
 
 function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
@@ -32,21 +31,23 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
         document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
     return (
-        <div className="mt-16 flex items-center justify-center gap-2">
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-1.5 sm:mt-16 sm:gap-2">
             <button onClick={() => handleChange(Math.max(1, current - 1))} disabled={current === 1}
-                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-10">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            {groupStart > 1 && <button onClick={() => handleChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            {groupStart > 1 && <button onClick={() => handleChange(groupStart - 1)} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]">···</button>}
             {pages.map((p) => (
                 <button key={p} onClick={() => handleChange(p)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${p === current ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]" : "bg-white border border-[#d8d4ee] text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
+                    className={`flex h-9 w-9 items-center justify-center rounded-[10px] text-[13px] font-medium transition sm:h-10 sm:w-10 sm:text-[14px] ${p === current
+                        ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]"
+                        : "bg-white border border-[#d8d4ee] text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
                     {p}
                 </button>
             ))}
-            {groupEnd < total && <button onClick={() => handleChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            {groupEnd < total && <button onClick={() => handleChange(groupEnd + 1)} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]">···</button>}
             <button onClick={() => handleChange(Math.min(total, current + 1))} disabled={current === total}
-                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-10">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
         </div>
@@ -62,7 +63,6 @@ type CategoryPageProps = {
 };
 
 export default function CategoryPageClient({ title, keywords, desc }: CategoryPageProps) {
-    const { user } = useAuthStore();
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState("인기순");
@@ -107,7 +107,8 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                     </button>
                 </Inner>
             </div>
-            <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
+
+            <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-8 sm:py-10">
                 <Inner>
                     <p className="mb-4 text-[14px] text-[#9b94b2]">
                         <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
@@ -116,23 +117,34 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                         <span className="mx-1.5">›</span>
                         <span className="font-medium text-[#7865ff]">{title}</span>
                     </p>
-                    <div className="flex items-end justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <h1 className="text-[32px] font-bold text-[#16121f]">{title}</h1>
+                            <h1 className="text-[24px] font-bold text-[#16121f] sm:text-[32px]">{title}</h1>
                             {desc && <p className="mt-1 text-[14px] text-[#9b94b2]">{desc}</p>}
                         </div>
-                        <div className="flex h-[44px] w-[340px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)]">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" /><path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-                            <input className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
-                                placeholder="찾으시는 상품을 검색하세요" value={search} onChange={(e) => setSearch(e.target.value)} />
-                            {search && <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg></button>}
+                        <div className="flex h-[44px] w-full items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)] sm:w-[340px]">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]">
+                                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                                <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            <input
+                                className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
+                                placeholder="찾으시는 상품을 검색하세요"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                            {search && (
+                                <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </Inner>
             </div>
 
             <Inner id="store-products" className="mt-8">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                     <p className="text-[14px] text-[#6b647a]">총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품</p>
                     <div className="flex items-center gap-2">
                         <SortDropdown value={sort} onChange={(v) => { setSort(v); setPage(1); }} />
@@ -143,7 +155,17 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                                 필터
                                 {activeFilterCount > 0 && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#7865ff] text-[10px] font-bold text-white">{activeFilterCount}</span>}
                             </button>
-                            <FilterDropdown open={filterOpen} onClose={() => setFilterOpen(false)} priceRange={priceRange} onPriceRange={setPriceRange} onlyInStock={onlyInStock} onOnlyInStock={setOnlyInStock} onlyReserve={onlyReserve} onOnlyReserve={setOnlyReserve} onReset={handleReset} />
+                            <FilterDropdown
+                                open={filterOpen}
+                                onClose={() => setFilterOpen(false)}
+                                priceRange={priceRange}
+                                onPriceRange={setPriceRange}
+                                onlyInStock={onlyInStock}
+                                onOnlyInStock={setOnlyInStock}
+                                onlyReserve={onlyReserve}
+                                onOnlyReserve={setOnlyReserve}
+                                onReset={handleReset}
+                            />
                         </div>
                     </div>
                 </div>
@@ -157,7 +179,7 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                         {(search || activeFilterCount > 0) && <button onClick={() => { setSearch(""); handleReset(); }} className="text-[13px] text-[#7865ff] underline">필터 초기화</button>}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-6 lg:gap-y-10">
                         {paginated.map((product) => (
                             <StoreProductCard key={product.productId} product={product} />
                         ))}
