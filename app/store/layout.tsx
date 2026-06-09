@@ -3,6 +3,7 @@
 
 import Header from "@/components/store/StoreHeader";
 import Footer from "@/components/Footer";
+import StoreScrollTopButton from "@/components/store/StoreScrollTopButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 
@@ -14,7 +15,7 @@ export default function StoreLayout({
     const pathname = usePathname();
 
     return (
-        <div className="bg-white min-h-screen">
+        <div className="bg-white min-h-auto">
             <Header />
             <AnimatePresence mode="wait" initial={false}>
                 <motion.main
@@ -28,6 +29,7 @@ export default function StoreLayout({
                     {children}
                 </motion.main>
             </AnimatePresence>
+            <StoreScrollTopButton />
             <Footer variant="store" />
         </div>
     );

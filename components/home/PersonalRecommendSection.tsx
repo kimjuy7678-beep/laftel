@@ -102,7 +102,7 @@ export default function PersonalRecommendSection() {
                 .pr-pill { position: absolute; top: 8px; left: 8px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: rgba(108,99,255,0.85); color: #fff; }
                 .pr-info { padding: 10px 10px 12px; }
                 .pr-name { font-size: 14px; font-weight: 600; color: var(--text-high); margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-                .pr-divider { height: 1px; background: var(--border-faint); margin-bottom: 48px; }
+  
             `}</style>
 
             <div className="pr-wrap">
@@ -118,7 +118,7 @@ export default function PersonalRecommendSection() {
                     </div>
                 </div>
 
-                <div className="pr-divider" />
+
 
                 {sections.map((sec: any) => (
                     <div key={sec.genreKey} className="pr-section">

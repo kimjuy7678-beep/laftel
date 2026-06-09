@@ -61,7 +61,7 @@ function SeriesTab({ selected, onSelect }: { selected: string; onSelect: (s: str
     return (
         <div className="relative flex items-center gap-2">
             <button onClick={() => scrollBy("left")}
-                className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-[#e2ddf5] bg-white text-[#7865ff] shadow-sm transition hover:bg-[#f0eeff]">
+                className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#e2ddf5] bg-white text-[#7865ff] shadow-sm transition hover:bg-[#f0eeff] sm:flex">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
             <div ref={scrollRef}
@@ -78,7 +78,7 @@ function SeriesTab({ selected, onSelect }: { selected: string; onSelect: (s: str
                 ))}
             </div>
             <button onClick={() => scrollBy("right")}
-                className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-[#e2ddf5] bg-white text-[#7865ff] shadow-sm transition hover:bg-[#f0eeff]">
+                className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#e2ddf5] bg-white text-[#7865ff] shadow-sm transition hover:bg-[#f0eeff] sm:flex">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
         </div>
@@ -319,7 +319,7 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
                         )}
                     </div>
                 ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "40px 24px" }}>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-6 lg:gap-y-10">
                         {paginated.map((product) => (
                             <StoreProductCard key={product.productId} product={product} />
                         ))}

@@ -7,7 +7,7 @@ interface PointHistory {
     id: string
     amount: number
     createdAt: any
-    type: 'charge' | 'use'
+    type: 'earn' | 'use'
     label: string
 }
 
@@ -66,11 +66,17 @@ export const usePointStore = create<PointStore>((set) => ({
 
     fetchHistory: async (uid) => {
         const q = query(
-            collection(db, "users", uid, "point_history"),
+            collection(db, "users", uid, "pointHistory"),
             orderBy("createdAt", "desc")
         )
+
         const snap = await getDocs(q)
-        const history = snap.docs.map(d => ({ id: d.id, ...d.data() })) as PointHistory[]
+
+        const history = snap.docs.map(d => ({
+            id: d.id,
+            ...d.data()
+        })) as PointHistory[]
+
         set({ history })
     },
 }))
