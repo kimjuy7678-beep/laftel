@@ -152,7 +152,6 @@ export default function ProfilePage() {
         if (!snap.data()?.onboardingDone) {
             useAuthStore.setState({ isNewUser: true })
         }
-
         router.push('/')
     }
 
@@ -164,13 +163,6 @@ export default function ProfilePage() {
             setStep('pin_enter')
         } else { enterProfile(p) }
     }
-
-    const handlePinDigit = async (d: string) => {
-        if (pinLocked) return
-        const next = (pinInput + d).slice(0, 4); setPinInput(next); setPinError('')
-        if (next.length === 4) await verifyPin(next)
-    }
-    const handlePinDelete = () => { setPinInput(p => p.slice(0, -1)); setPinError('') }
 
     const verifyPin = async (pin: string) => {
         if (!pendingProfile) return
@@ -217,20 +209,6 @@ export default function ProfilePage() {
             setProfiles(newProfiles)
         } catch (e) { console.error(e) }
         finally { setSaving(false) }
-    }
-
-    const handlePinSetupDigit = (d: string) => {
-        const next = (pinInput + d).slice(0, 4); setPinInput(next); setPinError('')
-        if (next.length === 4) setTimeout(() => setStep('pin_setup_confirm'), 150)
-    }
-
-    const handlePinConfirmDigit = async (d: string) => {
-        const next = (pinConfirm + d).slice(0, 4); setPinConfirm(next); setPinConfirmError('')
-        if (next.length === 4) {
-            if (next !== pinInput) {
-                setPinConfirmError('PIN이 일치하지 않습니다'); setTimeout(() => { setPinConfirm(''); setPinInput(''); setStep('pin_setup') }, 1000)
-            } else { await savePinHash(next) }
-        }
     }
 
     const savePinHash = async (pin: string) => {
@@ -327,10 +305,25 @@ export default function ProfilePage() {
         finally { setSaving(false) }
     }
 
-    const handleAgePwNext = () => {
-        if (!agePw.trim()) { setAgePwError('비밀번호를 입력해주세요.'); return }
+    const handleAgePinInput = async (v: string) => {
+        setAgePw(v)
         setAgePwError('')
-        setStep('age_select')
+        if (v.length === 4) {
+            const profile = profiles.find(p => p.id === editingId)
+            if (!profile?.pinHash) {
+                // PIN 없는 프로필은 바로 통과
+                setStep('age_select')
+                return
+            }
+            const hashed = await hashPin(v)
+            if (hashed === profile.pinHash) {
+                setAgePw('')
+                setStep('age_select')
+            } else {
+                setAgePwError('PIN이 올바르지 않습니다.')
+                setTimeout(() => setAgePw(''), 600)
+            }
+        }
     }
 
     const processFile = async (file: File) => {
@@ -376,7 +369,6 @@ export default function ProfilePage() {
                 .img-tab.on { color: var(--text-primary); border-bottom-color: #6c63ff; }
                 .drop-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 48px 24px; text-align: center; transition: all .2s; cursor: pointer; }
                 .drop-zone.dragging { border-color: #6c63ff; background: rgba(108,99,255,.08); }
-
                 .pf-card { display: flex; flex-direction: column; align-items: center; gap: 16px; cursor: pointer; transition: transform .2s; }
                 .pf-card:hover { transform: scale(1.05); }
                 .pf-avatar-wrap { width: 180px; height: 180px; border-radius: 50%; overflow: hidden; background: var(--bg-card); transition: border .2s, box-shadow .2s; border: 4px solid transparent; }
@@ -385,7 +377,6 @@ export default function ProfilePage() {
                 .pf-card-name { font-size: 16px; font-weight: 500; color: var(--text-muted); transition: color .2s; }
                 .pf-card:hover .pf-card-name { color: var(--text-primary); }
                 .pf-card.selected .pf-card-name { color: var(--text-primary); font-weight: 700; }
-                @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
                 @keyframes pin-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
             `}</style>
 
@@ -405,7 +396,7 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* ── PIN 입력 ── */}
+            {/* PIN 입력 */}
             {step === 'pin_enter' && pendingProfile && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -423,12 +414,8 @@ export default function ProfilePage() {
                         {!showForgotPin && (
                             <div style={{ position: 'relative', marginBottom: pinError ? 8 : 40 }}>
                                 <input
-                                    type="password"
-                                    inputMode="numeric"
-                                    maxLength={4}
-                                    value={pinInput}
-                                    disabled={pinLocked}
-                                    autoFocus
+                                    type="password" inputMode="numeric" maxLength={4} value={pinInput}
+                                    disabled={pinLocked} autoFocus
                                     onChange={async e => {
                                         const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
                                         setPinInput(v); setPinError('')
@@ -438,25 +425,14 @@ export default function ProfilePage() {
                                 />
                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 28, padding: '16px 0', borderBottom: `1px solid ${pinError ? '#f87171' : '#6c63ff'}` }}>
                                     {[0, 1, 2, 3].map(i => (
-                                        <div key={i} style={{
-                                            width: i < pinInput.length ? 14 : 12,
-                                            height: i < pinInput.length ? 14 : 12,
-                                            borderRadius: '50%',
-                                            background: i < pinInput.length ? (pinError ? '#f87171' : '#6c63ff') : 'var(--border)',
-                                            transition: 'all .15s',
-                                            opacity: pinLocked ? .4 : 1,
-                                        }} />
+                                        <div key={i} style={{ width: i < pinInput.length ? 14 : 12, height: i < pinInput.length ? 14 : 12, borderRadius: '50%', background: i < pinInput.length ? (pinError ? '#f87171' : '#6c63ff') : 'var(--border)', transition: 'all .15s', opacity: pinLocked ? .4 : 1 }} />
                                     ))}
                                 </div>
                             </div>
                         )}
                         {pinError && <p style={{ color: '#f87171', fontSize: 12, margin: '0 0 28px', fontWeight: 600 }}>{pinError}</p>}
-
                         {!showForgotPin ? (
-                            <button onClick={() => setShowForgotPin(true)}
-                                style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
-                                PIN을 잊으셨나요?
-                            </button>
+                            <button onClick={() => setShowForgotPin(true)} style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>PIN을 잊으셨나요?</button>
                         ) : forgotPinSent ? (
                             <div style={{ background: 'rgba(108,99,255,.08)', borderRadius: 12, border: '1px solid rgba(108,99,255,.2)', padding: '20px', animation: 'pin-fade .3s ease' }}>
                                 <p style={{ color: '#9d97ff', fontSize: 14, fontWeight: 700, margin: '0 0 8px' }}>✉️ 이메일을 전송했어요</p>
@@ -474,8 +450,7 @@ export default function ProfilePage() {
                                     <strong style={{ color: 'var(--text-primary)' }}>{user?.email}</strong>으로<br />PIN 초기화 메일을 보내드릴게요.<br />해당 프로필의 PIN이 즉시 제거됩니다.
                                 </p>
                                 <div style={{ display: 'flex', gap: 8 }}>
-                                    <button onClick={() => setShowForgotPin(false)}
-                                        style={{ flex: 1, padding: '12px', background: 'none', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-subtle)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>취소</button>
+                                    <button onClick={() => setShowForgotPin(false)} style={{ flex: 1, padding: '12px', background: 'none', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-subtle)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>취소</button>
                                     <button onClick={handleForgotPin} disabled={forgotPinLoading}
                                         style={{ flex: 1, padding: '12px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: forgotPinLoading ? 'default' : 'pointer', opacity: forgotPinLoading ? .7 : 1, fontFamily: 'inherit' }}>
                                         {forgotPinLoading ? '처리 중...' : '이메일 전송'}
@@ -495,7 +470,7 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* ── PIN 설정 ── */}
+            {/* PIN 설정 */}
             {(step === 'pin_setup' || step === 'pin_setup_confirm') && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -512,12 +487,8 @@ export default function ProfilePage() {
                             return (
                                 <div style={{ position: 'relative', marginBottom: err ? 8 : 40 }}>
                                     <input
-                                        type="password"
-                                        inputMode="numeric"
-                                        maxLength={4}
-                                        value={val}
-                                        autoFocus
-                                        disabled={saving}
+                                        type="password" inputMode="numeric" maxLength={4} value={val}
+                                        autoFocus disabled={saving}
                                         onChange={async e => {
                                             const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
                                             if (isSetup) {
@@ -537,14 +508,7 @@ export default function ProfilePage() {
                                     />
                                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 28, padding: '16px 0', borderBottom: `1px solid ${err ? '#f87171' : '#6c63ff'}` }}>
                                         {[0, 1, 2, 3].map(i => (
-                                            <div key={i} style={{
-                                                width: i < val.length ? 14 : 12,
-                                                height: i < val.length ? 14 : 12,
-                                                borderRadius: '50%',
-                                                background: i < val.length ? (err ? '#f87171' : '#6c63ff') : 'var(--border)',
-                                                transition: 'all .15s',
-                                                opacity: saving ? .6 : 1,
-                                            }} />
+                                            <div key={i} style={{ width: i < val.length ? 14 : 12, height: i < val.length ? 14 : 12, borderRadius: '50%', background: i < val.length ? (err ? '#f87171' : '#6c63ff') : 'var(--border)', transition: 'all .15s', opacity: saving ? .6 : 1 }} />
                                         ))}
                                     </div>
                                 </div>
@@ -568,16 +532,15 @@ export default function ProfilePage() {
             )}
 
             {(step === 'age_pw' || step === 'age_select') && (
-                <h1 style={{ fontSize: 32, fontWeight: 900, color: '#6c63ff', letterSpacing: 2, marginBottom: 32, fontStyle: 'italic' }}>LAFTEL</h1>
+                <img src="/images/logo-white.svg" alt="" style={{ display: 'block', marginBottom: '30px' }} />
             )}
 
-            {/* ── STEP 1: 프로필 선택 ── */}
+            {/* 프로필 선택 */}
             {step === 'select' && (
                 <div className="pf-page">
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
                         <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>프로필 선택</h1>
                     </div>
-
                     <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 40, marginBottom: 64 }}>
                         {profiles.map(p => {
                             const isSelected = selectedProfileId === p.id
@@ -585,14 +548,12 @@ export default function ProfilePage() {
                             return (
                                 <div key={p.id} className={`pf-card${isSelected ? ' selected' : ''}`} onClick={() => handleProfileClick(p)}>
                                     <div className="pf-avatar-wrap" style={{ position: 'relative' }}>
-                                        <img src={p.avatarUrl} alt={p.nickname}
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        <img src={p.avatarUrl} alt={p.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
                                         {p.pinHash && (
                                             <div style={{ position: 'absolute', bottom: 6, right: 6, width: 26, height: 26, background: 'var(--bg-secondary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(108,99,255,.5)' }}>
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(108,99,255,.9)" strokeWidth="2.5">
-                                                    <rect x="3" y="11" width="18" height="11" rx="2" />
-                                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                                    <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                                                 </svg>
                                             </div>
                                         )}
@@ -618,58 +579,40 @@ export default function ProfilePage() {
                                 </div>
                             )
                         })}
-
                         {profiles.length < 4 && (
                             <div className="pf-card" onClick={() => hasMembership ? openNew() : setShowPremiumModal(true)}>
-                                <div className="pf-avatar-wrap" style={{
-                                    background: hasMembership ? 'rgba(108,99,255,.1)' : 'var(--bg-hover)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    borderColor: hasMembership ? 'rgba(108,99,255,.3)' : 'var(--border)',
-                                }}>
-                                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none"
-                                        stroke={hasMembership ? '#9d97ff' : 'var(--text-faint)'} strokeWidth="1.5">
+                                <div className="pf-avatar-wrap" style={{ background: hasMembership ? 'rgba(108,99,255,.1)' : 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderColor: hasMembership ? 'rgba(108,99,255,.3)' : 'var(--border)' }}>
+                                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke={hasMembership ? '#9d97ff' : 'var(--text-faint)'} strokeWidth="1.5">
                                         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                                     </svg>
                                 </div>
                                 <span className="pf-card-name">
                                     프로필 추가
-                                    {!hasMembership && (
-                                        <span style={{ display: 'block', fontSize: 11, color: '#6c63ff', marginTop: 4, textAlign: 'center' }}>멤버십 필요</span>
-                                    )}
+                                    {!hasMembership && <span style={{ display: 'block', fontSize: 11, color: '#6c63ff', marginTop: 4, textAlign: 'center' }}>멤버십 필요</span>}
                                 </span>
                             </div>
                         )}
                     </div>
-
-                    {/* 프로필 편집 버튼 */}
+                    {memberInfo && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, padding: '6px 16px', borderRadius: 20, background: `${memberInfo.color}20`, color: memberInfo.color, border: `1px solid ${memberInfo.color}40` }}>
+                                ✓ {memberInfo.label} 이용중
+                            </span>
+                        </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <button
-                            onClick={() => {
-                                const target = profiles.find(p => p.id === selectedProfileId) || profiles[0]
-                                if (target) openEdit(target)
-                            }}
-                            style={{
-                                padding: '12px 48px',
-                                background: 'none',
-                                border: '1px solid var(--border)',
-                                borderRadius: 4,
-                                color: 'var(--text-muted)',
-                                fontSize: 16,
-                                fontWeight: 400,
-                                cursor: 'pointer',
-                                letterSpacing: '0.05em',
-                                transition: 'all .2s',
-                            }}
+                            onClick={() => { const target = profiles.find(p => p.id === selectedProfileId) || profiles[0]; if (target) openEdit(target) }}
+                            style={{ padding: '12px 48px', background: 'none', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-muted)', fontSize: 16, fontWeight: 400, cursor: 'pointer', letterSpacing: '0.05em', transition: 'all .2s' }}
                             onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--text-primary)' }}
-                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
-                        >
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}>
                             프로필 편집
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* ── STEP 2: 프로필 편집 ── */}
+            {/* 프로필 편집 */}
             {step === 'edit' && (
                 <div className="pf-page">
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -705,15 +648,12 @@ export default function ProfilePage() {
                                 </div>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-subtle)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                             </div>
-
                             {editingId && (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', marginTop: 4 }}>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                                             <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, margin: 0 }}>프로필 잠금 (PIN)</p>
-                                            {editingHasPin && (
-                                                <span style={{ fontSize: 10, background: 'rgba(108,99,255,.2)', color: '#9d97ff', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>설정됨</span>
-                                            )}
+                                            {editingHasPin && <span style={{ fontSize: 10, background: 'rgba(108,99,255,.2)', color: '#9d97ff', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>설정됨</span>}
                                         </div>
                                         <p style={{ color: 'var(--text-subtle)', fontSize: 12, margin: 0 }}>
                                             {editingHasPin ? '입장 시 PIN 4자리 필요' : '설정하면 이 프로필 입장 시 번호 입력'}
@@ -722,20 +662,11 @@ export default function ProfilePage() {
                                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                                         {editingHasPin ? (
                                             <>
-                                                <button onClick={openPinSetup}
-                                                    style={{ padding: '7px 14px', background: 'rgba(108,99,255,.12)', border: '1px solid rgba(108,99,255,.3)', borderRadius: 8, color: '#9d97ff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                                                    변경
-                                                </button>
-                                                <button onClick={removePin} disabled={saving}
-                                                    style={{ padding: '7px 14px', background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-subtle)', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving ? .6 : 1 }}>
-                                                    {saving ? '...' : '해제'}
-                                                </button>
+                                                <button onClick={openPinSetup} style={{ padding: '7px 14px', background: 'rgba(108,99,255,.12)', border: '1px solid rgba(108,99,255,.3)', borderRadius: 8, color: '#9d97ff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>변경</button>
+                                                <button onClick={removePin} disabled={saving} style={{ padding: '7px 14px', background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-subtle)', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving ? .6 : 1 }}>{saving ? '...' : '해제'}</button>
                                             </>
                                         ) : (
-                                            <button onClick={openPinSetup}
-                                                style={{ padding: '7px 18px', background: '#6c63ff', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                                                PIN 설정
-                                            </button>
+                                            <button onClick={openPinSetup} style={{ padding: '7px 18px', background: '#6c63ff', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>PIN 설정</button>
                                         )}
                                     </div>
                                 </div>
@@ -759,7 +690,7 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* ── STEP 3: 이미지 선택 ── */}
+            {/* 이미지 선택 */}
             {step === 'image' && (
                 <div style={{ width: '100%', maxWidth: 560, animation: 'fade-up .3s ease' }}>
                     <div style={{ background: 'var(--bg-card)', borderRadius: 20, padding: '28px 24px', border: '1px solid var(--border-subtle)' }}>
@@ -802,7 +733,7 @@ export default function ProfilePage() {
                                     onDrop={handleDrop}>
                                     {customPreview ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                                            <div style={{ width: 100, height: 100, borderRadius: "50%", overflow: 'hidden', border: '3px solid #6c63ff' }}>
+                                            <div style={{ width: 100, height: 100, borderRadius: '50%', overflow: 'hidden', border: '3px solid #6c63ff' }}>
                                                 <img src={customPreview} alt="custom" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             </div>
                                             <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>클릭해서 다른 이미지 선택</p>
@@ -821,41 +752,64 @@ export default function ProfilePage() {
                             </>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
-                            <button onClick={() => setStep('edit')}
-                                style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>취소</button>
-                            <button onClick={() => setStep('edit')}
-                                style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>선택</button>
+                            <button onClick={() => setStep('edit')} style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>취소</button>
+                            <button onClick={() => setStep('edit')} style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>선택</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* ── STEP 4: 연령제한 비밀번호 ── */}
+            {/* 연령제한 PIN 입력 */}
             {step === 'age_pw' && (
-                <div className="pf-box">
-                    <div style={{ padding: '32px 28px 0' }}>
-                        <h2 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 800, margin: '0 0 16px' }}>콘텐츠 연령 제한</h2>
-                        <p style={{ color: '#6c63ff', fontSize: 14, fontWeight: 700, margin: '0 0 8px' }}>
-                            {editingProfile?.nickname || editNickname}님의 시청 가능 연령을 변경합니다.
+                <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
+                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.02em' }}>연령 제한 변경</h1>
+                        <p style={{ color: 'var(--text-subtle)', fontSize: 18, margin: 0 }}>
+                            {editingProfile?.pinHash
+                                ? '프로필 PIN을 입력해주세요'
+                                : 'PIN이 설정되지 않아 바로 변경할 수 있어요'}
                         </p>
-                        <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, margin: '0 0 32px' }}>
-                            설정을 위해 <strong style={{ color: 'var(--text-primary)' }}>계정 비밀번호</strong> 확인이 필요해요.<br />
-                            로그인 시 입력한 계정 비밀번호를 입력해주세요.
-                        </p>
-                        <input type="password" value={agePw} onChange={e => { setAgePw(e.target.value); setAgePwError('') }}
-                            onKeyDown={e => e.key === 'Enter' && handleAgePwNext()}
-                            placeholder="계정 비밀번호를 입력해주세요."
-                            style={{ width: '100%', background: 'none', border: 'none', borderBottom: `1px solid ${agePwError ? '#f87171' : '#6c63ff'}`, outline: 'none', color: 'var(--text-primary)', fontSize: 15, padding: '8px 0', boxSizing: 'border-box', marginBottom: agePwError ? 6 : 40 }} />
-                        {agePwError && <p style={{ color: '#f87171', fontSize: 12, margin: '0 0 28px' }}>{agePwError}</p>}
                     </div>
-                    <button onClick={handleAgePwNext}
-                        style={{ width: '100%', padding: '18px', background: agePw.trim() ? '#6c63ff' : 'var(--bg-hover)', border: 'none', color: agePw.trim() ? '#fff' : 'var(--text-subtle)', fontSize: 16, fontWeight: 700, cursor: agePw.trim() ? 'pointer' : 'default', transition: 'background .2s' }}>
-                        다음
-                    </button>
+                    {editingProfile?.pinHash ? (
+                        <div style={{ maxWidth: 360, margin: '0 auto', width: '100%', textAlign: 'center' }}>
+                            <div style={{ position: 'relative', marginBottom: agePwError ? 8 : 40 }}>
+                                <input
+                                    type="password" inputMode="numeric" maxLength={4}
+                                    value={agePw} autoFocus
+                                    onChange={async e => {
+                                        const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
+                                        await handleAgePinInput(v)
+                                    }}
+                                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'default' }}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 28, padding: '16px 0', borderBottom: `1px solid ${agePwError ? '#f87171' : '#6c63ff'}` }}>
+                                    {[0, 1, 2, 3].map(i => (
+                                        <div key={i} style={{ width: i < agePw.length ? 14 : 12, height: i < agePw.length ? 14 : 12, borderRadius: '50%', background: i < agePw.length ? (agePwError ? '#f87171' : '#6c63ff') : 'var(--border)', transition: 'all .15s' }} />
+                                    ))}
+                                </div>
+                            </div>
+                            {agePwError && <p style={{ color: '#f87171', fontSize: 12, margin: '0 0 28px', fontWeight: 600 }}>{agePwError}</p>}
+                        </div>
+                    ) : (
+                        <div style={{ maxWidth: 360, margin: '0 auto 40px', textAlign: 'center' }}>
+                            <button onClick={() => setStep('age_select')}
+                                style={{ padding: '13px 52px', background: '#6c63ff', border: 'none', borderRadius: 4, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                계속하기
+                            </button>
+                        </div>
+                    )}
+                    <div style={{ textAlign: 'center', marginTop: 16 }}>
+                        <button onClick={() => setStep('edit')}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.03em' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}>
+                            취소
+                        </button>
+                    </div>
                 </div>
             )}
 
-            {/* ── STEP 5: 연령 선택 ── */}
+            {/* 연령 선택 */}
             {step === 'age_select' && (
                 <div className="pf-box">
                     <div style={{ padding: '28px 24px 0' }}>
