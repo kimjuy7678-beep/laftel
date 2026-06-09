@@ -469,9 +469,11 @@ export function ProductDetail({
                     where("status", "!=", "주문취소")
                 )
             );
-            const alreadyOrdered = ordersSnap.docs.some((d) =>
-                (d.data().items ?? []).some((item: any) => item.productId === product.productId)
-            );
+            const alreadyOrdered = ordersSnap.docs.some((d) => {
+                const items = d.data().items;
+                if (!Array.isArray(items)) return false;
+                return items.some((item: { productId?: unknown }) => item.productId === product.productId);
+            });
             if (alreadyOrdered) {
                 const confirmed = window.confirm(
                     "이미 주문한 상품이에요.\n그래도 다시 구매하시겠어요?"

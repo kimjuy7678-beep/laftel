@@ -185,13 +185,15 @@ function FeaturedRecent() {
                         {/* title: 20px */}
                         <h2 className="text-[18px] font-semibold text-[#14111c] sm:text-[20px]">최근본상품</h2>
                         {/* all-btn: 16px */}
-                        <Link href="/store" className="shrink-0 text-[13px] font-semibold text-[#7865ff] sm:text-[16px]">
+                        <Link href="/store/recent" className="shrink-0 text-[13px] font-semibold text-[#7865ff] sm:text-[16px]">
                             더보기
                         </Link>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-5 lg:grid-cols-7 lg:gap-6">
+                    <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-7 lg:gap-6 lg:overflow-visible lg:px-0">
                         {recentProducts.map((product) => (
-                            <MiniProductCard key={product.id} product={product} />
+                            <div key={product.id} className="w-[132px] shrink-0 snap-start sm:w-[150px] lg:w-auto">
+                                <MiniProductCard product={product} />
+                            </div>
                         ))}
                     </div>
                 </div>
@@ -250,14 +252,14 @@ function TopProductCard({ product, rank }: { product: StoreMainProduct; rank: nu
                     </span>
                 )}
             </div>
-            <span className="pointer-events-none absolute -bottom-1 left-[-2px] text-[88px] font-light leading-none text-transparent [-webkit-text-stroke:1px_#8f7cff]">
+            <span className="pointer-events-none absolute -bottom-0.5 left-[-2px] text-[52px] font-light leading-none text-transparent [-webkit-text-stroke:1px_#8f7cff] sm:text-[64px] lg:-bottom-1 lg:text-[88px]">
                 {rank}
             </span>
-            <div className="relative mt-3 pl-12">
+            <div className="relative mt-2 pl-7 sm:pl-9 lg:mt-3 lg:pl-12">
                 {/* title: 20px */}
-                <p className="truncate text-[20px] font-semibold text-[#111018]">{product.title}</p>
+                <p className="truncate text-[12px] font-semibold text-[#111018] sm:text-[15px] lg:text-[20px]">{product.title}</p>
                 {/* sub: 13px */}
-                <p className="mt-1 text-[13px] font-medium text-[#7865ff]">{product.price}</p>
+                <p className="mt-0.5 truncate text-[11px] font-medium text-[#7865ff] sm:text-[12px] lg:mt-1 lg:text-[13px]">{product.price}</p>
             </div>
         </Link >
     );
@@ -322,9 +324,11 @@ function ProductSeriesSection({
                         전체보기 →
                     </Link>
                 </div>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5 lg:gap-8">
+                <div className="flex snap-x gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 lg:grid lg:grid-cols-5 lg:gap-8 lg:overflow-visible lg:pb-0">
                     {products.map((product) => (
-                        <ProductFeatureCard key={product.id} product={product} />
+                        <div key={product.id} className="w-[140px] shrink-0 snap-start sm:w-[180px] lg:w-auto">
+                            <ProductFeatureCard product={product} />
+                        </div>
                     ))}
                 </div>
             </Inner>
@@ -354,9 +358,11 @@ function BestTopSection() {
                         베스트 굿즈 전체보기 →
                     </Link>
                 </div>
-                <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-5 lg:mt-10 lg:grid-cols-5 lg:gap-8">
+                <div className="mt-7 flex snap-x gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 lg:mt-10 lg:grid lg:grid-cols-5 lg:gap-8 lg:overflow-visible lg:pb-0">
                     {topProducts.map((product, index) => (
-                        <TopProductCard key={product.id} product={product} rank={index + 1} />
+                        <div key={product.id} className="w-[122px] shrink-0 snap-start sm:w-[170px] lg:w-auto">
+                            <TopProductCard product={product} rank={index + 1} />
+                        </div>
                     ))}
                 </div>
             </Inner>
@@ -369,7 +375,7 @@ function BestTopSection() {
 function CharacterCard({ character }: { character: (typeof characterCollections)[number] }) {
     return (
         <Link href={characterHref(character.series, character.keyword)} className="group block min-w-0">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[14px] border border-[#ebe8ff] bg-[#f5f3ff]">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[10px] border border-[#ebe8ff] bg-[#f5f3ff] sm:rounded-[12px] lg:rounded-[14px]">
                 <div
                     className="absolute inset-0 bg-cover transition-transform duration-300 group-hover:scale-[1.04]"
                     role="img"
@@ -381,14 +387,14 @@ function CharacterCard({ character }: { character: (typeof characterCollections)
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                 <span
-                    className="absolute left-4 top-4 rounded-full px-3 py-1 text-[11px] font-bold text-white"
+                    className="absolute left-2.5 top-2.5 rounded-full px-2 py-0.5 text-[9px] font-bold text-white sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px] lg:left-4 lg:top-4 lg:px-3 lg:text-[11px]"
                     style={{ backgroundColor: character.accent }}
                 >
                     {character.series}
                 </span>
-                <div className="absolute bottom-4 left-4 right-4">
-                    <p className="text-[22px] font-bold leading-tight text-white">{character.name}</p>
-                    <p className="mt-1 text-[12px] font-semibold text-white/75">굿즈 모아보기</p>
+                <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:bottom-3 sm:left-3 sm:right-3 lg:bottom-4 lg:left-4 lg:right-4">
+                    <p className="text-[15px] font-bold leading-tight text-white sm:text-[18px] lg:text-[22px]">{character.name}</p>
+                    <p className="mt-0.5 text-[10px] font-semibold text-white/75 sm:mt-1 sm:text-[11px] lg:text-[12px]">굿즈 모아보기</p>
                 </div>
             </div>
         </Link>
@@ -415,7 +421,7 @@ function CharacterCollectionSection() {
                         전체 시리즈 보기 →
                     </Link>
                 </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5 lg:gap-8">
+                <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5 lg:gap-8">
                     {characterCollections.map((character) => (
                         <CharacterCard key={character.name} character={character} />
                     ))}
@@ -429,7 +435,7 @@ function CharacterCollectionSection() {
 
 function CollectionBanner() {
     return (
-        <section className="pb-14 sm:pb-18 lg:pb-24 pt-[80px]">
+        <section className="pb-14 sm:pb-18 lg:pb-24 pt-[80px] ">
             <Inner>
                 <div className="relative overflow-hidden rounded-[16px] bg-[#dedede] sm:rounded-[24px] ">
                     <ImageSlot

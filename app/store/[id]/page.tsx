@@ -3,7 +3,7 @@
 
 import { notFound } from "next/navigation";
 import { fetchProduct, fetchProducts } from "../../../store/useStore";
-import { ProductDetail } from "../../../components/store/ProductDetail";
+import ProductDetailClient from "../../../components/store/ProductDetailClient";
 
 
 const RELATED_COUNT = 10;
@@ -27,5 +27,5 @@ export default async function ProductDetailPage({
         ? product.detailImages
         : [product.thumbnail];
 
-    return <ProductDetail product={product} images={images} related={related} />;
+    return <ProductDetailClient product={product} images={images} related={related} />;
 }

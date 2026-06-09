@@ -99,7 +99,7 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
                     <p className="text-4xl font-bold text-[var(--text-primary)]">{myScore > 0 ? myScore.toFixed(1) : '0'}</p>
                     <p className="text-[var(--text-faint)] text-xs">{myScore > 0 ? '별점을 남겼어요' : '별점을 남겨주세요'}</p>
                     <div className="flex gap-1">
-                        {[1,2,3,4,5].map(s => (
+                        {[1, 2, 3, 4, 5].map(s => (
                             <svg key={s} width="32" height="32" viewBox="0 0 24 24"
                                 fill={(hoverScore || myScore) >= s ? '#6c63ff' : 'var(--border)'}
                                 stroke="none" className="cursor-pointer transition-colors"
@@ -147,7 +147,7 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
                     <p className="text-4xl font-bold text-[var(--text-primary)]">4.5</p>
                     <p className="text-[var(--text-faint)] text-xs">274개의 별점</p>
                     <div className="flex gap-1">
-                        {[1,2,3,4,5].map(s => (
+                        {[1, 2, 3, 4, 5].map(s => (
                             <svg key={s} width="24" height="24" viewBox="0 0 24 24" fill="#6c63ff" stroke="none">
                                 <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
                             </svg>
@@ -179,7 +179,7 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
                         <div key={r.id} className="py-4 last:border-b-0" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                             <div className="flex items-start justify-between mb-2">
                                 <div className="flex gap-0.5 mt-0.5">
-                                    {[1,2,3,4,5].map(s => (
+                                    {[1, 2, 3, 4, 5].map(s => (
                                         <svg key={s} width="23" height="23" viewBox="0 0 24 24"
                                             fill={s <= Math.floor(r.score) ? '#6c63ff' : 'var(--border)'} stroke="none">
                                             <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
@@ -192,9 +192,13 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
                                         {formatDate(r.date)}{r.edited && ' (수정됨)'}
                                     </span>
                                     <div className="flex items-center gap-1.5">
-                                        <div className="w-10 h-10 rounded-full bg-[#6c63ff]/30 flex items-center justify-center text-[10px] text-[#9d97ff] font-bold">
-                                            {r.nickname[0]}
-                                        </div>
+                                        {r.profileImg ? (
+                                            <img src={r.profileImg} className="w-10 h-10 rounded-full object-cover" alt={r.nickname} />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-[#6c63ff]/30 flex items-center justify-center text-[10px] text-[#9d97ff] font-bold">
+                                                {r.nickname[0]}
+                                            </div>
+                                        )}
                                         <span className="text-[var(--text-muted)] text-xs font-bold">{r.nickname}</span>
                                         <span className="text-[var(--text-faint)] text-[10px]">({r.user})</span>
                                     </div>
