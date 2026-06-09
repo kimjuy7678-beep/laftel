@@ -3,7 +3,6 @@
 import PageHeader from '@/components/PageHeader'
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 
-// ─── 타입 ──────────────────────────────────────────────────────
 interface AniItem {
     id: number
     name: string
@@ -24,16 +23,15 @@ interface Filters {
     airing: string
     mediaType: string
     sort: string
-    watchable: boolean    // 감상 가능한 작품만
-    memberOnly: boolean   // 멤버십 포함 작품만
+    watchable: boolean
+    memberOnly: boolean
 }
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
 
-// ─── 라프텔 장르 목록 (모달용 전체) ───────────────────────────
 const ALL_GENRES = [
-    { id: 10759, label: 'BL' },         // 실제 BL은 TMDB에 없어서 근사
+    { id: 10759, label: 'BL' },
     { id: 10766, label: 'GL 백합' },
     { id: 10765, label: 'SF' },
     { id: 27, label: '공포' },
@@ -67,7 +65,6 @@ const ALL_GENRES = [
     { id: 210025, label: '하렘' },
 ]
 
-// 사이드바 기본 노출 (상위 9개)
 const SIDEBAR_GENRES = ALL_GENRES.slice(0, 9)
 
 const ALL_TAGS = [
@@ -89,7 +86,6 @@ const ALL_TAGS = [
 ]
 const SIDEBAR_TAGS = ALL_TAGS.slice(0, 9)
 
-// 분기별 년도 목록
 const QUARTER_YEARS = [
     { value: '2026-Q2', label: '2026년 2분기' },
     { value: '2026-Q1', label: '2026년 1분기' },
@@ -126,7 +122,6 @@ const DEFAULT_FILTERS: Filters = {
     watchable: false, memberOnly: false,
 }
 
-// 분기 → 날짜 범위
 function quarterToRange(val: string) {
     if (val === '2026-Q2') return { gte: '2026-04-01', lte: '2026-06-30' }
     if (val === '2026-Q1') return { gte: '2026-01-01', lte: '2026-03-31' }
@@ -143,7 +138,6 @@ function quarterToRange(val: string) {
     return null
 }
 
-// ─── 체크박스 컴포넌트 ─────────────────────────────────────────
 function Checkbox({ checked, onChange, label, count }: { checked: boolean; onChange: () => void; label: string; count?: number }) {
     return (
         <label className="cb-row" onClick={onChange}>
@@ -155,15 +149,12 @@ function Checkbox({ checked, onChange, label, count }: { checked: boolean; onCha
                 )}
             </span>
             <span className="cb-label">{label}</span>
-            {count !== undefined && <span className="cb-count">{count > 999 ? `${Math.floor(count/1000)}k` : count}</span>}
+            {count !== undefined && <span className="cb-count">{count > 999 ? `${Math.floor(count / 1000)}k` : count}</span>}
         </label>
     )
 }
 
-// ─── 장르 전체 모달 ────────────────────────────────────────────
-function GenreModal({
-    selected, excluded, onToggle, onExclude, onReset, onClose
-}: {
+function GenreModal({ selected, excluded, onToggle, onExclude, onReset, onClose }: {
     selected: number[]; excluded: number[];
     onToggle: (id: number) => void; onExclude: (id: number) => void;
     onReset: () => void; onClose: () => void;
@@ -185,11 +176,8 @@ function GenreModal({
                         const isOn = selected.includes(g.id)
                         const isEx = excluded.includes(g.id)
                         return (
-                            <label
-                                key={g.label}
-                                className={`modal-cb${isOn ? ' on' : ''}${isEx ? ' ex' : ''}`}
-                                onClick={() => isOn ? onExclude(g.id) : onToggle(g.id)}
-                            >
+                            <label key={g.label} className={`modal-cb${isOn ? ' on' : ''}${isEx ? ' ex' : ''}`}
+                                onClick={() => isOn ? onExclude(g.id) : onToggle(g.id)}>
                                 <span className={`cb-box${isOn ? ' checked' : ''}${isEx ? ' ex' : ''}`}>
                                     {isOn && !isEx && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                                     {isEx && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><line x1="2" y1="6" x2="10" y2="6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></svg>}
@@ -202,8 +190,7 @@ function GenreModal({
                 <div className="modal-foot">
                     <button className="modal-reset" onClick={onReset}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                            <path d="M3 3v5h5" />
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
                         </svg>
                         전체 초기화
                     </button>
@@ -214,7 +201,6 @@ function GenreModal({
     )
 }
 
-// ─── 카드 ─────────────────────────────────────────────────────
 function AniCard({ item }: { item: AniItem }) {
     const [hov, setHov] = useState(false)
     const t = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -283,7 +269,6 @@ function Skeleton() {
     )
 }
 
-// ─── 메인 ─────────────────────────────────────────────────────
 export default function TagSearch() {
     const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
     const [results, setResults] = useState<AniItem[]>([])
@@ -301,7 +286,6 @@ export default function TagSearch() {
         filters.genres.length + filters.tags.length + filters.excludeGenres.length +
         (filters.year ? 1 : 0) + (filters.airing ? 1 : 0) + (filters.mediaType ? 1 : 0)
 
-    // 정렬 드롭다운 바깥 클릭 닫기
     useEffect(() => {
         const h = (e: MouseEvent) => {
             if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false)
@@ -349,8 +333,6 @@ export default function TagSearch() {
             if (f.excludeGenres.length > 0) params.set('without_genres', f.excludeGenres.join(','))
             if (f.airing === 'ongoing') params.set('with_status', '0')
             if (f.airing === 'ended') params.set('with_status', '4')
-
-            const isMovie = f.mediaType === 'movie'
             const res = await fetch(`https://api.themoviedb.org/3/discover/tv?${params}`)
             const data = await res.json()
             const items: AniItem[] = (data.results || []).map((r: any) => ({
@@ -366,7 +348,6 @@ export default function TagSearch() {
         }
     }, [])
 
-    // 초기 로드: 3페이지 연속
     const initialLoad = useCallback(async (f: Filters) => {
         if (pending.current) return
         pending.current = true
@@ -410,32 +391,12 @@ export default function TagSearch() {
         }
     }, [])
 
-    useEffect(() => {
-        initialLoad(filters)
-    }, [filters])
+    useEffect(() => { initialLoad(filters) }, [filters])
+    useEffect(() => { if (page <= 3) return; fetchResults(filters, page) }, [page])
 
-    useEffect(() => {
-        if (page <= 3) return
-        fetchResults(filters, page)
-    }, [page])
-
-    // 사이드바 필터 카운트 (results 기반)
     const genreCounts = useMemo(() => {
         const counts: Record<number, number> = {}
-        results.forEach(item => {
-            item.genre_ids.forEach(gid => {
-                counts[gid] = (counts[gid] || 0) + 1
-            })
-        })
-        return counts
-    }, [results])
-
-    const yearCounts = useMemo(() => {
-        const counts: Record<string, number> = {}
-        results.forEach(item => {
-            const y = item.first_air_date?.slice(0, 4)
-            if (y) counts[y] = (counts[y] || 0) + 1
-        })
+        results.forEach(item => { item.genre_ids.forEach(gid => { counts[gid] = (counts[gid] || 0) + 1 }) })
         return counts
     }, [results])
 
@@ -444,9 +405,9 @@ export default function TagSearch() {
     return (
         <>
             <style>{`
-                .fp { min-height:100vh; background:#0a0a0a; padding-top:64px; }
+                /* ── 페이지 ── */
+                .fp { min-height:100vh; background:var(--bg-primary); padding-top:64px; }
                 .fp-inner { width:90%; margin:0 auto; }
-                .fp-header { borderBottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; justify-content:space-between; padding:18px 0; margin-bottom:0; }
                 .fp-body { display:flex; gap:0; align-items:flex-start; }
                 .fp-sidebar { overflow:hidden; transition:width .3s cubic-bezier(.4,0,.2,1), opacity .3s ease; flex-shrink:0; }
                 .fp-sidebar.open { width:280px; opacity:1; }
@@ -454,135 +415,130 @@ export default function TagSearch() {
                 .fp-sidebar-inner { width:280px; padding-right:28px; padding-top:24px; }
 
                 /* ── 사이드바 ── */
-                
                 .sb-top { display:flex; align-items:center; justify-content:space-between; padding:0 20px 20px; }
-                .sb-top h2 { font-size:16px; font-weight:700; color:#fff; margin:0; }
-                .btn-reset-all { display:flex; align-items:center; gap:4px; background:none; border:none; color:rgba(255,255,255,.35); font-size:12px; cursor:pointer; padding:0; transition:color .2s; }
-                .btn-reset-all:hover { color:rgba(255,255,255,.7); }
-                .sb-divider { border:none; border-top:1px solid rgba(255,255,255,.07); margin:0 0 16px; }
+                .sb-top h2 { font-size:16px; font-weight:700; color:var(--text-primary); margin:0; }
+                .btn-reset-all { display:flex; align-items:center; gap:4px; background:none; border:none; color:var(--text-subtle); font-size:12px; cursor:pointer; padding:0; transition:color .2s; }
+                .btn-reset-all:hover { color:var(--text-primary); }
+                .sb-divider { border:none; border-top:1px solid var(--border-subtle); margin:0 0 16px; }
 
-                /* 토글 스위치 */
+                /* 토글 */
                 .toggle-row { display:flex; align-items:center; gap:10px; padding:5px 20px; cursor:pointer; }
-                .toggle-sw { width:36px; height:20px; border-radius:10px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); position:relative; transition:background .2s; flex-shrink:0; }
+                .toggle-sw { width:36px; height:20px; border-radius:10px; background:var(--border); border:1px solid var(--border); position:relative; transition:background .2s; flex-shrink:0; }
                 .toggle-sw.on { background:#6c63ff; border-color:#6c63ff; }
-                .toggle-knob { width:14px; height:14px; border-radius:50%; background:#fff; position:absolute; top:2px; left:2px; transition:left .2s; }
-                .toggle-sw.on .toggle-knob { left:18px; }
-                .toggle-label { font-size:12.5px; color:rgba(255,255,255,.55); }
-                .toggle-sw.on + .toggle-label { color:rgba(255,255,255,.85); }
+                .toggle-knob { width:14px; height:14px; border-radius:50%; background:var(--text-primary); position:absolute; top:2px; left:2px; transition:left .2s; }
+                .toggle-sw.on .toggle-knob { left:18px; background:#fff; }
+                .toggle-label { font-size:12.5px; color:var(--text-muted); }
+                .toggle-sw.on + .toggle-label { color:var(--text-high); }
 
                 /* 섹션 */
                 .sb-sec { padding:18px 20px 8px; }
                 .sb-sec-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-                .sb-sec-title { font-size:12px; font-weight:700; color:rgba(255,255,255,.55); margin:0; }
-                .btn-more-sec { font-size:11px; color:rgba(255,255,255,.3); background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:2px; padding:0; transition:color .2s; }
+                .sb-sec-title { font-size:12px; font-weight:700; color:var(--text-subtle); margin:0; }
+                .btn-more-sec { font-size:11px; color:var(--text-faint); background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:2px; padding:0; transition:color .2s; }
                 .btn-more-sec:hover { color:#9d97ff; }
                 .sb-checks { display:flex; flex-direction:column; gap:1px; }
 
                 /* 체크박스 */
                 .cb-row { display:flex; align-items:center; gap:9px; padding:5px 0; cursor:pointer; user-select:none; }
-                .cb-box { width:16px; height:16px; min-width:16px; border-radius:3px; border:1.5px solid rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; }
+                .cb-box { width:16px; height:16px; min-width:16px; border-radius:3px; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; }
                 .cb-box.checked { background:#6c63ff; border-color:#6c63ff; }
                 .cb-box.ex { background:rgba(239,68,68,.2); border-color:#ef4444; }
-                .cb-label { font-size:13px; color:rgba(255,255,255,.5); flex:1; }
-                .cb-count { font-size:11px; font-weight:600; color:rgba(255,255,255,.25); background:rgba(255,255,255,.07); padding:1px 7px; border-radius:10px; min-width:28px; text-align:center; }
-                .cb-row:hover .cb-count { color:rgba(255,255,255,.5); }
+                .cb-label { font-size:13px; color:var(--text-muted); flex:1; }
+                .cb-count { font-size:11px; font-weight:600; color:var(--text-faint); background:var(--border-faint); padding:1px 7px; border-radius:10px; min-width:28px; text-align:center; }
+                .cb-row:hover .cb-count { color:var(--text-muted); }
                 .cb-box.checked ~ .cb-count { color:#9d97ff; background:rgba(108,99,255,.2); }
-                .cb-row:hover .cb-label { color:rgba(255,255,255,.8); }
-                .cb-row:hover .cb-box { border-color:rgba(255,255,255,.4); }
+                .cb-row:hover .cb-label { color:var(--text-primary); }
+                .cb-row:hover .cb-box { border-color:var(--text-muted); }
 
                 /* ── 메인 ── */
                 .fm { flex:1; display:flex; flex-direction:column; min-width:0; }
+                .fm-top { padding:24px 0 0; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+                .fm-top h1 { font-size:18px; font-weight:700; color:var(--text-primary); margin:0; }
 
-                /* 상단 바 */
-                .fm-top { padding:24px 0 0; border-bottom:none; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-                .fm-top h1 { font-size:18px; font-weight:700; color:#fff; margin:0; }
-
-                /* 정렬 드롭다운 */
+                /* 정렬 */
                 .sort-wrap { position:relative; }
-                .btn-sort { display:flex; align-items:center; gap:5px; background:none; border:none; color:rgba(255,255,255,.55); font-size:13px; cursor:pointer; padding:6px 10px; border-radius:6px; transition:all .2s; }
-                .btn-sort:hover { color:#fff; background:rgba(255,255,255,.06); }
-                .sort-dd { position:absolute; right:0; top:calc(100% + 4px); width:140px; background:#1c1c1e; border:1px solid rgba(255,255,255,.1); border-radius:10px; overflow:visible; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:9000; }
-                .sort-item { display:flex; align-items:center; gap:8px; width:100%; padding:10px 14px; background:none; border:none; color:rgba(255,255,255,.55); font-size:13px; cursor:pointer; text-align:left; transition:all .15s; }
-                .sort-item:hover { background:rgba(255,255,255,.06); color:#fff; }
-                .sort-item.active { color:#fff; }
+                .btn-sort { display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--text-muted); font-size:13px; cursor:pointer; padding:6px 10px; border-radius:6px; transition:all .2s; }
+                .btn-sort:hover { color:var(--text-primary); background:var(--bg-hover); }
+                .sort-dd { position:absolute; right:0; top:calc(100% + 4px); width:140px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:visible; box-shadow:0 12px 40px rgba(0,0,0,.3); z-index:9000; }
+                .sort-item { display:flex; align-items:center; gap:8px; width:100%; padding:10px 14px; background:none; border:none; color:var(--text-muted); font-size:13px; cursor:pointer; text-align:left; transition:all .15s; }
+                .sort-item:hover { background:var(--bg-hover); color:var(--text-primary); }
+                .sort-item.active { color:var(--text-primary); }
 
-                /* 결과 영역 */
+                /* 결과 */
                 .fm-body { padding:22px 28px 60px; flex:1; }
-                .result-info { font-size:13px; color:rgba(255,255,255,.26); margin:0 0 18px; }
+                .result-info { font-size:13px; color:var(--text-faint); margin:0 0 18px; }
 
                 /* 그리드 */
                 .finder-grid { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:20px 13px; }
 
                 /* 카드 */
                 .fc { position:relative; cursor:pointer; }
-                .fc-thumb { position:relative; width:100%; aspect-ratio:2/3; border-radius:8px; overflow:hidden; background:#181818; }
+                .fc-thumb { position:relative; width:100%; aspect-ratio:2/3; border-radius:8px; overflow:hidden; background:var(--bg-card); }
                 .fc-thumb img { width:100%; height:100%; object-fit:cover; transition:transform .28s; }
                 .fc:hover .fc-thumb img { transform:scale(1.04); }
-                .fc-np { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#1a1a2e,#16213e); }
-                .fc-np span { font-size:34px; font-weight:800; color:rgba(255,255,255,.1); }
+                .fc-np { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--bg-secondary); }
+                .fc-np span { font-size:34px; font-weight:800; color:var(--border); }
                 .fc-score { position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.72); backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,.1); border-radius:4px; padding:2px 6px; font-size:11px; font-weight:700; color:#fbbf24; }
                 .fc-info { margin-top:8px; }
-                .fc-name { font-size:13px; font-weight:600; color:rgba(255,255,255,.88); line-height:1.4; margin:0 0 3px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-                .fc-meta { font-size:11px; color:rgba(255,255,255,.27); margin:0; }
+                .fc-name { font-size:13px; font-weight:600; color:var(--text-high); line-height:1.4; margin:0 0 3px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+                .fc-meta { font-size:11px; color:var(--text-faint); margin:0; }
 
-                /* 호버 패널 */
-                .fc-hover { position:absolute; top:0; left:50%; transform:translateX(-50%); width:248px; border-radius:10px; overflow:hidden; background:#1c1c1e; border:1px solid rgba(255,255,255,.1); box-shadow:0 18px 50px rgba(0,0,0,.8); z-index:200; animation:pop .15s cubic-bezier(.34,1.56,.64,1); }
+                /* 호버 패널 — 이미지 위라 흰색 유지 */
+                .fc-hover { position:absolute; top:0; left:50%; transform:translateX(-50%); width:248px; border-radius:10px; overflow:hidden; background:var(--bg-card); border:1px solid var(--border); box-shadow:0 18px 50px rgba(0,0,0,.4); z-index:200; animation:pop .15s cubic-bezier(.34,1.56,.64,1); }
                 @keyframes pop { from{opacity:0;transform:translateX(-50%) scale(.92)}to{opacity:1;transform:translateX(-50%) scale(1)} }
                 .fh-bg { position:relative; width:100%; aspect-ratio:16/9; }
                 .fh-bg img { width:100%; height:100%; object-fit:cover; }
-                .fh-dim { position:absolute; inset:0; background:linear-gradient(to bottom,transparent 30%,#1c1c1e 100%); }
-                .fh-fallback { width:100%; aspect-ratio:16/9; background:linear-gradient(135deg,#1a1a2e,#16213e); }
+                .fh-dim { position:absolute; inset:0; background:linear-gradient(to bottom,transparent 30%,var(--bg-card) 100%); }
+                .fh-fallback { width:100%; aspect-ratio:16/9; background:var(--bg-secondary); }
                 .fh-body { padding:10px 14px 13px; }
-                .fh-name { font-size:13px; font-weight:700; color:#fff; margin:0 0 6px; line-height:1.3; }
+                .fh-name { font-size:13px; font-weight:700; color:var(--text-primary); margin:0 0 6px; line-height:1.3; }
                 .fh-genres { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px; }
-                .fh-tag { font-size:10px; color:rgba(255,255,255,.4); background:rgba(255,255,255,.07); border-radius:3px; padding:2px 6px; }
-                .fh-ov { font-size:11px; color:rgba(255,255,255,.38); line-height:1.6; margin:0 0 10px; }
+                .fh-tag { font-size:10px; color:var(--text-subtle); background:var(--border-faint); border-radius:3px; padding:2px 6px; }
+                .fh-ov { font-size:11px; color:var(--text-muted); line-height:1.6; margin:0 0 10px; }
                 .fh-acts { display:flex; gap:7px; }
                 .fh-play { flex:1; display:flex; align-items:center; justify-content:center; gap:5px; height:31px; background:#6c63ff; border:none; border-radius:6px; color:#fff; font-size:12px; font-weight:600; cursor:pointer; transition:background .2s; }
                 .fh-play:hover { background:#5a52e0; }
-                .fh-add { width:31px; height:31px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:6px; color:rgba(255,255,255,.6); cursor:pointer; transition:all .2s; }
-                .fh-add:hover { background:rgba(255,255,255,.14); color:#fff; }
+                .fh-add { width:31px; height:31px; display:flex; align-items:center; justify-content:center; background:var(--border-subtle); border:1px solid var(--border); border-radius:6px; color:var(--text-muted); cursor:pointer; transition:all .2s; }
+                .fh-add:hover { background:var(--bg-hover); color:var(--text-primary); }
 
                 /* 스켈레톤 */
                 .fc-sk { list-style:none; }
-                .sk-t { width:100%; aspect-ratio:2/3; border-radius:8px; background:linear-gradient(90deg,#161616 25%,#202020 50%,#161616 75%); background-size:200% 100%; animation:shim 1.4s infinite; }
-                .sk-l { height:12px; border-radius:4px; margin-top:10px; background:linear-gradient(90deg,#161616 25%,#202020 50%,#161616 75%); background-size:200% 100%; animation:shim 1.4s infinite; }
-                @keyframes shim { 0%{background-position:200% 0}100%{background-position:-200% 0} }
+                .sk-t { width:100%; aspect-ratio:2/3; border-radius:8px; background:var(--bg-secondary); animation:shim 1.4s infinite; }
+                .sk-l { height:12px; border-radius:4px; margin-top:10px; background:var(--bg-secondary); animation:shim 1.4s infinite; }
+                @keyframes shim { 0%{opacity:1}50%{opacity:.5}100%{opacity:1} }
 
                 /* 더보기 */
-                .btn-more { display:flex; align-items:center; justify-content:center; width:100%; max-width:200px; margin:36px auto 0; height:42px; border-radius:21px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:rgba(255,255,255,.55); font-size:13px; font-weight:500; cursor:pointer; transition:all .2s; }
-                .btn-more:hover { background:rgba(255,255,255,.09); color:#fff; border-color:rgba(255,255,255,.28); }
+                .btn-more { display:flex; align-items:center; justify-content:center; width:100%; max-width:200px; margin:36px auto 0; height:42px; border-radius:21px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-muted); font-size:13px; font-weight:500; cursor:pointer; transition:all .2s; }
+                .btn-more:hover { background:var(--bg-hover); color:var(--text-primary); border-color:var(--text-subtle); }
 
                 /* 모달 */
                 .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(4px); z-index:500; display:flex; align-items:center; justify-content:center; }
-                .modal { background:#1a1a1a; border:1px solid rgba(255,255,255,.1); border-radius:14px; width:660px; max-width:90vw; max-height:80vh; overflow:hidden; display:flex; flex-direction:column; }
+                .modal { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; width:660px; max-width:90vw; max-height:80vh; overflow:hidden; display:flex; flex-direction:column; }
                 .modal-head { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
-                .modal-head h2 { font-size:18px; font-weight:700; color:#fff; margin:0; }
-                .modal-close { background:none; border:none; color:rgba(255,255,255,.4); cursor:pointer; padding:4px; transition:color .2s; }
-                .modal-close:hover { color:#fff; }
-                .modal-desc { font-size:12px; color:rgba(255,255,255,.3); padding:8px 24px 16px; margin:0; border-bottom:1px solid rgba(255,255,255,.07); }
+                .modal-head h2 { font-size:18px; font-weight:700; color:var(--text-primary); margin:0; }
+                .modal-close { background:none; border:none; color:var(--text-subtle); cursor:pointer; padding:4px; transition:color .2s; }
+                .modal-close:hover { color:var(--text-primary); }
+                .modal-desc { font-size:12px; color:var(--text-faint); padding:8px 24px 16px; margin:0; border-bottom:1px solid var(--border-subtle); }
                 .modal-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:2px 0; padding:16px 24px; overflow-y:auto; }
                 .modal-cb { display:flex; align-items:center; gap:9px; padding:9px 8px; border-radius:6px; cursor:pointer; transition:background .15s; user-select:none; }
-                .modal-cb:hover { background:rgba(255,255,255,.05); }
-                .modal-cb span:last-child { font-size:13px; color:rgba(255,255,255,.55); }
-                .modal-cb.on span:last-child { color:#fff; }
-                .modal-foot { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:14px 24px; border-top:1px solid rgba(255,255,255,.07); }
-                .modal-reset { display:flex; align-items:center; gap:5px; background:none; border:none; color:rgba(255,255,255,.3); font-size:13px; cursor:pointer; margin-right:auto; padding:0; transition:color .2s; }
-                .modal-reset:hover { color:rgba(255,255,255,.7); }
+                .modal-cb:hover { background:var(--bg-hover); }
+                .modal-cb span:last-child { font-size:13px; color:var(--text-muted); }
+                .modal-cb.on span:last-child { color:var(--text-primary); }
+                .modal-foot { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:14px 24px; border-top:1px solid var(--border-subtle); }
+                .modal-reset { display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--text-subtle); font-size:13px; cursor:pointer; margin-right:auto; padding:0; transition:color .2s; }
+                .modal-reset:hover { color:var(--text-primary); }
                 .modal-confirm { padding:9px 24px; background:#6c63ff; border:none; border-radius:8px; color:#fff; font-size:14px; font-weight:600; cursor:pointer; transition:background .2s; }
                 .modal-confirm:hover { background:#5a52e0; }
 
                 /* 빈 상태 */
                 .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 0; gap:10px; grid-column:1/-1; }
-                .empty svg { color:rgba(255,255,255,.1); }
-                .empty p { font-size:14px; color:rgba(255,255,255,.22); margin:0; }
+                .empty svg { color:var(--border); }
+                .empty p { font-size:14px; color:var(--text-faint); margin:0; }
             `}</style>
 
             <div className="fp">
                 <div className="fp-inner">
-
-                    {/* 헤더 */}
-                    <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0' }}>
+                    <div style={{ borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0' }}>
                         <PageHeader title="태그 검색" sub="장르, 태그, 년도로 작품을 찾아보세요" />
                         <button
                             onClick={() => setFilterOpen(v => !v)}
@@ -607,13 +563,9 @@ export default function TagSearch() {
                         </button>
                     </div>
 
-                    {/* 바디 */}
                     <div className="fp-body">
-
-                        {/* 사이드바 */}
                         <div className={`fp-sidebar ${filterOpen ? 'open' : 'closed'}`}>
                             <aside className="fp-sidebar-inner">
-
                                 <div className="sb-top">
                                     <h2>필터</h2>
                                     <button className="btn-reset-all" onClick={reset}>
@@ -674,9 +626,7 @@ export default function TagSearch() {
                                 <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
 
                                 <div className="sb-sec">
-                                    <div className="sb-sec-head">
-                                        <p className="sb-sec-title">년도</p>
-                                    </div>
+                                    <div className="sb-sec-head"><p className="sb-sec-title">년도</p></div>
                                     <div className="sb-checks">
                                         {SIDEBAR_YEARS.map(y => {
                                             const cnt = results.filter(r => {
@@ -701,9 +651,7 @@ export default function TagSearch() {
                                 <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
 
                                 <div className="sb-sec">
-                                    <div className="sb-sec-head">
-                                        <p className="sb-sec-title">방영</p>
-                                    </div>
+                                    <div className="sb-sec-head"><p className="sb-sec-title">방영</p></div>
                                     <div className="sb-checks">
                                         <Checkbox checked={filters.airing === 'ongoing'} onChange={() => toggleAiring('ongoing')} label="방영중" count={results.length} />
                                         <Checkbox checked={filters.airing === 'ended'} onChange={() => toggleAiring('ended')} label="완결" count={results.length} />
@@ -712,20 +660,16 @@ export default function TagSearch() {
                                 <hr className="sb-divider" style={{ margin: '12px 0 0' }} />
 
                                 <div className="sb-sec">
-                                    <div className="sb-sec-head">
-                                        <p className="sb-sec-title">출시타입</p>
-                                    </div>
+                                    <div className="sb-sec-head"><p className="sb-sec-title">출시타입</p></div>
                                     <div className="sb-checks">
                                         <Checkbox checked={filters.mediaType === 'tva'} onChange={() => toggleMedia('tva')} label="TVA" count={results.length} />
                                         <Checkbox checked={filters.mediaType === 'movie'} onChange={() => toggleMedia('movie')} label="극장판" count={results.length} />
                                         <Checkbox checked={filters.mediaType === 'ova'} onChange={() => toggleMedia('ova')} label="OVA" count={results.length} />
                                     </div>
                                 </div>
-
                             </aside>
                         </div>
 
-                        {/* 메인 콘텐츠 */}
                         <div className="fm">
                             <div className="fm-top">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginLeft: 'auto' }}>
@@ -739,15 +683,10 @@ export default function TagSearch() {
                                         {sortOpen && (
                                             <div className="sort-dd">
                                                 {SORT_OPTIONS.map(o => (
-                                                    <button
-                                                        key={o.value}
-                                                        className={`sort-item${filters.sort === o.value ? ' active' : ''}`}
-                                                        onClick={() => { setFilters(f => ({ ...f, sort: o.value })); setSortOpen(false) }}
-                                                    >
+                                                    <button key={o.value} className={`sort-item${filters.sort === o.value ? ' active' : ''}`}
+                                                        onClick={() => { setFilters(f => ({ ...f, sort: o.value })); setSortOpen(false) }}>
                                                         {filters.sort === o.value && (
-                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2.5">
-                                                                <path d="M20 6L9 17l-5-5" />
-                                                            </svg>
+                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
                                                         )}
                                                         {filters.sort !== o.value && <span style={{ width: 13 }} />}
                                                         {o.label}
@@ -786,7 +725,6 @@ export default function TagSearch() {
                                 )}
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>

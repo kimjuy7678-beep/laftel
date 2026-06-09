@@ -86,32 +86,36 @@ export default function AnimePreviewModal() {
 
                 {/* 상단 backdrop */}
                 <div className="relative h-[450px] shrink-0 overflow-hidden">
-                    {backdrop ? <img src={backdrop} className="w-full h-full object-cover" alt={detail?.name} /> : <div className="w-full h-full bg-gradient-to-br from-[#1a1a2e] to-[#16213e]" />}
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #1a1a1a 0%, transparent 60%)' }} />
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, #1a1a1a 0%, transparent 70%)' }} />
+                    {backdrop
+                        ? <img src={backdrop} className="w-full h-full object-cover" alt={detail?.name} />
+                        : <div className="w-full h-full bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg-card)]" />
+                    }
+                    {/* 이미지 위 그라디언트 — 항상 어두운 배경 */}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 60%)' }} />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, transparent 70%)' }} />
 
                     {/* 우측 상단 버튼들 */}
                     <div className="absolute top-4 right-4 flex items-center gap-2">
                         <div className="relative">
                             <button onClick={e => { e.stopPropagation(); setShowMenu(v => !v) }}
-                                className="w-9 h-9 flex items-center justify-center rounded-full bg-black/50 text-[var(--text-muted)] hover:text-white hover:bg-black/80 transition-all">
+                                className="w-9 h-9 flex items-center justify-center rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-black/80 transition-all">
                                 <svg width="4" height="16" viewBox="0 0 4 16" fill="currentColor">
                                     <circle cx="2" cy="2" r="2" /><circle cx="2" cy="8" r="2" /><circle cx="2" cy="14" r="2" />
                                 </svg>
                             </button>
                             {showMenu && (
                                 <div className="absolute top-11 right-0 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl overflow-hidden shadow-2xl w-[160px] z-10" onClick={e => e.stopPropagation()}>
-                                    <button className="w-full px-4 py-3.5 text-left text-sm text-white/80 hover:bg-white/[0.06] transition-colors"
+                                    <button className="w-full px-4 py-3.5 text-left text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
                                         onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/anime/${previewId}`); toast('링크가 복사됐어요!'); setShowMenu(false) }}>공유하기</button>
-                                    <button className="w-full px-4 py-3.5 text-left text-sm text-white/80 hover:bg-white/[0.06] transition-colors border-t border-white/[0.06]"
+                                    <button className="w-full px-4 py-3.5 text-left text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors border-t border-[var(--border-faint)]"
                                         onClick={async () => { if (!user?.uid) return; try { await setDoc(doc(db, 'users', user.uid), { watchHistory: [] }, { merge: true }); setShowMenu(false) } catch { } }}>시청기록 초기화</button>
-                                    <button className="w-full px-4 py-3.5 text-left text-sm text-white/80 hover:bg-white/[0.06] transition-colors border-t border-white/[0.06]"
+                                    <button className="w-full px-4 py-3.5 text-left text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors border-t border-[var(--border-faint)]"
                                         onClick={() => setShowMenu(false)}>관심 없음</button>
                                 </div>
                             )}
                         </div>
                         <button onClick={() => setPreviewId(null)}
-                            className="w-9 h-9 flex items-center justify-center rounded-full bg-black/50 text-[var(--text-muted)] hover:text-white hover:bg-black/80 transition-all">
+                            className="w-9 h-9 flex items-center justify-center rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-black/80 transition-all">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
                         </button>
                     </div>
@@ -122,10 +126,11 @@ export default function AnimePreviewModal() {
                         </div>
                     )}
 
+                    {/* 이미지 위 텍스트 — 항상 흰색 */}
                     <div className="absolute bottom-10 left-10 right-[120px]">
                         <div className="flex items-center gap-2 mb-2">
                             {score > 0 && <span className="text-sm text-amber-400 font-semibold">★ {score}</span>}
-                            {status && <span className={`text-[11px] font-semibold px-2 py-0.5 text-white rounded border ${status === '방영중' ? 'bg-green-500 border-green-500/25' : 'bg-white/10 text-[var(--text-muted)] border-white/15'}`}>{status}</span>}
+                            {status && <span className={`text-[11px] font-semibold px-2 py-0.5 text-white rounded border ${status === '방영중' ? 'bg-green-500 border-green-500/25' : 'bg-white/10 text-white/60 border-white/15'}`}>{status}</span>}
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-3">{detail?.name}</h2>
                         <div className="flex gap-2">
@@ -135,11 +140,11 @@ export default function AnimePreviewModal() {
                                 1화 재생하기
                             </button>
                             <button onClick={() => { if (!user) { setShowLoginAlert(true); return }; setIsWishAdding(!hasItem(previewId, 'wishlist')); setShowWishConfirm(true) }}
-                                className={`w-12 h-12 flex items-center justify-center rounded-full border transition-all ${hasItem(previewId, 'wishlist') ? 'bg-[var(--main)] border-[var(--main)] text-white' : 'border-white/30 text-[var(--text-muted)] hover:text-white hover:border-white'}`}>
+                                className={`w-12 h-12 flex items-center justify-center rounded-full border transition-all ${hasItem(previewId, 'wishlist') ? 'bg-[var(--main)] border-[var(--main)] text-white' : 'border-white/30 text-white/60 hover:text-white hover:border-white'}`}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 5v14M5 12h14" /></svg>
                             </button>
                             <button onClick={() => setShowPurchase(true)}
-                                className="w-12 h-12 flex items-center justify-center rounded-full border border-white/30 text-[var(--text-muted)] hover:text-white hover:border-white transition-all">
+                                className="w-12 h-12 flex items-center justify-center rounded-full border border-white/30 text-white/60 hover:text-white hover:border-white transition-all">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                                     <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                                     <line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
@@ -150,10 +155,10 @@ export default function AnimePreviewModal() {
                 </div>
 
                 {/* 탭 */}
-                <div className="flex border-b border-white/[0.08] px-6 shrink-0">
+                <div className="flex border-b border-[var(--border-subtle)] px-6 shrink-0 bg-[var(--bg-card)]">
                     {(['episodes', 'similar', 'review', 'store'] as const).map(tab => (
                         <button key={tab} onClick={() => setModalTab(tab)}
-                            className={`relative px-4 py-3 text-sm font-semibold bg-transparent border-none cursor-pointer transition-colors ${modalTab === tab ? 'text-white' : 'text-white/35'}`}>
+                            className={`relative px-4 py-3 text-sm font-semibold bg-transparent border-none cursor-pointer transition-colors ${modalTab === tab ? 'text-[var(--text-primary)]' : 'text-[var(--text-faint)]'}`}>
                             {tab === 'episodes' ? '에피소드' : tab === 'similar' ? '비슷한 작품' : tab === 'review' ? '사용자 평' : '스토어'}
                             {modalTab === tab && <span className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-[#6c63ff] rounded-sm" />}
                         </button>
@@ -161,7 +166,7 @@ export default function AnimePreviewModal() {
                 </div>
 
                 {/* 탭 콘텐츠 */}
-                <div className="overflow-y-auto flex-1 px-6 py-4">
+                <div className="overflow-y-auto flex-1 px-6 py-4 bg-[var(--bg-card)]">
                     {modalTab === 'episodes' && <EpisodesTab detail={detail} episodes={episodes} selectedSeason={selectedSeason} setSelectedSeason={setSelectedSeason} />}
                     {modalTab === 'similar' && <SimilarTab similar={similar} />}
                     {modalTab === 'review' && <ReviewTab previewId={previewId} user={user} />}
@@ -170,32 +175,79 @@ export default function AnimePreviewModal() {
             </div>
 
             {showLoginAlert && <LoginAlert onClose={() => setShowLoginAlert(false)} />}
-
             {showPurchase && <PurchaseModal episodes={episodes} detail={detail} onClose={() => setShowPurchase(false)} />}
 
             {showWishConfirm && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={() => setShowWishConfirm(false)}>
-                    <div className="bg-[var(--bg-card)] rounded-2xl p-6 flex flex-col items-center gap-4 border border-[var(--border)] w-[320px]" onClick={e => e.stopPropagation()}>
-                        <p className="text-white font-bold text-base">{isWishAdding ? '보고싶다 보관함에 추가할까요?' : '보고싶다에서 삭제할까요?'}</p>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowWishConfirm(false)}>
+                    <div className="bg-[var(--bg-card)] rounded-2xl p-6 flex flex-col items-center gap-4 border border-[var(--border)] w-[320px] shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="w-12 h-12 rounded-full bg-[var(--bg-hover)] flex items-center justify-center">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
+                                <path d="M12 5v14M5 12h14" />
+                            </svg>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[var(--text-primary)] font-bold text-base mb-1">
+                                {isWishAdding ? '보고싶다에 추가할까요?' : '보고싶다에서 삭제할까요?'}
+                            </p>
+                            <p className="text-[var(--text-subtle)] text-xs">
+                                {isWishAdding ? '보관함에서 언제든 확인할 수 있어요' : '보관함에서 제거됩니다'}
+                            </p>
+                        </div>
                         <div className="flex gap-2 w-full">
-                            <button onClick={() => setShowWishConfirm(false)} className="flex-1 py-2 rounded-full border border-white/20 text-[var(--text-muted)] text-sm hover:text-white transition-colors">취소</button>
-                            <button onClick={async () => {
-                                if (!isWishAdding) { await removeItem(user!.uid!, previewId, 'wishlist'); setShowWishConfirm(false) }
-                                else { await addItem(user!.uid!, { id: previewId, title: detail?.name || '', poster: detail?.poster_path || '', tab: 'wishlist' }); setShowWishConfirm(false); setTimeout(() => setShowWishAdded(true), 150) }
-                            }} className="flex-1 py-2 rounded-full bg-[var(--main)] text-white text-sm font-bold hover:opacity-90 transition-opacity">{isWishAdding ? '추가' : '삭제'}</button>
+                            <button
+                                onClick={() => setShowWishConfirm(false)}
+                                className="flex-1 py-2.5 rounded-full border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!isWishAdding) {
+                                        await removeItem(user!.uid!, previewId, 'wishlist')
+                                        setShowWishConfirm(false)
+                                    } else {
+                                        await addItem(user!.uid!, { id: previewId, title: detail?.name || '', poster: detail?.poster_path || '', tab: 'wishlist' })
+                                        setShowWishConfirm(false)
+                                        setTimeout(() => setShowWishAdded(true), 150)
+                                    }
+                                }}
+                                className={`flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${isWishAdding
+                                        ? 'bg-[var(--main)] text-white hover:opacity-90'
+                                        : 'bg-red-500/90 text-white hover:bg-red-500'
+                                    }`}
+                            >
+                                {isWishAdding ? '추가' : '삭제'}
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
 
             {showWishAdded && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={() => setShowWishAdded(false)}>
-                    <div className="bg-[var(--bg-card)] rounded-2xl p-6 flex flex-col items-center gap-4 border border-[var(--border)] w-[320px]" onClick={e => e.stopPropagation()}>
-                        <p className="text-white font-bold text-base">보고싶다에 추가됐어요!</p>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowWishAdded(false)}>
+                    <div className="bg-[var(--bg-card)] rounded-2xl p-6 flex flex-col items-center gap-4 border border-[var(--border)] w-[320px] shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="w-12 h-12 rounded-full bg-[var(--main)]/15 flex items-center justify-center">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2">
+                                <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[var(--text-primary)] font-bold text-base mb-1">보고싶다에 추가됐어요!</p>
+                            <p className="text-[var(--text-subtle)] text-xs">보관함에서 언제든 확인할 수 있어요</p>
+                        </div>
                         <div className="flex gap-2 w-full">
-                            <button onClick={() => setShowWishAdded(false)} className="flex-1 py-2 rounded-full border border-white/20 text-[var(--text-muted)] text-sm hover:text-white transition-colors">닫기</button>
-                            <button onClick={() => { router.push('/library?tab=wishlist'); setShowWishAdded(false); setPreviewId(null) }}
-                                className="flex-1 py-2 rounded-full bg-[var(--main)] text-white text-sm font-bold hover:opacity-90 transition-opacity">보관함으로 이동</button>
+                            <button
+                                onClick={() => setShowWishAdded(false)}
+                                className="flex-1 py-2.5 rounded-full border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors"
+                            >
+                                닫기
+                            </button>
+                            <button
+                                onClick={() => { router.push('/library?tab=wishlist'); setShowWishAdded(false); setPreviewId(null) }}
+                                className="flex-1 py-2.5 rounded-full bg-[var(--main)] text-white text-sm font-bold hover:opacity-90 transition-opacity"
+                            >
+                                보관함으로 이동
+                            </button>
                         </div>
                     </div>
                 </div>
