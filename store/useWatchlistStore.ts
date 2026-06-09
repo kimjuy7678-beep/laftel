@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import { db } from '@/firebase/firebase'
 import {
     doc, setDoc, deleteDoc, getDocs,
@@ -19,59 +18,54 @@ export interface WatchlistItem {
 interface WatchlistStore {
     items: WatchlistItem[]
     loading: boolean
-    fetchWatchlist: (uid: string) => Promise<void>
-    addItem: (uid: string, item: Omit<WatchlistItem, 'addedAt'>) => Promise<void>
-    removeItem: (uid: string, itemId: number, tab: WatchlistTab) => Promise<void>
+    fetchWatchlist: (uid: string, profileId: string) => Promise<void>
+    addItem: (uid: string, profileId: string, item: Omit<WatchlistItem, 'addedAt'>) => Promise<void>
+    removeItem: (uid: string, profileId: string, itemId: number, tab: WatchlistTab) => Promise<void>
     hasItem: (id: number, tab: WatchlistTab) => boolean
 }
 
-export const useWatchlistStore = create<WatchlistStore>()(
-    persist(
-        (set, get) => ({
-            items: [],
-            loading: false,
+export const useWatchlistStore = create<WatchlistStore>()((set, get) => ({
+    items: [],
+    loading: false,
 
-            fetchWatchlist: async (uid) => {
-                set({ loading: true })
-                try {
-                    const q = query(
-                        collection(db, 'users', uid, 'watchlist'),
-                        orderBy('addedAt', 'desc')
-                    )
-                    const snap = await getDocs(q)
-                    const items: WatchlistItem[] = snap.docs.map(d => d.data() as WatchlistItem)
-                    set({ items })
-                } catch (e) {
-                    console.error(e)
-                } finally {
-                    set({ loading: false })
-                }
-            },
+    fetchWatchlist: async (uid, profileId) => {
+        set({ loading: true })
+        try {
+            const q = query(
+                collection(db, 'users', uid, 'profiles', profileId, 'watchlist'),
+                orderBy('addedAt', 'desc')
+            )
+            const snap = await getDocs(q)
+            const items: WatchlistItem[] = snap.docs.map(d => d.data() as WatchlistItem)
+            set({ items })
+        } catch (e) {
+            console.error(e)
+        } finally {
+            set({ loading: false })
+        }
+    },
 
-            addItem: async (uid, item) => {
-                const newItem: WatchlistItem = { ...item, addedAt: Date.now() }
-                const docId = `${item.tab}_${item.id}`
-                await setDoc(doc(db, 'users', uid, 'watchlist', docId), {
-                    ...newItem,
-                    updatedAt: serverTimestamp(),
-                })
-                set(state => ({
-                    items: [newItem, ...state.items.filter(i => !(i.id === item.id && i.tab === item.tab))]
-                }))
-            },
+    addItem: async (uid, profileId, item) => {
+        const newItem: WatchlistItem = { ...item, addedAt: Date.now() }
+        const docId = `${item.tab}_${item.id}`
+        await setDoc(doc(db, 'users', uid, 'profiles', profileId, 'watchlist', docId), {
+            ...newItem,
+            updatedAt: serverTimestamp(),
+        })
+        set(state => ({
+            items: [newItem, ...state.items.filter(i => !(i.id === item.id && i.tab === item.tab))]
+        }))
+    },
 
-            removeItem: async (uid, itemId, tab) => {
-                const docId = `${tab}_${itemId}`
-                await deleteDoc(doc(db, 'users', uid, 'watchlist', docId))
-                set(state => ({
-                    items: state.items.filter(i => !(i.id === itemId && i.tab === tab))
-                }))
-            },
+    removeItem: async (uid, profileId, itemId, tab) => {
+        const docId = `${tab}_${itemId}`
+        await deleteDoc(doc(db, 'users', uid, 'profiles', profileId, 'watchlist', docId))
+        set(state => ({
+            items: state.items.filter(i => !(i.id === itemId && i.tab === tab))
+        }))
+    },
 
-            hasItem: (id, tab) => {
-                return get().items.some(i => i.id === id && i.tab === tab)
-            },
-        }),
-        { name: 'watchlist-storage' }
-    )
-)
+    hasItem: (id, tab) => {
+        return get().items.some(i => i.id === id && i.tab === tab)
+    },
+}))

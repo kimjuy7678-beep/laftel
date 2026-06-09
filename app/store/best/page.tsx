@@ -13,7 +13,7 @@ const BEST_RANK_BY_ID = new Map(BEST_PRODUCTS.map((product, index) => [product.p
 
 function parsePrice(s: string) { return parseInt(s.replace(/[^0-9]/g, ""), 10) || 0; }
 function Inner({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
-    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>{children}</div>;
+    return <div id={id} className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
 }
 
 function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
@@ -28,21 +28,23 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
         }, 0);
     };
     return (
-        <div className="mt-16 flex items-center justify-center gap-2">
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-1.5 sm:mt-16 sm:gap-2">
             <button onClick={() => handleChange(Math.max(1, current - 1))} disabled={current === 1}
-                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-10">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            {groupStart > 1 && <button onClick={() => handleChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            {hasPrevGroup && <button onClick={() => handleChange(groupStart - 1)} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]">···</button>}
             {pages.map((p) => (
                 <button key={p} onClick={() => handleChange(p)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${p === current ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]" : "bg-white border border-[#d8d4ee] text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
+                    className={`flex h-9 w-9 items-center justify-center rounded-[10px] text-[13px] font-medium transition sm:h-10 sm:w-10 sm:text-[14px] ${p === current
+                        ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]"
+                        : "bg-white border border-[#d8d4ee] text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
                     {p}
                 </button>
             ))}
-            {groupEnd < total && <button onClick={() => handleChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            {hasNextGroup && <button onClick={() => handleChange(groupEnd + 1)} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]">···</button>}
             <button onClick={() => handleChange(Math.min(total, current + 1))} disabled={current === total}
-                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-10">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
         </div>
@@ -81,23 +83,28 @@ export default function BestPage() {
                     </button>
                 </Inner>
             </div>
-            <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
+
+            {/* 헤더 */}
+            <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-8 sm:py-10">
                 <Inner>
                     <p className="mb-4 text-[14px] text-[#9b94b2]">
                         <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
                         <span className="mx-1.5">›</span>
                         <span className="font-medium text-[#7865ff]">BEST</span>
                     </p>
-                    <div className="flex items-end justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-[32px] font-bold text-[#16121f]">BEST 굿즈</h1>
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                <h1 className="text-[24px] font-bold text-[#16121f] sm:text-[32px]">BEST 굿즈</h1>
                                 <span className="rounded-full bg-[#7865ff] px-3 py-1 text-[12px] font-bold text-white">TOP {BEST_PRODUCT_LIMIT}</span>
                             </div>
                             <p className="mt-1 text-[14px] text-[#9b94b2]">가장 많이 사랑받는 인기 굿즈 모음이에요.</p>
                         </div>
-                        <div className="flex h-[44px] w-[340px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)]">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" /><path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                        <div className="flex h-[44px] w-full items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)] sm:w-[340px]">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]">
+                                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                                <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
                             <input className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
                                 placeholder="찾으시는 상품을 검색하세요" value={search} onChange={(e) => setSearch(e.target.value)} />
                             {search && <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg></button>}
@@ -108,7 +115,7 @@ export default function BestPage() {
 
             {page === 1 && search === "" && (
                 <Inner className="mt-8">
-                    <div className="flex gap-4">
+                    <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0">
                         {[1, 0, 2].map((i) => {
                             const p = BEST_PRODUCTS[i];
                             const isFirst = i === 0;
@@ -120,10 +127,16 @@ export default function BestPage() {
                             const medal = medals[i];
                             return (
                                 <Link key={p.productId} href={`/store/${p.productId}`}
-                                    className={`group relative flex-1 overflow-hidden rounded-[20px] border transition-all duration-300 ${isFirst ? "border-[#7865ff]/30 shadow-[0_8px_32px_rgba(120,101,255,0.12)] hover:border-[#7865ff] hover:shadow-[0_12px_40px_rgba(120,101,255,0.25)] hover:scale-[1.01]" : "border-[#e2ddf5] hover:border-[#7865ff]/50 hover:shadow-[0_8px_24px_rgba(120,101,255,0.15)] hover:scale-[1.01]"} bg-white`}>
-                                    <div className={`flex items-center gap-4 px-5 py-4 ${isFirst ? "bg-[#f0eeff]" : "bg-[#f8f7fc]"}`}>
-                                        <div className="flex flex-col items-center justify-center rounded-[14px] px-3 py-2.5 shrink-0" style={{ backgroundColor: medal.bg, boxShadow: `0 4px 12px ${medal.shadow}` }}>
-                                            <span className="text-[28px] leading-none">{medal.emoji}</span>
+                                    className={`group relative w-[260px] shrink-0 snap-start overflow-hidden rounded-[16px] border transition-all duration-300 sm:w-auto sm:rounded-[20px] ${isFirst
+                                        ? "border-[#7865ff]/30 shadow-[0_8px_32px_rgba(120,101,255,0.12)] hover:border-[#7865ff] hover:shadow-[0_12px_40px_rgba(120,101,255,0.25)] hover:scale-[1.01]"
+                                        : "border-[#e2ddf5] hover:border-[#7865ff]/50 hover:shadow-[0_8px_24px_rgba(120,101,255,0.15)] hover:scale-[1.01]"} bg-white`}>
+
+                                    {/* 상단 배너 */}
+                                    <div className={`flex items-center gap-3 px-4 py-3 sm:gap-4 sm:px-5 sm:py-4 ${isFirst ? "bg-[#f0eeff]" : "bg-[#f8f7fc]"}`}>
+                                        {/* 메달 */}
+                                        <div className="flex flex-col items-center justify-center rounded-[14px] px-3 py-2.5 shrink-0"
+                                            style={{ backgroundColor: medal.bg, boxShadow: `0 4px 12px ${medal.shadow}` }}>
+                                            <span className="text-[24px] leading-none sm:text-[28px]">{medal.emoji}</span>
                                             <span className="mt-1 text-[11px] font-black tracking-widest" style={{ color: medal.color }}>{medal.label}</span>
                                         </div>
                                         <div className="min-w-0">
@@ -171,7 +184,7 @@ export default function BestPage() {
                         {(search || activeFilterCount > 0) && <button onClick={() => { setSearch(""); handleReset(); }} className="text-[13px] text-[#7865ff] underline">필터 초기화</button>}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-6 lg:gap-y-10">
                         {paginated.map((product) => {
                             const rank = BEST_RANK_BY_ID.get(product.productId);
                             return (

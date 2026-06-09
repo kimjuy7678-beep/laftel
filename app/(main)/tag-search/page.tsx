@@ -5,7 +5,7 @@ import LoginAlert from '@/components/store/LoginAlert'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { useWatchlistStore } from '@/store/useWatchlistStore'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 
 // ─── 타입 ──────────────────────────────────────────────────────
@@ -636,7 +636,14 @@ function Skeleton() {
 
 // ─── 메인 ─────────────────────────────────────────────────────
 export default function TagSearch() {
-    const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
+    const searchParams = useSearchParams()
+    const [filters, setFilters] = useState<Filters>(() => {
+        const genreParam = searchParams.get('genre')
+        if (!genreParam) return DEFAULT_FILTERS
+        const matched = ALL_GENRES.find(g => g.id === Number(genreParam))
+        if (!matched) return DEFAULT_FILTERS
+        return { ...DEFAULT_FILTERS, genres: [matched.key] }
+    })
     const [results, setResults] = useState<AniItem[]>([])
     const [countBaseResults, setCountBaseResults] = useState<AniItem[]>([])
     const [loading, setLoading] = useState(false)

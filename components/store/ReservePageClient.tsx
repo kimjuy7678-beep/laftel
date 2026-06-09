@@ -226,37 +226,37 @@ function ReleaseCalendar({
     const visibleDates = Array.from({ length: 10 }, (_, index) => addDays(today, index - 2));
 
     return (
-        <section className="rounded-[24px] bg-[#f6f3ff] px-6 py-7">
+        <section className="rounded-[18px] bg-[#f6f3ff] px-4 py-5 sm:rounded-[24px] sm:px-6 sm:py-7">
 
             <p className="mb-3 text-[12px] text-[#9b94b2]">
                 <Link href="/store" className="hover:text-[#7865ff]">스토어메인</Link>
                 <span className="mx-1.5">›</span>
                 <span className="font-medium text-[#7865ff]">예약 굿즈</span>
             </p>
-            <h2 className="text-[30px] font-extrabold text-[#111018] pb-[10px]">예약 구매 굿즈</h2>
+            <h2 className="pb-[10px] text-[24px] font-extrabold text-[#111018] sm:text-[30px]">예약 구매 굿즈</h2>
             {/* <p className="mt-2 text-[15px] text-[#8a8494] pb-[20px]">
                 누구보다 빠르게 한정판 피규어와 공식 굿즈를 만나보세요.
             </p> */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <span className="flex h-5 w-5 items-center justify-center rounded-[6px] bg-[#7865ff] text-white">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M8 2v4M16 2v4M3 10h18" />
                             <rect x="3" y="4" width="18" height="18" rx="2" />
                         </svg>
                     </span>
-                    <h1 className="text-[20px] font-extrabold text-[#15121d]">굿즈 출시 캘린더</h1>
-                    <span className="ml-3 rounded-full bg-white px-3 py-1 text-[13px] font-bold text-[#7865ff]">
+                    <h1 className="text-[17px] font-extrabold text-[#15121d] sm:text-[20px]">굿즈 출시 캘린더</h1>
+                    <span className="rounded-full bg-white px-3 py-1 text-[12px] font-bold text-[#7865ff] sm:ml-3 sm:text-[13px]">
                         {today.year}년 {today.month}월
                     </span>
                 </div>
-                <button type="button" onClick={onOpenModal} className="text-[13px] font-semibold text-[#7865ff]">
+                <button type="button" onClick={onOpenModal} className="hidden w-fit text-[13px] font-semibold text-[#7865ff] sm:block">
                     일정 전체보기
                 </button>
             </div>
 
-            <div className="grid grid-cols-5 gap-4 lg:grid-cols-10">
+            <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-5 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-10">
                 {visibleDates.map((date) => {
                     const dateObj = toDate(date);
                     const weekday = WEEKDAYS[dateObj.getDay()];
@@ -269,7 +269,7 @@ function ReleaseCalendar({
                         <Link
                             key={`${date.year}-${date.month}-${date.day}`}
                             href={firstEvent ? `/store/${firstEvent.product.productId}` : "/store/reserve"}
-                            className={`flex h-[120px] flex-col items-center justify-center rounded-[12px] border transition ${isToday
+                            className={`flex h-[108px] w-[86px] shrink-0 snap-start flex-col items-center justify-center rounded-[12px] border transition sm:h-[120px] sm:w-auto ${isToday
                                 ? "border-[#5a45e8] bg-[#5a45e8] text-white shadow-[0_10px_24px_rgba(90,69,232,0.25)]"
                                 : "border-[#e2ddf5] bg-white text-[#111018] hover:border-[#7865ff]"
                                 }`}
@@ -277,12 +277,12 @@ function ReleaseCalendar({
                             <span className={`text-[12px] font-medium ${isToday ? "text-white/75" : isWeekend ? "text-[#3478ff]" : "text-[#777b8f]"}`}>
                                 {weekday}
                             </span>
-                            <span className={`mt-1 text-[22px] font-extrabold ${!isToday && weekday === "Sun" ? "text-[#ff3d48]" : ""}`}>
+                            <span className={`mt-1 text-[20px] font-extrabold sm:text-[22px] ${!isToday && weekday === "Sun" ? "text-[#ff3d48]" : ""}`}>
                                 {String(date.day).padStart(2, "0")}
                             </span>
                             {firstEvent ? (
-                                <span className={`mt-2 max-w-[86px] truncate rounded-full px-2 py-1 text-[10px] font-bold ${isToday ? "bg-white text-[#5a45e8]" : "bg-[#ede9ff] text-[#7865ff]"}`}>
-                                    {firstEvent.label.slice(0, 12)}
+                                <span className={`mt-2 max-w-[70px] truncate rounded-full px-2 py-1 text-[10px] font-bold sm:max-w-[86px] ${isToday ? "bg-white text-[#5a45e8]" : "bg-[#ede9ff] text-[#7865ff]"}`}>
+                                    {firstEvent.label.slice(0, 10)}
                                 </span>
                             ) : isToday ? (
                                 <span className="mt-3 h-1.5 w-1.5 rounded-full bg-white" />
@@ -328,16 +328,16 @@ function CalendarModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-3 py-4 md:px-4 md:py-8" onClick={onClose}>
-            <div className="max-h-[calc(100dvh-32px)] w-full max-w-[920px] overflow-y-auto rounded-[20px] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
-                <div className="flex min-h-[74px] flex-wrap items-center justify-between gap-3 border-b border-[#ebe8ff] px-4 py-4 md:min-h-[84px] md:px-7">
-                    <div className="flex flex-wrap items-center gap-3 md:gap-5">
-                        <h2 className="text-[20px] font-extrabold text-[#15121d]">월간 출시 일정</h2>
-                        <div className="flex items-center rounded-full bg-[#f1eeff] px-3 py-1.5 text-[#7865ff]">
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 px-2 py-2 sm:items-center sm:px-4 sm:py-8" onClick={onClose}>
+            <div className="max-h-[calc(100dvh-16px)] w-full max-w-[920px] overflow-hidden rounded-[18px] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:max-h-[calc(100dvh-32px)] md:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
+                <div className="flex items-start justify-between gap-3 border-b border-[#ebe8ff] px-4 py-4 md:min-h-[84px] md:items-center md:px-7">
+                    <div className="min-w-0">
+                        <h2 className="text-[18px] font-extrabold text-[#15121d] sm:text-[20px]">월간 출시 일정</h2>
+                        <div className="mt-2 flex w-fit items-center rounded-full bg-[#f1eeff] px-2.5 py-1.5 text-[#7865ff] sm:px-3 md:mt-0">
                             <button type="button" onClick={() => moveMonth(-1)} aria-label="이전 달" className="flex h-6 w-6 items-center justify-center">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="m15 18-6-6 6-6" /></svg>
                             </button>
-                            <span className="min-w-[100px] text-center text-[15px] font-extrabold">
+                            <span className="min-w-[92px] text-center text-[13px] font-extrabold sm:min-w-[100px] sm:text-[15px]">
                                 {monthCursor.year}년 {monthCursor.month}월
                             </span>
                             <button type="button" onClick={() => moveMonth(1)} aria-label="다음 달" className="flex h-6 w-6 items-center justify-center">
@@ -345,50 +345,57 @@ function CalendarModal({
                             </button>
                         </div>
                     </div>
-                    <button type="button" onClick={onClose} aria-label="닫기" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f0f1f4] text-[#4d5260]">
+                    <button type="button" onClick={onClose} aria-label="닫기" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f0f1f4] text-[#4d5260]">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
                     </button>
                 </div>
 
-                <div className="px-4 pb-5 pt-5 md:px-7 md:pb-6 md:pt-7">
-                    <div className="mb-4 grid grid-cols-7 text-center text-[11px] font-extrabold uppercase">
-                        {WEEKDAYS.map((day) => (
-                            <span key={day} className={day === "Sun" ? "text-[#ff3d48]" : day === "Sat" ? "text-[#3478ff]" : "text-[#7a8193]"}>
-                                {day}
-                            </span>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-7 overflow-hidden rounded-[10px] border border-[#e5e8ef]">
-                        {cells.map((date) => {
-                            const isToday = toSerial(date) === toSerial(today);
-                            const cellEvents = events.filter((event) => toSerial(event.date) === toSerial(date)).slice(0, 2);
+                <div className="max-h-[calc(100dvh-120px)] overflow-y-auto px-4 pb-5 pt-5 md:px-7 md:pb-6 md:pt-7">
+                    <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+                        <div className="min-w-[560px] sm:min-w-0">
+                            <div className="mb-4 grid grid-cols-7 text-center text-[11px] font-extrabold uppercase">
+                                {WEEKDAYS.map((day) => (
+                                    <span key={day} className={day === "Sun" ? "text-[#ff3d48]" : day === "Sat" ? "text-[#3478ff]" : "text-[#7a8193]"}>
+                                        {day}
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-7 overflow-hidden rounded-[10px] border border-[#e5e8ef]">
+                                {cells.map((date) => {
+                                    const isToday = toSerial(date) === toSerial(today);
+                                    const cellEvents = events.filter((event) => toSerial(event.date) === toSerial(date)).slice(0, 2);
 
-                            return (
-                                <div
-                                    key={`${date.year}-${date.month}-${date.day}`}
-                                    className={`min-h-[70px] border-b border-r border-[#e5e8ef] p-1.5 last:border-r-0 sm:min-h-[82px] md:min-h-[96px] md:p-2 ${date.muted ? "bg-[#eef0f3] text-[#c0c5cf]" : isToday ? "bg-[#f1eeff]" : "bg-white text-[#141620]"}`}
-                                >
-                                    <div className="flex justify-between">
-                                        <span className={`flex h-7 w-7 items-center justify-center text-[12px] ${isToday ? "rounded-full bg-[#5a45e8] font-extrabold text-white" : ""}`}>
-                                            {date.day}
-                                        </span>
-                                    </div>
-                                    <div className="mt-1 space-y-1">
-                                        {cellEvents.map((event) => (
-                                            <Link key={event.product.productId} href={`/store/${event.product.productId}`} className="block">
-                                                <div
-                                                    className="h-7 rounded-[6px] bg-[#ede9ff] bg-cover bg-center sm:h-8 md:h-10 md:rounded-[7px]"
-                                                    style={{ backgroundImage: `url(${event.product.thumbnail})` }}
-                                                    aria-label={event.label}
-                                                />
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                    return (
+                                        <div
+                                            key={`${date.year}-${date.month}-${date.day}`}
+                                            className={`min-h-[74px] border-b border-r border-[#e5e8ef] p-1.5 last:border-r-0 sm:min-h-[82px] md:min-h-[96px] md:p-2 ${date.muted ? "bg-[#eef0f3] text-[#c0c5cf]" : isToday ? "bg-[#f1eeff]" : "bg-white text-[#141620]"}`}
+                                        >
+                                            <div className="flex justify-between">
+                                                <span className={`flex h-7 w-7 items-center justify-center text-[12px] ${isToday ? "rounded-full bg-[#5a45e8] font-extrabold text-white" : ""}`}>
+                                                    {date.day}
+                                                </span>
+                                            </div>
+                                            <div className="mt-1 space-y-1">
+                                                {cellEvents.map((event) => (
+                                                    <Link key={event.product.productId} href={`/store/${event.product.productId}`} className="block">
+                                                        <div
+                                                            className="hidden h-8 rounded-[6px] bg-[#ede9ff] bg-cover bg-center sm:block md:h-10 md:rounded-[7px]"
+                                                            style={{ backgroundImage: `url(${event.product.thumbnail})` }}
+                                                            aria-label={event.label}
+                                                        />
+                                                        <span className="block truncate rounded-[5px] bg-[#ede9ff] px-1.5 py-1 text-[9px] font-bold leading-none text-[#7865ff] sm:hidden">
+                                                            {event.label}
+                                                        </span>
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
-                    <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-[#7a8193]">
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-[#7a8193] sm:mt-5 sm:gap-x-6 sm:text-[12px]">
 
                         <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-full bg-[#5a45e8]" />오늘</span>
                         <span className="flex items-center gap-2"><i className="h-3.5 w-5 rounded bg-[#ede9ff]" />주요 이벤트 / 예약 마감일</span>
@@ -408,12 +415,12 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     const hasNextGroup = groupEnd < total;
 
     return (
-        <div className="mt-16 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-1.5 sm:mt-16 sm:gap-2">
             <button
                 type="button"
                 onClick={() => onChange(Math.max(1, current - 1))}
                 disabled={current === 1}
-                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-10"
                 aria-label="이전 페이지"
             >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
@@ -422,7 +429,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                 <button
                     type="button"
                     onClick={() => onChange(groupStart - 1)}
-                    className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"
+                    className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]"
                 >
                     ···
                 </button>
@@ -432,7 +439,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                     key={page}
                     type="button"
                     onClick={() => onChange(page)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${page === current
+                    className={`flex h-9 w-9 items-center justify-center rounded-[10px] text-[13px] font-medium transition sm:h-10 sm:w-10 sm:text-[14px] ${page === current
                         ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]"
                         : "border border-[#d8d4ee] bg-white text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"
                         }`}
@@ -444,7 +451,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                 <button
                     type="button"
                     onClick={() => onChange(groupEnd + 1)}
-                    className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"
+                    className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]"
                 >
                     ···
                 </button>
@@ -453,7 +460,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                 type="button"
                 onClick={() => onChange(Math.min(total, current + 1))}
                 disabled={current === total}
-                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-10"
                 aria-label="다음 페이지"
             >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
@@ -525,7 +532,7 @@ export default function ReservePageClient({ products }: { products: Product[] })
 
     return (
         <div className="min-h-screen bg-white pb-24">
-            <Inner className="pt-10">
+            <Inner className="pt-5 sm:pt-8 lg:pt-10">
                 <ReleaseCalendar today={today} events={events} onOpenModal={() => setCalendarOpen(true)} />
 
                 <section id="reserve-products" className="mt-10">
@@ -570,7 +577,7 @@ export default function ReservePageClient({ products }: { products: Product[] })
                             예약 상품이 아직 없어요.
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-6 lg:gap-y-10">
                             {visibleProducts.map((product) => (
                                 <ProductCard key={product.productId} product={product} today={today} />
                             ))}
