@@ -96,6 +96,7 @@ export default function StoreListPage() {
     });
 
     const sorted = sortProducts(filtered, sort);
+    console.log("sort =", sort);
 
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
