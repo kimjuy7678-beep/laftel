@@ -42,19 +42,19 @@ const Banners: Banner[] = [
 ];
 export default function StoreCarousel() {
     return (
-        <div className="w-full pt-[80px]">
-            <div className="max-w-[1770px] mx-auto px-4">  {/* 가운데 정렬 */}
-                <div className="relative flex items-center gap-4">
+        <div className="w-full pt-4 sm:pt-8 lg:pt-[80px]">
+            <div className="mx-auto max-w-[1770px] px-4 sm:px-6 lg:px-4">  {/* 가운데 정렬 */}
+                <div className="relative flex items-center gap-2 sm:gap-4">
 
                     {/* 커스텀 prev 버튼 */}
-                    <button className="store-swiper-prev flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-400 hover:bg-gray-500 transition-colors shadow-md z-10">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <button className="store-swiper-prev absolute left-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 flex-shrink-0 items-center justify-center rounded-full bg-black/30 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:translate-y-0 sm:bg-gray-400 sm:hover:bg-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                         </svg>
                     </button>
 
                     {/* 슬라이더 */}
-                    <div className="flex-1 rounded-xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
+                    <div className="min-w-0 flex-1 overflow-hidden rounded-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.2)] sm:rounded-xl">
                         <Swiper
                             slidesPerView={1}
                             loop={true}
@@ -72,21 +72,21 @@ export default function StoreCarousel() {
                             {Banners.map((m, id) => (
                                 <SwiperSlide key={id}>
                                     {/* 이미지 + 텍스트 오버레이 */}
-                                    <div className="relative w-full">
-                                        <img src={m.url} alt={m.title} className="w-full object-cover" />
+                                    <div className="relative h-[240px] w-full sm:h-[320px] lg:h-auto">
+                                        <img src={m.url} alt={m.title} className="h-full w-full object-cover" />
 
                                         {/* 어두운 그라디언트 오버레이 */}
-                                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+                                        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10 sm:from-black/60 sm:via-black/30 sm:to-transparent" />
 
                                         {/* 텍스트 영역 */}
-                                        <div className="absolute inset-0 flex flex-col justify-center px-10 gap-3">
-                                            <h1 className="text-white text-4xl font-bold drop-shadow-lg">
+                                        <div className="absolute inset-0 flex max-w-[82%] flex-col justify-center gap-2 px-6 sm:max-w-[620px] sm:gap-3 sm:px-10">
+                                            <h1 className="text-[24px] font-bold leading-tight text-white drop-shadow-lg sm:text-[32px] lg:text-4xl">
                                                 {m.title}
                                             </h1>
-                                            <p className="text-white/90 text-base whitespace-pre-line drop-shadow">
+                                            <p className="whitespace-pre-line text-[13px] leading-relaxed text-white/90 drop-shadow sm:text-base">
                                                 {m.content}
                                             </p>
-                                            <button className="mt-2 w-fit px-5 py-2 bg-[#826cff] hover:bg-violet-600 text-white text-sm font-medium rounded-full transition-colors shadow-md">
+                                            <button className="mt-2 w-fit rounded-full bg-[#826cff] px-4 py-2 text-[12px] font-medium text-white shadow-md transition-colors hover:bg-violet-600 sm:px-5 sm:text-sm">
                                                 {m.button}
                                             </button>
                                         </div>
@@ -97,8 +97,8 @@ export default function StoreCarousel() {
                     </div>
 
                     {/* 커스텀 next 버튼 */}
-                    <button className="store-swiper-next flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-400 hover:bg-gray-500 transition-colors shadow-md z-10">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <button className="store-swiper-next absolute right-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 flex-shrink-0 items-center justify-center rounded-full bg-black/30 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:translate-y-0 sm:bg-gray-400 sm:hover:bg-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
                     </button>
