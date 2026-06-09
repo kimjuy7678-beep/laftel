@@ -218,22 +218,22 @@ export function StoreSearchModal({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/45 px-4 pt-[96px]" onClick={onClose}>
-            <div className="w-full max-w-[720px] rounded-[20px] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,0.24)]" onClick={(event) => event.stopPropagation()}>
-                <div className="flex h-[52px] items-center rounded-full border border-[#ddd8f4] bg-white px-5 shadow-[0_8px_24px_rgba(30,24,70,0.12)]">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/45 px-3 pt-[76px] sm:px-4 sm:pt-[96px]" onClick={onClose}>
+            <div className="w-full max-w-[720px] rounded-[16px] bg-white p-3 shadow-[0_24px_80px_rgba(0,0,0,0.24)] sm:rounded-[20px] sm:p-5" onClick={(event) => event.stopPropagation()}>
+                <div className="flex h-[48px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_8px_24px_rgba(30,24,70,0.12)] sm:h-[52px] sm:px-5">
                     <span className="text-[#7865ff]"><SearchIcon /></span>
                     <input
                         autoFocus
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
-                        className="h-full min-w-0 flex-1 bg-transparent px-4 text-[14px] text-[#242130] outline-none placeholder:text-[#9b94b2]"
+                        className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#9b94b2] sm:px-4 sm:text-[14px]"
                         placeholder="굿즈 또는 작품명으로 검색해 보세요"
                     />
                     <button type="button" onClick={onClose} aria-label="닫기" className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f0f1f4] text-[#4d5260]">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
                     </button>
                 </div>
-                <div className="mt-5 max-h-[62vh] overflow-y-auto pr-1">
+                <div className="mt-4 max-h-[68vh] overflow-y-auto pr-1 sm:mt-5 sm:max-h-[62vh]">
                     <SearchResults query={query} onSelect={onClose} onSuggest={setQuery} />
                 </div>
             </div>
@@ -247,23 +247,23 @@ export function StoreSearchBar() {
     const showResults = focused;
 
     return (
-        <div className="relative mx-auto mt-10 w-full max-w-[960px] pt-10">
-            <div className="flex h-[56px] items-center rounded-full border border-[#ddd8f4] bg-white px-6 shadow-[0_8px_24px_rgba(30,24,70,0.13)]">
+        <div className="relative mx-auto mt-6 w-full max-w-[960px] px-4 pt-4 sm:mt-8 sm:px-6 sm:pt-8 lg:mt-10 lg:px-0 lg:pt-10">
+            <div className="flex h-[48px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_8px_24px_rgba(30,24,70,0.13)] sm:h-[56px] sm:px-6">
                 <span className="shrink-0 text-[#4f486d]"><SearchIcon /></span>
                 <input
                     value={query}
                     onFocus={() => setFocused(true)}
                     onChange={(event) => setQuery(event.target.value)}
-                    className="h-full min-w-0 flex-1 bg-transparent px-5 text-[13px] text-[#242130] outline-none placeholder:text-[#8f8a9d]"
+                    className="h-full min-w-0 flex-1 bg-transparent px-3 text-[12px] text-[#242130] outline-none placeholder:text-[#8f8a9d] sm:px-5 sm:text-[13px]"
                     placeholder="굿즈 또는 작품명으로 검색해 보세요"
                 />
-                <button type="button" onClick={() => setFocused(true)} className="border-l border-[#ddd8f4] pl-5 text-[16px] font-semibold uppercase text-[#7865ff]">
+                <button type="button" onClick={() => setFocused(true)} className="border-l border-[#ddd8f4] pl-3 text-[12px] font-semibold uppercase text-[#7865ff] sm:pl-5 sm:text-[16px]">
                     Search
                 </button>
             </div>
 
             {showResults && (
-                <div className="absolute left-0 right-0 top-[calc(100%+12px)] z-30 rounded-[18px] border border-[#ebe8ff] bg-white p-5 shadow-[0_18px_54px_rgba(30,24,70,0.16)]">
+                <div className="absolute left-4 right-4 top-[calc(100%+12px)] z-30 max-h-[72vh] overflow-y-auto rounded-[16px] border border-[#ebe8ff] bg-white p-4 shadow-[0_18px_54px_rgba(30,24,70,0.16)] sm:left-6 sm:right-6 sm:rounded-[18px] sm:p-5 lg:left-0 lg:right-0">
                     <div className="mb-3 flex items-center justify-between">
                         <p className="text-[12px] font-bold text-[#8a8494]">검색 결과</p>
                         <button type="button" onClick={() => setFocused(false)} className="text-[12px] font-semibold text-[#7865ff]">
@@ -277,7 +277,7 @@ export function StoreSearchBar() {
                 </div>
             )}
 
-            <p className="mt-3 text-center text-[11px] text-[#6f687d]">
+            <p className="mx-auto mt-3 max-w-[92vw] text-center text-[11px] leading-relaxed text-[#6f687d]">
                 Trending:{" "}
                 <Link href={categoryHref("귀멸의 칼날")} className="text-[#7865ff]">#귀멸의 칼날</Link>{" "}
                 <Link href={categoryHref("하이큐")} className="text-[#7865ff]">#하이큐</Link>{" "}
