@@ -23,6 +23,7 @@ export default function AnimePreviewModal() {
     const router = useRouter()
     const pathname = usePathname()
     const { user } = useAuthStore()
+    const profileId = user?.profileId || 'main'
     const { addItem, hasItem, removeItem } = useWatchlistStore()
 
     const [detail, setDetail] = useState<any>(null)
@@ -203,17 +204,17 @@ export default function AnimePreviewModal() {
                             <button
                                 onClick={async () => {
                                     if (!isWishAdding) {
-                                        await removeItem(user!.uid!, previewId, 'wishlist')
+                                        await removeItem(user!.uid!, profileId, previewId, 'wishlist')
                                         setShowWishConfirm(false)
                                     } else {
-                                        await addItem(user!.uid!, { id: previewId, title: detail?.name || '', poster: detail?.poster_path || '', tab: 'wishlist' })
+                                        await addItem(user!.uid!, profileId, { id: previewId, title: detail?.name || '', poster: detail?.poster_path || '', tab: 'wishlist' })
                                         setShowWishConfirm(false)
                                         setTimeout(() => setShowWishAdded(true), 150)
                                     }
                                 }}
                                 className={`flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${isWishAdding
-                                        ? 'bg-[var(--main)] text-white hover:opacity-90'
-                                        : 'bg-red-500/90 text-white hover:bg-red-500'
+                                    ? 'bg-[var(--main)] text-white hover:opacity-90'
+                                    : 'bg-red-500/90 text-white hover:bg-red-500'
                                     }`}
                             >
                                 {isWishAdding ? '추가' : '삭제'}

@@ -54,7 +54,11 @@ export default function LibraryPage() {
     useEffect(() => {
         if (!hydrated) return
         if (!user) { router.push('/login'); return }
-        if (user?.uid) fetchWatchlist(user.uid)
+        if (user?.uid) {
+            const profileId = user?.profileId || 'main'
+            console.log('profileId:', profileId)
+            fetchWatchlist(user.uid, profileId)
+        }
     }, [user])
 
     useEffect(() => {
@@ -68,8 +72,12 @@ export default function LibraryPage() {
 
     const handleDelete = async () => {
         if (!user || !user.uid || selected.size === 0) return
+        const profileId = user?.profileId || 'main'
+        console.log('uid:', user?.uid)
+        console.log('profileId:', user?.profileId)
+        console.log('최종 profileId:', profileId)
         for (const id of selected) {
-            await removeItem(user.uid, id, activeTab)
+            await removeItem(user.uid, profileId, id, activeTab)
         }
         setSelected(new Set())
         setSelectMode(false)
