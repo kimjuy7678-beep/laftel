@@ -2,22 +2,22 @@
 .pageRoot {
     position: relative;
     min-height: 100vh;
-    background-color: #0a0a0a;
-    color: #fff;
-    padding-top: 180px; // Header 높이
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    padding-top: 180px;
 }
 
 /* ── 상단: 플레이어 + 사이드바 ── */
 .playerRow {
     display: flex;
-    height: calc(60vh - 40px); // Header 아래 전체 높이
+    height: calc(60vh - 40px);
     background: #000;
     max-width: 90%;
     margin: 0 auto;
     width: 100%;
 }
 
-/* 비디오 영역 - 나머지 공간 모두 차지 */
+/* 비디오 영역 */
 .playerArea {
     flex: 1;
     min-width: 0;
@@ -37,11 +37,11 @@
 
     span {
         font-size: 13px;
-        color: rgba(255, 255, 255, 0.3);
+        color: var(--text-faint);
     }
 }
 
-/* ── 하단: 에피소드 정보 + 댓글 ── */
+/* ── 하단 ── */
 .bottomRow {
     max-width: 90%;
     width: 100%;
@@ -49,20 +49,18 @@
     padding: 0 320px 80px 24px;
 }
 
-/* ── 공통: 스피너 ── */
+/* ── 스피너 ── */
 .spinner {
     width: 36px;
     height: 36px;
-    border: 3px solid rgba(255, 255, 255, 0.08);
+    border: 3px solid var(--border);
     border-top-color: #6c63ff;
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
 
 /* ── 로딩 화면 ── */
@@ -71,13 +69,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #0a0a0a;
+    background: var(--bg-primary);
 }
 
 /* ── 에러 화면 ── */
 .errorScreen {
     min-height: 100vh;
-    background: #0a0a0a;
+    background: var(--bg-primary);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -86,7 +84,7 @@
 
     p {
         font-size: 15px;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--text-muted);
     }
 
     button {
@@ -99,33 +97,31 @@
         cursor: pointer;
         transition: opacity 0.15s;
 
-        &:hover {
-            opacity: 0.85;
-        }
+        &:hover { opacity: 0.85; }
     }
 }
 
 /* ── 뒤로가기 버튼 ── */
 .backBtn {
     position: absolute;
-    top: 72px; // 64px header + 8px
+    top: 72px;
     left: 24px;
     z-index: 100;
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 8px 14px;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--bg-secondary);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
     font-size: 13px;
     cursor: pointer;
     transition: color 0.15s, background 0.15s;
 
     &:hover {
-        color: #fff;
-        background: rgba(0, 0, 0, 0.8);
+        color: var(--text-primary);
+        background: var(--bg-hover);
     }
 }

@@ -95,6 +95,11 @@ export default function Header() {
     const membership = user?.membership || 'none'
     const memberInfo = membershipConfig[membership] || membershipConfig['none']
 
+    // 스크롤 전(transparent)이면 항상 흰색, 스크롤 후면 테마 색
+    const textColor = scrolled ? 'var(--text-primary)' : '#ffffff'
+    const textMuted = scrolled ? 'var(--text-muted)' : 'rgba(255,255,255,0.7)'
+    const hoverBg = scrolled ? 'var(--border)' : 'rgba(255,255,255,0.15)'
+
     useEffect(() => {
         if (user?.uid) {
             fetchPoints(user.uid)
@@ -166,6 +171,16 @@ export default function Header() {
                 className="fixed top-0 left-0 w-full z-[9999] transition-colors duration-300 py-[10px] px-[10px]"
                 style={{ background: scrolled ? 'var(--bg-primary)' : 'transparent' }}
             >
+                {!scrolled && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0,
+                        height: '140px',
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, transparent 60%)',
+                        pointerEvents: 'none',
+                        zIndex: -1,
+                    }} />
+                )}
                 <div
                     className="w-full h-[55px] flex items-center justify-between px-[28px] rounded-full transition-colors duration-300"
                     style={{ background: scrolled ? 'var(--bg-card)' : 'transparent' }}
@@ -178,12 +193,16 @@ export default function Header() {
                                 <img src="/images/logo-white.svg" alt="logo" className="h-[22px] w-auto dark:block hidden" />
                                 <img src="/images/logo-dark.png" alt="logo" className="h-[22px] w-auto dark:hidden block" />
                             </Link>
-                            <div className="flex items-center bg-[var(--border)] rounded-full p-[3px] gap-[2px]">
+                            <div className="flex items-center bg-[var(--border)] rounded-full p-[3px] gap-[2px]"
+                                style={{ background: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.2)' }}
+                            >
                                 <button
                                     onClick={() => navigate('/', 'var(--bg-primary)')}
                                     className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${!pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                                        : scrolled
+                                            ? 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                                            : 'text-white/70 hover:text-white'
                                         }`}
                                 >
                                     OTT
@@ -192,7 +211,9 @@ export default function Header() {
                                     onClick={() => navigate('/store', '#ffffff')}
                                     className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                                        : scrolled
+                                            ? 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                                            : 'text-white/70 hover:text-white'
                                         }`}
                                 >
                                     Store
@@ -208,11 +229,8 @@ export default function Header() {
                                         <li key={menu.id} className="relative">
                                             <Link
                                                 href={menu.path}
-                                                className={`flex items-center gap-1.5 text-[15px] transition-all duration-200
-                                                    ${isActive
-                                                        ? 'text-[var(--text-primary)] font-extrabold'
-                                                        : 'text-[var(--text-muted)] font-medium hover:text-[var(--text-primary)] hover:font-bold'
-                                                    }`}
+                                                style={{ color: isActive ? textColor : textMuted }}
+                                                className={`flex items-center gap-1.5 text-[15px] transition-all duration-200 ${isActive ? 'font-extrabold' : 'font-medium hover:font-bold'}`}
                                             >
                                                 {menu.title}
                                                 {menu.live && (
@@ -239,7 +257,10 @@ export default function Header() {
                             type="button"
                             aria-label="검색"
                             onClick={() => setSearchOpen(true)}
-                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 cursor-pointer text-[var(--text-primary)]"
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full transition-colors duration-200 cursor-pointer"
+                            style={{ color: textColor }}
+                            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = hoverBg}
+                            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -249,7 +270,10 @@ export default function Header() {
                         <Link
                             href="/membership"
                             aria-label="멤버십"
-                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full transition-colors duration-200"
+                            style={{ color: textColor }}
+                            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = hoverBg}
+                            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'}
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
@@ -265,7 +289,10 @@ export default function Header() {
                                     if (!notiOpen && user?.uid && unreadCount > 0) markAllRead(user.uid)
                                 }}
                                 aria-label="알림"
-                                className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
+                                className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full transition-colors duration-200"
+                                style={{ color: textColor }}
+                                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = hoverBg}
+                                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -314,10 +341,16 @@ export default function Header() {
                             )}
                         </div>
 
-                        <div className="w-px h-5 bg-[var(--border)] mx-1" />
+                        <div className="w-px h-5 mx-1" style={{ background: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.3)' }} />
 
                         {!user ? (
-                            <Link href="/login" className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors px-2">
+                            <Link
+                                href="/login"
+                                className="text-sm transition-colors px-2"
+                                style={{ color: textMuted }}
+                                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = textColor}
+                                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = textMuted}
+                            >
                                 로그인
                             </Link>
                         ) : (
@@ -327,8 +360,11 @@ export default function Header() {
                                     className="flex items-center gap-[8px] cursor-pointer group h-[55px]"
                                 >
                                     <div
-                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-[var(--border)] group-hover:ring-[var(--text-muted)] transition-all duration-200 shrink-0"
-                                        style={{ background: memberInfo.color || '#5a52e0' }}
+                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 transition-all duration-200 shrink-0"
+                                        style={{
+                                            background: memberInfo.color || '#5a52e0',
+                                            ringColor: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.3)',
+                                        }}
                                     >
                                         {avatarConfig?.svgDataUrl ? (
                                             <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
@@ -340,13 +376,14 @@ export default function Header() {
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-sm text-[var(--text-high)] group-hover:text-[var(--text-primary)] transition-colors">
+                                    <span className="text-sm transition-colors" style={{ color: textMuted }}>
                                         {user.name}
                                     </span>
                                     <svg
                                         width="13" height="13" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2"
-                                        className={`text-[var(--text-muted)] transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
+                                        className={`transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
+                                        style={{ color: textMuted }}
                                     >
                                         <path d="m6 9 6 6 6-6" />
                                     </svg>

@@ -1,0 +1,126 @@
+@charset "UTF-8";
+/* ── 페이지 루트 ── */
+.pageRoot {
+  position: relative;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  padding-top: 180px;
+}
+
+/* ── 상단: 플레이어 + 사이드바 ── */
+.playerRow {
+  display: flex;
+  height: calc(60vh - 40px);
+  background: #000;
+  max-width: 90%;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 비디오 영역 */
+.playerArea {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 플레이어 로딩 / 에러 상태 */
+.playerState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.playerState span {
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+/* ── 하단 ── */
+.bottomRow {
+  max-width: 90%;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 320px 80px 24px;
+}
+
+/* ── 스피너 ── */
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: #6c63ff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* ── 로딩 화면 ── */
+.loadingScreen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+}
+
+/* ── 에러 화면 ── */
+.errorScreen {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.errorScreen p {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+.errorScreen button {
+  padding: 10px 24px;
+  background: #6c63ff;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.errorScreen button:hover {
+  opacity: 0.85;
+}
+
+/* ── 뒤로가기 버튼 ── */
+.backBtn {
+  position: absolute;
+  top: 72px;
+  left: 24px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.backBtn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
