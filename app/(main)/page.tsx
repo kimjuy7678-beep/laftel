@@ -12,6 +12,7 @@ import MoodSection from "@/components/home/MoodSection"
 import SurveyBanner from "@/components/home/SurveyBanner"
 import LiveSection from "@/components/home/LiveSection"
 import EventSection from "@/components/home/EventSection"
+import PersonalRecommendSection from "@/components/home/PersonalRecommendSection"
 
 export default function Home() {
   const [cursor, setCursor] = useState({ x: -100, y: -100 })
@@ -42,6 +43,9 @@ export default function Home() {
         <HeroSection />
         <DayNewSection />
         <WatchHistory />
+
+        <PersonalRecommendSection />
+
         <LiveSection />
         <MoodSection />
         <MembershipBanner />

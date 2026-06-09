@@ -4,6 +4,7 @@ type PlanId = 'anime' | 'ost' | 'allinone'
 
 interface MembershipPlansProps {
     onOpenModal: (plan: PlanId) => void
+    hasMembership: boolean
 }
 
 const planList = [
@@ -17,7 +18,7 @@ export default function MembershipPlans({ onOpenModal }: MembershipPlansProps) {
         <div
             id="plans"
             className="w-full py-24 2xl:py-36 flex flex-col items-center"
-            style={{ background: 'linear-gradient(180deg, #0a0a0a 0%, #1a1530 50%, #0a0a0a 100%)' }}
+        // style={{ background: 'linear-gradient(180deg, #0a0a0a 0%, #1a1530 50%, #0a0a0a 100%)' }}
         >
             <h2 className="font-black text-center mb-3 text-3xl 2xl:text-5xl 3xl:text-7xl">
                 나에게 <span className="text-[#6c63ff]">딱!</span> 맞는 멤버십 확인하기
@@ -31,15 +32,14 @@ export default function MembershipPlans({ onOpenModal }: MembershipPlansProps) {
                             {plan.best && (
                                 <span className="absolute -top-6 -right-10 text-[#f59e0b] text-sm 2xl:text-base font-black italic">BEST!</span>
                             )}
-                            <h3 className="text-4xl 2xl:text-6xl 3xl:text-8xl font-black text-white">{plan.title}</h3>
+                            <h3 className="text-4xl 2xl:text-6xl 3xl:text-8xl font-black text-[var(--text-primary)]">{plan.title}</h3>
                         </div>
                         <button
                             onClick={() => onOpenModal(plan.id)}
-                            className={`px-10 py-3 2xl:px-14 2xl:py-4 rounded-full border text-sm 2xl:text-base font-bold transition-colors cursor-pointer ${
-                                plan.best
-                                    ? 'bg-[#6c63ff] border-[#6c63ff] text-white hover:bg-[#5a52e0]'
-                                    : 'bg-transparent border-white/30 text-white hover:border-white/60'
-                            }`}
+                            className={`px-10 py-3 2xl:px-14 2xl:py-4 rounded-full border text-sm 2xl:text-base font-bold transition-colors cursor-pointer ${plan.best
+                                ? 'bg-[#6c63ff] border-[#6c63ff] text-white hover:bg-[#5a52e0]'
+                                : 'bg-transparent border-white/30 text-[var(--text-muted)] hover:border-white/60'
+                                }`}
                         >
                             멤버십 시작하기
                         </button>

@@ -48,7 +48,7 @@ const environmentNotices = [
 function NoticeSection({ title, items }: { title: string; items: string[] }) {
     return (
         <div className="mb-12 2xl:mb-16">
-            <h3 className="text-base 2xl:text-lg font-bold text-white/80 mb-5 pb-3 border-b border-[var(--border)]">{title}</h3>
+            <h3 className="text-base 2xl:text-lg font-bold text-[var(--text-primary)] mb-5 pb-3 border-b border-[var(--border)]">{title}</h3>
             <ul className="flex flex-col gap-2.5">
                 {items.map((text, i) => (
                     <li key={i} className="flex gap-2 text-[var(--text-muted)] text-xs 2xl:text-sm leading-relaxed">

@@ -29,6 +29,7 @@ interface NotificationStore {
     subscribeNotifications: (uid: string) => void
     markAllRead: (uid: string) => Promise<void>
     markOneRead: (uid: string, nid: string) => Promise<void>
+    clearNotifications: () => void
 }
 
 export const useNotificationStore = create<NotificationStore>((set, get) => ({
@@ -51,18 +52,17 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
                 d => ({ id: d.id, ...d.data() })
             ) as Notification[]
 
-            // OTT 헤더용 알림만 표시
             const notifications = all.filter(
                 n =>
                     n.source !== 'store' &&
                     (
                         n.type === 'point' ||
+                        n.type === 'coupon' ||
                         n.type === 'membership' ||
                         n.type === 'live' ||
                         n.type === 'event'
                     )
             )
-
             set({
                 notifications,
                 unreadCount: notifications.filter(n => !n.read).length
@@ -72,11 +72,15 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         set({ unsubscribe: unsub })
     },
 
+    clearNotifications: () => {
+        const { unsubscribe } = get()
+        if (unsubscribe) unsubscribe()
+        set({ notifications: [], unreadCount: 0, unsubscribe: null })
+    },
+
     markAllRead: async (uid) => {
         const { notifications } = get()
-
         const batch = writeBatch(db)
-
         notifications
             .filter(n => !n.read)
             .forEach(n => {
@@ -85,7 +89,6 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
                     { read: true }
                 )
             })
-
         await batch.commit()
     },
 

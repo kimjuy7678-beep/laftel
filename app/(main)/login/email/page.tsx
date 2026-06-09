@@ -30,10 +30,8 @@ export default function EmailLoginPage() {
             if (isLogin) {
                 const result = await signInWithEmailAndPassword(auth, email, password)
                 const uid = result.user.uid
-
                 const snap = await getDoc(doc(db, 'users', uid))
                 const userData = snap.data()
-
                 onLogin({
                     email: result.user.email,
                     name: userData?.nickname || result.user.displayName || email.split('@')[0],
@@ -44,12 +42,10 @@ export default function EmailLoginPage() {
                 })
                 showToast('로그인 완료!')
                 setTimeout(() => router.push('/profile'), 800)
-
             } else {
                 const result = await createUserWithEmailAndPassword(auth, email, password)
                 const uid = result.user.uid
                 const displayName = nickname || email.split('@')[0]
-
                 await updateProfile(result.user, { displayName })
                 await setDoc(doc(db, 'users', uid), {
                     email,
@@ -59,7 +55,6 @@ export default function EmailLoginPage() {
                     points: 0,
                     createdAt: new Date().toISOString(),
                 })
-
                 onLogin({
                     email: result.user.email,
                     name: displayName,
@@ -87,7 +82,8 @@ export default function EmailLoginPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#141414] flex items-center justify-center px-4">
+        <div className="min-h-screen flex items-center justify-center px-4"
+            style={{ background: 'var(--bg-primary)' }}>
             {toast && (
                 <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#6c63ff] text-white text-sm font-medium px-6 py-3 rounded-full shadow-lg">
                     {toast}
@@ -96,19 +92,26 @@ export default function EmailLoginPage() {
 
             <div className="w-full max-w-[420px] flex flex-col gap-6">
                 <Link href="/login" className="flex justify-center">
-                    <img src="/images/logo-white.svg" alt="" />
+                    <img src="/images/logo-white.svg" alt="" className="dark:block hidden" />
+                    <img src="/images/logo-dark.png" alt="" className="dark:hidden block w-[167px] h-[41]" />
                 </Link>
 
-                <div className="flex bg-white/5 rounded-xl p-1">
+                <div className="flex rounded-xl p-1" style={{ background: 'var(--bg-hover)' }}>
                     <button
                         onClick={() => { setIsLogin(true); setError('') }}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${isLogin ? 'bg-[#6c63ff] text-white' : 'text-white/50 hover:text-white'}`}
+                        className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                        style={isLogin
+                            ? { background: '#6c63ff', color: '#ffffff' }
+                            : { background: 'transparent', color: 'var(--text-subtle)' }}
                     >
                         로그인
                     </button>
                     <button
                         onClick={() => { setIsLogin(false); setError('') }}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${!isLogin ? 'bg-[#6c63ff] text-white' : 'text-white/50 hover:text-white'}`}
+                        className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                        style={!isLogin
+                            ? { background: '#6c63ff', color: '#ffffff' }
+                            : { background: 'transparent', color: 'var(--text-subtle)' }}
                     >
                         회원가입
                     </button>
@@ -120,7 +123,14 @@ export default function EmailLoginPage() {
                         placeholder="이메일"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full h-[52px] bg-white/5 border border-white/10 rounded-xl px-4 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#6c63ff] transition-colors"
+                        className="w-full h-[52px] rounded-xl px-4 text-sm focus:outline-none transition-colors"
+                        style={{
+                            background: 'var(--bg-hover)',
+                            border: '1px solid var(--border)',
+                            color: 'var(--text-primary)',
+                        }}
+                        onFocus={e => (e.currentTarget.style.borderColor = '#6c63ff')}
+                        onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                     />
                     <input
                         type="password"
@@ -128,7 +138,14 @@ export default function EmailLoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                        className="w-full h-[52px] bg-white/5 border border-white/10 rounded-xl px-4 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#6c63ff] transition-colors"
+                        className="w-full h-[52px] rounded-xl px-4 text-sm focus:outline-none transition-colors"
+                        style={{
+                            background: 'var(--bg-hover)',
+                            border: '1px solid var(--border)',
+                            color: 'var(--text-primary)',
+                        }}
+                        onFocus={e => (e.currentTarget.style.borderColor = '#6c63ff')}
+                        onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                     />
                     {!isLogin && (
                         <input
@@ -137,7 +154,14 @@ export default function EmailLoginPage() {
                             value={nickname}
                             onChange={(e) => setNickname(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                            className="w-full h-[52px] bg-white/5 border border-white/10 rounded-xl px-4 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-[#6c63ff] transition-colors"
+                            className="w-full h-[52px] rounded-xl px-4 text-sm focus:outline-none transition-colors"
+                            style={{
+                                background: 'var(--bg-hover)',
+                                border: '1px solid var(--border)',
+                                color: 'var(--text-primary)',
+                            }}
+                            onFocus={e => (e.currentTarget.style.borderColor = '#6c63ff')}
+                            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                         />
                     )}
                 </div>
@@ -147,7 +171,10 @@ export default function EmailLoginPage() {
                 <button
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="w-full h-[56px] bg-[#6c63ff] hover:bg-[#5a52e0] disabled:opacity-50 transition-colors rounded-xl text-white font-bold text-base"
+                    className="w-full h-[56px] disabled:opacity-50 transition-colors rounded-xl text-white font-bold text-base"
+                    style={{ background: '#6c63ff' }}
+                    onMouseEnter={e => !loading && (e.currentTarget.style.background = '#5a52e0')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#6c63ff')}
                 >
                     {loading ? '처리 중...' : isLogin ? '로그인' : '가입하기'}
                 </button>
