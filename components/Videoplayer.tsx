@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useAniStore } from '@/store/useAniStore'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useWatchProgressStore } from '@/store/useWatchProgressStore'
 
 interface Props {
     id: number
@@ -9,31 +11,35 @@ interface Props {
     title?: string
     episodeTitle?: string
     episodeNumber?: number
+    backdrop?: string   // 썸네일용 backdrop_path (선택)
     onNext?: () => void
     onClose?: () => void
 }
 
-export default function VideoPlayer({ id, mode, className, title, episodeTitle, episodeNumber, onNext, onClose }: Props) {
+export default function VideoPlayer({ id, mode, className, title, episodeTitle, episodeNumber, backdrop, onNext, onClose }: Props) {
     const currentVideo = useAniStore(state => state.aniVideos[id])
     const onNextVideo = useAniStore(state => state.onNextVideo)
+    const aniList = useAniStore(state => state.aniList)
+    const { user } = useAuthStore()
+    const { saveProgress } = useWatchProgressStore()
 
     const [activeKey, setActiveKey] = useState<string | null>(null)
     const [showControls, setShowControls] = useState(true)
     const failTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const triedKeys = useRef<Set<string>>(new Set())
+    const savedRef = useRef(false) // 중복 저장 방지
 
     useEffect(() => {
         const key = currentVideo?.key
         if (!key) { setActiveKey(null); return }
         setActiveKey(key)
+        savedRef.current = false // 에피소드 바뀌면 다시 저장 가능
     }, [currentVideo?.key, id])
 
     useEffect(() => {
         if (!activeKey) return
         if (triedKeys.current.has(activeKey)) { onNextVideo(id); return }
         triedKeys.current.add(activeKey)
-        // iframe 자체 로드 실패 대비 최후 보험
-        
         return () => { if (failTimer.current) clearTimeout(failTimer.current) }
     }, [activeKey])
 
@@ -44,31 +50,46 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
             try {
                 const data = JSON.parse(e.data)
 
-                // 에러 → 즉시 다음
+                // 에러 → 다음
                 if (data.event === 'onError' && [2, 5, 100, 101, 150].includes(data.info)) {
                     if (failTimer.current) clearTimeout(failTimer.current)
                     onNextVideo(id)
                 }
 
-                // 재생 or 버퍼링 → 정상 영상 확정, 타이머 취소
-                if (data.event === 'onStateChange' && [1, 3].includes(data.info)) {
+                // 재생(1) 시작 시점에 시청 기록 저장
+                if (data.event === 'onStateChange' && data.info === 1) {
                     if (failTimer.current) clearTimeout(failTimer.current)
+
+                    // modal 모드이고, 로그인 상태이고, 아직 저장 안 한 경우
+                    if (mode === 'modal' && user?.uid && title && !savedRef.current) {
+                        savedRef.current = true
+                        const ani = aniList.find((a: any) => a.id === id)
+                        const backdropPath = backdrop || ani?.backdrop_path || ''
+                        const posterPath = ani?.poster_path || ''
+
+                        saveProgress(user.uid, {
+                            tmdbId: id,
+                            title: title,
+                            backdrop: backdropPath,
+                            poster: posterPath,
+                            episode: episodeNumber || 1,
+                            episodeTitle: episodeTitle || '',
+                            progress: 5, // 재생 시작 = 5%로 고정 (YouTube iframe은 시간 접근 불가)
+                        })
+                    }
                 }
 
-                // -1(미시작) 이후 3초 안에 재생/버퍼링 안 오면 지역 제한으로 판단
-                // if (data.event === 'onStateChange' && data.info === -1) {
-                //     if (failTimer.current) clearTimeout(failTimer.current)
-                //     failTimer.current = setTimeout(() => { onNextVideo(id) }, 3000)
-                // }
+                // 버퍼링(3)
+                if (data.event === 'onStateChange' && data.info === 3) {
+                    if (failTimer.current) clearTimeout(failTimer.current)
+                }
             } catch { }
         }
         window.addEventListener('message', handler)
         return () => window.removeEventListener('message', handler)
-    }, [activeKey, id])
+    }, [activeKey, id, mode, user?.uid, title, episodeNumber, episodeTitle, backdrop])
 
-    const handleClick = () => {
-        setShowControls(v => !v)
-    }
+    const handleClick = () => setShowControls(v => !v)
 
     if (!activeKey) return null
 

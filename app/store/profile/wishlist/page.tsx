@@ -265,20 +265,45 @@ export default function WishlistPage() {
 
                     {/* 페이지네이션 */}
                     {totalPages > 1 && (
-                        <div className="mt-8 flex items-center justify-center gap-1">
+                        <div className="mt-8 flex items-center justify-center gap-2">
                             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e0daf7] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] disabled:opacity-30 transition">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
                             </button>
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                                <button key={n} onClick={() => setPage(n)}
-                                    className={`flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-semibold transition ${page === n ? "bg-[#7865ff] text-white" : "border border-[#e0daf7] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
-                                    {n}
-                                </button>
-                            ))}
+
+                            {(() => {
+                                const PAGE_GROUP = 6;
+                                const groupIndex = Math.floor((page - 1) / PAGE_GROUP);
+                                const groupStart = groupIndex * PAGE_GROUP + 1;
+                                const groupEnd = Math.min(groupStart + PAGE_GROUP - 1, totalPages);
+                                const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
+                                return (
+                                    <>
+                                        {groupStart > 1 && (
+                                            <button onClick={() => setPage(groupStart - 1)}
+                                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">
+                                                ···
+                                            </button>
+                                        )}
+                                        {pages.map(n => (
+                                            <button key={n} onClick={() => setPage(n)}
+                                                className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${page === n ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]" : "border border-[#d8d4ee] bg-white text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
+                                                {n}
+                                            </button>
+                                        ))}
+                                        {groupEnd < totalPages && (
+                                            <button onClick={() => setPage(groupEnd + 1)}
+                                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">
+                                                ···
+                                            </button>
+                                        )}
+                                    </>
+                                );
+                            })()}
+
                             <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e0daf7] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] disabled:opacity-30 transition">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
                             </button>
                         </div>
                     )}

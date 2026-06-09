@@ -80,7 +80,7 @@ export default function Header() {
     const avatarConfig = useAuthStore(s => s.avatarConfig)
     const { onLogout } = useAuthStore()
     const { points, fetchPoints } = usePointStore()
-    const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead } = useNotificationStore()
+    const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead, clearNotifications } = useNotificationStore()
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [notiOpen, setNotiOpen] = useState(false)
     const [searchOpen, setSearchOpen] = useState(false)
@@ -144,6 +144,7 @@ export default function Header() {
     }, [])
 
     const handleLogout = async () => {
+        clearNotifications()
         await onLogout()
         setDropdownOpen(false)
         router.push('/')

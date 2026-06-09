@@ -30,13 +30,7 @@ const MEMBERSHIP_LABEL: Record<string, string> = {
 };
 
 const MEMBERSHIP_BENEFITS = [
-    {
-        key: "none",
-        label: "BASIC",
-        color: "#c4b5fd",
-        bg: "#f0eeff",
-        benefits: ["월 1회 50% 할인 쿠폰 지급", "신규 굿즈 알림 서비스", "라프텔 스토어 이용 가능"],
-    },
+
     {
         key: "allinone",
         label: "ALL",

@@ -135,8 +135,15 @@ export default function ProfilePage() {
         return () => { if (pinTimerRef.current) clearInterval(pinTimerRef.current) }
     }, [pinLocked])
 
-    const enterProfile = (p: ProfileData) => {
+    const enterProfile = async (p: ProfileData) => {
         onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit })
+
+        // 프로필 선택 시점에 온보딩 여부 체크
+        const snap = await getDoc(doc(db, 'users', user!.uid!))
+        if (!snap.data()?.onboardingDone) {
+            useAuthStore.setState({ isNewUser: true })
+        }
+
         router.push('/')
     }
 
@@ -612,6 +619,19 @@ export default function ProfilePage() {
                         )}
                     </div>
 
+                    {memberInfo && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                            <span style={{
+                                fontSize: 12, fontWeight: 700, padding: '6px 16px', borderRadius: 20,
+                                background: `${memberInfo.color}20`, color: memberInfo.color,
+                                border: `1px solid ${memberInfo.color}40`
+                            }}>
+                                ✓ {memberInfo.label} 이용중
+                            </span>
+                        </div>
+                    )}
+
+                    {/* 프로필 편집 버튼 */}
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <button
                             onClick={() => {

@@ -6,6 +6,7 @@ import products from "@/data/store.json";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 import StoreSidebar from "@/components/store/StoreSliaebar";
 import FilterDropdown from "@/components/store/FilterDropdown";
+import SortDropdown, { sortProducts } from "@/components/store/SortDropdown";
 import { LIMITED_PRODUCT_IDS } from "@/lib/storeLimitedProducts";
 
 const ALL_PRODUCTS = products as StoreProduct[];
@@ -14,8 +15,7 @@ const LIMITED_PRODUCTS = LIMITED_PRODUCT_IDS
     .map((id) => PRODUCTS_BY_ID.get(id))
     .filter((product): product is StoreProduct => Boolean(product));
 const ITEMS_PER_PAGE = 20;
-const PAGE_GROUP = 5;
-
+const PAGE_GROUP = 6;
 
 function parsePrice(priceStr: string): number {
     const num = parseInt(priceStr.replace(/[^0-9]/g, ""), 10);
@@ -26,15 +26,11 @@ function Inner({ children, className = "", id }: { children: React.ReactNode; cl
     return <div id={id} className={`mx-auto w-full max-w-[1770px] px-4 sm:px-8 lg:px-[75px] ${className}`}>{children}</div>;
 }
 
-
-
 function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
     const groupIndex = Math.floor((current - 1) / PAGE_GROUP);
     const groupStart = groupIndex * PAGE_GROUP + 1;
     const groupEnd = Math.min(groupStart + PAGE_GROUP - 1, total);
     const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
-    const hasPrevGroup = groupStart > 1;
-    const hasNextGroup = groupEnd < total;
 
     const handleChange = (p: number) => {
         onChange(p);
@@ -47,7 +43,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            {hasPrevGroup && (
+            {groupStart > 1 && (
                 <button onClick={() => handleChange(groupStart - 1)}
                     className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">
                     ···
@@ -62,7 +58,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
                     {p}
                 </button>
             ))}
-            {hasNextGroup && (
+            {groupEnd < total && (
                 <button onClick={() => handleChange(groupEnd + 1)}
                     className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">
                     ···
@@ -99,51 +95,21 @@ export default function StoreListPage() {
         return matchSearch && matchPrice && matchStock && matchReserve;
     });
 
-    const sorted = [...filtered].sort((a, b) => {
-        if (sort === "낮은 가격순") return parsePrice(a.price) - parsePrice(b.price);
-        if (sort === "높은 가격순") return parsePrice(b.price) - parsePrice(a.price);
-        return 0;
-    });
+    const sorted = sortProducts(filtered, sort);
+    console.log("sort =", sort);
 
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    const handleReset = () => {
-        setPriceRange(PRICE_INITIAL);
-        setOnlyInStock(false);
-        setOnlyReserve(false);
-        setPage(1);
-    };
-
-    const handleSearchChange = (value: string) => {
-        setSearch(value);
-        setPage(1);
-    };
-
-    const handleSortChange = (value: string) => {
-        setSort(value);
-        setPage(1);
-    };
-
-    const handlePriceRange = (value: [number, number]) => {
-        setPriceRange(value);
-        setPage(1);
-    };
-
-    const handleOnlyInStock = (value: boolean) => {
-        setOnlyInStock(value);
-        setPage(1);
-    };
-
-    const handleOnlyReserve = (value: boolean) => {
-        setOnlyReserve(value);
-        setPage(1);
-    };
+    const handleReset = () => { setPriceRange(PRICE_INITIAL); setOnlyInStock(false); setOnlyReserve(false); setPage(1); };
+    const handleSearchChange = (value: string) => { setSearch(value); setPage(1); };
+    const handlePriceRange = (value: [number, number]) => { setPriceRange(value); setPage(1); };
+    const handleOnlyInStock = (value: boolean) => { setOnlyInStock(value); setPage(1); };
+    const handleOnlyReserve = (value: boolean) => { setOnlyReserve(value); setPage(1); };
 
     const activeFilterCount = [
         priceRange[0] > PRICE_INITIAL[0] || priceRange[1] < PRICE_INITIAL[1],
-        onlyInStock,
-        onlyReserve,
+        onlyInStock, onlyReserve,
     ].filter(Boolean).length;
 
     return (
@@ -174,9 +140,7 @@ export default function StoreListPage() {
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <h1 className="text-[24px] sm:text-[32px] font-bold text-[#16121f]">한정판 굿즈</h1>
-                            <p className="mt-2 text-[14px] text-[#8a8494]">
-                                다양한 시리즈에서 엄선한 한정판 상품 25개를 모았어요.
-                            </p>
+                            <p className="mt-2 text-[14px] text-[#8a8494]">다양한 시리즈에서 엄선한 한정판 상품 25개를 모았어요.</p>
                         </div>
                         <div className="flex h-[44px] w-full sm:w-[340px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)]">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]">
@@ -199,24 +163,14 @@ export default function StoreListPage() {
                 </Inner>
             </div>
 
-
-
             <Inner id="limited-products" className="mt-8">
                 <div className="flex items-center justify-between">
                     <p className="text-[14px] text-[#6b647a]">
                         총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품
                     </p>
                     <div className="flex items-center gap-2">
-                        <div className="relative">
-                            <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
-                                className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
-                                <option>인기순</option>
-                                <option>신상품순</option>
-                                <option>낮은 가격순</option>
-                                <option>높은 가격순</option>
-                            </select>
-                            <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
-                        </div>
+                        {/* ✅ SortDropdown 컴포넌트 사용 */}
+                        <SortDropdown value={sort} onChange={(v) => { setSort(v); setPage(1); }} />
                         <div className="relative">
                             <button
                                 onClick={() => setFilterOpen((v) => !v)}

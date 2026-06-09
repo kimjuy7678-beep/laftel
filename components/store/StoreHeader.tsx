@@ -85,23 +85,23 @@ export default function StoreHeader() {
     const visibleCartCount = user ? cartCount : 0;
 
     return (
-        <header className="w-full py-[10px] bg-white px-[10px]">
+        <header className="w-full bg-white px-[10px] py-[10px]">
             <StoreSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
             {loginAlertOpen && <HeaderLoginAlert onClose={() => setLoginAlertOpen(false)} />}
-            <div className="w-full h-[55px] flex  justify-between bg-[#826CFF] rounded-full px-[28px]">
+            <div className="flex min-h-[55px] w-full flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-[22px] bg-[#826CFF] px-4 py-3 sm:rounded-[28px] md:h-[55px] md:flex-nowrap md:rounded-full md:px-[28px] md:py-0">
 
-                <div className="flex items-center gap-[42px]">
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:gap-[42px]">
                     {/* 로고 */}
-                    <div className="flex items-center gap-[14px]">
-                        <Link href="/store" className="flex items-center gap-[12px]">
-                            <img src="/images/stone.svg" alt="" className="h-10" />
-                            <img src="/images/logo-white.svg" alt="logo" className="h-[22px] w-auto" />
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-[14px]">
+                        <Link href="/store" className="flex items-center gap-2 sm:gap-[12px]">
+                            <img src="/images/stone.svg" alt="" className="h-8 sm:h-10" />
+                            <img src="/images/logo-white.svg" alt="logo" className="h-[18px] w-auto sm:h-[22px]" />
                         </Link>
                         {/* OTT / Store 토글 */}
-                        <div className="flex items-center bg-white/10 rounded-full p-[3px] gap-[2px]">
+                        <div className="flex items-center gap-[2px] rounded-full bg-white/10 p-[3px]">
                             <button
                                 onClick={() => navigate('/', '#0a0a0a')}
-                                className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${!pathname.startsWith('/store')
+                                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-200 sm:px-3 sm:text-[12px] ${!pathname.startsWith('/store')
                                     ? 'bg-white text-[#826CFF] shadow-sm'
                                     : 'text-white/60 hover:text-white'
                                     }`}
@@ -110,7 +110,7 @@ export default function StoreHeader() {
                             </button>
                             <button
                                 onClick={() => navigate('/store', '#ffffff')}
-                                className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${pathname.startsWith('/store')
+                                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-200 sm:px-3 sm:text-[12px] ${pathname.startsWith('/store')
                                     ? 'bg-white text-[#826CFF] shadow-sm'
                                     : 'text-white/60 hover:text-white'
                                     }`}
@@ -121,15 +121,15 @@ export default function StoreHeader() {
                     </div>
 
                     {/* ── 네비게이션 ── */}
-                    <nav>
-                        <ul className="flex items-center gap-[32px]">
+                    <nav className="order-last w-full overflow-x-auto md:order-none md:w-auto md:overflow-visible">
+                        <ul className="flex min-w-max items-center gap-5 md:gap-[32px]">
                             {StoreMenuList.map((menu) => {
                                 const isActive = pathname === menu.path || pathname.startsWith(menu.path)
                                 return (
                                     <li key={menu.id}>
                                         <Link
                                             href={menu.path}
-                                            className={`text-[15px] transition-all duration-200
+                                            className={`whitespace-nowrap text-[13px] transition-all duration-200 md:text-[15px]
                                                 ${isActive
                                                     ? 'text-white font-extrabold'
                                                     : 'text-white/70 font-medium hover:text-white hover:font-bold'
@@ -145,13 +145,13 @@ export default function StoreHeader() {
                 </div>
 
                 {/* ── 우측: 아이콘 + 유저 ── */}
-                <div className="flex items-center gap-[8px]">
+                <div className="flex shrink-0 items-center gap-1 sm:gap-[8px]">
                     {/* 검색 */}
                     <button
                         type="button"
                         aria-label="검색"
                         onClick={() => setSearchOpen(true)}
-                        className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
+                        className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-full text-white transition-colors duration-200 hover:bg-white/15 sm:h-[36px] sm:w-[36px]"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -165,7 +165,7 @@ export default function StoreHeader() {
                     <button
                         aria-label="장바구니"
                         onClick={() => guardedLink("/store/cart")}
-                        className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-white/15 transition-colors duration-200 cursor-pointer text-white"
+                        className="relative flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-full text-white transition-colors duration-200 hover:bg-white/15 sm:h-[36px] sm:w-[36px]"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
@@ -178,13 +178,13 @@ export default function StoreHeader() {
                         )}
                     </button>
 
-                    <div className="w-px h-5 bg-white/20 mx-1" />
+                    <div className="mx-1 hidden h-5 w-px bg-white/20 sm:block" />
 
                     {/* 유저 프로필 */}
                     {!user ? (
                         <Link
                             href="/login"
-                            className="text-sm text-white/80 hover:text-white transition-colors px-2"
+                            className="px-1 text-[13px] text-white/80 transition-colors hover:text-white sm:px-2 sm:text-sm"
                         >
                             로그인
                         </Link>
@@ -192,10 +192,10 @@ export default function StoreHeader() {
                         <div className="relative" ref={dropdownRef}>
                             <button
                                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                                className="flex items-center gap-[8px] cursor-pointer group h-[55px]"
+                                className="group flex h-[40px] cursor-pointer items-center gap-[6px] sm:h-[55px] sm:gap-[8px]"
                             >
                                 <div
-                                    className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white/30 group-hover:ring-white/60 transition-all duration-200 shrink-0"
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-white/30 transition-all duration-200 group-hover:ring-white/60"
                                     style={{ background: '#5a52e0' }}
                                 >
                                     {avatarConfig?.svgDataUrl ? (
@@ -208,7 +208,7 @@ export default function StoreHeader() {
                                         </span>
                                     )}
                                 </div>
-                                <span className="text-sm text-white/90 group-hover:text-white transition-colors">
+                                <span className="hidden max-w-[120px] truncate text-sm text-white/90 transition-colors group-hover:text-white lg:block">
                                     {user.name}
                                 </span>
                                 <svg

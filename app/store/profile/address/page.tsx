@@ -16,18 +16,13 @@ type Address = {
     isDefault: boolean;
 };
 
-// ─── 다음 주소 API 타입 ────────────────────────────
 declare global {
-    interface Window {
-        daum: any;
-    }
+    interface Window { daum: any; }
 }
 
 // ─── 주소 추가/수정 모달 ──────────────────────────
 function AddressModal({
-    initial,
-    onClose,
-    onSave,
+    initial, onClose, onSave,
 }: {
     initial?: Address | null;
     onClose: () => void;
@@ -43,7 +38,11 @@ function AddressModal({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    // 다음 주소 API 스크립트 로드
+    const PRESETS = ["우리집", "회사", "부모님댁"];
+    const [showCustomInput, setShowCustomInput] = useState(
+        !!initial?.label && !["우리집", "회사", "부모님댁"].includes(initial?.label ?? "")
+    );
+
     useEffect(() => {
         if (window.daum) return;
         const script = document.createElement("script");
@@ -58,9 +57,8 @@ function AddressModal({
         }
         new window.daum.Postcode({
             oncomplete: (data: any) => {
-                const fullAddress = data.roadAddress || data.jibunAddress;
                 setZip(data.zonecode);
-                setAddress(fullAddress);
+                setAddress(data.roadAddress || data.jibunAddress);
             },
         }).open();
     };
@@ -70,6 +68,10 @@ function AddressModal({
         if (nums.length <= 3) return nums;
         if (nums.length <= 7) return `${nums.slice(0, 3)}-${nums.slice(3)}`;
         return `${nums.slice(0, 3)}-${nums.slice(3, 7)}-${nums.slice(7)}`;
+    };
+
+    const handleLabelChange = (val: string) => {
+        if (val.length <= 6) setLabel(val);
     };
 
     const handleSubmit = async () => {
@@ -110,22 +112,52 @@ function AddressModal({
 
                     {/* 배송지명 */}
                     <div>
-                        <p className="mb-1.5 text-[12px] font-semibold text-[#6b647a]">배송지명 <span className="text-[#ff4d6d]">*</span></p>
-                        <div className="flex gap-2 mb-2">
-                            {["우리집", "회사", "부모님댁"].map(preset => (
-                                <button key={preset} onClick={() => setLabel(preset)}
+                        <p className="mb-1.5 text-[12px] font-semibold text-[#6b647a]">
+                            배송지명 <span className="text-[#ff4d6d]">*</span>
+                        </p>
+                        {/* 프리셋 + 직접입력 뱃지 */}
+                        <div className="flex gap-2 mb-2 flex-wrap">
+                            {PRESETS.map(preset => (
+                                <button key={preset} onClick={() => { setLabel(preset); setShowCustomInput(false); }}
                                     className="h-[28px] rounded-full px-3 text-[11px] font-semibold transition-all"
-                                    style={label === preset
+                                    style={label === preset && !showCustomInput
                                         ? { background: '#7865ff', color: '#fff' }
                                         : { background: '#f4f2ff', color: '#9b94b2', border: '1px solid #e2ddf5' }
                                     }>
                                     {preset}
                                 </button>
                             ))}
+                            {/* 직접입력 뱃지 */}
+                            <button onClick={() => { setShowCustomInput(true); if (PRESETS.includes(label)) setLabel(""); }}
+                                className="h-[28px] rounded-full px-3 text-[11px] font-semibold transition-all flex items-center gap-1"
+                                style={showCustomInput
+                                    ? { background: '#7865ff', color: '#fff' }
+                                    : { background: '#f4f2ff', color: '#9b94b2', border: '1px solid #e2ddf5' }
+                                }>
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                                직접입력
+                            </button>
                         </div>
-                        <input value={label} onChange={e => setLabel(e.target.value)}
-                            placeholder="직접 입력"
-                            className="w-full rounded-[10px] border border-[#e2ddf5] bg-[#faf9ff] px-4 py-2.5 text-[13px] text-[#16121f] outline-none placeholder:text-[#c0bcd0] focus:border-[#7865ff] transition" />
+                        {/* 직접 입력 input — 직접입력 뱃지 클릭 시 표시 */}
+                        {showCustomInput && (
+                            <div className="relative">
+                                <input
+                                    autoFocus
+                                    value={label}
+                                    onChange={e => handleLabelChange(e.target.value)}
+                                    placeholder="배송지명 입력 (최대 6자)"
+                                    maxLength={6}
+                                    className="w-full rounded-[10px] border border-[#7865ff] bg-[#faf9ff] px-4 py-2.5 pr-12 text-[13px] text-[#16121f] outline-none placeholder:text-[#c0bcd0] transition"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px]"
+                                    style={{ color: label.length >= 6 ? '#ff4d6d' : '#c0bcd0' }}>
+                                    {label.length}/6
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* 수령인 */}
@@ -166,8 +198,7 @@ function AddressModal({
                     </div>
 
                     {/* 기본 배송지 */}
-                    <button onClick={() => setIsDefault(v => !v)}
-                        className="flex items-center gap-2.5 py-1">
+                    <button onClick={() => setIsDefault(v => !v)} className="flex items-center gap-2.5 py-1">
                         <div className="flex h-5 w-5 items-center justify-center rounded-full transition-all shrink-0"
                             style={isDefault ? { background: '#7865ff' } : { border: '2px solid #d8d4ee' }}>
                             {isDefault && (
@@ -248,7 +279,6 @@ export default function AddressPage() {
         if (!user?.uid) return;
         const snap = await getDocs(collection(db, "users", user.uid, "addresses"));
         const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Address));
-        // 기본 배송지 우선 정렬
         setAddresses(data.sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0)));
         setLoading(false);
     };
@@ -257,8 +287,6 @@ export default function AddressPage() {
 
     const handleSave = async (data: Omit<Address, "id">) => {
         if (!user?.uid) return;
-
-        // 기본 배송지 설정 시 기존 기본 해제
         if (data.isDefault) {
             await Promise.all(
                 addresses
@@ -266,12 +294,9 @@ export default function AddressPage() {
                     .map(a => setDoc(doc(db, "users", user.uid!, "addresses", a.id), { ...a, isDefault: false }))
             );
         }
-
         if (editTarget && editTarget !== "new") {
-            // 수정
             await setDoc(doc(db, "users", user.uid, "addresses", editTarget.id), { ...data });
         } else {
-            // 추가
             await addDoc(collection(db, "users", user.uid, "addresses"), { ...data });
         }
         await fetchAddresses();
@@ -286,7 +311,6 @@ export default function AddressPage() {
 
     return (
         <>
-            {/* 헤더 */}
             <div className="mb-6 flex items-start justify-between">
                 <div>
                     <h2 className="text-[20px] font-bold text-[#16121f]">배송지 관리</h2>
@@ -301,7 +325,6 @@ export default function AddressPage() {
                 </button>
             </div>
 
-            {/* 목록 */}
             {loading ? (
                 <div className="flex h-[160px] items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
@@ -329,7 +352,6 @@ export default function AddressPage() {
                         <div key={a.id}
                             className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4 transition hover:border-[#c4baff]"
                             style={a.isDefault ? { borderColor: '#7865ff', boxShadow: '0 0 0 1px #7865ff20' } : {}}>
-
                             <div className="flex items-start justify-between gap-3 mb-3">
                                 <div className="flex items-center gap-2">
                                     <p className="text-[14px] font-bold text-[#16121f]">{a.label}</p>
@@ -357,7 +379,6 @@ export default function AddressPage() {
                                     </button>
                                 </div>
                             </div>
-
                             <div className="flex flex-col gap-0.5">
                                 <div className="flex items-center gap-2">
                                     <p className="text-[13px] font-semibold text-[#3d3755]">{a.name}</p>
@@ -365,8 +386,7 @@ export default function AddressPage() {
                                     <p className="text-[12px] text-[#9b94b2]">{a.phone}</p>
                                 </div>
                                 <p className="text-[12px] text-[#6b647a]">
-                                    [{a.zip}] {a.address}
-                                    {a.detail && ` ${a.detail}`}
+                                    [{a.zip}] {a.address}{a.detail && ` ${a.detail}`}
                                 </p>
                             </div>
                         </div>
@@ -374,7 +394,6 @@ export default function AddressPage() {
                 </div>
             )}
 
-            {/* 안내 */}
             {addresses.length > 0 && (
                 <div className="mt-5 rounded-[12px] border border-[#ebe8ff] bg-[#faf9ff] px-5 py-4">
                     <p className="mb-2 text-[12px] font-semibold text-[#7865ff]">배송지 안내</p>
@@ -393,7 +412,6 @@ export default function AddressPage() {
                 </div>
             )}
 
-            {/* 추가/수정 모달 */}
             {editTarget !== null && (
                 <AddressModal
                     initial={editTarget === "new" ? null : editTarget}
@@ -401,8 +419,6 @@ export default function AddressPage() {
                     onSave={handleSave}
                 />
             )}
-
-            {/* 삭제 확인 모달 */}
             {deleteTarget && (
                 <DeleteConfirmModal
                     label={deleteTarget.label}

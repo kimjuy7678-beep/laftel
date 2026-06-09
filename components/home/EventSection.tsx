@@ -36,7 +36,7 @@ export default function EventSection() {
     const display = filtered.slice(0, 6)
 
     return (
-        <section style={{ padding: '56px 0 0' }}>
+        <section style={{ padding: '56px 0 80px' }}>
             <style>{`
                 .ev-wrap { width: 90%; margin: 0 auto; }
 

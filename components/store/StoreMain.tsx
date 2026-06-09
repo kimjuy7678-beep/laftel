@@ -142,7 +142,7 @@ function ImageSlot({ src, alt, className }: { src: string; alt: string; classNam
 // inner 래퍼: max-w-[1770px]
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
-        <div className={`mx-auto w-full max-w-[1770px] px-[75px] ${className}`}>
+        <div className={`mx-auto w-full max-w-[1770px] px-4 sm:px-6 lg:px-[75px] ${className}`}>
             {children}
         </div>
     );
@@ -178,18 +178,18 @@ function FeaturedRecent() {
     if (recentProducts.length === 0) return null;
 
     return (
-        <section className="mt-10">
+        <section className="mt-8 sm:mt-10">
             <Inner>
-                <div className="rounded-[28px] border border-[#ebe8ff] bg-[#f8f6ff] px-10 py-8">
-                    <div className="mb-7 flex items-center justify-between">
+                <div className="rounded-[16px] border border-[#ebe8ff] bg-[#f8f6ff] px-4 py-5 sm:rounded-[24px] sm:px-8 sm:py-7 lg:rounded-[28px] lg:px-10 lg:py-8">
+                    <div className="mb-5 flex items-center justify-between gap-4 sm:mb-7">
                         {/* title: 20px */}
-                        <h2 className="text-[20px] font-semibold text-[#14111c]">최근본상품</h2>
+                        <h2 className="text-[18px] font-semibold text-[#14111c] sm:text-[20px]">최근본상품</h2>
                         {/* all-btn: 16px */}
-                        <Link href="/store" className="text-[16px] font-semibold text-[#7865ff]">
+                        <Link href="/store" className="shrink-0 text-[13px] font-semibold text-[#7865ff] sm:text-[16px]">
                             더보기
                         </Link>
                     </div>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-7">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-5 lg:grid-cols-7 lg:gap-6">
                         {recentProducts.map((product) => (
                             <MiniProductCard key={product.id} product={product} />
                         ))}
@@ -204,13 +204,13 @@ function FeaturedRecent() {
 
 function CategoryStrip() {
     return (
-        <section className="mt-20">
+        <section className="mt-10 sm:mt-14 lg:mt-20">
             <Inner>
-                <div className="grid grid-cols-4 gap-8 sm:grid-cols-8">
+                <div className="grid grid-cols-4 gap-x-3 gap-y-6 sm:grid-cols-6 sm:gap-6 lg:grid-cols-8 lg:gap-8">
                     {categories.map((category) => (
                         <Link key={category.slug} href={seriesHref(category.name)} className="flex flex-col items-center gap-3">
                             <div
-                                className={`relative flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full  shadow-[0_8px_20px_rgba(20,16,44,0.22)]`}
+                                className={`relative flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-full shadow-[0_8px_20px_rgba(20,16,44,0.22)] sm:h-[78px] sm:w-[78px] lg:h-[88px] lg:w-[88px]`}
                             >
                                 <ImageSlot
                                     src={category.imageSrc}
@@ -224,7 +224,7 @@ function CategoryStrip() {
                                 )}
                             </div>
                             {/* sub: 13px */}
-                            <span className="text-[13px] font-semibold text-[#15121d]">{category.name}</span>
+                            <span className="max-w-full text-center text-[11px] font-semibold leading-tight text-[#15121d] sm:text-[12px] lg:text-[13px]">{category.name}</span>
                         </Link>
                     ))}
                 </div>
@@ -311,18 +311,18 @@ function ProductSeriesSection({
     if (products.length === 0) return null;
 
     return (
-        <section className="py-16">
+        <section className="py-10 sm:py-12 lg:py-16">
             <Inner>
-                <div className="mb-8 flex items-end justify-between">
+                <div className="mb-6 flex items-end justify-between gap-4 sm:mb-8">
                     <div>
-                        <h2 className="text-[32px] font-bold leading-none text-[#15121d]">{title}</h2>
-                        <p className="mt-2 text-[18px] font-medium text-[#8a8494]">{subtitle}</p>
+                        <h2 className="text-[22px] font-bold leading-tight text-[#15121d] sm:text-[28px] lg:text-[32px]">{title}</h2>
+                        <p className="mt-2 whitespace-pre-line text-[13px] font-medium leading-relaxed text-[#8a8494] sm:text-[16px] lg:text-[18px]">{subtitle}</p>
                     </div>
-                    <Link href={seriesHref(series)} className="text-[16px] font-semibold text-[#7865ff]">
+                    <Link href={seriesHref(series)} className="shrink-0 text-[12px] font-semibold text-[#7865ff] sm:text-[15px] lg:text-[16px]">
                         전체보기 →
                     </Link>
                 </div>
-                <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5 lg:gap-8">
                     {products.map((product) => (
                         <ProductFeatureCard key={product.id} product={product} />
                     ))}
@@ -336,25 +336,25 @@ function ProductSeriesSection({
 
 function BestTopSection() {
     return (
-        <section className="relative left-1/2 mt-24 w-screen -translate-x-1/2 bg-[#fafafa] py-20">
+        <section className="relative left-1/2 mt-12 w-screen -translate-x-1/2 bg-[#fafafa] py-12 sm:mt-16 sm:py-16 lg:mt-24 lg:py-20">
             <Inner>
-                <div className="mb-3 flex items-end justify-between">
+                <div className="mb-3 flex items-end justify-between gap-4">
                     <div>
                         {/* section title: 32px */}
-                        <h2 className="text-[32px] font-bold leading-none tracking-wide text-[#16121f]">
+                        <h2 className="text-[24px] font-bold leading-tight tracking-wide text-[#16121f] sm:text-[30px] lg:text-[32px]">
                             BEST-TOP 50
                         </h2>
                         {/* section sub: 18px */}
-                        <p className="mt-2 text-[18px] font-medium text-[#8a8494]">
+                        <p className="mt-2 text-[13px] font-medium text-[#8a8494] sm:text-[16px] lg:text-[18px]">
                             팬들이 가장 사랑한 굿즈
                         </p>
                     </div>
                     {/* all-btn: 16px */}
-                    <Link href="/store/best" className="text-[16px] font-semibold text-[#7865ff]">
+                    <Link href="/store/best" className="shrink-0 text-right text-[12px] font-semibold text-[#7865ff] sm:text-[15px] lg:text-[16px]">
                         베스트 굿즈 전체보기 →
                     </Link>
                 </div>
-                <div className="mt-10 grid grid-cols-2 gap-8 md:grid-cols-5">
+                <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-5 lg:mt-10 lg:grid-cols-5 lg:gap-8">
                     {topProducts.map((product, index) => (
                         <TopProductCard key={product.id} product={product} rank={index + 1} />
                     ))}
@@ -397,25 +397,25 @@ function CharacterCard({ character }: { character: (typeof characterCollections)
 
 function CharacterCollectionSection() {
     return (
-        <section className="py-20">
+        <section className="py-12 sm:py-16 lg:py-20">
             <Inner>
-                <div className="mb-8 flex items-end justify-between">
+                <div className="mb-6 flex items-end justify-between gap-4 sm:mb-8">
                     <div>
                         {/* section title: 32px */}
-                        <h2 className="text-[32px] font-bold leading-none text-[#15121d]">
+                        <h2 className="text-[22px] font-bold leading-tight text-[#15121d] sm:text-[28px] lg:text-[32px]">
                             최애를 만나러 가는길
                         </h2>
                         {/* section sub: 18px */}
-                        <p className="mt-2 text-[18px] font-medium text-[#8a8494]">
+                        <p className="mt-2 text-[13px] font-medium leading-relaxed text-[#8a8494] sm:text-[16px] lg:text-[18px]">
                             좋아하는 캐릭터의 굿즈만 골라서 만나보세요
                         </p>
                     </div>
                     {/* all-btn: 16px */}
-                    <Link href="/store/series" className="text-[16px] font-semibold text-[#7865ff]">
+                    <Link href="/store/series" className="shrink-0 text-right text-[12px] font-semibold text-[#7865ff] sm:text-[15px] lg:text-[16px]">
                         전체 시리즈 보기 →
                     </Link>
                 </div>
-                <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5 lg:gap-8">
                     {characterCollections.map((character) => (
                         <CharacterCard key={character.name} character={character} />
                     ))}
@@ -429,27 +429,27 @@ function CharacterCollectionSection() {
 
 function CollectionBanner() {
     return (
-        <section className="pb-24">
+        <section className="pb-14 sm:pb-18 lg:pb-24 pt-[80px]">
             <Inner>
-                <div className="relative overflow-hidden rounded-[24px] bg-[#dedede]">
+                <div className="relative overflow-hidden rounded-[16px] bg-[#dedede] sm:rounded-[24px] ">
                     <ImageSlot
-                        src=""
+                        src="images/store/store-main-rare.png"
                         alt="Hololive Anniversary Set"
-                        className="h-[400px] w-full object-cover"
+                        className="h-[280px] w-full object-cover sm:h-[340px] lg:h-[400px]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
-                    <div className="absolute left-12 top-1/2 max-w-[560px] -translate-y-1/2 sm:left-20">
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
+                    <div className="absolute left-5 right-5 top-1/2 max-w-[560px] -translate-y-1/2 sm:left-10 sm:right-auto lg:left-20">
                         {/* section title: 32px */}
-                        <h2 className="text-[32px] font-bold leading-tight text-white">
+                        <h2 className="text-[24px] font-bold leading-tight text-white sm:text-[28px] lg:text-[32px]">
                             지금만 만날 수 있는 한정판 굿즈
                         </h2>
                         {/* section sub: 18px */}
-                        <p className="mt-3 text-[18px] font-medium text-white/80">
+                        <p className="mt-3 text-[13px] font-medium leading-relaxed text-white/80 sm:text-[16px] lg:text-[18px]">
                             수량 한정! 지금 바로 만나보세요
                             망설이는 순간 품절될지도 몰라요
                         </p>
                         {/* all-btn: 16px */}
-                        <button className="mt-8 rounded-[10px] bg-white px-10 py-4 text-[16px] font-semibold text-[#7865ff] shadow-[0_10px_24px_rgba(0,0,0,0.15)]">
+                        <button className="mt-6 rounded-[10px] bg-white px-5 py-3 text-[13px] font-semibold text-[#7865ff] shadow-[0_10px_24px_rgba(0,0,0,0.15)] sm:mt-8 sm:px-8 sm:py-3.5 sm:text-[15px] lg:px-10 lg:py-4 lg:text-[16px]">
                             <Link href="/store/rare">   한정판 보러가기</Link>
                         </button>
                     </div>
