@@ -144,7 +144,8 @@ export default function ProfilePage() {
     }, [pinLocked])
 
     const enterProfile = async (p: ProfileData) => {
-        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit })
+        await setDoc(doc(db, 'users', user!.uid!), { lastProfileId: p.id }, { merge: true })
+        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit, profileId: p.id })
 
         // 프로필 선택 시점에 온보딩 여부 체크
         const snap = await getDoc(doc(db, 'users', user!.uid!))
@@ -580,6 +581,7 @@ export default function ProfilePage() {
                     <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 40, marginBottom: 64 }}>
                         {profiles.map(p => {
                             const isSelected = selectedProfileId === p.id
+                            const isMainProfile = p.id === profiles[0].id  // 첫 번째 프로필
                             return (
                                 <div key={p.id} className={`pf-card${isSelected ? ' selected' : ''}`} onClick={() => handleProfileClick(p)}>
                                     <div className="pf-avatar-wrap" style={{ position: 'relative' }}>
@@ -596,6 +598,18 @@ export default function ProfilePage() {
                                         )}
                                     </div>
                                     <span className="pf-card-name">{p.nickname}</span>
+
+                                    {/* 멤버십 뱃지 — 주 계정에만 표시 */}
+                                    {isMainProfile && memberInfo && (
+                                        <span style={{
+                                            fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20,
+                                            background: `${memberInfo.color}20`, color: memberInfo.color,
+                                            border: `1px solid ${memberInfo.color}40`, marginTop: -4,
+                                        }}>
+                                            ✓ {memberInfo.label}
+                                        </span>
+                                    )}
+
                                     {isSelected && (
                                         <span style={{ fontSize: 12, color: '#9d97ff', fontWeight: 600, marginTop: -8 }}>
                                             {p.pinHash ? '🔒 한 번 더 클릭' : '한 번 더 클릭하여 입장 →'}
@@ -626,18 +640,6 @@ export default function ProfilePage() {
                             </div>
                         )}
                     </div>
-
-                    {memberInfo && (
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-                            <span style={{
-                                fontSize: 12, fontWeight: 700, padding: '6px 16px', borderRadius: 20,
-                                background: `${memberInfo.color}20`, color: memberInfo.color,
-                                border: `1px solid ${memberInfo.color}40`
-                            }}>
-                                ✓ {memberInfo.label} 이용중
-                            </span>
-                        </div>
-                    )}
 
                     {/* 프로필 편집 버튼 */}
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
