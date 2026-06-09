@@ -32,6 +32,8 @@ type Order = {
     cancelReason?: string;
     refundReason?: string;
     refundType?: "제품하자" | "단순변심";
+    paymentMethod?: string;
+    shipping?: { name?: string; phone?: string; address?: string; detail?: string; zip?: string; memo?: string };
 };
 
 const STATUS_TABS = ["전체", "배송중", "배송완료", "교환환불/취소"];
@@ -47,7 +49,6 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const CANCEL_REASONS = ["단순 변심", "상품 불량/파손", "배송 지연", "주문 실수", "기타"];
-
 const DATE_RANGE_BUTTONS = [
     { label: "1개월", months: 1, days: 0 },
     { label: "3개월", months: 3, days: 0 },
@@ -60,23 +61,144 @@ function toDateInputValue(date: Date) {
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
 }
-
 function toOrderDateLabel(date?: Date) {
     if (!date) return "-";
     return toDateInputValue(date).replaceAll("-", ".");
 }
-
 function getOrderCreatedDate(createdAt: Order["createdAt"]) {
     if (createdAt instanceof Date) return createdAt;
     return createdAt?.toDate?.();
 }
-
 function getDateRange(months: number, days: number) {
     const to = new Date();
     const from = new Date(to);
     if (months > 0) from.setMonth(from.getMonth() - months);
     if (days > 0) from.setDate(from.getDate() - days);
     return { from: toDateInputValue(from), to: toDateInputValue(to) };
+}
+
+// ─── 주문 상세 팝업 ────────────────────────────────────────────────────────────
+function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => void }) {
+    const subtotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+    const discountTotal = (order.couponDiscount ?? 0) + (order.usedPoints ?? 0);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+            <div className="relative w-full max-w-[460px] max-h-[90vh] overflow-y-auto rounded-[20px] bg-white shadow-2xl"
+                onClick={e => e.stopPropagation()}>
+                {/* 헤더 */}
+                <div className="sticky top-0 bg-white flex items-center justify-between border-b border-[#f0edf8] px-6 py-4 z-10">
+                    <h3 className="text-[16px] font-bold text-[#16121f]">주문 상세</h3>
+                    <button onClick={onClose}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[#e2ddf5] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                    </button>
+                </div>
+
+                <div className="px-6 py-5 flex flex-col gap-5">
+                    {/* 주문 번호 / 날짜 / 상태 */}
+                    <div className="rounded-[12px] bg-[#f5f3ff] px-4 py-3 flex flex-col gap-1">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[11px] text-[#9b94b2]">주문번호</p>
+                            <p className="text-[12px] font-bold text-[#3d3755] tabular-nums">{order.id.slice(0, 16)}...</p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <p className="text-[11px] text-[#9b94b2]">주문일시</p>
+                            <p className="text-[12px] text-[#3d3755]">{order.date}</p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <p className="text-[11px] text-[#9b94b2]">주문상태</p>
+                            <p className={`text-[12px] font-bold ${STATUS_COLOR[order.status] ?? "text-[#7865ff]"}`}>{order.status}</p>
+                        </div>
+                    </div>
+
+                    {/* 주문 상품 */}
+                    <div>
+                        <p className="mb-2 text-[12px] font-bold text-[#6b647a]">주문 상품</p>
+                        <div className="flex flex-col gap-3">
+                            {order.items.map((item, i) => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[8px] bg-[#f0eeff]">
+                                        {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="line-clamp-1 text-[13px] font-medium text-[#16121f]">{item.title}</p>
+                                        <p className="text-[11px] text-[#9b94b2]">옵션: {item.option} · {item.qty}개</p>
+                                    </div>
+                                    <p className="shrink-0 text-[13px] font-bold text-[#16121f]">{(item.price * item.qty).toLocaleString()}원</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 결제 내역 */}
+                    <div>
+                        <p className="mb-2 text-[12px] font-bold text-[#6b647a]">결제 내역</p>
+                        <div className="rounded-[12px] border border-[#ebe8ff] overflow-hidden">
+                            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#f0edf8]">
+                                <p className="text-[12px] text-[#6b647a]">상품 금액</p>
+                                <p className="text-[12px] font-semibold text-[#16121f]">{subtotal.toLocaleString()}원</p>
+                            </div>
+                            {(order.couponDiscount ?? 0) > 0 && (
+                                <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#f0edf8]">
+                                    <p className="text-[12px] text-[#6b647a]">쿠폰 할인</p>
+                                    <p className="text-[12px] font-semibold text-[#ff4d6d]">-{(order.couponDiscount ?? 0).toLocaleString()}원</p>
+                                </div>
+                            )}
+                            {(order.usedPoints ?? 0) > 0 && (
+                                <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#f0edf8]">
+                                    <p className="text-[12px] text-[#6b647a]">포인트 사용</p>
+                                    <p className="text-[12px] font-semibold text-[#ff4d6d]">-{(order.usedPoints ?? 0).toLocaleString()}원</p>
+                                </div>
+                            )}
+                            <div className="flex items-center justify-between px-4 py-3 bg-[#faf9ff]">
+                                <p className="text-[13px] font-bold text-[#16121f]">최종 결제금액</p>
+                                <p className="text-[16px] font-extrabold text-[#7865ff]">{order.total.toLocaleString()}원</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 결제 수단 */}
+                    {order.paymentMethod && (
+                        <div>
+                            <p className="mb-2 text-[12px] font-bold text-[#6b647a]">결제 수단</p>
+                            <div className="rounded-[12px] border border-[#ebe8ff] px-4 py-3">
+                                <p className="text-[13px] text-[#3d3755]">{order.paymentMethod}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 배송지 */}
+                    {order.shipping && (
+                        <div>
+                            <p className="mb-2 text-[12px] font-bold text-[#6b647a]">배송지</p>
+                            <div className="rounded-[12px] border border-[#ebe8ff] px-4 py-3 flex flex-col gap-1">
+                                <p className="text-[13px] font-semibold text-[#16121f]">{order.shipping.name}</p>
+                                <p className="text-[12px] text-[#6b647a]">{order.shipping.phone}</p>
+                                <p className="text-[12px] text-[#6b647a]">{order.shipping.address} {order.shipping.detail}</p>
+                                <p className="text-[12px] text-[#9b94b2]">({order.shipping.zip})</p>
+                                {order.shipping.memo && <p className="text-[12px] text-[#9b94b2]">요청사항: {order.shipping.memo}</p>}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 취소/환불 사유 */}
+                    {order.cancelReason && (
+                        <div className="rounded-[12px] bg-[#fff0f3] border border-[#ffb3c1] px-4 py-3">
+                            <p className="text-[11px] font-bold text-[#ff4d6d] mb-1">취소 사유</p>
+                            <p className="text-[12px] text-[#6b647a]">{order.cancelReason}</p>
+                        </div>
+                    )}
+                    {order.refundReason && (
+                        <div className="rounded-[12px] bg-[#fff8e6] border border-[#fde68a]/60 px-4 py-3">
+                            <p className="text-[11px] font-bold text-[#d97706] mb-1">교환/환불 사유 {order.refundType && `(${order.refundType})`}</p>
+                            <p className="text-[12px] text-[#6b647a]">{order.refundReason}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 }
 
 // ─── 주문취소 팝업 ─────────────────────────────────────────────────────────────
@@ -106,8 +228,8 @@ function CancelPopup({ order, onClose, onConfirm }: {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-            <div className="relative w-[480px] max-h-[90vh] overflow-y-auto rounded-[20px] bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+            <div className="relative w-full max-w-[480px] max-h-[90vh] overflow-y-auto rounded-[20px] bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="mb-5 flex items-center justify-between">
                     <h2 className="text-[22px] font-bold text-[#7865ff]">주문 취소</h2>
                     <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f0eeff] text-[#9b94b2] hover:bg-[#e0daf7] hover:text-[#7865ff] transition">
@@ -121,14 +243,14 @@ function CancelPopup({ order, onClose, onConfirm }: {
                                 className={`shrink-0 flex h-6 w-6 items-center justify-center rounded-full border-2 transition ${selected.includes(item.productId) ? "bg-[#7865ff] border-[#7865ff]" : "bg-white border-[#d8d4ee]"}`}>
                                 {selected.includes(item.productId) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>}
                             </button>
-                            <div className="h-[90px] w-[90px] shrink-0 overflow-hidden rounded-[10px] bg-[#e8e4f8]">
+                            <div className="h-[72px] w-[72px] sm:h-[90px] sm:w-[90px] shrink-0 overflow-hidden rounded-[10px] bg-[#e8e4f8]">
                                 {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
                             </div>
                             <div>
-                                <p className="line-clamp-1 text-[14px] font-medium text-[#16121f]">{item.title}</p>
-                                <p className="text-[12px] text-[#9b94b2]">옵션 : {item.option}</p>
-                                <p className="mt-1 text-[15px] font-bold text-[#16121f]">{item.price.toLocaleString()}원</p>
-                                <p className="text-[12px] text-[#9b94b2]">총 수량 : {item.qty}</p>
+                                <p className="line-clamp-1 text-[13px] sm:text-[14px] font-medium text-[#16121f]">{item.title}</p>
+                                <p className="text-[11px] sm:text-[12px] text-[#9b94b2]">옵션 : {item.option}</p>
+                                <p className="mt-1 text-[14px] sm:text-[15px] font-bold text-[#16121f]">{item.price.toLocaleString()}원</p>
+                                <p className="text-[11px] sm:text-[12px] text-[#9b94b2]">총 수량 : {item.qty}</p>
                             </div>
                         </div>
                     ))}
@@ -182,8 +304,8 @@ function RefundPopup({ order, onClose, onConfirm }: {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-            <div className="relative w-[440px] rounded-[20px] bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+            <div className="relative w-full max-w-[440px] rounded-[20px] bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="mb-5 flex items-center justify-between">
                     <h2 className="text-[20px] font-bold text-[#d97706]">교환 / 환불 신청</h2>
                     <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff8e6] text-[#9b94b2] hover:bg-[#fde68a]/40 hover:text-[#d97706] transition">
@@ -236,10 +358,7 @@ function RefundPopup({ order, onClose, onConfirm }: {
                     </div>
                 )}
                 <div className="flex gap-2">
-                    <button onClick={onClose}
-                        className="flex-1 h-[44px] rounded-[12px] border border-[#ddd8f4] text-[13px] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition">
-                        취소
-                    </button>
+                    <button onClick={onClose} className="flex-1 h-[44px] rounded-[12px] border border-[#ddd8f4] text-[13px] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition">취소</button>
                     <button onClick={handleConfirm} disabled={loading || !refundType}
                         className="flex-1 h-[44px] rounded-[12px] bg-[#d97706] text-[13px] font-semibold text-white hover:bg-[#b45309] transition disabled:opacity-50">
                         {loading ? "신청 중..." : "신청하기"}
@@ -250,12 +369,11 @@ function RefundPopup({ order, onClose, onConfirm }: {
     );
 }
 
-// ─── 메인 (useSearchParams 감싸기) ────────────────────────────────────────────
+// ─── 메인 ────────────────────────────────────────────────────────────────────
 function ProfileContent() {
     const { user } = useAuthStore();
     const searchParams = useSearchParams();
 
-    // ✅ URL ?tab=배송중 등으로 초기 탭 설정
     const initialTab = (() => {
         const t = searchParams.get("tab");
         if (t && STATUS_TABS.includes(t)) return t;
@@ -267,6 +385,7 @@ function ProfileContent() {
     const [loading, setLoading] = useState(false);
     const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
     const [refundTarget, setRefundTarget] = useState<Order | null>(null);
+    const [detailTarget, setDetailTarget] = useState<Order | null>(null); // ✅ 상세 팝업
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 6;
     const [initialDateRange] = useState(() => getDateRange(1, 0));
@@ -276,7 +395,6 @@ function ProfileContent() {
     const [appliedTo, setAppliedTo] = useState(initialDateRange.to);
     const [activeRange, setActiveRange] = useState("1달");
 
-    // ✅ URL 탭 파라미터 바뀌면 탭도 업데이트
     useEffect(() => {
         const t = searchParams.get("tab");
         if (t && STATUS_TABS.includes(t)) setTab(t);
@@ -352,7 +470,6 @@ function ProfileContent() {
         setAppliedFrom(range.from); setAppliedTo(range.to);
         setActiveRange(label); setPage(1);
     };
-
     const applyCustomDateRange = () => {
         setAppliedFrom(dateFrom); setAppliedTo(dateTo);
         setActiveRange(""); setPage(1);
@@ -376,13 +493,13 @@ function ProfileContent() {
 
     return (
         <>
-            <h2 className="mb-5 text-[20px] font-bold text-[#16121f]">구매목록</h2>
+            <h2 className="mb-5 text-[18px] sm:text-[20px] font-bold text-[#16121f]">구매목록</h2>
 
             {/* 탭 */}
-            <div className="mb-5 flex items-center gap-6 border-b border-[#f0edf8]">
+            <div className="mb-5 flex items-center gap-3 sm:gap-6 border-b border-[#f0edf8] overflow-x-auto">
                 {STATUS_TABS.map(t => (
                     <button key={t} onClick={() => { setTab(t); setPage(1); }}
-                        className={`pb-3 text-[13px] font-semibold transition border-b-2 ${tab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
+                        className={`pb-3 text-[13px] font-semibold transition border-b-2 whitespace-nowrap ${tab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
                         {t}
                     </button>
                 ))}
@@ -393,17 +510,15 @@ function ProfileContent() {
                 {DATE_RANGE_BUTTONS.map((range) => (
                     <button key={range.label} type="button"
                         onClick={() => applyDateRange(range.label, range.months, range.days)}
-                        className={`h-[36px] rounded-[8px] px-3 text-[12px] font-semibold transition ${activeRange === range.label
-                            ? "bg-[#7865ff] text-white"
-                            : "border border-[#ddd8f4] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
+                        className={`h-[36px] rounded-[8px] px-3 text-[12px] font-semibold transition ${activeRange === range.label ? "bg-[#7865ff] text-white" : "border border-[#ddd8f4] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
                         {range.label}
                     </button>
                 ))}
                 <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                    className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
+                    className="h-[36px] w-full sm:w-auto rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
                 <span className="text-[#9b94b2]">~</span>
                 <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                    className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
+                    className="h-[36px] w-full sm:w-auto rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
                 <button onClick={applyCustomDateRange}
                     className="h-[36px] rounded-[8px] bg-[#7865ff] px-4 text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
                     기간 검색
@@ -422,8 +537,8 @@ function ProfileContent() {
                 <>
                     <div className="flex flex-col gap-4">
                         {paginated.map(order => (
-                            <div key={order.id} className="rounded-[12px] border border-[#ebe8ff] p-5">
-                                <div className="flex gap-4">
+                            <div key={order.id} className="rounded-[12px] border border-[#ebe8ff] p-4 sm:p-5">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                                     <div className="flex-1 min-w-0">
                                         <p className="mb-3 text-[12px] text-[#9b94b2]">{order.date}</p>
                                         {order.items.map((item, i) => (
@@ -442,19 +557,24 @@ function ProfileContent() {
                                             </Link>
                                         ))}
                                     </div>
-                                    <div className="shrink-0 text-right">
-                                        <p className={`mb-1 text-[13px] font-bold ${STATUS_COLOR[order.status] ?? "text-[#7865ff]"}`}>{order.status}</p>
-                                        {order.status === "처리중" && (
-                                            <p className="text-[10px] text-[#f59e0b] mb-1">관리자 확인 중</p>
-                                        )}
-                                        {order.status === "교환환불신청" && order.refundType && (
-                                            <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${order.refundType === "제품하자" ? "bg-[#fff8e6] text-[#d97706]" : "bg-[#f0eeff] text-[#7865ff]"}`}>
-                                                {order.refundType}
-                                            </span>
-                                        )}
-                                        <p className="text-[17px] font-bold text-[#16121f]">{order.total.toLocaleString()}원</p>
-                                        {order.usedPoints > 0 && <p className="text-[11px] text-[#9b94b2]">🪙 {order.usedPoints.toLocaleString()}원</p>}
-                                        <div className="mt-2 flex flex-col gap-1.5 items-end">
+                                    <div className="shrink-0 sm:text-right flex sm:flex-col items-start sm:items-end justify-between gap-2">
+                                        <div>
+                                            <p className={`mb-1 text-[13px] font-bold ${STATUS_COLOR[order.status] ?? "text-[#7865ff]"}`}>{order.status}</p>
+                                            {order.status === "처리중" && <p className="text-[10px] text-[#f59e0b] mb-1">관리자 확인 중</p>}
+                                            {order.status === "교환환불신청" && order.refundType && (
+                                                <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${order.refundType === "제품하자" ? "bg-[#fff8e6] text-[#d97706]" : "bg-[#f0eeff] text-[#7865ff]"}`}>
+                                                    {order.refundType}
+                                                </span>
+                                            )}
+                                            <p className="text-[17px] font-bold text-[#16121f]">{order.total.toLocaleString()}원</p>
+                                            {order.usedPoints > 0 && <p className="text-[11px] text-[#9b94b2]">🪙 {order.usedPoints.toLocaleString()}원</p>}
+                                        </div>
+                                        <div className="flex flex-row flex-wrap sm:flex-col gap-1.5 sm:items-end">
+                                            {/* ✅ 주문 상세 버튼 */}
+                                            <button onClick={() => setDetailTarget(order)}
+                                                className="rounded-[8px] border border-[#e2ddf5] px-3 py-1 text-[11px] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition">
+                                                상세 보기
+                                            </button>
                                             {canCancel(order.status) && (
                                                 <button onClick={() => setCancelTarget(order)}
                                                     className="rounded-[8px] border border-[#ffb3c1] px-3 py-1 text-[11px] text-[#ff4d6d] hover:bg-[#fff0f3] transition">
@@ -480,7 +600,6 @@ function ProfileContent() {
                                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
                             </button>
-
                             {(() => {
                                 const PAGE_GROUP = 6;
                                 const groupIndex = Math.floor((page - 1) / PAGE_GROUP);
@@ -489,28 +608,17 @@ function ProfileContent() {
                                 const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
                                 return (
                                     <>
-                                        {groupStart > 1 && (
-                                            <button onClick={() => setPage(groupStart - 1)}
-                                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">
-                                                ···
-                                            </button>
-                                        )}
+                                        {groupStart > 1 && <button onClick={() => setPage(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
                                         {pages.map(n => (
                                             <button key={n} onClick={() => setPage(n)}
                                                 className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${page === n ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]" : "border border-[#d8d4ee] bg-white text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
                                                 {n}
                                             </button>
                                         ))}
-                                        {groupEnd < totalPages && (
-                                            <button onClick={() => setPage(groupEnd + 1)}
-                                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">
-                                                ···
-                                            </button>
-                                        )}
+                                        {groupEnd < totalPages && <button onClick={() => setPage(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
                                     </>
                                 );
                             })()}
-
                             <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                                 className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
@@ -520,13 +628,13 @@ function ProfileContent() {
                 </>
             )}
 
+            {detailTarget && <OrderDetailPopup order={detailTarget} onClose={() => setDetailTarget(null)} />}
             {cancelTarget && <CancelPopup order={cancelTarget} onClose={() => setCancelTarget(null)} onConfirm={handleCancel} />}
             {refundTarget && <RefundPopup order={refundTarget} onClose={() => setRefundTarget(null)} onConfirm={handleRefund} />}
         </>
     );
 }
 
-// ✅ useSearchParams는 Suspense로 감싸야 함
 export default function ProfilePage() {
     return (
         <Suspense fallback={<div className="flex h-[200px] items-center justify-center text-[13px] text-[#9b94b2]">불러오는 중...</div>}>
