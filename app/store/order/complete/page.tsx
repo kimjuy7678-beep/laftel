@@ -40,7 +40,6 @@ function OrderCompleteContent() {
         return () => clearTimeout(t);
     }, []);
 
-    // ── Firestore에서 실제 주문 데이터 가져오기 ───────────────────────────────
     useEffect(() => {
         if (!user?.uid || !orderNumber) { setLoading(false); return; }
         getDoc(doc(db, "users", user.uid, "orders", orderNumber))
@@ -57,14 +56,15 @@ function OrderCompleteContent() {
         if (!user?.uid || !orderNumber || !orderData || orderData.notified) return;
         const uid = user.uid;
 
-        // notified 플래그 세팅 (이후 재접근 시 잘못된 접근 처리)
         updateDoc(doc(db, "users", uid, "orders", orderNumber), { notified: true }).catch(() => { });
 
+        // ✅ link를 주문내역 배송중 탭으로 변경
         saveStoreNotification(uid, {
             type: "order",
             title: "주문이 완료되었어요 🛍️",
             body: `${title} 주문이 정상 접수되었어요. 주문번호: ${orderNumber.slice(0, 8)}...`,
-            link: `/store/order/complete?orderNumber=${orderNumber}&title=${encodeURIComponent(title)}&thumbnail=${encodeURIComponent(thumbnail)}&total=${total}&option=${encodeURIComponent(option)}&qty=${qty}`,
+            link: "/store/profile?tab=배송중",
+            status: "결제완료",
         }).catch(() => { });
 
         getDocs(collection(db, "users", uid, "coupons")).then(async (snap) => {
@@ -89,26 +89,19 @@ function OrderCompleteContent() {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    if (loading) {
-        return <div className="min-h-screen bg-[#f5f3ff]" />;
-    }
+    if (loading) return <div className="min-h-screen bg-[#f5f3ff]" />;
 
     if (invalid) {
         return (
             <div className="min-h-screen bg-[#f5f3ff] flex flex-col items-center justify-center gap-4">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#ebe8ff] mb-2">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#826CFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
                 </div>
                 <h2 className="text-[20px] font-extrabold text-[#826CFF]">잘못된 접근입니다</h2>
                 <p className="text-[13px] text-[#aaa]">이미 처리된 주문이거나 유효하지 않은 페이지예요.</p>
-                <Link
-                    href="/store"
-                    className="mt-2 h-11 px-8 rounded-full bg-[#826CFF] text-white text-[14px] font-bold hover:bg-[#6B5CE7] transition-colors shadow-md shadow-[#826cff25] flex items-center"
-                >
+                <Link href="/store" className="mt-2 h-11 px-8 rounded-full bg-[#826CFF] text-white text-[14px] font-bold hover:bg-[#6B5CE7] transition-colors shadow-md shadow-[#826cff25] flex items-center">
                     메인으로 돌아가기
                 </Link>
             </div>
@@ -138,10 +131,8 @@ function OrderCompleteContent() {
                 <div className="flex items-center gap-2 mb-8">
                     <span className="text-[11px] font-bold bg-[#826CFF] text-white px-3 py-1 rounded-full">주문번호</span>
                     <span className="text-[14px] font-semibold text-[#333] tabular-nums">{orderNumber}</span>
-                    <button
-                        onClick={copyOrderNumber}
-                        className="w-7 h-7 rounded-full bg-white border border-[#e0daf7] flex items-center justify-center hover:bg-[#f0eeff] transition-colors"
-                    >
+                    <button onClick={copyOrderNumber}
+                        className="w-7 h-7 rounded-full bg-white border border-[#e0daf7] flex items-center justify-center hover:bg-[#f0eeff] transition-colors">
                         {copied ? (
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#826CFF" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                         ) : (
@@ -151,16 +142,13 @@ function OrderCompleteContent() {
                 </div>
 
                 <div className="flex gap-3 mb-10">
-                    <Link
-                        href="/store/profile"
-                        className="h-10 px-6 rounded-full bg-[#826CFF] text-white text-[13px] font-bold hover:bg-[#6B5CE7] transition-colors shadow-md shadow-[#826cff25] flex items-center"
-                    >
+                    {/* ✅ 주문상세 버튼도 배송중 탭으로 이동 */}
+                    <Link href="/store/profile?tab=배송중"
+                        className="h-10 px-6 rounded-full bg-[#826CFF] text-white text-[13px] font-bold hover:bg-[#6B5CE7] transition-colors shadow-md shadow-[#826cff25] flex items-center">
                         주문상세 보기
                     </Link>
-                    <Link
-                        href="/store"
-                        className="h-10 px-6 rounded-full border-2 border-[#826CFF] text-[#826CFF] text-[13px] font-bold hover:bg-[#f0eeff] transition-colors flex items-center"
-                    >
+                    <Link href="/store"
+                        className="h-10 px-6 rounded-full border-2 border-[#826CFF] text-[#826CFF] text-[13px] font-bold hover:bg-[#f0eeff] transition-colors flex items-center">
                         계속 쇼핑하기
                     </Link>
                 </div>
@@ -176,13 +164,9 @@ function OrderCompleteContent() {
                                     <img src={thumbnail} alt={title} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    {category && (
-                                        <p className="text-[11px] font-semibold text-[#826CFF] mb-1">{category}</p>
-                                    )}
+                                    {category && <p className="text-[11px] font-semibold text-[#826CFF] mb-1">{category}</p>}
                                     <p className="text-[14px] font-semibold text-[#111] leading-snug line-clamp-2">{title}</p>
-                                    {option !== "기본" && (
-                                        <p className="mt-1.5 text-[12px] text-[#aaa]">옵션: {option}</p>
-                                    )}
+                                    {option !== "기본" && <p className="mt-1.5 text-[12px] text-[#aaa]">옵션: {option}</p>}
                                     <p className="mt-1 text-[12px] text-[#bbb]">수량: {qty}개</p>
                                 </div>
                             </div>
