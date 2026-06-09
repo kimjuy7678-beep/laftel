@@ -139,8 +139,15 @@ export default function ProfilePage() {
         return () => { if (pinTimerRef.current) clearInterval(pinTimerRef.current) }
     }, [pinLocked])
 
-    const enterProfile = (p: ProfileData) => {
+    const enterProfile = async (p: ProfileData) => {
         onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit })
+
+        // 프로필 선택 시점에 온보딩 여부 체크
+        const snap = await getDoc(doc(db, 'users', user!.uid!))
+        if (!snap.data()?.onboardingDone) {
+            useAuthStore.setState({ isNewUser: true })
+        }
+
         router.push('/')
     }
 
