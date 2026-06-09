@@ -7,10 +7,11 @@ import { useAuthStore } from "@/store/useAuthStore";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 import StoreSidebar from "@/components/store/StoreSliaebar";
 import FilterDropdown from "@/components/store/FilterDropdown";
+import SortDropdown, { sortProducts } from "@/components/store/SortDropdown";
 
 const ALL_PRODUCTS = products as StoreProduct[];
 const ITEMS_PER_PAGE = 20;
-const PAGE_GROUP = 5;
+const PAGE_GROUP = 6;
 
 function parsePrice(priceStr: string): number {
     const num = parseInt(priceStr.replace(/[^0-9]/g, ""), 10);
@@ -26,13 +27,10 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     const groupStart = groupIndex * PAGE_GROUP + 1;
     const groupEnd = Math.min(groupStart + PAGE_GROUP - 1, total);
     const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
-
-    // ✅ 페이지 변경 + 최상단 이동
     const handleChange = (p: number) => {
         onChange(p);
         document.getElementById("store-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
-
     return (
         <div className="mt-16 flex items-center justify-center gap-2">
             <button onClick={() => handleChange(Math.max(1, current - 1))} disabled={current === 1}
@@ -42,9 +40,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
             {groupStart > 1 && <button onClick={() => handleChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
             {pages.map((p) => (
                 <button key={p} onClick={() => handleChange(p)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${p === current
-                        ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]"
-                        : "bg-white border border-[#d8d4ee] text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
+                    className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${p === current ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]" : "bg-white border border-[#d8d4ee] text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
                     {p}
                 </button>
             ))}
@@ -74,7 +70,7 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [priceRange, setPriceRange] = useState<[number, number]>(PRICE_INITIAL);
     const [onlyInStock, setOnlyInStock] = useState(false);
-    const [onlyReserve, setOnlyReserve] = useState(false); // 추가
+    const [onlyReserve, setOnlyReserve] = useState(false);
 
     const CATEGORY_PRODUCTS = ALL_PRODUCTS.filter((p) =>
         keywords.some((kw) => p.title.toLowerCase().includes(kw.toLowerCase()))
@@ -82,50 +78,35 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
 
     const filtered = CATEGORY_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
-        const isReserve = p.title.includes("[예약]"); // 추가
-        const matchSearch =
-            p.title.toLowerCase().includes(search.toLowerCase()) ||
-            p.category.toLowerCase().includes(search.toLowerCase());
+        const isReserve = p.title.includes("[예약]");
+        const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
         const matchStock = !onlyInStock || !p.soldout;
-        const matchReserve = !onlyReserve || isReserve; // 추가
+        const matchReserve = !onlyReserve || isReserve;
         return matchSearch && matchPrice && matchStock && matchReserve;
     });
 
-    const sorted = [...filtered].sort((a, b) => {
-        if (sort === "낮은 가격순") return parsePrice(a.price) - parsePrice(b.price);
-        if (sort === "높은 가격순") return parsePrice(b.price) - parsePrice(a.price);
-        return 0;
-    });
-
+    const sorted = sortProducts(filtered, sort);
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    const handleReset = () => { setPriceRange(PRICE_INITIAL); setOnlyInStock(false); setOnlyReserve(false); }; // 추가
+    const handleReset = () => { setPriceRange(PRICE_INITIAL); setOnlyInStock(false); setOnlyReserve(false); };
     const activeFilterCount = [
         priceRange[0] > PRICE_INITIAL[0] || priceRange[1] < PRICE_INITIAL[1],
-        onlyInStock,
-        onlyReserve, // 추가
+        onlyInStock, onlyReserve,
     ].filter(Boolean).length;
 
     return (
         <div className="min-h-screen bg-white pb-20">
             <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
             <div className="border-b border-[#ebe8ff] bg-white py-3">
                 <Inner>
-                    <button onClick={() => setSidebarOpen(true)}
-                        className="flex items-center gap-2 text-[14px] text-[#3d3755] transition hover:text-[#7865ff]">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                            <line x1="3" y1="12" x2="21" y2="12" />
-                            <line x1="3" y1="18" x2="21" y2="18" />
-                        </svg>
+                    <button onClick={() => setSidebarOpen(true)} className="flex items-center gap-2 text-[14px] text-[#3d3755] transition hover:text-[#7865ff]">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
                         전체 카테고리
                     </button>
                 </Inner>
             </div>
-
             <div className="border-b border-[#ebe8ff] bg-[#f8f6ff] py-10">
                 <Inner>
                     <p className="mb-4 text-[14px] text-[#9b94b2]">
@@ -141,21 +122,10 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                             {desc && <p className="mt-1 text-[14px] text-[#9b94b2]">{desc}</p>}
                         </div>
                         <div className="flex h-[44px] w-[340px] items-center rounded-full border border-[#ddd8f4] bg-white px-4 shadow-[0_4px_14px_rgba(30,24,70,0.08)]">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]">
-                                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-                                <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
-                            <input
-                                className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
-                                placeholder="찾으시는 상품을 검색하세요"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                            {search && (
-                                <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                </button>
-                            )}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[#9b94b2]"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" /><path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                            <input className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
+                                placeholder="찾으시는 상품을 검색하세요" value={search} onChange={(e) => setSearch(e.target.value)} />
+                            {search && <button onClick={() => setSearch("")} className="text-[#b0aabb] hover:text-[#7865ff]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg></button>}
                         </div>
                     </div>
                 </Inner>
@@ -165,31 +135,15 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
                 <div className="flex items-center justify-between">
                     <p className="text-[14px] text-[#6b647a]">총 <span className="font-semibold text-[#16121f]">{sorted.length}</span>개의 상품</p>
                     <div className="flex items-center gap-2">
-                        <div className="relative">
-                            <select value={sort} onChange={(e) => setSort(e.target.value)}
-                                className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
-                                <option>인기순</option><option>신상품순</option><option>낮은 가격순</option><option>높은 가격순</option>
-                            </select>
-                            <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
-                        </div>
+                        <SortDropdown value={sort} onChange={(v) => { setSort(v); setPage(1); }} />
                         <div className="relative">
                             <button onClick={() => setFilterOpen((v) => !v)}
                                 className={`relative flex h-[38px] items-center gap-1.5 rounded-[8px] border px-3 text-[13px] font-medium transition ${activeFilterCount > 0 || filterOpen ? "border-[#7865ff] bg-[#f0eeff] text-[#7865ff]" : "border-[#ddd8f4] bg-white text-[#3d3755] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
-                                <img src="/store/product_list/lyra-icon-Icon_filter_hor_outline.png" alt=""
-                                    className="h-[15px] w-[15px] object-contain opacity-50" />
+                                <img src="/store/product_list/lyra-icon-Icon_filter_hor_outline.png" alt="" className="h-[15px] w-[15px] object-contain opacity-50" />
                                 필터
                                 {activeFilterCount > 0 && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#7865ff] text-[10px] font-bold text-white">{activeFilterCount}</span>}
                             </button>
-                            <FilterDropdown
-                                open={filterOpen}
-                                priceRange={priceRange}
-                                onPriceRange={setPriceRange}
-                                onlyInStock={onlyInStock}
-                                onOnlyInStock={setOnlyInStock}
-                                onlyReserve={onlyReserve}
-                                onOnlyReserve={setOnlyReserve}
-                                onReset={handleReset}
-                            />
+                            <FilterDropdown open={filterOpen} onClose={() => setFilterOpen(false)} priceRange={priceRange} onPriceRange={setPriceRange} onlyInStock={onlyInStock} onOnlyInStock={setOnlyInStock} onlyReserve={onlyReserve} onOnlyReserve={setOnlyReserve} onReset={handleReset} />
                         </div>
                     </div>
                 </div>
@@ -198,13 +152,9 @@ export default function CategoryPageClient({ title, keywords, desc }: CategoryPa
             <Inner className="mt-6">
                 {paginated.length === 0 ? (
                     <div className="flex h-[300px] flex-col items-center justify-center gap-3 text-[15px] text-[#9b94b2]">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-40">
-                            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                        </svg>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-40"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
                         검색 결과가 없어요.
-                        {(search || activeFilterCount > 0) && (
-                            <button onClick={() => { setSearch(""); handleReset(); }} className="text-[13px] text-[#7865ff] underline">필터 초기화</button>
-                        )}
+                        {(search || activeFilterCount > 0) && <button onClick={() => { setSearch(""); handleReset(); }} className="text-[13px] text-[#7865ff] underline">필터 초기화</button>}
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 xl:grid-cols-5">

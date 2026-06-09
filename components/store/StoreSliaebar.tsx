@@ -1,7 +1,8 @@
-// components/store/StoreSidebar.tsx
+// components/store/StoreSidebar.tsx  (StoreSliaebar.tsx)
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const STORE_MENU = [
     { label: "전체 굿즈", path: "/store/all", icon: "/store/ham/all.png" },
@@ -26,7 +27,17 @@ const RECENT_SERIES = [
 ];
 
 export default function StoreSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+    const pathname = usePathname();
+
     if (!open) return null;
+
+    const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
+
+    // 액티브: 보라 배경 + 흰글씨 / 비액티브 호버: 채도낮은 보라 배경 + 흰글씨
+    const linkCls = (path: string) =>
+        isActive(path)
+            ? "bg-[#7865ff] text-white [&_img]:brightness-0 [&_img]:invert"
+            : "hover:bg-[#7865ff]/15";
 
     return (
         <>
@@ -47,30 +58,35 @@ export default function StoreSidebar({ open, onClose }: { open: boolean; onClose
                         </button>
                     </div>
 
+                    {/* 전체 굿즈 */}
                     <Link href="/store/all" onClick={onClose}
-                        className="mb-1 flex items-center gap-3 rounded-[10px] bg-[#f0eeff] px-3 py-2.5">
+                        className={`mb-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition group ${isActive("/store/all") ? "bg-[#7865ff] [&_img]:brightness-0 [&_img]:invert" : "hover:bg-[#7865ff]/15"}`}>
                         <span className="flex h-7 w-7 items-center justify-center">
                             <img src="/store/ham/all.png" alt="" className="h-5 w-5 object-contain" />
                         </span>
-                        <span className="text-[14px] font-semibold tsext-[#7865ff]">전체 굿즈</span>
+                        <span className={`text-[14px] font-semibold ${isActive("/store/all") ? "text-white" : "text-[#7865ff]"}`}>전체 굿즈</span>
                     </Link>
 
+                    {/* 시리즈별 */}
                     <Link href="/store/series" onClick={onClose}
-                        className="mb-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition hover:bg-[#f8f6ff]">
+                        className={`mb-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition ${linkCls("/store/series")}`}>
                         <span className="flex h-7 w-7 items-center justify-center">
                             <img src="/store/ham/seri.png" alt="" className="h-5 w-5 object-contain" />
                         </span>
-                        <span className="text-[14px] text-[#7865ff]">시리즈별</span>
-                        <span className="ml-auto rounded-full bg-[#7865ff] px-2 py-0.5 text-[10px] font-bold text-white">NEW</span>
+                        <span className={`text-[14px] ${isActive("/store/series") ? "text-white font-semibold" : "text-[#7865ff]"}`}>시리즈별</span>
+                        {!isActive("/store/series") && (
+                            <span className="ml-auto rounded-full bg-[#7865ff] px-2 py-0.5 text-[10px] font-bold text-white">NEW</span>
+                        )}
                     </Link>
 
+                    {/* 한정 굿즈, 인기 상품 */}
                     {STORE_MENU.slice(1).map((m) => (
                         <Link key={m.label} href={m.path} onClick={onClose}
-                            className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition hover:bg-[#f8f6ff]">
+                            className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition ${linkCls(m.path)}`}>
                             <span className="flex h-7 w-7 items-center justify-center">
                                 <img src={m.icon} alt="" className="h-5 w-5 object-contain" />
                             </span>
-                            <span className="text-[14px] text-[#7865ff]">{m.label}</span>
+                            <span className={`text-[14px] ${isActive(m.path) ? "text-white font-semibold" : "text-[#7865ff]"}`}>{m.label}</span>
                         </Link>
                     ))}
 
@@ -79,11 +95,11 @@ export default function StoreSidebar({ open, onClose }: { open: boolean; onClose
                     <p className="mb-3 text-[11px] font-extrabold tracking-[0.12em] text-[#7865ff]">CATEGORY</p>
                     {CATEGORY_MENU.map((c) => (
                         <Link key={c.label} href={c.path} onClick={onClose}
-                            className="flex items-center gap-3 rounded-[10px] px-3 py-2 transition hover:bg-[#f8f6ff]">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f0eeff]">
+                            className={`flex items-center gap-3 rounded-[10px] px-3 py-2 transition ${linkCls(c.path)}`}>
+                            <span className={`flex h-8 w-8 items-center justify-center rounded-full ${isActive(c.path) ? "bg-white/20" : "bg-[#f0eeff]"}`}>
                                 <img src={c.icon} alt="" className="h-4 w-4 object-contain" />
                             </span>
-                            <span className="text-[13px] text-[#3d3755]">{c.label}</span>
+                            <span className={`text-[13px] ${isActive(c.path) ? "text-white font-semibold" : "text-[#3d3755]"}`}>{c.label}</span>
                         </Link>
                     ))}
 
@@ -98,7 +114,7 @@ export default function StoreSidebar({ open, onClose }: { open: boolean; onClose
                     </div>
                     {RECENT_SERIES.map((s) => (
                         <Link key={s.label} href={`/store/series?series=${encodeURIComponent(s.series)}`} onClick={onClose}
-                            className="flex items-center gap-2.5 rounded-[10px] px-2 py-2 transition hover:bg-[#f8f6ff]">
+                            className="flex items-center gap-2.5 rounded-[10px] px-2 py-2 transition hover:bg-[#7865ff]/15">
                             <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[6px] bg-[#e8e4f8]">
                                 <img src={s.img} alt={s.label} className="h-full w-full object-cover" />
                             </div>
