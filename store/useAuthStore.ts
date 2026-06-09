@@ -11,7 +11,8 @@ interface User {
     uid: string | null
     membership?: 'none' | 'anime' | 'ost' | 'allinone'
     points?: number
-    ageLimit?: string  // 추가
+    ageLimit?: string
+    onboardingDone?: boolean
 }
 
 export interface AvatarConfig {
@@ -34,12 +35,14 @@ export interface AvatarConfig {
 interface AuthStore {
     user: User | null;
     avatarConfig: AvatarConfig | null;
+    isNewUser: boolean;
     onLogin: (user: User) => void;
     googleLogin: () => Promise<void>;
     onLogout: () => Promise<void>;
     setMembership: (type: 'none' | 'anime' | 'ost' | 'allinone') => void;
     setAvatarConfig: (config: AvatarConfig) => void;
     addPoints: (amount: number) => Promise<void>;
+    clearNewUser: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -47,6 +50,8 @@ export const useAuthStore = create<AuthStore>()(
         (set, get) => ({
             user: null,
             avatarConfig: null,
+            isNewUser: false,
+            clearNewUser: () => set({ isNewUser: false }),
 
             onLogin: (user) => set({ user }),
 
@@ -66,6 +71,30 @@ export const useAuthStore = create<AuthStore>()(
                         points: 0,
                         createdAt: new Date().toISOString(),
                     })
+
+                    // ✅ 신규 가입 시 쿠폰 2장 자동발급
+                    const expiresAt = new Date()
+                    expiresAt.setMonth(expiresAt.getMonth() + 3) // 3개월 유효기간
+
+                    await Promise.all([
+                        issueCoupon({
+                            uid,
+                            label: "신규 가입 쿠폰",
+                            discount: 0.1,
+                            type: "rate",
+                            minOrderAmount: 0,
+                            expiresAt,
+                        }),
+                        issueCoupon({
+                            uid,
+                            label: "여름 한정 30% 할인 쿠폰",
+                            discount: 0.3,
+                            type: "rate",
+                            minOrderAmount: 0,
+                            maxDiscountAmount: 15000, // 최대 1.5만원 한도
+                            expiresAt: new Date("2025-08-31"),
+                        }),
+                    ])
                 }
 
                 set({
@@ -76,7 +105,8 @@ export const useAuthStore = create<AuthStore>()(
                         points: data?.points || 0,
                         name: data?.nickname || displayName,
                         photoURL: data?.avatarUrl || photoURL,
-                        ageLimit: data?.ageLimit || '19',  // 추가
+                        ageLimit: data?.ageLimit || '19',
+                        onboardingDone: data?.onboardingDone || false,
                     }
                 })
             },
@@ -103,6 +133,12 @@ export const useAuthStore = create<AuthStore>()(
                 }))
             },
         }),
-        { name: "auth-storage" }
+        {
+            name: "auth-storage",
+            partialize: (state) => ({
+                user: state.user,
+                avatarConfig: state.avatarConfig,
+            }),
+        }
     )
 )

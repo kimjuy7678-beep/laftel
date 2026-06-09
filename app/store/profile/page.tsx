@@ -2,7 +2,8 @@
 
 // app/store/profile/page.tsx
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { db } from "@/firebase/firebase";
 import { collection, getDocs, orderBy, query, doc, updateDoc, serverTimestamp, getDoc, setDoc, increment, addDoc } from "firebase/firestore";
@@ -75,11 +76,7 @@ function getDateRange(months: number, days: number) {
     const from = new Date(to);
     if (months > 0) from.setMonth(from.getMonth() - months);
     if (days > 0) from.setDate(from.getDate() - days);
-
-    return {
-        from: toDateInputValue(from),
-        to: toDateInputValue(to),
-    };
+    return { from: toDateInputValue(from), to: toDateInputValue(to) };
 }
 
 // ─── 주문취소 팝업 ─────────────────────────────────────────────────────────────
@@ -173,7 +170,6 @@ function RefundPopup({ order, onClose, onConfirm }: {
 
     const DEFECT_REASONS = ["제품 불량/파손", "오배송", "상품 정보 상이", "기타 하자"];
     const CHANGE_REASONS = ["단순 변심", "사이즈/색상 불만족", "다른 상품 구매", "기타"];
-
     const reasons = refundType === "제품하자" ? DEFECT_REASONS : refundType === "단순변심" ? CHANGE_REASONS : [];
 
     const handleConfirm = async () => {
@@ -194,14 +190,10 @@ function RefundPopup({ order, onClose, onConfirm }: {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
                     </button>
                 </div>
-
-                {/* 안내 */}
                 <div className="mb-4 rounded-[12px] bg-[#fff8e6] border border-[#fde68a]/60 px-4 py-3">
                     <p className="text-[12px] text-[#d97706] font-medium">수령 후 7일 이내에만 신청 가능해요.</p>
                     <p className="text-[11px] text-[#d97706]/70 mt-0.5">단순변심의 경우 왕복 배송비가 부과될 수 있어요.</p>
                 </div>
-
-                {/* 상품 요약 */}
                 <div className="mb-5 flex flex-col gap-2">
                     {order.items.map((item, i) => (
                         <div key={i} className="flex items-center gap-3">
@@ -215,8 +207,6 @@ function RefundPopup({ order, onClose, onConfirm }: {
                         </div>
                     ))}
                 </div>
-
-                {/* 유형 선택 */}
                 <div className="mb-4">
                     <p className="mb-2 text-[12px] font-semibold text-[#6b647a]">신청 유형</p>
                     <div className="grid grid-cols-2 gap-2">
@@ -230,8 +220,6 @@ function RefundPopup({ order, onClose, onConfirm }: {
                         ))}
                     </div>
                 </div>
-
-                {/* 사유 선택 */}
                 {refundType && (
                     <div className="mb-5 relative">
                         <select value={reason} onChange={e => setReason(e.target.value)}
@@ -242,13 +230,11 @@ function RefundPopup({ order, onClose, onConfirm }: {
                         <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
                     </div>
                 )}
-
                 {refundType === "단순변심" && (
                     <div className="mb-4 rounded-[10px] bg-[#f5f3ff] px-3 py-2">
                         <p className="text-[11px] text-[#9b94b2]">단순변심 교환/환불 시 왕복 배송비(약 5,000원~6,000원)가 차감될 수 있어요.</p>
                     </div>
                 )}
-
                 <div className="flex gap-2">
                     <button onClick={onClose}
                         className="flex-1 h-[44px] rounded-[12px] border border-[#ddd8f4] text-[13px] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition">
@@ -264,10 +250,19 @@ function RefundPopup({ order, onClose, onConfirm }: {
     );
 }
 
-// ─── 메인 페이지 ───────────────────────────────────────────────────────────────
-export default function ProfilePage() {
+// ─── 메인 (useSearchParams 감싸기) ────────────────────────────────────────────
+function ProfileContent() {
     const { user } = useAuthStore();
-    const [tab, setTab] = useState("전체");
+    const searchParams = useSearchParams();
+
+    // ✅ URL ?tab=배송중 등으로 초기 탭 설정
+    const initialTab = (() => {
+        const t = searchParams.get("tab");
+        if (t && STATUS_TABS.includes(t)) return t;
+        return "전체";
+    })();
+
+    const [tab, setTab] = useState(initialTab);
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(false);
     const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
@@ -280,6 +275,12 @@ export default function ProfilePage() {
     const [appliedFrom, setAppliedFrom] = useState(initialDateRange.from);
     const [appliedTo, setAppliedTo] = useState(initialDateRange.to);
     const [activeRange, setActiveRange] = useState("1달");
+
+    // ✅ URL 탭 파라미터 바뀌면 탭도 업데이트
+    useEffect(() => {
+        const t = searchParams.get("tab");
+        if (t && STATUS_TABS.includes(t)) setTab(t);
+    }, [searchParams]);
 
     useEffect(() => {
         if (!user?.uid) return;
@@ -295,20 +296,15 @@ export default function ProfilePage() {
         })();
     }, [user?.uid]);
 
-    // ── 주문 취소 → "처리중" 상태로 저장 (관리자 확인 후 주문취소로 변경) ──────
     const handleCancel = async (orderId: string, selectedIds: string[], reason: string) => {
         if (!user?.uid) return;
         const uid = user.uid;
         try {
             const order = orders.find(o => o.id === orderId);
             await updateDoc(doc(db, "users", uid, "orders", orderId), {
-                status: "처리중",
-                cancelReason: reason,
-                cancelledItems: selectedIds,
-                cancelledAt: serverTimestamp(),
+                status: "처리중", cancelReason: reason,
+                cancelledItems: selectedIds, cancelledAt: serverTimestamp(),
             });
-
-            // 포인트 환불 (즉시)
             if (order?.usedPoints && order.usedPoints > 0) {
                 await setDoc(doc(db, "users", uid), { points: increment(order.usedPoints) }, { merge: true });
                 await addDoc(collection(db, "users", uid, "pointHistory"), {
@@ -316,8 +312,6 @@ export default function ProfilePage() {
                     description: "주문 취소 포인트 환불", label: "주문 취소 포인트 환불", createdAt: new Date(),
                 });
             }
-
-            // 쿠폰 복원
             if (order?.couponId) {
                 const couponRef = doc(db, "users", uid, "coupons", order.couponId);
                 const couponSnap = await getDoc(couponRef);
@@ -325,42 +319,28 @@ export default function ProfilePage() {
                     await updateDoc(couponRef, { status: "active", usedAt: null, usedOrderId: null });
                 }
             }
-
             await saveStoreNotification(uid, {
-                type: "order",
-                title: "주문 취소 신청이 접수됐어요",
+                type: "cancel", title: "주문 취소 신청이 접수됐어요",
                 body: `사유: ${reason} · 관리자 확인 후 처리돼요.`,
-                link: "/store/profile",
+                link: "/store/profile?tab=교환환불/취소", status: "처리중",
             });
-
             setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "처리중" } : o));
-        } catch (err) {
-            console.error("[Cancel]", err);
-            alert("취소 처리 중 오류가 발생했습니다.");
-        }
+        } catch (err) { console.error("[Cancel]", err); alert("취소 처리 중 오류가 발생했습니다."); }
     };
 
-    // ── 교환/환불 신청 ─────────────────────────────────────────────────────────
     const handleRefund = async (orderId: string, reason: string, refundType: "제품하자" | "단순변심") => {
         if (!user?.uid) return;
         try {
             await updateDoc(doc(db, "users", user.uid, "orders", orderId), {
-                status: "교환환불신청",
-                refundReason: reason,
-                refundType,
-                refundRequestedAt: serverTimestamp(),
+                status: "교환환불신청", refundReason: reason, refundType, refundRequestedAt: serverTimestamp(),
             });
             await saveStoreNotification(user.uid, {
-                type: "order",
-                title: "교환/환불 신청이 완료됐어요",
+                type: "order", title: "교환/환불 신청이 완료됐어요",
                 body: `[${refundType}] ${reason} · 영업일 기준 3~5일 내 처리돼요.`,
-                link: "/store/profile",
+                link: "/store/profile?tab=교환환불/취소", status: "교환환불신청",
             });
             setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "교환환불신청" } : o));
-        } catch (err) {
-            console.error("[Refund]", err);
-            alert("신청 처리 중 오류가 발생했습니다.");
-        }
+        } catch (err) { console.error("[Refund]", err); alert("신청 처리 중 오류가 발생했습니다."); }
     };
 
     const canCancel = (status: string) => status === "결제완료" || status === "배송시작";
@@ -368,19 +348,14 @@ export default function ProfilePage() {
 
     const applyDateRange = (label: string, months: number, days: number) => {
         const range = getDateRange(months, days);
-        setDateFrom(range.from);
-        setDateTo(range.to);
-        setAppliedFrom(range.from);
-        setAppliedTo(range.to);
-        setActiveRange(label);
-        setPage(1);
+        setDateFrom(range.from); setDateTo(range.to);
+        setAppliedFrom(range.from); setAppliedTo(range.to);
+        setActiveRange(label); setPage(1);
     };
 
     const applyCustomDateRange = () => {
-        setAppliedFrom(dateFrom);
-        setAppliedTo(dateTo);
-        setActiveRange("");
-        setPage(1);
+        setAppliedFrom(dateFrom); setAppliedTo(dateTo);
+        setActiveRange(""); setPage(1);
     };
 
     const filtered = orders.filter(o => {
@@ -416,15 +391,11 @@ export default function ProfilePage() {
             {/* 날짜 검색 */}
             <div className="mb-5 flex items-center gap-2 flex-wrap">
                 {DATE_RANGE_BUTTONS.map((range) => (
-                    <button
-                        key={range.label}
-                        type="button"
+                    <button key={range.label} type="button"
                         onClick={() => applyDateRange(range.label, range.months, range.days)}
                         className={`h-[36px] rounded-[8px] px-3 text-[12px] font-semibold transition ${activeRange === range.label
                             ? "bg-[#7865ff] text-white"
-                            : "border border-[#ddd8f4] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"
-                            }`}
-                    >
+                            : "border border-[#ddd8f4] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
                         {range.label}
                     </button>
                 ))}
@@ -457,7 +428,7 @@ export default function ProfilePage() {
                                         <p className="mb-3 text-[12px] text-[#9b94b2]">{order.date}</p>
                                         {order.items.map((item, i) => (
                                             <Link key={i} href={item.productId}>
-                                                <div key={i} className="mb-3 flex items-center gap-3">
+                                                <div className="mb-3 flex items-center gap-3">
                                                     <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[8px] bg-[#f0eeff]">
                                                         {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
                                                     </div>
@@ -473,11 +444,9 @@ export default function ProfilePage() {
                                     </div>
                                     <div className="shrink-0 text-right">
                                         <p className={`mb-1 text-[13px] font-bold ${STATUS_COLOR[order.status] ?? "text-[#7865ff]"}`}>{order.status}</p>
-                                        {/* 처리중 안내 */}
                                         {order.status === "처리중" && (
                                             <p className="text-[10px] text-[#f59e0b] mb-1">관리자 확인 중</p>
                                         )}
-                                        {/* 교환환불 타입 뱃지 */}
                                         {order.status === "교환환불신청" && order.refundType && (
                                             <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${order.refundType === "제품하자" ? "bg-[#fff8e6] text-[#d97706]" : "bg-[#f0eeff] text-[#7865ff]"}`}>
                                                 {order.refundType}
@@ -506,20 +475,45 @@ export default function ProfilePage() {
                     </div>
 
                     {totalPages > 1 && (
-                        <div className="mt-6 flex items-center justify-center gap-1">
+                        <div className="mt-8 flex items-center justify-center gap-2">
                             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e0daf7] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] disabled:opacity-30 transition">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
+                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
                             </button>
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                                <button key={n} onClick={() => setPage(n)}
-                                    className={`flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-semibold transition ${page === n ? "bg-[#7865ff] text-white" : "border border-[#e0daf7] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
-                                    {n}
-                                </button>
-                            ))}
+
+                            {(() => {
+                                const PAGE_GROUP = 6;
+                                const groupIndex = Math.floor((page - 1) / PAGE_GROUP);
+                                const groupStart = groupIndex * PAGE_GROUP + 1;
+                                const groupEnd = Math.min(groupStart + PAGE_GROUP - 1, totalPages);
+                                const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
+                                return (
+                                    <>
+                                        {groupStart > 1 && (
+                                            <button onClick={() => setPage(groupStart - 1)}
+                                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">
+                                                ···
+                                            </button>
+                                        )}
+                                        {pages.map(n => (
+                                            <button key={n} onClick={() => setPage(n)}
+                                                className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${page === n ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]" : "border border-[#d8d4ee] bg-white text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
+                                                {n}
+                                            </button>
+                                        ))}
+                                        {groupEnd < totalPages && (
+                                            <button onClick={() => setPage(groupEnd + 1)}
+                                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">
+                                                ···
+                                            </button>
+                                        )}
+                                    </>
+                                );
+                            })()}
+
                             <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e0daf7] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] disabled:opacity-30 transition">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
+                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
                             </button>
                         </div>
                     )}
@@ -529,5 +523,14 @@ export default function ProfilePage() {
             {cancelTarget && <CancelPopup order={cancelTarget} onClose={() => setCancelTarget(null)} onConfirm={handleCancel} />}
             {refundTarget && <RefundPopup order={refundTarget} onClose={() => setRefundTarget(null)} onConfirm={handleRefund} />}
         </>
+    );
+}
+
+// ✅ useSearchParams는 Suspense로 감싸야 함
+export default function ProfilePage() {
+    return (
+        <Suspense fallback={<div className="flex h-[200px] items-center justify-center text-[13px] text-[#9b94b2]">불러오는 중...</div>}>
+            <ProfileContent />
+        </Suspense>
     );
 }

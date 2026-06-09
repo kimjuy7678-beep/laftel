@@ -127,26 +127,27 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
             onClick={onClose}
         >
             <style>{`
-                @keyframes cal-up { from { opacity:0; transform:translateY(24px) scale(0.97) } to { opacity:1; transform:translateY(0) scale(1) } }
-                @keyframes cal-bg { from { opacity:0 } to { opacity:1 } }
-                .cal-scroll::-webkit-scrollbar { width: 4px; }
-                .cal-scroll::-webkit-scrollbar-track { background: transparent; }
-                .cal-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
-                .cal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.25); }
-                @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-                .cal-day:hover { background: rgba(255,255,255,.06) !important; }
-                .cal-item:hover { background: rgba(255,255,255,.04) !important; }
+                @keyframes cal-up { from{opacity:0;transform:translateY(24px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+                @keyframes cal-bg { from{opacity:0} to{opacity:1} }
+                .cal-scroll::-webkit-scrollbar { width:4px; }
+                .cal-scroll::-webkit-scrollbar-track { background:transparent; }
+                .cal-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+                .cal-scroll::-webkit-scrollbar-thumb:hover { background:var(--border-subtle); }
+                @keyframes shimmer { 0%{opacity:1} 50%{opacity:.5} 100%{opacity:1} }
+                .cal-day:hover { background: var(--bg-hover) !important; }
+                .cal-item:hover { background: var(--bg-hover) !important; }
+                .cal-nav-btn:hover { border-color: var(--text-muted) !important; color: var(--text-primary) !important; }
             `}</style>
 
             <div
                 onClick={e => e.stopPropagation()}
                 style={{
-                    background: '#141420',
-                    border: '1px solid rgba(255,255,255,.08)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
                     borderRadius: 20,
                     display: 'flex',
                     maxHeight: '88vh',
-                    boxShadow: '0 40px 80px rgba(0,0,0,.8)',
+                    boxShadow: '0 40px 80px rgba(0,0,0,.5)',
                     animation: 'cal-up .35s cubic-bezier(.34,1.56,.64,1)',
                     overflow: 'hidden',
                     width: selectedDate ? 860 : 480,
@@ -161,9 +162,14 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                         <h2 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 800, margin: 0 }}>전체 일정</h2>
                         <button
                             onClick={onClose}
-                            style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.05)', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.1)'; e.currentTarget.style.color = '#fff' }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.05)'; e.currentTarget.style.color = 'rgba(255,255,255,.4)' }}
+                            className="cal-nav-btn"
+                            style={{
+                                width: 32, height: 32, borderRadius: '50%',
+                                border: '1px solid var(--border)',
+                                background: 'var(--bg-secondary)',
+                                color: 'var(--text-subtle)',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s'
+                            }}
                         >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -171,21 +177,19 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                         </button>
                     </div>
 
-                    <p style={{ fontSize: 12, color: 'var(--text-faint)', padding: '6px 28px 20px', margin: 0, borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+                    <p style={{ fontSize: 12, color: 'var(--text-faint)', padding: '6px 28px 20px', margin: 0, borderBottom: '1px solid var(--border-subtle)' }}>
                         날짜를 선택하면 해당일 방영 작품을 확인할 수 있어요
                     </p>
 
                     {/* 월 네비 */}
                     <div style={{ display: 'flex', alignItems: 'center', padding: '18px 28px 12px' }}>
-                        <button onClick={prevMonth} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: 'transparent', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .18s' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.3)'; e.currentTarget.style.color = '#fff' }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.1)'; e.currentTarget.style.color = 'rgba(255,255,255,.35)' }}>
+                        <button onClick={prevMonth} className="cal-nav-btn"
+                            style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .18s' }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                         </button>
                         <span style={{ flex: 1, textAlign: 'center', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700 }}>{viewYear}년 {viewMonth + 1}월</span>
-                        <button onClick={nextMonth} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', background: 'transparent', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .18s' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.3)'; e.currentTarget.style.color = '#fff' }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.1)'; e.currentTarget.style.color = 'rgba(255,255,255,.35)' }}>
+                        <button onClick={nextMonth} className="cal-nav-btn"
+                            style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .18s' }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
                         </button>
                     </div>
@@ -193,7 +197,10 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                     {/* 요일 헤더 */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', padding: '0 20px 8px' }}>
                         {DAYS_KR.map((d, i) => (
-                            <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, padding: '3px 0', color: i === 5 ? 'rgba(167,139,250,.45)' : i === 6 ? 'rgba(248,113,113,.4)' : 'rgba(255,255,255,.2)' }}>{d}</div>
+                            <div key={d} style={{
+                                textAlign: 'center', fontSize: 11, fontWeight: 600, padding: '3px 0',
+                                color: i === 5 ? 'rgba(167,139,250,.6)' : i === 6 ? 'rgba(248,113,113,.5)' : 'var(--text-faint)'
+                            }}>{d}</div>
                         ))}
                     </div>
 
@@ -225,10 +232,11 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                                     <span style={{
                                         fontSize: 13, lineHeight: 1,
                                         fontWeight: isSelected || isToday ? 700 : 400,
-                                        color: isSelected ? '#fff' : isToday ? '#fff'
-                                            : colIdx === 5 ? 'rgba(167,139,250,.6)'
-                                            : colIdx === 6 ? 'rgba(248,113,113,.5)'
-                                            : 'rgba(255,255,255,.55)',
+                                        color: isSelected ? '#fff'
+                                            : isToday ? '#fff'
+                                            : colIdx === 5 ? 'rgba(167,139,250,.7)'
+                                            : colIdx === 6 ? 'rgba(248,113,113,.6)'
+                                            : 'var(--text-muted)',
                                     }}>{day}</span>
                                     {hasAnime && (
                                         <span style={{ width: 4, height: 4, borderRadius: '50%', background: isSelected ? 'rgba(255,255,255,.8)' : 'rgba(108,99,255,.8)', display: 'block', flexShrink: 0 }} />
@@ -239,7 +247,7 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                     </div>
 
                     {/* 범례 */}
-                    <div style={{ padding: '12px 28px 20px', borderTop: '1px solid rgba(255,255,255,.05)', marginTop: 'auto', display: 'flex', gap: 20 }}>
+                    <div style={{ padding: '12px 28px 20px', borderTop: '1px solid var(--border-subtle)', marginTop: 'auto', display: 'flex', gap: 20 }}>
                         {calLoading
                             ? <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>방영 정보 불러오는 중…</span>
                             : <>
@@ -258,37 +266,42 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
 
                 {/* ── 오른쪽: 방영 목록 ── */}
                 {selectedDate && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,.07)', overflow: 'hidden' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
 
-                        {/* 패널 헤더 */}
-                        <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid rgba(255,255,255,.07)', position: 'sticky', top: 0, background: '#141420', zIndex: 5 }}>
+                        <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid var(--border-subtle)', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 5 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                                 <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{selectedLabel}</span>
                                 {!listLoading && (
-                                    <span style={{ fontSize: 11, color: 'var(--text-subtle)', background: 'rgba(255,255,255,.07)', borderRadius: 20, padding: '2px 8px' }}>{selectedList.length}편</span>
+                                    <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: 20, padding: '2px 8px' }}>{selectedList.length}편</span>
                                 )}
                             </div>
                             <button
                                 onClick={() => { onSelectDate(selectedDate!); onClose() }}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', transition: 'all .18s' }}
-                                onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.25)' }}
-                                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.1)' }}
+                                style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                                    fontSize: 11, fontWeight: 600,
+                                    color: 'var(--text-muted)',
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: 20, padding: '5px 12px', cursor: 'pointer', transition: 'all .18s'
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--text-muted)' }}
+                                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
                             >
                                 해당 요일 탭으로 이동
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
                             </button>
                         </div>
 
-                        {/* 목록 */}
-                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                        <div style={{ flex: 1, overflowY: 'auto' }} className="cal-scroll">
                             {listLoading ? (
                                 <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                                     {Array.from({ length: 6 }).map((_, i) => (
                                         <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                            <div style={{ width: 44, height: 62, borderRadius: 8, background: 'linear-gradient(90deg,#1a1a2e 25%,#252545 50%,#1a1a2e 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite', flexShrink: 0 }} />
+                                            <div style={{ width: 44, height: 62, borderRadius: 8, background: 'var(--bg-secondary)', animation: 'shimmer 1.6s infinite', flexShrink: 0 }} />
                                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                                                <div style={{ height: 12, borderRadius: 4, background: '#1e1e30', width: '60%' }} />
-                                                <div style={{ height: 10, borderRadius: 4, background: '#1e1e30', width: '40%' }} />
+                                                <div style={{ height: 12, borderRadius: 4, background: 'var(--bg-secondary)', width: '60%' }} />
+                                                <div style={{ height: 10, borderRadius: 4, background: 'var(--bg-secondary)', width: '40%' }} />
                                             </div>
                                         </div>
                                     ))}
@@ -312,30 +325,30 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                                             style={{
                                                 display: 'flex', gap: 12, alignItems: 'center',
                                                 padding: '12px 20px',
-                                                borderBottom: idx < selectedList.length - 1 ? '1px solid rgba(255,255,255,.04)' : 'none',
+                                                borderBottom: idx < selectedList.length - 1 ? '1px solid var(--border-faint)' : 'none',
                                                 cursor: 'pointer', background: 'transparent', transition: 'background .12s',
                                             }}
                                         >
-                                            <span style={{ fontSize: 11, fontWeight: 800, color: idx < 3 ? '#9d97ff' : 'rgba(255,255,255,.18)', width: 18, textAlign: 'center', flexShrink: 0 }}>{idx + 1}</span>
-                                            <div style={{ width: 44, height: 62, borderRadius: 8, overflow: 'hidden', background: '#1a1a2e', flexShrink: 0 }}>
+                                            <span style={{ fontSize: 11, fontWeight: 800, color: idx < 3 ? '#9d97ff' : 'var(--text-faint)', width: 18, textAlign: 'center', flexShrink: 0 }}>{idx + 1}</span>
+                                            <div style={{ width: 44, height: 62, borderRadius: 8, overflow: 'hidden', background: 'var(--bg-secondary)', flexShrink: 0 }}>
                                                 {poster
                                                     ? <img src={poster} alt={ani.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'rgba(255,255,255,.15)' }}>{ani.name[0]}</div>
+                                                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'var(--text-faint)' }}>{ani.name[0]}</div>
                                                 }
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                                                     <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ani.name}</p>
-                                                    {isNew && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 10, background: '#6c63ff', color: 'var(--text-primary)', flexShrink: 0 }}>신작</span>}
+                                                    {isNew && <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 10, background: '#6c63ff', color: '#fff', flexShrink: 0 }}>신작</span>}
                                                 </div>
                                                 <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
                                                     {genres.map((g: string) => (
-                                                        <span key={g} style={{ fontSize: 10, color: 'var(--text-faint)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '1px 6px' }}>{g}</span>
+                                                        <span key={g} style={{ fontSize: 10, color: 'var(--text-faint)', border: '1px solid var(--border)', borderRadius: 10, padding: '1px 6px' }}>{g}</span>
                                                     ))}
-                                                    {score > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(251,191,36,.65)' }}>★ {score}</span>}
+                                                    {score > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(251,191,36,.8)' }}>★ {score}</span>}
                                                 </div>
                                             </div>
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                                         </div>
                                     )
                                 })

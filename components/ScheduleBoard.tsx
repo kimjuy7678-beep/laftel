@@ -26,7 +26,7 @@ function ChannelBlock({
 
     return (
         <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-white/[0.06] sticky top-0 z-10 backdrop-blur-xl bg-white/[0.01]">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-[var(--border-faint)] sticky top-0 z-10 backdrop-blur-xl bg-[var(--bg-primary)]/[0.85]">
                 <h3 className="flex items-center justify-center flex-1">
                     <img src={label} alt="img" className="h-8 w-30 object-contain" />
                 </h3>
@@ -59,13 +59,13 @@ function ChannelBlock({
                             }}
                             className={[
                                 'relative flex items-center transition-all duration-200',
-                                i < items.length - 1 ? 'border-b border-white/[0.05]' : '',
+                                i < items.length - 1 ? 'border-b border-[var(--border-faint)]' : '',
                                 isCurrent ? 'gap-5 px-5 py-5' : 'gap-4 px-5 py-3',
                                 isCurrent
                                     ? 'bg-[#ff6b3d]/[0.08] hover:bg-[#ff6b3d]/[0.12] cursor-pointer'
                                     : isPast
                                     ? 'cursor-default opacity-60'
-                                    : 'hover:bg-white/[0.03] cursor-pointer',
+                                    : 'hover:bg-[var(--border-faint)] cursor-pointer',
                             ].join(' ')}
                         >
                             {isCurrent && (
@@ -78,8 +78,8 @@ function ChannelBlock({
                                     isCurrent
                                         ? 'text-[#ff6b3d] text-[15px] min-w-[52px]'
                                         : 'text-[13px] min-w-[46px]',
-                                    !isCurrent && isPast  ? 'text-white/15' : '',
-                                    !isCurrent && !isPast ? 'text-white/35' : '',
+                                    !isCurrent && isPast  ? 'text-[var(--text-faint)]' : '',
+                                    !isCurrent && !isPast ? 'text-[var(--text-subtle)]' : '',
                                 ].join(' ')}
                             >
                                 {item.time}
@@ -87,7 +87,7 @@ function ChannelBlock({
 
                             <div
                                 className={[
-                                    'flex-shrink-0 rounded-lg overflow-hidden bg-white/[0.06] transition-all duration-200',
+                                    'flex-shrink-0 rounded-lg overflow-hidden bg-[var(--border-subtle)] transition-all duration-200',
                                     isCurrent  ? 'w-[72px] h-[100px]' : 'w-[58px] h-[80px]',
                                     isPast ? 'opacity-30' : 'opacity-100',
                                 ].join(' ')}
@@ -108,7 +108,7 @@ function ChannelBlock({
                                 <div
                                     data-ph=""
                                     style={{ display: posterPath ? 'none' : 'flex' }}
-                                    className="w-full h-full items-center justify-center text-white/15"
+                                    className="w-full h-full items-center justify-center text-[var(--text-faint)]"
                                 >
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                                         <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -121,9 +121,9 @@ function ChannelBlock({
                                 <p
                                     className={[
                                         'font-semibold leading-snug tracking-tight line-clamp-2 transition-all duration-200',
-                                        isCurrent  ? 'text-white text-[17px]' : 'text-[15px]',
-                                        !isCurrent && isPast  ? 'text-white/30' : '',
-                                        !isCurrent && !isPast ? 'text-white/70' : '',
+                                        isCurrent  ? 'text-[var(--text-primary)] text-[17px]' : 'text-[15px]',
+                                        !isCurrent && isPast  ? 'text-[var(--text-subtle)]' : '',
+                                        !isCurrent && !isPast ? 'text-[var(--text-muted)]' : '',
                                     ].join(' ')}
                                 >
                                     {item.koTitle}
@@ -160,12 +160,12 @@ export default function ScheduleBoard() {
     }, [])
 
     return (
-        <section className="rounded-xl overflow-hidden mt-10">
-            <div className="px-5 py-5 border-b border-white/[0.06]">
-                <h2 className="text-[17px] font-bold text-white tracking-tight">한눈에 보는 지상파 애니메이션 편성표</h2>
+        <section className="rounded-xl overflow-hidden mt-10 ">
+            <div className="px-5 py-5 border-b border-[var(--border-faint)]">
+                <h2 className="text-[17px] font-bold text-[var(--text-primary)] tracking-tight">한눈에 보는 지상파 애니메이션 편성표</h2>
             </div>
 
-            <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
+            <div className="grid grid-cols-3 divide-x divide-[var(--border-subtle)]">
                 {channels.map((ch) => {
                     const currentIdx = getCurrentIdx(ch.items, nowMin)
                     return (

@@ -101,3 +101,7 @@ label[for], input[type="checkbox"], input[type="radio"],
 input[type="submit"], input[type="button"], select, summary {
   cursor: pointer;
 }
+
+.min-h-screen {
+  padding-bottom: 100px;
+}
