@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from 'react'
-import PaymentModal from './PaymentModal'
+import PaymentModal from './MembershipPaymentModal'
+
 
 type PlanId = 'anime' | 'ost' | 'allinone'
 
@@ -51,10 +52,11 @@ interface MembershipModalProps {
     isOpen: boolean
     onClose: () => void
     defaultPlan?: PlanId
+    hasMembership: boolean
 }
 
-export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allinone' }: MembershipModalProps) {
-    const [modalPlan, setModalPlan] = useState<PlanId>(defaultPlan)
+export default function MembershipModal({ isOpen, onClose, defaultPlan, hasMembership }: MembershipModalProps) {
+    const [modalPlan, setModalPlan] = useState<PlanId>(defaultPlan ?? 'allinone')
     const [showPayment, setShowPayment] = useState(false)
 
     // PaymentModal + MembershipModal 동시에 닫기
@@ -111,8 +113,8 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                                 onClick={() => setModalPlan(p.id)}
                                 className="py-3 px-4 rounded-xl border text-sm font-bold transition-all cursor-pointer"
                                 style={modalPlan === p.id
-                                    ? { borderColor: p.color, background: `${p.color}18`, color: 'var(--text-primary)' }
-                                    : { borderColor: 'rgba(255,255,255,0.1)', background: 'transparent', color: 'var(--text-muted)' }
+                                    ? { borderColor: p.color, background: `${p.color}18`, color: 'var(--text-muted)' }
+                                    : { borderColor: 'var(--text-primary)', background: 'transparent', color: 'var(--text-muted)' }
                                 }
                             >
                                 <div>{p.emoji} {p.name}</div>
@@ -133,7 +135,7 @@ export default function MembershipModal({ isOpen, onClose, defaultPlan = 'allino
                             </div>
                             <div className="flex flex-col gap-2.5">
                                 {currentPlan.features.map(f => (
-                                    <div key={f} className="flex items-center gap-2 text-sm text-white/80">
+                                    <div key={f} className="flex items-center gap-2 text-sm text-var(--text-muted)">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={currentPlan.color} strokeWidth="3">
                                             <polyline points="20,6 9,17 4,12" />
                                         </svg>

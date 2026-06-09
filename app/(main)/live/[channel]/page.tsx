@@ -27,14 +27,10 @@ export default function LiveChannelPage() {
     const [nowMin, setNowMin] = useState(nowInMinutes)
     const [relatedAnime, setRelatedAnime] = useState<any[]>([])
 
-    // 게이트 팝업 상태
     const [showLoginModal, setShowLoginModal] = useState(false)
     const [showMembershipModal, setShowMembershipModal] = useState(false)
-
-    // 시청 가능 여부: 로그인 + (anime 또는 allinone 멤버십)
     const canWatch = user && (user.membership === 'anime' || user.membership === 'allinone')
 
-    // scheduleUtils 기반 편성표
     const allChannels = useMemo(() => buildChannels(getTodaySeed()), [])
     const chSchedule = allChannels.find(c => c.id === ch?.id)
     const currentIdx = chSchedule ? getCurrentIdx(chSchedule.items, nowMin) : -1
@@ -110,7 +106,6 @@ export default function LiveChannelPage() {
         }
     }
 
-    // 플레이어 영역 클릭 핸들러
     const handlePlayerClick = () => {
         if (!user) { setShowLoginModal(true); return }
         if (!canWatch) { setShowMembershipModal(true) }
@@ -129,14 +124,13 @@ export default function LiveChannelPage() {
     }
 
     if (!ch) return (
-        <div className="min-h-screen flex items-center justify-center text-white/50">
+        <div className="min-h-screen flex items-center justify-center text-[var(--text-subtle)]">
             채널을 찾을 수 없어요.
         </div>
     )
 
     return (
         <div className="min-h-screen">
-            {/* 게이트 팝업 */}
             <LoginModal
                 isOpen={showLoginModal}
                 onClose={() => setShowLoginModal(false)}
@@ -155,18 +149,18 @@ export default function LiveChannelPage() {
 
             <div className="inner px-6 py-6">
                 {/* 상단 바 */}
-                <div className="flex items-center justify-between py-4 mb-4 border-b border-white/10">
+                <div className="flex items-center justify-between py-4 mb-4 border-b border-[var(--border)]">
                     <div className="flex items-center gap-3 mt-10">
-                        <Link href="/live" className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
+                        <Link href="/live" className="flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm transition-colors">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="m15 18-6-6 6-6" />
                             </svg>
                             돌아가기
                         </Link>
-                        <div className="w-px h-4 bg-white/10" />
+                        <div className="w-px h-4 bg-[var(--border)]" />
                         <div>
-                            <p className="text-white font-bold text-sm">{ch.name}</p>
-                            {currentProgram && <p className="text-white/40 text-xs">{currentProgram.koTitle}</p>}
+                            <p className="text-[var(--text-primary)] font-bold text-sm">{ch.name}</p>
+                            {currentProgram && <p className="text-[var(--text-subtle)] text-xs">{currentProgram.koTitle}</p>}
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -182,7 +176,6 @@ export default function LiveChannelPage() {
                     <div className="flex-1 min-w-0">
                         <div className="aspect-video rounded-xl overflow-hidden bg-black relative" ref={iframeRef}>
                             {!user ? (
-                                /* 비로그인 */
                                 <div className="w-full h-full flex flex-col items-center justify-center gap-4 cursor-pointer bg-black/80 relative"
                                     onClick={handlePlayerClick}>
                                     {currentProgram && aniDetails[currentProgram.tmdbId]?.backdrop_path && (
@@ -193,7 +186,7 @@ export default function LiveChannelPage() {
                                     <div className="relative flex flex-col items-center gap-4">
                                         <div className="w-16 h-16 rounded-full flex items-center justify-center"
                                             style={{ background: 'rgba(108,99,255,0.15)', border: '1px solid rgba(108,99,255,0.3)' }}>
-                                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="1.5">
+                                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--main)" strokeWidth="1.5">
                                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                                                 <circle cx="12" cy="7" r="4" />
                                             </svg>
@@ -203,7 +196,6 @@ export default function LiveChannelPage() {
                                     </div>
                                 </div>
                             ) : !canWatch ? (
-                                /* 로그인 O, 멤버십 없음 */
                                 <div className="w-full h-full flex flex-col items-center justify-center gap-4 cursor-pointer relative"
                                     onClick={handlePlayerClick}>
                                     {currentProgram && aniDetails[currentProgram.tmdbId]?.backdrop_path && (
@@ -241,19 +233,19 @@ export default function LiveChannelPage() {
                             <img src={ch.logo} alt={ch.name} className="w-12 h-12 object-contain shrink-0" />
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h2 className="text-white font-bold text-lg">{ch.name}</h2>
+                                    <h2 className="text-[var(--text-primary)] font-bold text-lg">{ch.name}</h2>
                                     <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500 rounded text-xs text-white font-bold">
                                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                                         LIVE
                                     </span>
                                 </div>
-                                {currentProgram && <p className="text-white/60 text-sm mt-0.5">현재 방영중: {currentProgram.koTitle}</p>}
+                                {currentProgram && <p className="text-[var(--text-muted)] text-sm mt-0.5">현재 방영중: {currentProgram.koTitle}</p>}
                             </div>
                         </div>
 
                         {/* 다른 채널 */}
                         <div className="mt-8">
-                            <h3 className="text-white font-bold text-base mb-4">다른 채널</h3>
+                            <h3 className="text-[var(--text-primary)] font-bold text-base mb-4">다른 채널</h3>
                             <div className="flex gap-4">
                                 {otherChannels.map((oc) => {
                                     const ocSchedule = allChannels.find(c => c.id === oc.id)
@@ -261,18 +253,18 @@ export default function LiveChannelPage() {
                                     const ocCurrent = ocSchedule?.items[ocCurrentIdx]
                                     return (
                                         <Link key={oc.id} href={`/live/${oc.slug}`}
-                                            className="flex-1 bg-[#1a1a1a] hover:bg-[#242424] border border-white/5 hover:border-white/15 rounded-xl p-4 transition-all group">
+                                            className="flex-1 bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-faint)] hover:border-[var(--border)] rounded-xl p-4 transition-all group">
                                             <div className="flex items-center gap-3 mb-3">
                                                 <img src={oc.logo} alt={oc.name} className="w-10 h-10 object-contain shrink-0" />
                                                 <div>
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-white text-sm font-medium">{oc.name}</span>
+                                                        <span className="text-[var(--text-primary)] text-sm font-medium">{oc.name}</span>
                                                         <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500 rounded text-[10px] text-white font-bold">
                                                             <span className="w-1 h-1 rounded-full bg-white animate-ping" />
                                                             LIVE
                                                         </span>
                                                     </div>
-                                                    {ocCurrent && <p className="text-white/40 text-xs mt-0.5 truncate">{ocCurrent.koTitle}</p>}
+                                                    {ocCurrent && <p className="text-[var(--text-subtle)] text-xs mt-0.5 truncate">{ocCurrent.koTitle}</p>}
                                                 </div>
                                             </div>
                                             <div className="w-full aspect-video rounded-lg overflow-hidden bg-black/50 relative">
@@ -313,7 +305,7 @@ export default function LiveChannelPage() {
                         {/* 관련 작품 */}
                         {relatedAnime.length > 0 && (
                             <div className="mt-8">
-                                <h3 className="text-white font-bold text-base mb-4">관련 작품</h3>
+                                <h3 className="text-[var(--text-primary)] font-bold text-base mb-4">관련 작품</h3>
                                 <div className="grid grid-cols-6 gap-3">
                                     {relatedAnime.map((ani) => (
                                         <div key={ani.id} className="group cursor-pointer" onClick={() => router.push(`/anime/${ani.id}`)}>
@@ -326,7 +318,7 @@ export default function LiveChannelPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <p className="text-white/80 text-xs font-medium mt-2 truncate">{ani.name}</p>
+                                            <p className="text-[var(--text-muted)] text-xs font-medium mt-2 truncate">{ani.name}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -335,15 +327,15 @@ export default function LiveChannelPage() {
                     </div>
 
                     {/* 오른쪽: 채팅 + 편성표 */}
-                    <div className="w-[380px] shrink-0 flex flex-col bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/5"
+                    <div className="w-[380px] shrink-0 flex flex-col bg-[var(--bg-card)] rounded-xl overflow-hidden border border-[var(--border-subtle)]"
                         style={{ height: playerHeight > 0 ? `${playerHeight}px` : '500px' }}>
-                        <div className="flex border-b border-white/10 shrink-0">
+                        <div className="flex border-b border-[var(--border)] shrink-0">
                             <button onClick={() => setTab('chat')}
-                                className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'chat' ? 'text-white border-b-2 border-[#6c63ff]' : 'text-white/40 hover:text-white/70'}`}>
+                                className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'chat' ? 'text-[var(--text-primary)] border-b-2 border-[var(--main)]' : 'text-[var(--text-subtle)] hover:text-[var(--text-muted)]'}`}>
                                 채팅
                             </button>
                             <button onClick={() => setTab('schedule')}
-                                className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'schedule' ? 'text-white border-b-2 border-[#6c63ff]' : 'text-white/40 hover:text-white/70'}`}>
+                                className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'schedule' ? 'text-[var(--text-primary)] border-b-2 border-[var(--main)]' : 'text-[var(--text-subtle)] hover:text-[var(--text-muted)]'}`}>
                                 편성표
                             </button>
                         </div>
@@ -351,34 +343,34 @@ export default function LiveChannelPage() {
                         {tab === 'chat' ? (
                             <>
                                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0">
-                                    {messages.length === 0 && <p className="text-white/20 text-xs text-center mt-4">첫 채팅을 남겨보세요!</p>}
+                                    {messages.length === 0 && <p className="text-[var(--text-faint)] text-xs text-center mt-4">첫 채팅을 남겨보세요!</p>}
                                     {messages.map((msg) => (
                                         <div key={msg.id} className="flex items-start gap-2">
-                                            <div className="w-7 h-7 rounded-full bg-[#6c63ff] flex items-center justify-center shrink-0 overflow-hidden">
+                                            <div className="w-7 h-7 rounded-full bg-[var(--main)] flex items-center justify-center shrink-0 overflow-hidden">
                                                 {msg.photoURL
                                                     ? <img src={msg.photoURL} alt={msg.name} className="w-full h-full object-cover" />
                                                     : <span className="text-white text-xs font-bold">{msg.name?.[0]?.toUpperCase() || '?'}</span>
                                                 }
                                             </div>
                                             <div className="flex flex-col gap-0.5">
-                                                <span className="text-[#6c63ff] text-xs font-medium">{msg.name}</span>
-                                                <span className="text-white/80 text-sm">{msg.text}</span>
+                                                <span className="text-[var(--main)] text-xs font-medium">{msg.name}</span>
+                                                <span className="text-[var(--text-muted)] text-sm">{msg.text}</span>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                                <div className="p-3 border-t border-white/10 shrink-0">
+                                <div className="p-3 border-t border-[var(--border)] shrink-0">
                                     {user ? (
                                         <div className="flex gap-2">
                                             <input value={input} onChange={(e) => setInput(e.target.value)}
                                                 onKeyUp={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendMessage() } }}
                                                 placeholder="채팅 입력..."
-                                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#6c63ff]" />
-                                            <button onClick={sendMessage} className="px-3 py-2 bg-[#6c63ff] rounded-lg text-white text-sm hover:bg-[#5a52e0] transition-colors">전송</button>
+                                                className="flex-1 bg-[var(--border-faint)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-faint)] focus:outline-none focus:border-[var(--main)]" />
+                                            <button onClick={sendMessage} className="px-3 py-2 bg-[var(--main)] rounded-lg text-white text-sm hover:opacity-90 transition-opacity">전송</button>
                                         </div>
                                     ) : (
                                         <button onClick={() => setShowLoginModal(true)}
-                                            className="w-full text-center text-sm text-white/40 hover:text-white/70 py-2 transition-colors">
+                                            className="w-full text-center text-sm text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-2 transition-colors">
                                             로그인 후 채팅 가능
                                         </button>
                                     )}
@@ -393,23 +385,23 @@ export default function LiveChannelPage() {
                                         const detail = aniDetails[item.tmdbId]
                                         return (
                                             <li key={item.tmdbId} onClick={() => handleScheduleClick(item, i)}
-                                                className={['relative flex items-center gap-3 px-4 py-3 transition-colors border-b border-white/[0.04]',
-                                                    isCurrent ? 'bg-[#6c63ff]/15 cursor-pointer' : '',
+                                                className={['relative flex items-center gap-3 px-4 py-3 transition-colors border-b border-[var(--border-faint)]',
+                                                    isCurrent ? 'bg-[var(--main)]/15 cursor-pointer' : '',
                                                     isPast ? 'opacity-30 cursor-default' : '',
-                                                    !isCurrent && !isPast ? 'hover:bg-white/[0.03] cursor-pointer' : '',
+                                                    !isCurrent && !isPast ? 'hover:bg-[var(--border-faint)] cursor-pointer' : '',
                                                 ].join(' ')}>
-                                                {isCurrent && <span className="absolute left-0 top-2 bottom-2 w-[3px] bg-[#6c63ff] rounded-r" />}
-                                                <div className="w-8 h-11 rounded overflow-hidden bg-white/5 shrink-0">
+                                                {isCurrent && <span className="absolute left-0 top-2 bottom-2 w-[3px] bg-[var(--main)] rounded-r" />}
+                                                <div className="w-8 h-11 rounded overflow-hidden bg-[var(--border-faint)] shrink-0">
                                                     {detail?.poster_path
                                                         ? <img src={`https://image.tmdb.org/t/p/w92${detail.poster_path}`} alt={item.koTitle} className="w-full h-full object-cover" />
-                                                        : <div className="w-full h-full flex items-center justify-center text-white/20">
+                                                        : <div className="w-full h-full flex items-center justify-center text-[var(--text-faint)]">
                                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="20" height="14" rx="2" /></svg>
                                                         </div>
                                                     }
                                                 </div>
                                                 <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                                                    <span className={`text-[11px] font-mono ${isCurrent ? 'text-[#6c63ff]' : 'text-white/30'}`}>{item.time}</span>
-                                                    <span className={`text-sm truncate leading-tight ${isCurrent ? 'text-white font-semibold' : 'text-white/70'}`}>{item.koTitle}</span>
+                                                    <span className={`text-[11px] font-mono ${isCurrent ? 'text-[var(--main)]' : 'text-[var(--text-faint)]'}`}>{item.time}</span>
+                                                    <span className={`text-sm truncate leading-tight ${isCurrent ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>{item.koTitle}</span>
                                                 </div>
                                                 {isCurrent && <span className="shrink-0 text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded font-bold">ON</span>}
                                             </li>

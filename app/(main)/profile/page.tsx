@@ -70,7 +70,6 @@ export default function ProfilePage() {
     const [agePwError, setAgePwError] = useState('')
     const [selectedAge, setSelectedAge] = useState('19')
 
-    // PIN state
     const [pinInput, setPinInput] = useState('')
     const [pinError, setPinError] = useState('')
     const [pinConfirm, setPinConfirm] = useState('')
@@ -86,10 +85,16 @@ export default function ProfilePage() {
 
     const [hydrated, setHydrated] = useState(false)
     const hasMembership = user?.membership && user.membership !== 'none'
+    const membershipConfig: Record<string, { label: string; color: string }> = {
+        anime: { label: '애니 멤버십', color: '#6c63ff' },
+        ost: { label: 'OST 멤버십', color: '#ec4899' },
+        allinone: { label: '올인원 멤버십', color: '#f59e0b' },
+    }
+    const memberInfo = user?.membership && user.membership !== 'none'
+        ? membershipConfig[user.membership] ?? null
+        : null
 
-    useEffect(() => {
-        setHydrated(true)
-    }, [])
+    useEffect(() => { setHydrated(true) }, [])
 
     useEffect(() => {
         if (!hydrated) return
@@ -126,7 +131,6 @@ export default function ProfilePage() {
         }
     }
 
-    // PIN 잠금 타이머
     useEffect(() => {
         if (pinLocked && pinLockTimer > 0) {
             pinTimerRef.current = setInterval(() => {
@@ -139,8 +143,15 @@ export default function ProfilePage() {
         return () => { if (pinTimerRef.current) clearInterval(pinTimerRef.current) }
     }, [pinLocked])
 
-    const enterProfile = (p: ProfileData) => {
+    const enterProfile = async (p: ProfileData) => {
         onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit })
+
+        // 프로필 선택 시점에 온보딩 여부 체크
+        const snap = await getDoc(doc(db, 'users', user!.uid!))
+        if (!snap.data()?.onboardingDone) {
+            useAuthStore.setState({ isNewUser: true })
+        }
+
         router.push('/')
     }
 
@@ -335,7 +346,7 @@ export default function ProfilePage() {
 
     if (!user || loading) return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,.1)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+            <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
     )
@@ -350,55 +361,29 @@ export default function ProfilePage() {
                 @keyframes spin { to { transform: rotate(360deg) } }
                 @keyframes fade-up { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
                 .pf-page { animation: fade-up .35s ease; width: 100%; }
-                .pf-box { animation: fade-up .35s ease; width: 100%; max-width: 600px; background: #141420; border-radius: 20px; border: 1px solid rgba(255,255,255,.08); overflow: hidden; }
+                .pf-box { animation: fade-up .35s ease; width: 100%; max-width: 600px; background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-subtle); overflow: hidden; }
                 .custom-scroll::-webkit-scrollbar { width: 5px; }
-                .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 10px; }
+                .custom-scroll::-webkit-scrollbar-track { background: var(--border-faint); border-radius: 10px; }
                 .custom-scroll::-webkit-scrollbar-thumb { background: rgba(108,99,255,.5); border-radius: 10px; }
                 .img-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 4px 2px; }
-                .img-item { aspect-ratio: 1; border-radius: 50%; overflow: hidden; cursor: pointer; border: 3px solid transparent; transition: border-color .15s, transform .15s; background: #1a1a22; }
+                .img-item { aspect-ratio: 1; border-radius: 50%; overflow: hidden; cursor: pointer; border: 3px solid transparent; transition: border-color .15s, transform .15s; background: var(--bg-hover); }
                 .img-item:hover { transform: scale(1.06); }
                 .img-item.selected { border-color: #6c63ff; box-shadow: 0 0 0 2px rgba(108,99,255,.3); }
                 .img-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-                .img-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 16px; }
-                .img-tab { flex: 1; padding: 10px 0; font-size: 13px; font-weight: 500; color: rgba(255,255,255,.3); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all .18s; }
-                .img-tab.on { color: #fff; border-bottom-color: #6c63ff; }
-                .drop-zone { border: 2px dashed rgba(255,255,255,.15); border-radius: 16px; padding: 48px 24px; text-align: center; transition: all .2s; cursor: pointer; }
+                .img-tabs { display: flex; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+                .img-tab { flex: 1; padding: 10px 0; font-size: 13px; font-weight: 500; color: var(--text-subtle); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all .18s; }
+                .img-tab.on { color: var(--text-primary); border-bottom-color: #6c63ff; }
+                .drop-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 48px 24px; text-align: center; transition: all .2s; cursor: pointer; }
                 .drop-zone.dragging { border-color: #6c63ff; background: rgba(108,99,255,.08); }
 
-                /* 넷플릭스 스타일 프로필 카드 */
-                .pf-card {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 16px;
-                    cursor: pointer;
-                    transition: transform .2s;
-                }
+                .pf-card { display: flex; flex-direction: column; align-items: center; gap: 16px; cursor: pointer; transition: transform .2s; }
                 .pf-card:hover { transform: scale(1.05); }
-                .pf-avatar-wrap {
-                    width: 180px;
-                    height: 180px;
-                    border-radius: 50%;
-                    overflow: hidden;
-                    background: #1a1a22;
-                    transition: border .2s, box-shadow .2s;
-                    border: 4px solid transparent;
-                }
-                .pf-card:hover .pf-avatar-wrap {
-                    border-color: #fff;
-                }
-                .pf-card.selected .pf-avatar-wrap {
-                    border-color: #6c63ff;
-                    box-shadow: 0 0 0 4px rgba(108,99,255,.35);
-                }
-                .pf-card-name {
-                    font-size: 16px;
-                    font-weight: 500;
-                    color: rgba(255,255,255,.55);
-                    transition: color .2s;
-                }
-                .pf-card:hover .pf-card-name { color: #fff; }
-                .pf-card.selected .pf-card-name { color: #fff; font-weight: 700; }
+                .pf-avatar-wrap { width: 180px; height: 180px; border-radius: 50%; overflow: hidden; background: var(--bg-card); transition: border .2s, box-shadow .2s; border: 4px solid transparent; }
+                .pf-card:hover .pf-avatar-wrap { border-color: var(--text-primary); }
+                .pf-card.selected .pf-avatar-wrap { border-color: #6c63ff; box-shadow: 0 0 0 4px rgba(108,99,255,.35); }
+                .pf-card-name { font-size: 16px; font-weight: 500; color: var(--text-muted); transition: color .2s; }
+                .pf-card:hover .pf-card-name { color: var(--text-primary); }
+                .pf-card.selected .pf-card-name { color: var(--text-primary); font-weight: 700; }
                 @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
                 @keyframes pin-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
             `}</style>
@@ -406,37 +391,34 @@ export default function ProfilePage() {
             {/* 프리미엄 모달 */}
             {showPremiumModal && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
-                    <div style={{ background: '#1a1a22', borderRadius: 16, padding: '28px 24px', maxWidth: 380, width: '100%', border: '1px solid rgba(255,255,255,.1)' }}>
-                        <h3 style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: '0 0 12px' }}>프리미엄 멤버십 안내</h3>
-                        <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>
+                    <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: '28px 24px', maxWidth: 380, width: '100%', border: '1px solid var(--border)' }}>
+                        <h3 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 800, margin: '0 0 12px' }}>프리미엄 멤버십 안내</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>
                             프리미엄 멤버십을 이용하면 총 4개까지 프로필을 추가하고 동시재생 하실 수 있습니다.
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                            <button onClick={() => setShowPremiumModal(false)} style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>아니요</button>
+                            <button onClick={() => setShowPremiumModal(false)} style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'var(--text-subtle)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>아니요</button>
                             <button onClick={() => { setShowPremiumModal(false); router.push('/membership') }} style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>네, 구경할래요</button>
                         </div>
                     </div>
                 </div>
             )}
 
-
             {/* ── PIN 입력 ── */}
             {step === 'pin_enter' && pendingProfile && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h1 style={{ fontSize: 48, fontWeight: 800, color: '#fff', margin: '0 0 48px', letterSpacing: '-0.02em' }}>프로필 잠금</h1>
+                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 48px', letterSpacing: '-0.02em' }}>프로필 잠금</h1>
                         <div style={{ width: 120, height: 120, borderRadius: '50%', overflow: 'hidden', margin: '0 auto 20px', border: '4px solid rgba(108,99,255,.4)' }}>
                             <img src={pendingProfile.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
                         </div>
-                        <p style={{ color: 'rgba(255,255,255,.4)', fontSize: 15, margin: '0 0 6px' }}>{pendingProfile.nickname}</p>
-                        <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 700, margin: 0 }}>
+                        <p style={{ color: 'var(--text-subtle)', fontSize: 15, margin: '0 0 6px' }}>{pendingProfile.nickname}</p>
+                        <h2 style={{ color: 'var(--text-primary)', fontSize: 24, fontWeight: 700, margin: 0 }}>
                             {pinLocked ? `⏳ ${pinLockTimer}초 후 다시 시도` : 'PIN을 입력해주세요'}
                         </h2>
                     </div>
                     <div style={{ maxWidth: 360, margin: '0 auto', width: '100%' }}>
-
-                        {/* PIN 인풋 — 숨김 인풋 + 커스텀 도트 */}
                         {!showForgotPin && (
                             <div style={{ position: 'relative', marginBottom: pinError ? 8 : 40 }}>
                                 <input
@@ -451,21 +433,15 @@ export default function ProfilePage() {
                                         setPinInput(v); setPinError('')
                                         if (v.length === 4) await verifyPin(v)
                                     }}
-                                    style={{
-                                        position: 'absolute', inset: 0, width: '100%', height: '100%',
-                                        opacity: 0, cursor: 'default',
-                                    }}
+                                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'default' }}
                                 />
-                                {/* 커스텀 도트 */}
                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 28, padding: '16px 0', borderBottom: `1px solid ${pinError ? '#f87171' : '#6c63ff'}` }}>
                                     {[0, 1, 2, 3].map(i => (
                                         <div key={i} style={{
                                             width: i < pinInput.length ? 14 : 12,
                                             height: i < pinInput.length ? 14 : 12,
                                             borderRadius: '50%',
-                                            background: i < pinInput.length
-                                                ? (pinError ? '#f87171' : '#6c63ff')
-                                                : 'rgba(255,255,255,.2)',
+                                            background: i < pinInput.length ? (pinError ? '#f87171' : '#6c63ff') : 'var(--border)',
                                             transition: 'all .15s',
                                             opacity: pinLocked ? .4 : 1,
                                         }} />
@@ -477,14 +453,14 @@ export default function ProfilePage() {
 
                         {!showForgotPin ? (
                             <button onClick={() => setShowForgotPin(true)}
-                                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.25)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
+                                style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
                                 PIN을 잊으셨나요?
                             </button>
                         ) : forgotPinSent ? (
                             <div style={{ background: 'rgba(108,99,255,.08)', borderRadius: 12, border: '1px solid rgba(108,99,255,.2)', padding: '20px', animation: 'pin-fade .3s ease' }}>
                                 <p style={{ color: '#9d97ff', fontSize: 14, fontWeight: 700, margin: '0 0 8px' }}>✉️ 이메일을 전송했어요</p>
-                                <p style={{ color: 'rgba(255,255,255,.45)', fontSize: 13, margin: '0 0 16px', lineHeight: 1.7 }}>
-                                    <strong style={{ color: '#fff' }}>{user?.email}</strong>으로 안내 메일을 보냈습니다.<br />해당 프로필의 PIN이 제거되었어요.
+                                <p style={{ color: 'var(--text-subtle)', fontSize: 13, margin: '0 0 16px', lineHeight: 1.7 }}>
+                                    <strong style={{ color: 'var(--text-primary)' }}>{user?.email}</strong>으로 안내 메일을 보냈습니다.<br />해당 프로필의 PIN이 제거되었어요.
                                 </p>
                                 <button onClick={() => { setShowForgotPin(false); setForgotPinSent(false); setStep('select') }}
                                     style={{ width: '100%', padding: '12px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -493,12 +469,12 @@ export default function ProfilePage() {
                             </div>
                         ) : (
                             <div style={{ animation: 'pin-fade .3s ease' }}>
-                                <p style={{ color: 'rgba(255,255,255,.45)', fontSize: 13, lineHeight: 1.8, margin: '0 0 20px' }}>
-                                    <strong style={{ color: '#fff' }}>{user?.email}</strong>으로<br />PIN 초기화 메일을 보내드릴게요.<br />해당 프로필의 PIN이 즉시 제거됩니다.
+                                <p style={{ color: 'var(--text-subtle)', fontSize: 13, lineHeight: 1.8, margin: '0 0 20px' }}>
+                                    <strong style={{ color: 'var(--text-primary)' }}>{user?.email}</strong>으로<br />PIN 초기화 메일을 보내드릴게요.<br />해당 프로필의 PIN이 즉시 제거됩니다.
                                 </p>
                                 <div style={{ display: 'flex', gap: 8 }}>
                                     <button onClick={() => setShowForgotPin(false)}
-                                        style={{ flex: 1, padding: '12px', background: 'none', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, color: 'rgba(255,255,255,.5)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>취소</button>
+                                        style={{ flex: 1, padding: '12px', background: 'none', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-subtle)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>취소</button>
                                     <button onClick={handleForgotPin} disabled={forgotPinLoading}
                                         style={{ flex: 1, padding: '12px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: forgotPinLoading ? 'default' : 'pointer', opacity: forgotPinLoading ? .7 : 1, fontFamily: 'inherit' }}>
                                         {forgotPinLoading ? '처리 중...' : '이메일 전송'}
@@ -509,9 +485,9 @@ export default function ProfilePage() {
                     </div>
                     <div style={{ textAlign: 'center', marginTop: 32 }}>
                         <button onClick={() => { setStep('select'); setSelectedProfileId(null) }}
-                            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.25)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.03em' }}
-                            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,.55)' }}
-                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,.25)' }}>
+                            style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.03em' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}>
                             다른 프로필 선택
                         </button>
                     </div>
@@ -522,14 +498,12 @@ export default function ProfilePage() {
             {(step === 'pin_setup' || step === 'pin_setup_confirm') && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h1 style={{ fontSize: 48, fontWeight: 800, color: '#fff', margin: '0 0 16px', letterSpacing: '-0.02em' }}>프로필 잠금 설정</h1>
-                        <p style={{ color: 'rgba(255,255,255,.35)', fontSize: 18, margin: 0 }}>
+                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.02em' }}>프로필 잠금 설정</h1>
+                        <p style={{ color: 'var(--text-subtle)', fontSize: 18, margin: 0 }}>
                             {step === 'pin_setup' ? '새 PIN 4자리를 입력해주세요' : '한 번 더 입력해주세요'}
                         </p>
                     </div>
                     <div style={{ maxWidth: 360, margin: '0 auto', width: '100%', textAlign: 'center' }}>
-
-                        {/* PIN 인풋 — 숨김 인풋 + 커스텀 도트 */}
                         {(() => {
                             const isSetup = step === 'pin_setup'
                             const val = isSetup ? pinInput : pinConfirm
@@ -558,10 +532,7 @@ export default function ProfilePage() {
                                                 }
                                             }
                                         }}
-                                        style={{
-                                            position: 'absolute', inset: 0, width: '100%', height: '100%',
-                                            opacity: 0, cursor: 'default',
-                                        }}
+                                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'default' }}
                                     />
                                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 28, padding: '16px 0', borderBottom: `1px solid ${err ? '#f87171' : '#6c63ff'}` }}>
                                         {[0, 1, 2, 3].map(i => (
@@ -569,9 +540,7 @@ export default function ProfilePage() {
                                                 width: i < val.length ? 14 : 12,
                                                 height: i < val.length ? 14 : 12,
                                                 borderRadius: '50%',
-                                                background: i < val.length
-                                                    ? (err ? '#f87171' : '#6c63ff')
-                                                    : 'rgba(255,255,255,.2)',
+                                                background: i < val.length ? (err ? '#f87171' : '#6c63ff') : 'var(--border)',
                                                 transition: 'all .15s',
                                                 opacity: saving ? .6 : 1,
                                             }} />
@@ -588,9 +557,9 @@ export default function ProfilePage() {
                     </div>
                     <div style={{ textAlign: 'center', marginTop: 32 }}>
                         <button onClick={() => { if (step === 'pin_setup') setStep('edit'); else { setStep('pin_setup'); setPinInput(''); setPinConfirm('') } }}
-                            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.25)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.03em' }}
-                            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,.55)' }}
-                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,.25)' }}>
+                            style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.03em' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}>
                             {step === 'pin_setup' ? '취소' : '다시 입력'}
                         </button>
                     </div>
@@ -601,28 +570,24 @@ export default function ProfilePage() {
                 <h1 style={{ fontSize: 32, fontWeight: 900, color: '#6c63ff', letterSpacing: 2, marginBottom: 32, fontStyle: 'italic' }}>LAFTEL</h1>
             )}
 
-            {/* ── STEP 1: 프로필 선택 — 넷플릭스 스타일 ── */}
+            {/* ── STEP 1: 프로필 선택 ── */}
             {step === 'select' && (
                 <div className="pf-page">
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h1 style={{ fontSize: 48, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>프로필 선택</h1>
+                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>프로필 선택</h1>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 40, marginBottom: 64 }}>
                         {profiles.map(p => {
                             const isSelected = selectedProfileId === p.id
                             return (
-                                <div
-                                    key={p.id}
-                                    className={`pf-card${isSelected ? ' selected' : ''}`}
-                                    onClick={() => handleProfileClick(p)}
-                                >
+                                <div key={p.id} className={`pf-card${isSelected ? ' selected' : ''}`} onClick={() => handleProfileClick(p)}>
                                     <div className="pf-avatar-wrap" style={{ position: 'relative' }}>
                                         <img src={p.avatarUrl} alt={p.nickname}
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
                                         {p.pinHash && (
-                                            <div style={{ position: 'absolute', bottom: 6, right: 6, width: 26, height: 26, background: 'rgba(10,10,20,.8)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(108,99,255,.5)' }}>
+                                            <div style={{ position: 'absolute', bottom: 6, right: 6, width: 26, height: 26, background: 'var(--bg-secondary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(108,99,255,.5)' }}>
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(108,99,255,.9)" strokeWidth="2.5">
                                                     <rect x="3" y="11" width="18" height="11" rx="2" />
                                                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -640,24 +605,20 @@ export default function ProfilePage() {
                             )
                         })}
 
-                        {/* 새 프로필 */}
                         {profiles.length < 4 && (
-                            <div
-                                className="pf-card"
-                                onClick={() => hasMembership ? openNew() : setShowPremiumModal(true)}
-                            >
+                            <div className="pf-card" onClick={() => hasMembership ? openNew() : setShowPremiumModal(true)}>
                                 <div className="pf-avatar-wrap" style={{
-                                    background: hasMembership ? 'rgba(108,99,255,.1)' : 'rgba(255,255,255,.04)',
+                                    background: hasMembership ? 'rgba(108,99,255,.1)' : 'var(--bg-hover)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    borderColor: hasMembership ? 'rgba(108,99,255,.3)' : 'rgba(255,255,255,.1)',
+                                    borderColor: hasMembership ? 'rgba(108,99,255,.3)' : 'var(--border)',
                                 }}>
                                     <svg width="60" height="60" viewBox="0 0 24 24" fill="none"
-                                        stroke={hasMembership ? '#9d97ff' : 'rgba(255,255,255,.2)'} strokeWidth="1.5">
+                                        stroke={hasMembership ? '#9d97ff' : 'var(--text-faint)'} strokeWidth="1.5">
                                         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                                     </svg>
                                 </div>
                                 <span className="pf-card-name">
-                                    {hasMembership ? '프로필 추가' : '프로필 추가'}
+                                    프로필 추가
                                     {!hasMembership && (
                                         <span style={{ display: 'block', fontSize: 11, color: '#6c63ff', marginTop: 4, textAlign: 'center' }}>멤버십 필요</span>
                                     )}
@@ -665,6 +626,18 @@ export default function ProfilePage() {
                             </div>
                         )}
                     </div>
+
+                    {memberInfo && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                            <span style={{
+                                fontSize: 12, fontWeight: 700, padding: '6px 16px', borderRadius: 20,
+                                background: `${memberInfo.color}20`, color: memberInfo.color,
+                                border: `1px solid ${memberInfo.color}40`
+                            }}>
+                                ✓ {memberInfo.label} 이용중
+                            </span>
+                        </div>
+                    )}
 
                     {/* 프로필 편집 버튼 */}
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -676,17 +649,17 @@ export default function ProfilePage() {
                             style={{
                                 padding: '12px 48px',
                                 background: 'none',
-                                border: '1px solid rgba(255,255,255,.4)',
+                                border: '1px solid var(--border)',
                                 borderRadius: 4,
-                                color: 'rgba(255,255,255,.7)',
+                                color: 'var(--text-muted)',
                                 fontSize: 16,
                                 fontWeight: 400,
                                 cursor: 'pointer',
                                 letterSpacing: '0.05em',
                                 transition: 'all .2s',
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#fff' }}
-                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,.7)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.4)' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--text-primary)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}
                         >
                             프로필 편집
                         </button>
@@ -698,14 +671,13 @@ export default function ProfilePage() {
             {step === 'edit' && (
                 <div className="pf-page">
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h1 style={{ fontSize: 48, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>프로필 편집</h1>
+                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>프로필 편집</h1>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 64, marginBottom: 64, alignItems: 'flex-start' }}>
-                        {/* 아바타 */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                             <div style={{ position: 'relative', cursor: 'pointer', width: 160, height: 160 }} onClick={() => setStep('image')}>
-                                <div style={{ width: 160, height: 160, borderRadius: '50%', overflow: 'hidden', background: '#1a1a22', border: '4px solid transparent', transition: 'border-color .2s' }}
-                                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#fff' }}
+                                <div style={{ width: 160, height: 160, borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-card)', border: '4px solid transparent', transition: 'border-color .2s' }}
+                                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--text-primary)' }}
                                     onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'transparent' }}>
                                     <img src={selectedAvatar} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
@@ -714,36 +686,34 @@ export default function ProfilePage() {
                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                 </div>
                             </div>
-                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,.3)' }}>클릭하여 변경</span>
+                            <span style={{ fontSize: 13, color: 'var(--text-subtle)' }}>클릭하여 변경</span>
                         </div>
-                        {/* 폼 */}
                         <div style={{ width: 380 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,.2)', paddingBottom: 8, marginBottom: 16 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: 8, marginBottom: 16 }}>
                                 <input value={editNickname} onChange={e => setEditNickname(e.target.value.slice(0, 15))}
                                     placeholder="닉네임을 입력하세요"
-                                    style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 16, fontWeight: 700 }} />
-                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>{editNickname.length}/15자</span>
+                                    style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 16, fontWeight: 700 }} />
+                                <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>{editNickname.length}/15자</span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,.08)', cursor: 'pointer' }}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}
                                 onClick={() => { setAgePw(''); setAgePwError(''); setSelectedAge(editAgeLimit); setStep('age_pw') }}>
                                 <div>
-                                    <p style={{ color: '#fff', fontSize: 14, fontWeight: 600, margin: '0 0 3px' }}>콘텐츠 연령 제한</p>
-                                    <p style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, margin: 0 }}>{ageLimitLabel}</p>
+                                    <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, margin: '0 0 3px' }}>콘텐츠 연령 제한</p>
+                                    <p style={{ color: 'var(--text-subtle)', fontSize: 12, margin: 0 }}>{ageLimitLabel}</p>
                                 </div>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-subtle)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                             </div>
 
-                            {/* PIN 잠금 설정 */}
                             {editingId && (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', marginTop: 4 }}>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                                            <p style={{ color: '#fff', fontSize: 14, fontWeight: 600, margin: 0 }}>프로필 잠금 (PIN)</p>
+                                            <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, margin: 0 }}>프로필 잠금 (PIN)</p>
                                             {editingHasPin && (
                                                 <span style={{ fontSize: 10, background: 'rgba(108,99,255,.2)', color: '#9d97ff', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>설정됨</span>
                                             )}
                                         </div>
-                                        <p style={{ color: 'rgba(255,255,255,.35)', fontSize: 12, margin: 0 }}>
+                                        <p style={{ color: 'var(--text-subtle)', fontSize: 12, margin: 0 }}>
                                             {editingHasPin ? '입장 시 PIN 4자리 필요' : '설정하면 이 프로필 입장 시 번호 입력'}
                                         </p>
                                     </div>
@@ -755,7 +725,7 @@ export default function ProfilePage() {
                                                     변경
                                                 </button>
                                                 <button onClick={removePin} disabled={saving}
-                                                    style={{ padding: '7px 14px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 8, color: 'rgba(255,255,255,.35)', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving ? .6 : 1 }}>
+                                                    style={{ padding: '7px 14px', background: 'var(--bg-hover)', border: '1px solid var(--border-subtle)', borderRadius: 8, color: 'var(--text-subtle)', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving ? .6 : 1 }}>
                                                     {saving ? '...' : '해제'}
                                                 </button>
                                             </>
@@ -768,14 +738,13 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
                             )}
-
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
                         <button onClick={() => setStep('select')}
-                            style={{ padding: '13px 52px', background: 'none', border: '1px solid rgba(255,255,255,.3)', borderRadius: 4, color: 'rgba(255,255,255,.6)', fontSize: 15, fontWeight: 400, cursor: 'pointer', letterSpacing: '0.06em', transition: 'all .2s', fontFamily: 'inherit' }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#fff' }}
-                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,.6)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,.3)' }}>
+                            style={{ padding: '13px 52px', background: 'none', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-muted)', fontSize: 15, fontWeight: 400, cursor: 'pointer', letterSpacing: '0.06em', transition: 'all .2s', fontFamily: 'inherit' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--text-primary)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}>
                             취소
                         </button>
                         <button onClick={saveProfile} disabled={saving}
@@ -791,8 +760,8 @@ export default function ProfilePage() {
             {/* ── STEP 3: 이미지 선택 ── */}
             {step === 'image' && (
                 <div style={{ width: '100%', maxWidth: 560, animation: 'fade-up .3s ease' }}>
-                    <div style={{ background: '#141420', borderRadius: 20, padding: '28px 24px', border: '1px solid rgba(255,255,255,.1)' }}>
-                        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 800, margin: '0 0 20px' }}>이미지 선택</h2>
+                    <div style={{ background: 'var(--bg-card)', borderRadius: 20, padding: '28px 24px', border: '1px solid var(--border-subtle)' }}>
+                        <h2 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 800, margin: '0 0 20px' }}>이미지 선택</h2>
                         <div className="img-tabs">
                             {([['laftel', '라프텔 캐릭터'], ['dicebear', '아바타'], ['custom', '직접 업로드']] as [ImageTab, string][]).map(([id, label]) => (
                                 <button key={id} className={`img-tab${imageTab === id ? ' on' : ''}`} onClick={() => setImageTab(id)}>{label}</button>
@@ -834,16 +803,16 @@ export default function ProfilePage() {
                                             <div style={{ width: 100, height: 100, borderRadius: "50%", overflow: 'hidden', border: '3px solid #6c63ff' }}>
                                                 <img src={customPreview} alt="custom" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             </div>
-                                            <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, margin: 0 }}>클릭해서 다른 이미지 선택</p>
+                                            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>클릭해서 다른 이미지 선택</p>
                                         </div>
                                     ) : (
                                         <>
-                                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.25)" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="1.5" style={{ marginBottom: 12 }}>
                                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                                 <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                                             </svg>
-                                            <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 14, margin: '0 0 6px', fontWeight: 600 }}>이미지를 드래그하거나 클릭해서 업로드</p>
-                                            <p style={{ color: 'rgba(255,255,255,.25)', fontSize: 12, margin: 0 }}>PNG, JPG, GIF (자동 압축 적용)</p>
+                                            <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '0 0 6px', fontWeight: 600 }}>이미지를 드래그하거나 클릭해서 업로드</p>
+                                            <p style={{ color: 'var(--text-faint)', fontSize: 12, margin: 0 }}>PNG, JPG, GIF (자동 압축 적용)</p>
                                         </>
                                     )}
                                 </div>
@@ -851,7 +820,7 @@ export default function ProfilePage() {
                         )}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
                             <button onClick={() => setStep('edit')}
-                                style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>취소</button>
+                                style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>취소</button>
                             <button onClick={() => setStep('edit')}
                                 style={{ padding: '10px 24px', background: '#6c63ff', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>선택</button>
                         </div>
@@ -863,22 +832,22 @@ export default function ProfilePage() {
             {step === 'age_pw' && (
                 <div className="pf-box">
                     <div style={{ padding: '32px 28px 0' }}>
-                        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 800, margin: '0 0 16px' }}>콘텐츠 연령 제한</h2>
+                        <h2 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 800, margin: '0 0 16px' }}>콘텐츠 연령 제한</h2>
                         <p style={{ color: '#6c63ff', fontSize: 14, fontWeight: 700, margin: '0 0 8px' }}>
                             {editingProfile?.nickname || editNickname}님의 시청 가능 연령을 변경합니다.
                         </p>
-                        <p style={{ color: 'rgba(255,255,255,.55)', fontSize: 14, lineHeight: 1.6, margin: '0 0 32px' }}>
-                            설정을 위해 <strong style={{ color: '#fff' }}>계정 비밀번호</strong> 확인이 필요해요.<br />
+                        <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, margin: '0 0 32px' }}>
+                            설정을 위해 <strong style={{ color: 'var(--text-primary)' }}>계정 비밀번호</strong> 확인이 필요해요.<br />
                             로그인 시 입력한 계정 비밀번호를 입력해주세요.
                         </p>
                         <input type="password" value={agePw} onChange={e => { setAgePw(e.target.value); setAgePwError('') }}
                             onKeyDown={e => e.key === 'Enter' && handleAgePwNext()}
                             placeholder="계정 비밀번호를 입력해주세요."
-                            style={{ width: '100%', background: 'none', border: 'none', borderBottom: `1px solid ${agePwError ? '#f87171' : '#6c63ff'}`, outline: 'none', color: '#fff', fontSize: 15, padding: '8px 0', boxSizing: 'border-box', marginBottom: agePwError ? 6 : 40 }} />
+                            style={{ width: '100%', background: 'none', border: 'none', borderBottom: `1px solid ${agePwError ? '#f87171' : '#6c63ff'}`, outline: 'none', color: 'var(--text-primary)', fontSize: 15, padding: '8px 0', boxSizing: 'border-box', marginBottom: agePwError ? 6 : 40 }} />
                         {agePwError && <p style={{ color: '#f87171', fontSize: 12, margin: '0 0 28px' }}>{agePwError}</p>}
                     </div>
                     <button onClick={handleAgePwNext}
-                        style={{ width: '100%', padding: '18px', background: agePw.trim() ? '#6c63ff' : 'rgba(255,255,255,.1)', border: 'none', color: agePw.trim() ? '#fff' : 'rgba(255,255,255,.3)', fontSize: 16, fontWeight: 700, cursor: agePw.trim() ? 'pointer' : 'default', transition: 'background .2s' }}>
+                        style={{ width: '100%', padding: '18px', background: agePw.trim() ? '#6c63ff' : 'var(--bg-hover)', border: 'none', color: agePw.trim() ? '#fff' : 'var(--text-subtle)', fontSize: 16, fontWeight: 700, cursor: agePw.trim() ? 'pointer' : 'default', transition: 'background .2s' }}>
                         다음
                     </button>
                 </div>
@@ -889,27 +858,27 @@ export default function ProfilePage() {
                 <div className="pf-box">
                     <div style={{ padding: '28px 24px 0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-                            <div style={{ width: 52, height: 52, borderRadius: 6, overflow: 'hidden', background: '#1a1a22', flexShrink: 0 }}>
+                            <div style={{ width: 52, height: 52, borderRadius: 6, overflow: 'hidden', background: 'var(--bg-card)', flexShrink: 0 }}>
                                 <img src={selectedAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
                             </div>
                             <div>
                                 <p style={{ color: '#6c63ff', fontSize: 15, fontWeight: 700, margin: '0 0 2px' }}>{editingProfile?.nickname || editNickname}님의</p>
-                                <p style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: 0 }}>시청 가능 연령을 선택해 주세요.</p>
+                                <p style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 800, margin: 0 }}>시청 가능 연령을 선택해 주세요.</p>
                             </div>
                         </div>
-                        <div style={{ background: '#1e1e2a', borderRadius: 14, overflow: 'hidden', marginBottom: 28 }}>
+                        <div style={{ background: 'var(--bg-secondary)', borderRadius: 14, overflow: 'hidden', marginBottom: 28 }}>
                             {AGE_OPTIONS.map((opt, i) => (
                                 <div key={opt.value} onClick={() => setSelectedAge(opt.value)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderBottom: i < AGE_OPTIONS.length - 1 ? '1px solid rgba(255,255,255,.06)' : 'none', cursor: 'pointer' }}
-                                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.04)')}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderBottom: i < AGE_OPTIONS.length - 1 ? '1px solid var(--border-subtle)' : 'none', cursor: 'pointer' }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                                    <div style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${selectedAge === opt.value ? '#6c63ff' : 'rgba(255,255,255,.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color .15s' }}>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${selectedAge === opt.value ? '#6c63ff' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color .15s' }}>
                                         {selectedAge === opt.value && <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#6c63ff' }} />}
                                     </div>
                                     <div>
-                                        <p style={{ color: '#fff', fontSize: 15, fontWeight: 700, margin: '0 0 2px' }}>{opt.label}</p>
-                                        <p style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, margin: 0 }}>{opt.desc}</p>
+                                        <p style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 700, margin: '0 0 2px' }}>{opt.label}</p>
+                                        <p style={{ color: 'var(--text-subtle)', fontSize: 12, margin: 0 }}>{opt.desc}</p>
                                     </div>
                                 </div>
                             ))}

@@ -22,7 +22,7 @@ export default function MembershipReviews() {
                 </svg>
                 <h2 className="font-black mb-4 2xl:mb-6 text-center">
                     <span className="text-[#6c63ff] text-4xl 2xl:text-6xl 3xl:text-8xl">150만 유저</span>
-                    <span className="text-white text-4xl 2xl:text-6xl 3xl:text-8xl">의 생생한 후기</span>
+                    <span className="text-[var(--text-primary)] text-4xl 2xl:text-6xl 3xl:text-8xl">의 생생한 후기</span>
                 </h2>
                 <p className="text-[var(--text-muted)] text-base 2xl:text-xl 3xl:text-3xl">★ 스토어 평균 별점 4.5 ★</p>
             </div>
@@ -30,7 +30,7 @@ export default function MembershipReviews() {
                 {[...reviews, ...reviews].map((r, i) => (
                     <div key={i} className="shrink-0 w-96 2xl:w-[480px] 3xl:w-[640px] bg-[var(--bg-card)] border border-[var(--border-faint)] rounded-2xl p-6 2xl:p-8">
                         <div className="flex items-center gap-1 mb-3">{[...Array(5)].map((_, j) => <span key={j} className="text-yellow-400 text-sm 2xl:text-base">★</span>)}</div>
-                        <h4 className="text-white text-base 2xl:text-lg font-bold mb-2 line-clamp-1">{r.title}</h4>
+                        <h4 className="text-[var(--text-primary)] text-base 2xl:text-lg font-bold mb-2 line-clamp-1">{r.title}</h4>
                         <p className="text-[var(--text-muted)] text-sm 2xl:text-base line-clamp-2">{r.body}</p>
                         <p className="text-[var(--text-faint)] text-sm mt-3">{r.name}</p>
                     </div>
@@ -40,7 +40,7 @@ export default function MembershipReviews() {
                 {[...reviews.slice(5), ...reviews, ...reviews.slice(0, 5)].map((r, i) => (
                     <div key={i} className="shrink-0 w-96 2xl:w-[480px] 3xl:w-[640px] bg-[var(--bg-card)] border border-[var(--border-faint)] rounded-2xl p-6 2xl:p-8">
                         <div className="flex items-center gap-1 mb-3">{[...Array(5)].map((_, j) => <span key={j} className="text-yellow-400 text-sm 2xl:text-base">★</span>)}</div>
-                        <h4 className="text-white text-base 2xl:text-lg font-bold mb-2 line-clamp-1">{r.title}</h4>
+                        <h4 className="text-[var(--text-primary)] text-base 2xl:text-lg font-bold mb-2 line-clamp-1">{r.title}</h4>
                         <p className="text-[var(--text-muted)] text-sm 2xl:text-base line-clamp-2">{r.body}</p>
                         <p className="text-[var(--text-faint)] text-sm mt-3">{r.name}</p>
                     </div>

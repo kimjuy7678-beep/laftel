@@ -22,9 +22,9 @@ export default function Footer({ variant = "default" }: FooterProps) {
         <footer
             className="mt-auto"
             style={{
-                background: isStore ? '#f3f4f6' : 'var(--bg-secondary)',
+                background: isStore ? '#f3f4f6' : 'var(--bg-primary)',
                 color: isStore ? '#4b5563' : 'var(--text-muted)',
-                borderTop: isStore ? '1px solid #e5e7eb' : '1px solid var(--border-subtle)',
+                borderTop: isStore ? '1px solid #e5e7eb' : '1px solid var(--border-faint)',
             }}
         >
             <div style={{ width: '90%', margin: '0 auto', padding: '40px 0' }}>

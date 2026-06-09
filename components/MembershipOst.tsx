@@ -2,7 +2,7 @@
 
 export default function MembershipOST() {
     return (
-        <div className="relative w-full overflow-hidden bg-black" style={{ height: 'calc(100vw * 0.55)' }}>
+        <div className="relative w-full overflow-hidden bg-[var(--bg-primary)]" style={{ height: 'calc(100vw * 0.55)' }}>
             <img
                 src="images/membership/membership-ost-bg.png"
                 alt="ost background"
@@ -16,10 +16,10 @@ export default function MembershipOST() {
             <div className="absolute z-20" style={{ bottom: '10%', left: '10%' }}>
                 <h2 className="font-black mb-4 2xl:mb-6 3xl:mb-10">
                     <span className="text-[#6c63ff] text-4xl 2xl:text-6xl 3xl:text-8xl">좋아하는 OST</span>
-                    <span className="text-white text-3xl 2xl:text-5xl 3xl:text-7xl">까지 멤버십 하나로!</span>
+                    <span className="text-[var(--text-primary)] text-3xl 2xl:text-5xl 3xl:text-7xl">까지 멤버십 하나로!</span>
                 </h2>
-                <p className="text-white/70 text-base 2xl:text-xl 3xl:text-3xl leading-relaxed">
-                    작품의 여운을 이어주는 <span className="text-white font-bold">OST 플레이리스트,</span><br />
+                <p className="text-[var(--text-muted)] text-base 2xl:text-xl 3xl:text-3xl leading-relaxed">
+                    작품의 여운을 이어주는 <span className="text-[var(--text-primary)] font-bold">OST 플레이리스트,</span><br />
                     멤버십에서 바로 만나보세요.
                 </p>
             </div>

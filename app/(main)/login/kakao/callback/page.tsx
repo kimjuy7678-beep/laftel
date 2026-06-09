@@ -9,7 +9,6 @@ import { toast } from 'sonner'
 
 export default function KakaoCallbackPage() {
     const router = useRouter()
-    const { onLogin } = useAuthStore()
 
     useEffect(() => {
         const url = new URL(window.location.href)
@@ -42,15 +41,18 @@ export default function KakaoCallbackPage() {
                         })
                     }
 
-                    onLogin({
-                        uid,
-                        email: result.user.email || data.email,
-                        name: userData?.nickname || data.nickname || result.user.displayName,
-                        photoURL: userData?.avatarUrl || data.profileImage || result.user.photoURL,
-                        membership: userData?.membership || 'none',
-                        points: userData?.points || 0,
+                    useAuthStore.setState({
+                        user: {
+                            uid,
+                            email: result.user.email || data.email,
+                            name: userData?.nickname || data.nickname || result.user.displayName,
+                            photoURL: userData?.avatarUrl || data.profileImage || result.user.photoURL,
+                            membership: userData?.membership || 'none',
+                            points: userData?.points || 0,
+                            onboardingDone: userData?.onboardingDone || false,
+                        }
                     })
-                    router.push('/profile')
+                    router.push('/profile') // 프로필 선택 페이지로
                 } else {
                     throw new Error('토큰 발급 실패')
                 }
