@@ -4,6 +4,7 @@ import { collection, onSnapshot, query, doc, deleteDoc, where } from 'firebase/f
 import { db } from '@/firebase/firebase'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 interface FireParty {
     id: string
@@ -36,19 +37,13 @@ export default function MyPartySection() {
     const router = useRouter()
     const { user } = useAuthStore()
     const [myParties, setMyParties] = useState<FireParty[]>([])
-    const [toast, setToast] = useState('')
 
     useEffect(() => {
         if (!user?.uid) return
-
-        const q = query(
-            collection(db, 'parties'),
-            where('hostId', '==', user.uid),
-        )
+        const q = query(collection(db, 'parties'), where('hostId', '==', user.uid))
         const unsub = onSnapshot(q, (snap) => {
             const now = new Date()
             const data: FireParty[] = []
-
             snap.docs.forEach(d => {
                 const p = { id: d.id, ...d.data() } as FireParty
                 const created = new Date(p.createdAt)
@@ -62,8 +57,6 @@ export default function MyPartySection() {
                     data.push(p)
                 }
             })
-
-            // 클라이언트 정렬 (최신순)
             data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             setMyParties(data)
         })
@@ -72,34 +65,38 @@ export default function MyPartySection() {
 
     const handleClick = (party: FireParty) => {
         if (party.status === 'upcoming') {
-            const scheduled = new Date(party.scheduledAt)
-            setToast(`아직 시작 전이에요 · ${formatDate(party.scheduledAt)} 시작`)
-            setTimeout(() => setToast(''), 3000)
+            toast(`⏳ 아직 시작 전이에요`, {
+                description: `${formatDate(party.scheduledAt)} 시작`,
+            })
             return
         }
         router.push(`/live/party/${party.id}`)
     }
 
-    const handleDelete = async (e: React.MouseEvent, partyId: string) => {
+    const handleDeleteClick = (e: React.MouseEvent, partyId: string) => {
         e.stopPropagation()
-        if (!confirm('파티를 삭제할까요?')) return
-        await deleteDoc(doc(db, 'parties', partyId))
+        toast('파티를 삭제할까요?', {
+            action: {
+                label: '삭제',
+                onClick: async () => {
+                    await deleteDoc(doc(db, 'parties', partyId))
+                    toast.success('파티가 삭제됐어요')
+                },
+            },
+            cancel: {
+                label: '취소',
+                onClick: () => {},
+            },
+        })
     }
 
     if (!user || myParties.length === 0) return null
 
     return (
         <section className="mb-2">
-            {/* 토스트 */}
-            {toast && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-xl text-sm text-white shadow-xl animate-fade-in">
-                    ⏳ {toast}
-                </div>
-            )}
-
             <div className="flex items-center gap-2 mb-4 pt-20">
-                <h2 className="text-xl font-bold text-white">내 파티</h2>
-                <span className="px-2 py-0.5 bg-white/10 rounded-full text-xs text-white/60">{myParties.length}</span>
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">내 파티</h2>
+                <span className="px-2 py-0.5 bg-[var(--border)] rounded-full text-xs text-[var(--text-muted)]">{myParties.length}</span>
             </div>
 
             <ul className="grid grid-cols-4 gap-2 list-none p-0 m-0">
@@ -109,7 +106,7 @@ export default function MyPartySection() {
                         <li key={party.id} className="relative">
                             <div
                                 onClick={() => handleClick(party)}
-                                className={`relative overflow-hidden rounded-xl aspect-video bg-[#1a1a2e] group ring-1 ring-white/30 ${isUpcoming ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                className={`relative overflow-hidden rounded-xl aspect-video bg-[var(--bg-card)] group ring-1 ring-[var(--border)] ${isUpcoming ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                                 {party.animePoster && (
                                     <img
@@ -120,7 +117,6 @@ export default function MyPartySection() {
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
 
-                                {/* 예약됨이면 중앙에 시작 전 안내 */}
                                 {isUpcoming && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none">
                                         <span className="text-2xl">⏳</span>
@@ -129,7 +125,6 @@ export default function MyPartySection() {
                                     </div>
                                 )}
 
-                                {/* 상태 배지 */}
                                 <div className="absolute top-2.5 left-2.5">
                                     {!isUpcoming ? (
                                         <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500 rounded-full text-xs font-bold text-white">
@@ -143,15 +138,13 @@ export default function MyPartySection() {
                                     )}
                                 </div>
 
-                                {/* 삭제 버튼 */}
                                 <button
-                                    onClick={(e) => handleDelete(e, party.id)}
+                                    onClick={(e) => handleDeleteClick(e, party.id)}
                                     className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-black/60 hover:bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-white/80 hover:text-white text-xs pointer-events-auto"
                                 >
                                     ✕
                                 </button>
 
-                                {/* 하단 정보 */}
                                 <div className="absolute bottom-2.5 left-2.5 flex flex-col gap-1">
                                     <div className="flex flex-col">
                                         <span className="text-[16px] font-bold text-white drop-shadow">{party.animeName}</span>

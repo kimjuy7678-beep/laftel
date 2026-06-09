@@ -18,8 +18,6 @@ export default function PartySection() {
     const { aniList, onFetchTopAni } = useAniStore()
     const [offset, setOffset] = useState(0)
 
-
-
     useEffect(() => {
         onFetchTopAni()
     }, [])
@@ -38,14 +36,12 @@ export default function PartySection() {
 
     return (
         <section>
-
             <div className="relative flex flex-col gap-1 mb-5 pt-20">
-                <h2 className="text-xl font-bold text-white">Party Now</h2>
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">Party Now</h2>
                 <p className="text-sm text-[var(--text-muted)]">지금 이 순간, 혼자 보기엔 아쉬우니까</p>
-                {/* 파티 개설하기 — 그냥 이동, 게이트는 create 페이지에서 처리 */}
                 <button
                     onClick={() => router.push('/live/create')}
-                    className="absolute right-0 px-8 py-2 bg-white/10 hover:bg-white/20 transition-colors rounded-xl text-sm text-white font-medium cursor-pointer"
+                    className="absolute right-0 px-8 py-2 bg-[var(--border)] hover:bg-[var(--border-subtle)] transition-colors rounded-xl text-sm text-[var(--text-primary)] font-medium cursor-pointer"
                 >
                     파티 개설하기
                 </button>
@@ -60,7 +56,7 @@ export default function PartySection() {
                         <li key={`${ani.id}-${offset}-${idx}`} className="relative">
                             <div
                                 onClick={() => router.push(`/live/party/party-${ani.id}`)}
-                                className="relative overflow-hidden rounded-xl aspect-video bg-[#1a1a2e] cursor-pointer group"
+                                className="relative overflow-hidden rounded-xl aspect-video bg-[var(--bg-card)] cursor-pointer group"
                             >
                                 {imgPath && (
                                     <img
@@ -73,21 +69,21 @@ export default function PartySection() {
 
                                 <div className="absolute bottom-2.5 left-2.5 flex flex-col gap-1">
                                     <div className="flex items-center gap-1.5">
-                                        <div className="w-15 h-15 rounded-full border-2 border-[var(--border-faint)]0 flex-shrink-0 overflow-hidden">
+                                        <div className="w-15 h-15 rounded-full border-2 border-[var(--border)] flex-shrink-0 overflow-hidden">
                                             <img src={party.img} alt={party.hostName} className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-[16px] font-bold text-white drop-shadow">{ani.name}</span>
                                             <span className="text-[11px] font-semibold text-white/90 whitespace-nowrap">개설자 : {party.hostName}</span>
-                                            <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap">개설 시간 : {party.time}</span>
+                                            <span className="text-[10px] text-white/50 whitespace-nowrap">개설 시간 : {party.time}</span>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] text-[var(--text-muted)] indent-1 pt-1">
+                                    <span className="text-[10px] text-white/50 indent-1 pt-1">
                                         참여 인원 : {party.attendees} / {party.maxAttendees}명
                                     </span>
                                 </div>
 
-                                <span className="absolute bottom-1 right-3 text-[52px] font-black italic text-[var(--text-faint)] leading-none pointer-events-none select-none">
+                                <span className="absolute bottom-1 right-3 text-[52px] font-black italic text-white/10 leading-none pointer-events-none select-none">
                                     {idx + 1}
                                 </span>
                             </div>

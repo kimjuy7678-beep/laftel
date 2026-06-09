@@ -42,8 +42,6 @@ export default function DayNewPage() {
     const todayItems = aniList.slice(todayIdx * 20, todayIdx * 20 + 20)
     const featured = todayItems[0] ?? null
     const restItems = todayItems.slice(1)
-
-
     const popularTitle = featured?.name ?? ''
 
     const allDayItems = aniList.slice(activeDay * 20, activeDay * 20 + 40)
@@ -51,14 +49,6 @@ export default function DayNewPage() {
     const dayItems = showAll ? allDayItems : allDayItems.slice(0, SHOW_LIMIT)
     const hasMore = allDayItems.length > SHOW_LIMIT
 
-    const getAgeClass = (r: string) => {
-        const n = r === 'ALL' ? 0 : Number(r)
-        if (n === 19) return "age19"
-        if (n === 15) return "age15"
-        if (n === 12) return "age12"
-        if (n === 7) return "age7"
-        return "ageAll"
-    }
     const getGenre = (ani: any) =>
         (ani.genre_ids ?? []).map((g: number) => GENRE_MAP[g]).filter(Boolean).slice(0, 2).join('·') || '애니메이션'
 
@@ -67,97 +57,28 @@ export default function DayNewPage() {
         setActiveDay(d.getDay() === 0 ? 6 : d.getDay() - 1)
     }
 
-    const scroll = (dir: 'left' | 'right') => {
-        restScrollRef.current?.scrollBy({ left: dir === 'left' ? -400 : 400, behavior: 'smooth' })
-    }
-
     return (
         <>
             <style>{`
-/* ── 페이지 ───────────────────────────────────────── */
+/* ── 페이지 ─────────────────────────────── */
 .page {
     min-height: 100vh;
     padding-top: 64px;
-    /* 56px → 64px */
-    background: rgb(10, 10, 10);
-    color: #fff;
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
-
 .section {
-
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--border-subtle);
 }
+.section:last-child { border-bottom: none; }
 
-.section:last-child {
-    border-bottom: none;
-}
-
-.inner {
-    width: 90%;
-    margin: 0 auto;
-}
-
-/* ── 섹션 헤더 ────────────────────────────────────── */
-.sectionHead {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    margin-bottom: 20px;
-}
-
-.daysectionHead {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    margin-bottom: 20px;
-}
-
-.sectionTitle {
-    font-size: 24px;
-    font-weight: 700;
-    color: #fff;
-    margin: 10px 0 40px;
-    letter-spacing: -0.3px;
-}
-
-.sectionTitleAccent {
-    color: #6c5ce7;
-}
-
-.calBtn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 14px;
-    height: 32px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .18s;
-}
-
-.calBtn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-
-/* ══ BLOCK 1: 요일별 신작 ══════════════════════════ */
+/* ── 요일탭 ─────────────────────────────── */
 .dayTabs {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border-subtle);
     margin-bottom: 28px;
 }
-
 .dayTab {
     display: flex;
     flex-direction: column;
@@ -167,574 +88,267 @@ export default function DayNewPage() {
     background: none;
     border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--text-subtle);
     position: relative;
     transition: color .18s;
 }
-
-.dayTab:hover {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.dayTabActive {
-    color: #fff;
-}
-
+.dayTab:hover { color: var(--text-high); }
+.dayTabActive { color: var(--text-primary); }
 .dayTabActive::after {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 0; left: 0; right: 0;
     height: 2px;
     background: #6c5ce7;
     border-radius: 2px 2px 0 0;
 }
-
 .dayTabToday .dayTabLabel::after {
     content: '';
     display: inline-block;
-    width: 5px;
-    height: 5px;
+    width: 5px; height: 5px;
     border-radius: 50%;
     background: #9d97ff;
     margin-left: 4px;
     vertical-align: middle;
     margin-bottom: 1px;
 }
+.dayTabLabel { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
 
-.dayTabLabel {
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.2px;
+/* ── 캘린더 버튼 ─────────────────────────── */
+.calBtn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 14px; height: 32px; border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 12px; font-weight: 600; cursor: pointer; transition: all .18s;
 }
+.calBtn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--text-subtle); }
 
+/* ── 요일 그리드 ─────────────────────────── */
 .dayGrid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 10px 15px;
     align-items: start;
-    /* 추가 */
 }
-
-.dayCard {
-    cursor: pointer;
-    align-self: start;
-}
-
-.dayCard:hover .dayImg {
-    transform: scale(1.04);
-}
-
+.dayCard { cursor: pointer; align-self: start; }
+.dayCard:hover .dayImg { transform: scale(1.04); }
 .dayThumb {
-    position: relative;
-    border-radius: 6px;
-    overflow: hidden;
-    background: #1e1e24;
-    width: 100%;
-    aspect-ratio: 3 / 4;
-    margin-bottom: 6px;
+    position: relative; border-radius: 6px;
+    overflow: hidden; background: var(--bg-card);
+    width: 100%; aspect-ratio: 3 / 4; margin-bottom: 6px;
 }
-
-/* ★ 핵심 — absolute로 컨테이너 고정 */
 .dayImg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform .3s;
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    display: block; transition: transform .3s;
 }
-
 .dayFallback {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, .06);
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: var(--border);
 }
-
 .dayName {
-    font-size: 16px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, .75);
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-    padding: 7px 0 7px;
+    font-size: 16px; font-weight: 800;
+    color: var(--text-high);
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    line-height: 1.3; padding: 7px 0;
 }
-
-
 .daySkeleton {
-    border-radius: 6px;
-    width: 100%;
-    aspect-ratio: 3 / 4;
-    background: linear-gradient(90deg, #141420 25%, #1e1e30 50%, #141420 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.6s infinite;
+    border-radius: 6px; width: 100%; aspect-ratio: 3 / 4;
+    background: var(--bg-secondary); animation: shimmer 1.6s infinite;
     margin-bottom: 6px;
 }
 
-/* ══ BLOCK 2: 오늘 업데이트 ════════════════════════ */
+/* ── 오늘 업데이트 레이아웃 ──────────────── */
 .todayLayout {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 15px;
-    align-items: stretch;
+    gap: 15px; align-items: stretch;
 }
-
 .featuredWrap {
     grid-column: span 2;
-    display: flex;
-    flex-direction: column;
-    align-self: stretch;
+    display: flex; flex-direction: column; align-self: stretch;
 }
-
 .featuredCard {
-    position: relative;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #1e1e24;
-    width: 100%;
-    flex: 1;
-    cursor: pointer;
-    min-height: 0;
+    position: relative; border-radius: 10px;
+    overflow: hidden; background: var(--bg-card);
+    width: 100%; flex: 1; cursor: pointer; min-height: 0;
 }
-
-.featuredCard:hover .featuredImg {
-    transform: scale(1.04);
-}
-
-.featuredCard:hover .featuredBottom {
-    opacity: 1;
-}
-
-.featuredCard:hover .featuredGradient {
-    opacity: 1;
-}
-
-/* ★ 핵심 */
+.featuredCard:hover .featuredImg { transform: scale(1.04); }
+.featuredCard:hover .featuredBottom { opacity: 1; }
+.featuredCard:hover .featuredGradient { opacity: 1; }
 .featuredImg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform .35s;
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    display: block; transition: transform .35s;
 }
-
 .featuredFallback {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 48px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, .05);
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; font-weight: 800; color: var(--border);
 }
-
 .featuredGradient {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, .95) 0%, rgba(0, 0, 0, .3) 50%, transparent 70%);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity .25s ease;
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.95) 0%, rgba(0,0,0,.3) 50%, transparent 70%);
+    pointer-events: none; opacity: 0; transition: opacity .25s ease;
 }
-
 .featuredBottom {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 2;
-    padding: 16px 16px 20px;
-    opacity: 0;
-    transition: opacity .25s ease;
+    position: absolute; bottom: 0; left: 0; right: 0;
+    z-index: 2; padding: 16px 16px 20px;
+    opacity: 0; transition: opacity .25s ease;
 }
-
-.featuredGenres {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-bottom: 10px;
-}
-
+.featuredGenres { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
 .genreTag {
-    font-size: 10px;
-    color: rgba(255, 255, 255, .6);
-    border: 1px solid rgba(255, 255, 255, .2);
-    border-radius: 12px;
-    padding: 2px 8px;
+    font-size: 10px; color: rgba(255,255,255,.6);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 12px; padding: 2px 8px;
 }
-
-.featuredName {
-    font-size: 18px;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 8px;
-    line-height: 1.3;
-}
-
+.featuredName { font-size: 18px; font-weight: 800; color: #fff; margin: 0 0 8px; line-height: 1.3; }
 .featuredDesc {
-    font-size: 12px;
-    color: rgba(255, 255, 255, .45);
-    line-height: 1.6;
-    margin: 0 0 14px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: 12px; color: rgba(255,255,255,.45);
+    line-height: 1.6; margin: 0 0 14px;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
 }
-
 .watchBtn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 18px;
-    border-radius: 20px;
-    border: none;
-    background: #6c5ce7;
-    color: #fff;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background .18s;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 18px; border-radius: 20px; border: none;
+    background: #6c5ce7; color: #fff;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: background .18s;
 }
-
-.watchBtn:hover {
-    background: #7d6ff0;
-}
-
+.watchBtn:hover { background: #7d6ff0; }
 .featuredSkeleton {
-    border-radius: 10px;
-    width: 100%;
-    aspect-ratio: 3 / 4;
-    background: linear-gradient(90deg, #141420 25%, #1e1e30 50%, #141420 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.6s infinite;
+    border-radius: 10px; width: 100%; aspect-ratio: 3 / 4;
+    background: var(--bg-secondary); animation: shimmer 1.6s infinite;
 }
-
 .restGrid {
     grid-column: span 4;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     grid-template-rows: repeat(2, 1fr);
-    gap: 15px;
-    align-content: stretch;
+    gap: 15px; align-content: stretch;
 }
-
-.restCard {
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-}
-
-.restCard:hover .restImg {
-    transform: scale(1.04);
-}
-
-.restCard:hover .restOverlay {
-    opacity: 1;
-}
-
+.restCard { cursor: pointer; display: flex; flex-direction: column; }
+.restCard:hover .restImg { transform: scale(1.04); }
+.restCard:hover .restOverlay { opacity: 1; }
 .restThumb {
-    position: relative;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #1e1e24;
-    width: 100%;
-    aspect-ratio: 3 / 4;
-    /* unset → 3/4 복구 */
-    flex: 1;
+    position: relative; border-radius: 8px;
+    overflow: hidden; background: var(--bg-card);
+    width: 100%; aspect-ratio: 3 / 4; flex: 1;
 }
-
 .restName {
-    font-size: 18px;
-    font-weight: 800;
-    color: rgba(255,255,255,.75);
-
-    margin-top: 10px;
-
-    line-height: 1.3;
-    height: 46px;
-
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    font-size: 18px; font-weight: 800;
+    color: var(--text-high);
+    overflow: hidden; white-space: nowrap;
+    text-overflow: ellipsis; margin-top: 10px;
 }
-
-/* ★ 핵심 */
 .restImg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform .3s;
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    display: block; transition: transform .3s;
 }
-
 .restFallback {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, .06);
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 800; color: var(--border);
 }
-
-/* 호버 오버레이 */
 .restOverlay {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    background: linear-gradient(to top, rgba(0, 0, 0, .97) 0%, rgba(0, 0, 0, .6) 55%, rgba(0, 0, 0, .15) 100%);
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 12px;
-    opacity: 0;
-    transition: opacity .25s ease;
+    position: absolute; inset: 0; z-index: 2;
+    background: linear-gradient(to top, rgba(0,0,0,.97) 0%, rgba(0,0,0,.6) 55%, rgba(0,0,0,.15) 100%);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 12px; opacity: 0; transition: opacity .25s ease;
 }
-
-.restOverlayGenres {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    margin-bottom: 6px;
-}
-
+.restOverlayGenres { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
 .restOverlayTag {
-    font-size: 9px;
-    color: rgba(255, 255, 255, .55);
-    border: 1px solid rgba(255, 255, 255, .2);
-    border-radius: 8px;
-    padding: 1px 5px;
+    font-size: 9px; color: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 8px; padding: 1px 5px;
 }
-
 .restOverlayName {
-    font-size: 13px;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 5px;
-    line-height: 1.3;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    font-size: 13px; font-weight: 800; color: #fff;
+    margin: 0 0 5px; line-height: 1.3;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
-
 .restOverlayDesc {
-    font-size: 10px;
-    color: rgba(255, 255, 255, .4);
-    line-height: 1.5;
-    margin: 0 0 10px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: 10px; color: rgba(255,255,255,.4);
+    line-height: 1.5; margin: 0 0 10px;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
 }
-
 .restOverlayBtn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 14px;
-    border-radius: 16px;
-    border: none;
-    background: #6c5ce7;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-    width: fit-content;
-    transition: background .18s;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px; border-radius: 16px; border: none;
+    background: #6c5ce7; color: #fff;
+    font-size: 11px; font-weight: 700; cursor: pointer;
+    width: fit-content; transition: background .18s;
 }
-
-.restOverlayBtn:hover {
-    background: #7d6ff0;
-}
-
+.restOverlayBtn:hover { background: #7d6ff0; }
 .restSkeleton {
-    border-radius: 8px;
-    width: 100%;
-    aspect-ratio: 3 / 4;
-    background: linear-gradient(90deg, #141420 25%, #1e1e30 50%, #141420 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.6s infinite;
+    border-radius: 8px; width: 100%; aspect-ratio: 3 / 4;
+    background: var(--bg-secondary); animation: shimmer 1.6s infinite;
 }
 
-/* ── 공통 뱃지 ────────────────────────────────────── */
+/* ── 뱃지 ───────────────────────────────── */
 .badgeUp {
-    position: absolute;
-    top: 7px;
-    left: 7px;
-    z-index: 3;
-    background: #e84040;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 3px;
-    line-height: 1.6;
+    position: absolute; top: 7px; left: 7px; z-index: 3;
+    background: #e84040; color: #fff;
+    font-size: 10px; font-weight: 700;
+    padding: 1px 5px; border-radius: 3px; line-height: 1.6;
 }
-
 .badgeSel {
-    position: absolute;
-    top: 7px;
-    right: 7px;
-    z-index: 3;
-    background: rgba(108, 92, 231, .85);
-    color: #d0ccff;
-    font-size: 9px;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 3px;
-    border: 1px solid rgba(157, 151, 255, .25);
-    line-height: 1.6;
+    position: absolute; top: 7px; right: 7px; z-index: 3;
+    background: rgba(108,92,231,.85); color: #d0ccff;
+    font-size: 9px; font-weight: 700;
+    padding: 1px 5px; border-radius: 3px;
+    border: 1px solid rgba(157,151,255,.25); line-height: 1.6;
 }
 
-/* ── 연령 등급 ────────────────────────────────────── */
-.age {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    font-size: 7px;
-    font-weight: 800;
-    flex-shrink: 0;
-}
-
-.ageAll {
-    background: #00a550;
-    color: #fff;
-}
-
-.age7 {
-    background: #00a550;
-    color: #fff;
-}
-
-.age12 {
-    background: #f5c518;
-    color: #1e1e24;
-}
-
-.age15 {
-    background: #ff8c00;
-    color: #fff;
-}
-
-.age19 {
-    background: #e84040;
-    color: #fff;
-}
-
-/* ── 더보기 버튼 ──────────────────────────────────── */
-.moreWrap {
-    display: flex;
-    justify-content: center;
-    margin-top: 24px;
-}
-
+/* ── 더보기 ─────────────────────────────── */
+.moreWrap { display: flex; justify-content: center; margin-top: 24px; }
 .moreBtn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 28px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.55);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .18s;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 28px; border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all .18s;
 }
+.moreBtn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--text-subtle); }
 
-.moreBtn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-@keyframes shimmer {
-    0% {
-        background-position: 200% 0;
-    }
-
-    100% {
-        background-position: -200% 0;
-    }
-}
-
-/* ── 인기 배너 ────────────────────────────────────── */
+/* ── 인기 배너 ──────────────────────────── */
 .popularBanner {
-    background: linear-gradient(135deg, rgba(108, 92, 231, 0.12) 0%, rgba(108, 92, 231, 0.04) 100%);
-    border-top: 1px solid rgba(108, 92, 231, 0.2);
-    border-bottom: 1px solid rgba(108, 92, 231, 0.2);
-    overflow: hidden;
-    margin: 50px 0 120px;
+    background: linear-gradient(135deg, rgba(108,92,231,.12) 0%, rgba(108,92,231,.04) 100%);
+    border-top: 1px solid rgba(108,92,231,.2);
+    border-bottom: 1px solid rgba(108,92,231,.2);
+    overflow: hidden; margin: 50px 0 120px;
 }
-
-.popularInner {
-    display: flex;
-    align-items: center;
-    height: 150px;
-}
-
+.popularInner { display: flex; align-items: center; height: 150px; }
 .popularChar {
-    height: 100px;
-    width: auto;
-    object-fit: contain;
-    flex-shrink: 0;
-    margin-top: -20px;
-    filter: drop-shadow(0 4px 12px rgba(108, 92, 231, 0.4));
+    height: 100px; width: auto; object-fit: contain;
+    flex-shrink: 0; margin-top: -20px;
+    filter: drop-shadow(0 4px 12px rgba(108,92,231,.4));
 }
+.popularBubble { display: flex; align-items: center; margin-left: 16px; }
+.popularText { font-size: 24px; font-weight: 600; color: var(--text-high); line-height: 1.4; }
+.popularTitle { color: #9d97ff; font-weight: 800; }
 
-.popularBubble {
-    display: flex;
-    align-items: center;
-    margin-left: 16px;
-}
-
-.popularText {
-    font-size: 24px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
-    padding-left: 30;
-    line-height: 1.4;
-}
-
-.popularTitle {
-    color: #9d97ff;
-    font-weight: 800;
-}
+/* ── 스켈레톤 ───────────────────────────── */
+@keyframes shimmer { 0%{opacity:1} 50%{opacity:.5} 100%{opacity:1} }
 `}</style>
+
             <div className="page">
                 <div className="new">
                     <div style={{ width: "90%", margin: "0 auto", paddingTop: 64 }}>
-                        <div style={{ borderBottom: "1px solid rgba(255,255,255,.07)", padding: "4px 0 50px", marginBottom: 28 }}>
-                            <h1 style={{ fontSize: 28, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
+                        <div style={{ borderBottom: "1px solid var(--border-subtle)", padding: "4px 0 50px", marginBottom: 28 }}>
+                            <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
                                 <span style={{ color: "#6c63ff" }}>{todayDayName}요일</span> 신작
                             </h1>
-                            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", margin: "8px 0 0" }}>매일 업데이트되는 최신 애니메이션</p>
+                            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "8px 0 0" }}>매일 업데이트되는 최신 애니메이션</p>
                         </div>
 
                         <div className="todayLayout">
-                            {/* 피처드 래퍼 — restCard와 동일 구조 */}
                             <div className="featuredWrap">
                                 {featured ? (
                                     <div className="featuredCard" onClick={() => setPreviewId(featured.id)}>
@@ -764,7 +378,6 @@ export default function DayNewPage() {
                                 {featured && <p className="restName">{featured.name}</p>}
                             </div>
 
-                            {/* 우측 2행×5열 */}
                             <div className="restGrid">
                                 {(restItems.slice(0, 10).length > 0 ? restItems.slice(0, 10) : Array(10).fill(null)).map((ani: any, idx: number) =>
                                     ani ? (
@@ -805,11 +418,7 @@ export default function DayNewPage() {
                     <div className="popularBanner">
                         <div style={{ width: "90%", margin: "0 auto" }}>
                             <div className="popularInner">
-                                <img
-                                    src="/images/laftel-icon/new.png"
-                                    alt="라프텔 캐릭터"
-                                    className="popularChar"
-                                />
+                                <img src="/images/laftel-icon/new.png" alt="라프텔 캐릭터" className="popularChar" />
                                 <div className="popularBubble">
                                     <p className="popularText">
                                         오늘 가장 인기있는 애니는{' '}
@@ -822,14 +431,12 @@ export default function DayNewPage() {
                     </div>
                 )}
 
-
-
                 <section className="section">
                     <div style={{ width: "90%", margin: "0 auto" }}>
-                        <div style={{ borderBottom: "1px solid rgba(255,255,255,.07)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 0", marginBottom: 20 }}>
+                        <div style={{ borderBottom: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 0", marginBottom: 20 }}>
                             <div>
-                                <h1 style={{ fontSize: 28, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.2, letterSpacing: "-0.02em" }}>요일별 신작</h1>
-                                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", margin: "8px 0 0" }}>매일 업데이트되는 최신 애니메이션</p>
+                                <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2, letterSpacing: "-0.02em" }}>요일별 신작</h1>
+                                <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "8px 0 0" }}>매일 업데이트되는 최신 애니메이션</p>
                             </div>
                             <button className="calBtn" onClick={() => setShowCalendar(true)}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -846,11 +453,7 @@ export default function DayNewPage() {
                             {DAYS.map((d, i) => (
                                 <button
                                     key={d}
-                                    className={[
-                                        'dayTab',
-                                        activeDay === i ? 'dayTabActive' : '',
-                                        i === todayIdx ? 'dayTabToday' : '',
-                                    ].join(' ')}
+                                    className={['dayTab', activeDay === i ? 'dayTabActive' : '', i === todayIdx ? 'dayTabToday' : ''].join(' ')}
                                     onClick={() => { setActiveDay(i); setShowAll(false) }}
                                 >
                                     <span className="dayTabLabel">{d}요일</span>
@@ -882,15 +485,9 @@ export default function DayNewPage() {
                             <div className="moreWrap">
                                 <button className="moreBtn" onClick={() => setShowAll(v => !v)}>
                                     {showAll ? (
-                                        <>
-                                            접기
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m18 15-6-6-6 6" /></svg>
-                                        </>
+                                        <>접기 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m18 15-6-6-6 6" /></svg></>
                                     ) : (
-                                        <>
-                                            더보기 ({allDayItems.length - SHOW_LIMIT}개 더)
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6" /></svg>
-                                        </>
+                                        <>더보기 ({allDayItems.length - SHOW_LIMIT}개 더) <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6" /></svg></>
                                     )}
                                 </button>
                             </div>
