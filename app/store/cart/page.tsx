@@ -460,11 +460,11 @@ export default function CartPage() {
                         </div>
                         <div className="mt-5 flex gap-2">
                             <button type="button" onClick={() => setOptionModal(null)}
-                                className="h-[46px] flex-1 rounded-full border-2 border-[#e0daf7] text-[14px] font-bold text-[#888] hover:bg-[#f5f3ff] transition-colors">
+                                className="h-[46px] flex-1 rounded-[12px] border-2 border-[#e0daf7] text-[14px] font-bold text-[#888] hover:bg-[#f5f3ff] transition-colors">
                                 취소
                             </button>
                             <button type="button" onClick={saveOption} disabled={!optionModal.selectedOption.trim()}
-                                className="h-[46px] flex-1 rounded-full bg-[#826CFF] text-[14px] font-bold text-white hover:bg-[#6B5CE7] transition-colors disabled:cursor-not-allowed disabled:opacity-40">
+                                className="h-[46px] flex-1 rounded-[12px] bg-[#826CFF] text-[14px] font-bold text-white hover:bg-[#6B5CE7] transition-colors disabled:cursor-not-allowed disabled:opacity-40">
                                 변경하기
                             </button>
                         </div>

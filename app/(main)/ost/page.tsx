@@ -63,6 +63,7 @@ function extractAnimeName(item: any): string {
     const trackName: string = item.trackName || ''
 
 
+    // collectionName에 알려진 애니 키워드가 있으면 그게 애니명
     const knownAnime = [
         '鬼滅の刃', '呪術廻戦', '進撃の巨人', 'ONE PIECE', 'NARUTO', 'BLEACH',
         'ハイキュー', 'ヒロアカ', 'チェンソーマン', 'スパイファミリー', '葬送のフリーレン',
