@@ -9,7 +9,9 @@ import { useStoreNotificationStore } from "@/store/useStoreNotificationStore";
 function getNotifLink(type: string, status?: string, link?: string): string {
     if (link) return link;
     if (type === "point") return "/store/profile/points";
-    if (type === "inquiry" || type === "coupon") return "/store/profile/inquiry";
+    if (type === "coupon") return "/store/profile/coupon";
+    if (type === "restock") return "/store/profile/restock";
+    if (type === "inquiry") return "/store/profile/inquiry";
     if (status === "배송중" || status === "배송시작" || status === "결제완료") return "/store/profile?tab=배송중";
     if (status === "배송완료") return "/store/profile?tab=배송완료";
     if (status === "처리중" || status === "주문취소" || status === "교환환불신청" || status === "환불완료") return "/store/profile?tab=교환환불/취소";
@@ -31,7 +33,7 @@ export default function NotificationGNB() {
 
     useEffect(() => {
         if (user?.uid) subscribeNotifications(user.uid);
-    }, [user?.uid]);
+    }, [user?.uid, subscribeNotifications]);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -40,10 +42,6 @@ export default function NotificationGNB() {
         document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
     }, []);
-
-    useEffect(() => {
-        if (!user) setOpen(false);
-    }, [user]);
 
     const handleOpen = () => {
         if (!user) { router.push("/login"); return; }
@@ -96,41 +94,48 @@ export default function NotificationGNB() {
                     <div className="max-h-[300px] overflow-y-auto">
                         {notifications.length === 0 ? (
                             <p className="py-8 text-center text-[13px] text-[#9b94b2]">알림이 없어요</p>
-                        ) : notifications.slice(0, 5).map((n) => (
-                            <button
-                                key={n.id}
-                                onClick={() => handleNotifClick(n.type, (n as any).status, (n as any).link)}
-                                className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-[#f0edf8] transition hover:bg-[#f0eeff] ${!n.read ? "bg-[#faf9ff]" : "bg-white"}`}
-                            >
-                                {/* 타입 아이콘 */}
-                                <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${n.type === "point" ? "bg-[#ede9ff]" :
-                                    n.type === "cancel" ? "bg-[#fff0f0]" :
-                                        n.type === "inquiry" ? "bg-[#fff7ed]" :
-                                            "bg-[#e6faf4]"
-                                    }`}>
-                                    <NotifIcon type={n.type} />
-                                </div>
+                        ) : notifications.slice(0, 5).map((n) => {
+                            const status = typeof (n as { status?: unknown }).status === "string"
+                                ? (n as { status: string }).status
+                                : undefined;
 
-                                {/* 텍스트 */}
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[12px] font-semibold text-[#16121f]">{n.title}</p>
-                                    <p className="text-[11px] text-[#6b647a] mt-0.5 truncate">{n.body}</p>
-                                    <div className="flex items-center gap-1.5 mt-1">
-                                        <p className="text-[10px] text-[#b0aabb]">{formatTime(n.createdAt)}</p>
-                                        {/* 이동 힌트 */}
-                                        <span className="text-[10px] text-[#c4baff]">·</span>
-                                        <span className="text-[10px] text-[#c4baff]">
-                                            {n.type === "point" ? "포인트 내역 →" :
-                                                n.type === "inquiry" || n.type === "coupon" ? "문의 내역 →" :
-                                                    "주문 내역 →"}
-                                        </span>
+                            return (
+                                <button
+                                    key={n.id}
+                                    onClick={() => handleNotifClick(n.type, status, n.link)}
+                                    className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-[#f0edf8] transition hover:bg-[#f0eeff] ${!n.read ? "bg-[#faf9ff]" : "bg-white"}`}
+                                >
+                                    {/* 타입 아이콘 */}
+                                    <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${n.type === "point" ? "bg-[#ede9ff]" :
+                                        n.type === "cancel" ? "bg-[#fff0f0]" :
+                                            n.type === "inquiry" ? "bg-[#fff7ed]" :
+                                                "bg-[#e6faf4]"
+                                        }`}>
+                                        <NotifIcon type={n.type} />
                                     </div>
-                                </div>
 
-                                {/* 미읽음 dot */}
-                                {!n.read && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#7865ff]" />}
-                            </button>
-                        ))}
+                                    {/* 텍스트 */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[12px] font-semibold text-[#16121f]">{n.title}</p>
+                                        <p className="text-[11px] text-[#6b647a] mt-0.5 truncate">{n.body}</p>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <p className="text-[10px] text-[#b0aabb]">{formatTime(n.createdAt)}</p>
+                                            {/* 이동 힌트 */}
+                                            <span className="text-[10px] text-[#c4baff]">·</span>
+                                            <span className="text-[10px] text-[#c4baff]">
+                                                {n.type === "point" ? "포인트 내역 →" :
+                                                    n.type === "coupon" ? "쿠폰함 →" :
+                                                        n.type === "inquiry" ? "문의 내역 →" :
+                                                            "주문 내역 →"}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* 미읽음 dot */}
+                                    {!n.read && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#7865ff]" />}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* 하단 전체보기 */}
@@ -175,9 +180,14 @@ function NotifIcon({ type }: { type: string }) {
     );
 }
 
-function formatTime(createdAt: any): string {
+function formatTime(createdAt: unknown): string {
     if (!createdAt) return "";
-    const date = createdAt?.toDate ? createdAt.toDate() : new Date(createdAt);
+    const candidate = createdAt as { toDate?: () => Date };
+    const date = typeof candidate.toDate === "function"
+        ? candidate.toDate()
+        : new Date(createdAt as string | number | Date);
+    if (Number.isNaN(date.getTime())) return "";
+
     const diff = Date.now() - date.getTime();
     const min = Math.floor(diff / 60000);
     if (min < 1) return "방금 전";

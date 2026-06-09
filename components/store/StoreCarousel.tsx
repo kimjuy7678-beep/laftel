@@ -47,7 +47,7 @@ export default function StoreCarousel() {
                 <div className="relative flex items-center gap-2 sm:gap-4">
 
                     {/* 커스텀 prev 버튼 */}
-                    <button className="store-swiper-prev absolute left-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 flex-shrink-0 items-center justify-center rounded-full bg-black/30 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:translate-y-0 sm:bg-gray-400 sm:hover:bg-gray-500">
+                    <button className="store-swiper-prev absolute bottom-3 right-14 z-20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:bg-gray-400 sm:hover:bg-gray-500">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                         </svg>
@@ -79,7 +79,7 @@ export default function StoreCarousel() {
                                         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10 sm:from-black/60 sm:via-black/30 sm:to-transparent" />
 
                                         {/* 텍스트 영역 */}
-                                        <div className="absolute inset-0 flex max-w-[82%] flex-col justify-center gap-2 px-6 sm:max-w-[620px] sm:gap-3 sm:px-10">
+                                        <div className="absolute inset-0 flex max-w-[92%] flex-col justify-center gap-2 px-6 pb-10 sm:max-w-[620px] sm:gap-3 sm:px-10 sm:pb-0">
                                             <h1 className="text-[24px] font-bold leading-tight text-white drop-shadow-lg sm:text-[32px] lg:text-4xl">
                                                 {m.title}
                                             </h1>
@@ -97,7 +97,7 @@ export default function StoreCarousel() {
                     </div>
 
                     {/* 커스텀 next 버튼 */}
-                    <button className="store-swiper-next absolute right-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 flex-shrink-0 items-center justify-center rounded-full bg-black/30 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:translate-y-0 sm:bg-gray-400 sm:hover:bg-gray-500">
+                    <button className="store-swiper-next absolute bottom-3 right-3 z-20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:bg-gray-400 sm:hover:bg-gray-500">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>

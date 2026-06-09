@@ -10,34 +10,34 @@ interface Props {
 }
 
 const GENRES = [
-    { id: 'action',    label: '액션',    emoji: '⚔️' },
-    { id: 'romance',   label: '로맨스',  emoji: '💕' },
-    { id: 'fantasy',   label: '판타지',  emoji: '🧙' },
-    { id: 'scifi',     label: 'SF',      emoji: '🚀' },
-    { id: 'comedy',    label: '개그',    emoji: '😂' },
-    { id: 'horror',    label: '공포',    emoji: '👻' },
-    { id: 'sports',    label: '스포츠',  emoji: '⚽' },
-    { id: 'slice',     label: '일상',    emoji: '☕' },
-    { id: 'mystery',   label: '미스터리',emoji: '🔍' },
-    { id: 'mecha',     label: '메카',    emoji: '🤖' },
-    { id: 'music',     label: '음악',    emoji: '🎵' },
-    { id: 'isekai',    label: '이세계',  emoji: '🌀' },
+    { id: 'action', label: '액션', emoji: '⚔️' },
+    { id: 'romance', label: '로맨스', emoji: '💕' },
+    { id: 'fantasy', label: '판타지', emoji: '🧙' },
+    { id: 'scifi', label: 'SF', emoji: '🚀' },
+    { id: 'comedy', label: '개그', emoji: '😂' },
+    { id: 'horror', label: '공포', emoji: '👻' },
+    { id: 'sports', label: '스포츠', emoji: '⚽' },
+    { id: 'slice', label: '일상', emoji: '☕' },
+    { id: 'mystery', label: '미스터리', emoji: '🔍' },
+    { id: 'mecha', label: '메카', emoji: '🤖' },
+    { id: 'music', label: '음악', emoji: '🎵' },
+    { id: 'isekai', label: '이세계', emoji: '🌀' },
 ]
 
 const MOODS = [
-    { id: 'dark',      label: '어둡고 진지한',     emoji: '🌑' },
-    { id: 'bright',    label: '밝고 가볍게',        emoji: '☀️' },
-    { id: 'emotional', label: '감동적인',           emoji: '🥹' },
-    { id: 'exciting',  label: '두근두근 긴장감',    emoji: '💥' },
-    { id: 'healing',   label: '힐링',               emoji: '🌿' },
-    { id: 'mindblow',  label: '반전 있는 전개',     emoji: '🌀' },
+    { id: 'dark', label: '어둡고 진지한', emoji: '🌑' },
+    { id: 'bright', label: '밝고 가볍게', emoji: '☀️' },
+    { id: 'emotional', label: '감동적인', emoji: '🥹' },
+    { id: 'exciting', label: '두근두근 긴장감', emoji: '💥' },
+    { id: 'healing', label: '힐링', emoji: '🌿' },
+    { id: 'mindblow', label: '반전 있는 전개', emoji: '🌀' },
 ]
 
 const WATCH_STYLES = [
-    { id: 'binge',    label: '한 번에 몰아보기',   emoji: '📺' },
-    { id: 'weekly',   label: '정주행파',            emoji: '📅' },
-    { id: 'casual',   label: '가볍게 틈틈이',       emoji: '🎲' },
-    { id: 'ost',      label: 'OST 먼저 찾아듣기',  emoji: '🎧' },
+    { id: 'binge', label: '한 번에 몰아보기', emoji: '📺' },
+    { id: 'weekly', label: '정주행파', emoji: '📅' },
+    { id: 'casual', label: '가볍게 틈틈이', emoji: '🎲' },
+    { id: 'ost', label: 'OST 먼저 찾아듣기', emoji: '🎧' },
 ]
 
 export default function OnboardingModal({ uid, onComplete }: Props) {
@@ -77,6 +77,18 @@ export default function OnboardingModal({ uid, onComplete }: Props) {
     const canNext1 = genres.length >= 1
     const canNext2 = moods.length >= 1
     const canFinish = watchStyle !== ''
+
+    const handleSkip = async () => {
+        try {
+            await updateDoc(doc(db, 'users', uid), {
+                onboardingDone: true,
+            })
+        } catch (e) {
+            console.error(e)
+        } finally {
+            onComplete()
+        }
+    }
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center">
@@ -269,7 +281,16 @@ export default function OnboardingModal({ uid, onComplete }: Props) {
                                 </div>
                             </>
                         )}
+                        <div className="flex justify-end mt-5">
+                            <button
+                                onClick={handleSkip}
+                                className="text-xs text-[rgba(255,255,255,0.45)] hover:text-white transition-colors"
+                            >
+                                건너뛰기
+                            </button>
+                        </div>
                     </div>
+
                 </motion.div>
             </AnimatePresence>
         </div>

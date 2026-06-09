@@ -48,7 +48,7 @@ function PopularAnime({ onClose }: { onClose: () => void }) {
         fetch(`https://api.themoviedb.org/3/trending/tv/week?api_key=${TMDB_KEY}&language=ko-KR`)
             .then(r => r.json())
             .then(d => setItems((d.results || []).filter((r: any) => r.original_language === 'ja').slice(0, 6)))
-            .catch(() => {})
+            .catch(() => { })
     }, [])
 
     return (
@@ -150,11 +150,6 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                         style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 14 }}
                     />
                     {loading && <div style={{ width: 15, height: 15, border: '2px solid var(--border)', borderTopColor: '#6c63ff', borderRadius: '50%', animation: 'spin 1s linear infinite', flexShrink: 0 }} />}
-                    {query && (
-                        <button onClick={() => { setQuery(''); setResults([]); setCharHint(null) }} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'var(--border)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
-                        </button>
-                    )}
                     <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'var(--border-faint)', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 2 }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6 6 18M6 6l12 12" /></svg>
                     </button>
@@ -188,7 +183,7 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                                     {CATEGORIES.map(cat => (
                                         <button key={cat.label}
-                                            onClick={() => { onClose(); router.push('/tag-search') }}
+                                            onClick={() => { onClose(); router.push(`/tag-search?genre=${cat.genre ?? ''}`) }}
                                             style={{ padding: '5px 13px', borderRadius: 20, background: 'rgba(108,99,255,.15)', color: '#a5a0ff', fontSize: 12, fontWeight: 700, border: '1px solid rgba(108,99,255,.25)', cursor: 'pointer', transition: 'all .15s' }}
                                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(108,99,255,.25)' }}
                                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(108,99,255,.15)' }}

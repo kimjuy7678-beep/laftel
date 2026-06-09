@@ -183,7 +183,7 @@ export default function Header() {
                 )}
                 <div
                     className="w-full h-[55px] flex items-center justify-between px-[28px] rounded-full transition-colors duration-300"
-                    style={{ background: scrolled ? 'var(--bg-card)' : 'transparent' }}
+
                 >
                     {/* 좌측: 로고 + 네비게이션 */}
                     <div className="flex items-center gap-[42px]">
