@@ -49,8 +49,8 @@ const STATUS_COLOR: Record<string, string> = {
 const CANCEL_REASONS = ["단순 변심", "상품 불량/파손", "배송 지연", "주문 실수", "기타"];
 
 const DATE_RANGE_BUTTONS = [
-    { label: "1달", months: 1, days: 0 },
-    { label: "3달", months: 3, days: 0 },
+    { label: "1개월", months: 1, days: 0 },
+    { label: "3개월", months: 3, days: 0 },
     { label: "6개월", months: 6, days: 0 },
 ];
 
