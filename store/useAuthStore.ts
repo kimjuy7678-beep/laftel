@@ -9,6 +9,7 @@ interface User {
     name?: string | null
     photoURL?: string | null
     uid: string | null
+    profileId?: string
     membership?: 'none' | 'anime' | 'ost' | 'allinone'
     points?: number
     ageLimit?: string
@@ -107,6 +108,7 @@ export const useAuthStore = create<AuthStore>()(
                         photoURL: data?.avatarUrl || photoURL,
                         ageLimit: data?.ageLimit || '19',
                         onboardingDone: data?.onboardingDone || false,
+                        profileId: data?.lastProfileId || 'main',
                     }
                 })
             },
