@@ -434,9 +434,7 @@ export default function DayNewPage() {
 .restCard {
     cursor: pointer;
     display: flex;
-    /* 추가 */
     flex-direction: column;
-    /* 추가 */
 }
 
 .restCard:hover .restImg {
@@ -461,11 +459,17 @@ export default function DayNewPage() {
 .restName {
     font-size: 18px;
     font-weight: 800;
-    color: rgba(255, 255, 255, .75);
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    color: rgba(255,255,255,.75);
+
     margin-top: 10px;
+
+    line-height: 1.3;
+    height: 46px;
+
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 /* ★ 핵심 */

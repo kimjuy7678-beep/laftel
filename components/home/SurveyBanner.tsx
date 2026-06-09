@@ -256,8 +256,8 @@ export default function SurveyBanner() {
                     }
                     .sb-btn {
                         position: absolute;
-                        top: 82%;
-                        right: 14.5%;
+                        top: 85%;
+                        right: 14%;
                         display: inline-flex; align-items: center;
                         padding: 15px 30px; border-radius: 50px;
                         background: rgba(255,255,255,0.15);

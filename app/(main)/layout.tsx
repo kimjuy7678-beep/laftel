@@ -6,14 +6,24 @@ import { Toaster } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import AnimePreviewModal from "./anime/[id]/AnimePreviewModal"
-import ThemeProvider from "@/components/ThemeProvider"
+import OnboardingModal from "@/components/OnboardingModal"
+import { useAuthStore } from "@/store/useAuthStore"
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
-    const hideLayout = pathname === '/profile'    
-    
+    const hideLayout = pathname === '/profile'
+    const { user, isNewUser, clearNewUser } = useAuthStore()
+
     return (
-        <ThemeProvider>
+        <>
+            {/* 온보딩 모달: 로그인된 신규 유저에게만 표시 */}
+            {isNewUser && user?.uid && (
+                <OnboardingModal
+                    uid={user.uid}
+                    onComplete={clearNewUser}
+                />
+            )}
+
             {!hideLayout && <Header />}
             <AnimatePresence mode="wait" initial={false}>
                 <motion.main
@@ -54,6 +64,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     },
                 }}
             />
-            </ThemeProvider>
+        </>
     )
 }

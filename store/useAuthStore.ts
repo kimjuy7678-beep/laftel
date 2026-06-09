@@ -11,7 +11,8 @@ interface User {
     uid: string | null
     membership?: 'none' | 'anime' | 'ost' | 'allinone'
     points?: number
-    ageLimit?: string  // 추가
+    ageLimit?: string
+    onboardingDone?: boolean
 }
 
 export interface AvatarConfig {
@@ -34,12 +35,14 @@ export interface AvatarConfig {
 interface AuthStore {
     user: User | null;
     avatarConfig: AvatarConfig | null;
+    isNewUser: boolean;
     onLogin: (user: User) => void;
     googleLogin: () => Promise<void>;
     onLogout: () => Promise<void>;
     setMembership: (type: 'none' | 'anime' | 'ost' | 'allinone') => void;
     setAvatarConfig: (config: AvatarConfig) => void;
     addPoints: (amount: number) => Promise<void>;
+    clearNewUser: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -47,6 +50,8 @@ export const useAuthStore = create<AuthStore>()(
         (set, get) => ({
             user: null,
             avatarConfig: null,
+            isNewUser: false,
+            clearNewUser: () => set({ isNewUser: false }),
 
             onLogin: (user) => set({ user }),
 
@@ -101,6 +106,7 @@ export const useAuthStore = create<AuthStore>()(
                         name: data?.nickname || displayName,
                         photoURL: data?.avatarUrl || photoURL,
                         ageLimit: data?.ageLimit || '19',
+                        onboardingDone: data?.onboardingDone || false,
                     }
                 })
             },
@@ -127,6 +133,12 @@ export const useAuthStore = create<AuthStore>()(
                 }))
             },
         }),
-        { name: "auth-storage" }
+        {
+            name: "auth-storage",
+            partialize: (state) => ({
+                user: state.user,
+                avatarConfig: state.avatarConfig,
+            }),
+        }
     )
 )

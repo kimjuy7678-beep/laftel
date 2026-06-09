@@ -1,5 +1,4 @@
 'use client'
-import PageHeader from '@/components/PageHeader'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
@@ -1067,7 +1066,7 @@ export default function OstPage() {
                 @keyframes spin{to{transform:rotate(360deg)}}
             `}</style>
 
-                <div style={{ width: '90%', margin: '0 auto', paddingTop: 64, paddingBottom: 60, overflow: 'visible' }}>
+                <div style={{ width: '90%', margin: '0 auto', paddingTop: 115, paddingBottom: 60, overflow: 'visible' }}>
                     <div style={{ borderBottom: '1px solid var(--border-subtle)', padding: '18px 0', marginBottom: 28, position: 'relative', zIndex: 29 }}>
                         <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', margin: 0, lineHeight: 1.2, letterSpacing: '-0.02em' }}>OST</h1>
                         <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '8px 0 0' }}>애니메이션 속 그 노래, 여기서 다시 들어요</p>
