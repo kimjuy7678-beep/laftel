@@ -31,6 +31,8 @@ const HERO_SLIDES_BASE = [
     { series: "재배소년", tag: "FEATURED", title: "재배소년", desc: "마법의 화원에서 씨앗을 심어 식물의 요정인 \'맨드레이크\'를 수확하고\n수집하는 방치형 육성 시뮬레이션 게임", bg: "#a05090", image: "/store/product_list/FLOLAR.png", textColor: "#fff", tagColor: "#ffc0e0", btnBorder: "#ffc0e0", textAlign: "left" as const },
     { series: "홀로라이브", tag: "NEW", title: "홀로 라이브", desc: "현실 세계와 이세계에서 모인 개성 넘치는 가상 인형·요정·신적 존재들이\n버추얼 아이돌로 데뷔하여 다채로운 예능과 음악 활동을 통해\n글로벌 팬들과 소통하며 함께 성장해 나가는 거대 멀티버스 세계관", bg: "#e8b0d8", image: "/store/product_list/IDOL.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff", textAlign: "left" as const },
     { series: "치이카와", tag: "FEATURED", title: "치이카와", desc: "\'먼지 같고 작고 귀여운 녀석\'의 줄임말로,\n주인공 치이카와와 친구들이 가혹한 현실 속에서 살아가는 일상을 다룬 만화", bg: "#e8a0b8", image: "/store/product_list/HACHI.png", textColor: "#fff", tagColor: "#fff", btnBorder: "#fff", textAlign: "left" as const },
+    { series: "포켓몬", tag: "NEW", title: "포켓몬", desc: "포켓몬스터는 다양한 포켓몬과 인간이 공존하는 세계를 배경으로,\n트레이너들이 각자의 꿈을 향해 모험을 떠나는 이야기입니다.\n\n최애 포켓몬 굿즈를 만나보세요.", bg: "#dbce52", image: "/store/product_list/poket.png", textColor: "#ffffff", tagColor: "#37af00", btnBorder: "#37af00", textAlign: "left" as const },
+    { series: "다이아몬드 에이스", tag: "FEATURED", title: "다이아몬드 에이스", desc: "치열한 경쟁과 뜨거운 승부,\n그리고 팀원들과 함께 성장해 나가는 우정과 열정이\n가득 담긴 대표 청춘 스포츠 시리즈입니다.", bg: "#8bbaff", image: "/store/product_list/baseball.png", textColor: "#ffffff", tagColor: "#76b7ec", btnBorder: "#76b7ec", textAlign: "right" as const }
 ];
 
 // ✅ 매 로딩마다 슬라이드 순서 랜덤화
