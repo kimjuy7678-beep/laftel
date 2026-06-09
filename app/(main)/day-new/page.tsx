@@ -239,10 +239,19 @@ export default function DayNewPage() {
     width: 100%; aspect-ratio: 3 / 4; flex: 1;
 }
 .restName {
-    font-size: 18px; font-weight: 800;
-    color: var(--text-high);
-    overflow: hidden; white-space: nowrap;
-    text-overflow: ellipsis; margin-top: 10px;
+    font-size: 18px;
+    font-weight: 800;
+    color: rgba(255,255,255,.75);
+
+    margin-top: 10px;
+
+    line-height: 1.3;
+    height: 46px;
+
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 .restImg {
     position: absolute; inset: 0;

@@ -85,6 +85,14 @@ export default function ProfilePage() {
 
     const [hydrated, setHydrated] = useState(false)
     const hasMembership = user?.membership && user.membership !== 'none'
+    const membershipConfig: Record<string, { label: string; color: string }> = {
+        anime: { label: '애니 멤버십', color: '#6c63ff' },
+        ost: { label: 'OST 멤버십', color: '#ec4899' },
+        allinone: { label: '올인원 멤버십', color: '#f59e0b' },
+    }
+    const memberInfo = user?.membership && user.membership !== 'none'
+        ? membershipConfig[user.membership] ?? null
+        : null
 
     useEffect(() => { setHydrated(true) }, [])
 
