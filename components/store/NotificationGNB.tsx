@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStoreNotificationStore } from "@/store/useStoreNotificationStore";
 
+// 알림 링크 — link 필드 우선, 없으면 타입/상태 기반
+function getNotifLink(type: string, status?: string, link?: string): string {
+    if (link) return link;
+    if (type === "point") return "/store/profile/points";
+    if (type === "inquiry" || type === "coupon") return "/store/profile/inquiry";
+    if (status === "배송중" || status === "배송시작" || status === "결제완료") return "/store/profile?tab=배송중";
+    if (status === "배송완료") return "/store/profile?tab=배송완료";
+    if (status === "처리중" || status === "주문취소" || status === "교환환불신청" || status === "환불완료") return "/store/profile?tab=교환환불/취소";
+    return "/store/profile";
+}
 
 export default function NotificationGNB() {
     const { user } = useAuthStore();
@@ -19,14 +29,10 @@ export default function NotificationGNB() {
         markAllRead
     } = useStoreNotificationStore();
 
-    // 로그인 시 구독 시작
     useEffect(() => {
-        if (user?.uid) {
-            subscribeNotifications(user.uid);
-        }
+        if (user?.uid) subscribeNotifications(user.uid);
     }, [user?.uid]);
 
-    // 외부 클릭 닫기
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -35,7 +41,6 @@ export default function NotificationGNB() {
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
-    // 로그아웃 시 닫기
     useEffect(() => {
         if (!user) setOpen(false);
     }, [user]);
@@ -47,6 +52,11 @@ export default function NotificationGNB() {
 
     const handleMarkAllRead = () => {
         if (user?.uid) markAllRead(user.uid);
+    };
+
+    const handleNotifClick = (type: string, status?: string, link?: string) => {
+        setOpen(false);
+        router.push(getNotifLink(type, status, link));
     };
 
     return (
@@ -87,14 +97,16 @@ export default function NotificationGNB() {
                         {notifications.length === 0 ? (
                             <p className="py-8 text-center text-[13px] text-[#9b94b2]">알림이 없어요</p>
                         ) : notifications.slice(0, 5).map((n) => (
-                            <div
+                            <button
                                 key={n.id}
-                                className={`flex items-start gap-3 px-4 py-3 border-b border-[#f0edf8] transition hover:bg-[#f8f6ff] ${!n.read ? "bg-[#faf9ff]" : "bg-white"}`}
+                                onClick={() => handleNotifClick(n.type, (n as any).status, (n as any).link)}
+                                className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-[#f0edf8] transition hover:bg-[#f0eeff] ${!n.read ? "bg-[#faf9ff]" : "bg-white"}`}
                             >
                                 {/* 타입 아이콘 */}
                                 <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${n.type === "point" ? "bg-[#ede9ff]" :
                                     n.type === "cancel" ? "bg-[#fff0f0]" :
-                                        "bg-[#e6faf4]"
+                                        n.type === "inquiry" ? "bg-[#fff7ed]" :
+                                            "bg-[#e6faf4]"
                                     }`}>
                                     <NotifIcon type={n.type} />
                                 </div>
@@ -103,14 +115,31 @@ export default function NotificationGNB() {
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[12px] font-semibold text-[#16121f]">{n.title}</p>
                                     <p className="text-[11px] text-[#6b647a] mt-0.5 truncate">{n.body}</p>
-                                    <p className="text-[10px] text-[#b0aabb] mt-1">{formatTime(n.createdAt)}</p>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <p className="text-[10px] text-[#b0aabb]">{formatTime(n.createdAt)}</p>
+                                        {/* 이동 힌트 */}
+                                        <span className="text-[10px] text-[#c4baff]">·</span>
+                                        <span className="text-[10px] text-[#c4baff]">
+                                            {n.type === "point" ? "포인트 내역 →" :
+                                                n.type === "inquiry" || n.type === "coupon" ? "문의 내역 →" :
+                                                    "주문 내역 →"}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* 미읽음 dot */}
                                 {!n.read && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#7865ff]" />}
-                            </div>
+                            </button>
                         ))}
                     </div>
+
+                    {/* 하단 전체보기 */}
+                    <button
+                        onClick={() => { setOpen(false); router.push("/store/profile"); }}
+                        className="w-full py-2.5 text-center text-[12px] font-semibold text-[#7865ff] hover:bg-[#f0eeff] transition border-t border-[#ebe8ff]"
+                    >
+                        전체 주문내역 보기
+                    </button>
                 </div>
             )}
         </div>
@@ -132,6 +161,12 @@ function NotifIcon({ type }: { type: string }) {
             <line x1="9" y1="9" x2="15" y2="15" />
         </svg>
     );
+    if (type === "inquiry" || type === "coupon") return (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+    );
+    // order, default
     return (
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5">
             <rect x="1" y="4" width="22" height="16" rx="2" />
