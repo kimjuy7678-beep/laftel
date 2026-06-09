@@ -4,6 +4,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useWatchlistStore, WatchlistTab } from '@/store/useWatchlistStore'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '@/firebase/firebase'
+
+const membershipConfig: Record<string, { label: string; color: string }> = {
+    anime: { label: '애니 멤버십', color: '#6c63ff' },
+    ost: { label: 'OST 멤버십', color: '#ec4899' },
+    allinone: { label: '올인원 멤버십', color: '#f59e0b' },
+}
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w300'
 
@@ -27,6 +35,19 @@ export default function LibraryPage() {
     const [activeTab, setActiveTab] = useState<WatchlistTab>('recent')
     const [selectMode, setSelectMode] = useState(false)
     const [selected, setSelected] = useState<Set<number>>(new Set())
+
+    const { setMembership } = useAuthStore()
+    const [showMembershipMgmt, setShowMembershipMgmt] = useState(false)
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+    const [cancelling, setCancelling] = useState(false)
+
+    const membershipConfig: Record<string, { label: string; color: string }> = {
+        anime: { label: '애니 멤버십', color: '#6c63ff' },
+        ost: { label: 'OST 멤버십', color: '#ec4899' },
+        allinone: { label: '올인원 멤버십', color: '#f59e0b' },
+    }
+    const membership = user?.membership
+    const memberInfo = membership && membership !== 'none' ? membershipConfig[membership] : null
 
     useEffect(() => { setHydrated(true) }, [])
 
@@ -60,6 +81,18 @@ export default function LibraryPage() {
             next.has(id) ? next.delete(id) : next.add(id)
             return next
         })
+    }
+
+    const handleCancelMembership = async () => {
+        if (!user?.uid) return
+        setCancelling(true)
+        try {
+            await setDoc(doc(db, 'users', user.uid), { membership: 'none' }, { merge: true })
+            setMembership('none')
+            setShowCancelConfirm(false)
+            setShowMembershipMgmt(false)
+        } catch (e) { console.error(e) }
+        finally { setCancelling(false) }
     }
 
     return (
@@ -143,13 +176,77 @@ export default function LibraryPage() {
                                 프로필 선택
                             </button>
                         </Link>
-                        <Link href="/membership" className="lib-member-banner">
-                            <img src="/images/laftel-icon/new.png" alt="icon" style={{ width: '70px' }} />
-                            <div>
-                                <p className="lib-member-text"><span style={{ color: '#9d97ff' }}>멤버십</span> 시작하기</p>
-                                <p className="lib-member-sub">한일 동시방영 신작부터 역대 인기애니까지 무제한</p>
-                            </div>
-                        </Link>
+                        {memberInfo && (
+                            <>
+                                <button
+                                    onClick={() => setShowMembershipMgmt(true)}
+                                    style={{ width: '100%', marginTop: 8, padding: '8px', borderRadius: 8, border: `1px solid ${memberInfo.color}40`, background: `${memberInfo.color}10`, color: memberInfo.color, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
+                                    {memberInfo.label} 관리
+                                </button>
+
+                                {/* 멤버십 관리 모달 */}
+                                {showMembershipMgmt && (
+                                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60" onClick={() => setShowMembershipMgmt(false)}>
+                                        <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+                                            <div>
+                                                <p className="text-[var(--text-primary)] font-bold text-base mb-1">멤버십 관리</p>
+                                                <p className="text-[var(--text-subtle)] text-xs">현재 <span style={{ color: memberInfo.color, fontWeight: 700 }}>{memberInfo.label}</span> 이용 중이에요</p>
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                <button
+                                                    onClick={() => { setShowMembershipMgmt(false); router.push('/membership') }}
+                                                    className="w-full py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
+                                                    style={{ background: memberInfo.color }}
+                                                >
+                                                    요금제 변경하기
+                                                </button>
+                                                <button
+                                                    onClick={() => { setShowMembershipMgmt(false); setShowCancelConfirm(true) }}
+                                                    className="w-full py-3 rounded-xl font-bold text-sm border border-[var(--border)] text-[var(--text-subtle)] hover:text-red-400 hover:border-red-400/40 transition-colors"
+                                                >
+                                                    멤버십 취소
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowMembershipMgmt(false)}
+                                                    className="w-full py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-subtle)] transition-colors"
+                                                >
+                                                    닫기
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 취소 확인 모달 */}
+                                {showCancelConfirm && (
+                                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60" onClick={() => setShowCancelConfirm(false)}>
+                                        <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+                                            <div>
+                                                <p className="text-[var(--text-primary)] font-bold text-base mb-1">멤버십을 취소할까요?</p>
+                                                <p className="text-[var(--text-subtle)] text-sm leading-relaxed">취소하면 이번 달 종료 후 멤버십 혜택이 사라져요. 정말 취소하시겠어요?</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setShowCancelConfirm(false)}
+                                                    className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] text-sm font-bold hover:text-[var(--text-primary)] transition-colors"
+                                                >
+                                                    유지하기
+                                                </button>
+                                                <button
+                                                    onClick={handleCancelMembership}
+                                                    disabled={cancelling}
+                                                    className="flex-1 py-3 rounded-xl bg-red-500/80 text-white text-sm font-bold hover:bg-red-500 transition-colors disabled:opacity-50"
+                                                >
+                                                    {cancelling ? '처리 중...' : '취소하기'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
 

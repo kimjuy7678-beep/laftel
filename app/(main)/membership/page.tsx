@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from 'react'
 import { useAniStore } from '@/store/useAniStore'
+import { useAuthStore } from '@/store/useAuthStore'
 import MembershipHero from '@/components/MembershipHero'
 import MembershipMarquee from '@/components/MembershipMarquee'
 import MembershipPlayer from '@/components/MembershipPlayer'
@@ -22,8 +23,11 @@ interface Anime {
 
 export default function MembershipPage() {
     const { aniList, onFetchAni } = useAniStore()
+    const { user } = useAuthStore()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [modalPlan, setModalPlan] = useState<PlanId>('allinone')
+
+    const hasMembership = !!user?.membership && user.membership !== 'none'
 
     useEffect(() => {
         if (aniList.length === 0) onFetchAni()
@@ -37,21 +41,22 @@ export default function MembershipPage() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white">
-            <MembershipHero onOpenModal={() => openModal()} />
-            <MembershipMarquee gridAnime={gridAnime} onOpenModal={() => openModal()} />
+        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+            <MembershipHero hasMembership={hasMembership} onOpenModal={() => openModal()} />
+            <MembershipMarquee gridAnime={gridAnime} hasMembership={hasMembership} onOpenModal={() => openModal()} />
             <MembershipPlayer />
             <MembershipTV />
             <MembershipProfiles />
             <MembershipLive />
             <MembershipOST />
             <MembershipReviews />
-            <MembershipPlans onOpenModal={openModal} />
+            <MembershipPlans hasMembership={hasMembership} onOpenModal={openModal} />
             <MembershipNotice />
             <MembershipModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 defaultPlan={modalPlan}
+                hasMembership={hasMembership}
             />
         </div>
     )

@@ -666,6 +666,18 @@ export default function ProfilePage() {
                         )}
                     </div>
 
+                    {memberInfo && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                            <span style={{
+                                fontSize: 12, fontWeight: 700, padding: '6px 16px', borderRadius: 20,
+                                background: `${memberInfo.color}20`, color: memberInfo.color,
+                                border: `1px solid ${memberInfo.color}40`
+                            }}>
+                                ✓ {memberInfo.label} 이용중
+                            </span>
+                        </div>
+                    )}
+
                     {/* 프로필 편집 버튼 */}
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <button
