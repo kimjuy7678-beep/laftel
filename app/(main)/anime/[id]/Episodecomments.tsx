@@ -78,7 +78,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     const { user, avatarConfig } = useAuthStore()
     const myAvatarSrc = avatarConfig?.svgDataUrl || user?.photoURL || null
     const myName = user?.name || user?.email?.split('@')[0] || '나'
-    const { counts, fetchCounts } = useActivityStore()
     const router = useRouter()
     const [comments, setComments] = useState<Comment[]>([])
     const [input, setInput] = useState('')
@@ -95,9 +94,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
 
     const colName = 'anime_comments'
 
-    const colName = 'anime_comments'
-
-    // 댓글 fetch — animeId로만 쿼리 후 클라이언트에서 화 필터링 (복합 인덱스 불필요)
     useEffect(() => {
         if (!animeId || !episodeId || isNaN(Number(animeId))) return
         setLoading(true)
@@ -110,7 +106,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
             const docs = snap.docs
                 .map(d => ({ id: d.id, ...d.data() } as Comment))
                 .filter(d => d.episodeNumber === Number(episodeId))
-                .filter(d => d.episodeNumber === Number(episodeId))  // 클라이언트 필터
                 .sort((a, b) => {
                     const aTime = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
                     const bTime = b.createdAt?.toDate?.() ?? new Date(b.createdAt ?? 0)
@@ -146,7 +141,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 animeTitle: animeTitle || '',
                 animePoster: animePoster || null,
                 watched: myWatched,  // 등급 뱃지용
-                animePoster: animePoster || null,  // ✅ 포스터 추가
             }
             const ref = await addDoc(collection(db, colName), payload)
             setComments(prev => [{
@@ -156,7 +150,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
             } as Comment, ...prev])
             setInput('')
             if (inputRef.current) inputRef.current.style.height = 'auto'
-            // 헤더 카운트 +1 즉시 반영
             useActivityStore.setState(s => ({
                 counts: { ...s.counts, comment: s.counts.comment + 1 }
             }))
@@ -168,7 +161,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         if (!confirm('댓글을 삭제할까요?')) return
         await deleteDoc(doc(db, colName, id))
         setComments(prev => prev.filter(c => c.id !== id))
-        // 헤더 카운트 -1 즉시 반영
         useActivityStore.setState(s => ({
             counts: { ...s.counts, comment: Math.max(0, s.counts.comment - 1) }
         }))
