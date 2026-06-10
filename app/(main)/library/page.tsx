@@ -106,6 +106,7 @@ export default function LibraryPage() {
         if (!user) { router.push('/login'); return }
         if (user?.uid) {
             const profileId = user?.profileId || 'main'
+            console.log('fetchWatchlist 호출:', user.uid, profileId)
             fetchWatchlist(user.uid, profileId)
             fetchActivity(user.uid)
         }
