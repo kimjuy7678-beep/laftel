@@ -68,7 +68,9 @@ export const useAniStore = create<AniStore>((set, get: any) => ({
         let allResults: any[] = []
         for (let page = 1; page <= 25; page++) {
             const res = await fetch(
-                `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=ko-KR&page=${page}`
+                // `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=ko-KR&page=${page}`
+                `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_genres=16&with_original_language=ja&sort_by=popularity.desc&vote_count.gte=500&language=ko-KR&page=${page}`
+
             )
             const data = await res.json()
             if (!data.results?.length) break
