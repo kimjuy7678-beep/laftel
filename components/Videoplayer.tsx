@@ -11,7 +11,7 @@ interface Props {
     title?: string
     episodeTitle?: string
     episodeNumber?: number
-    backdrop?: string   // 썸네일용 backdrop_path (선택)
+    backdrop?: string
     onNext?: () => void
     onClose?: () => void
 }
@@ -27,13 +27,32 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
     const [showControls, setShowControls] = useState(true)
     const failTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const triedKeys = useRef<Set<string>>(new Set())
-    const savedRef = useRef(false) // 중복 저장 방지
+    const savedRef = useRef(false)
+
+    // 현재 선택된 프로필 ID
+    const profileId = (user as any)?.currentProfileId || 'main'
 
     useEffect(() => {
         const key = currentVideo?.key
         if (!key) { setActiveKey(null); return }
         setActiveKey(key)
-        savedRef.current = false // 에피소드 바뀌면 다시 저장 가능
+        savedRef.current = false
+
+        // 영상 로드 시점에 바로 저장 (onStateChange 메시지 못 받는 경우 대비)
+        if (mode === 'modal' && user?.uid && title) {
+            const ani = aniList.find((a: any) => a.id === id)
+            const backdropPath = backdrop || ani?.backdrop_path || ''
+            const posterPath = ani?.poster_path || ''
+            saveProgress(user.uid, {
+                tmdbId: id,
+                title,
+                backdrop: backdropPath,
+                poster: posterPath,
+                episode: episodeNumber || 1,
+                episodeTitle: episodeTitle || '',
+                progress: 5,
+            }, profileId)
+        }
     }, [currentVideo?.key, id])
 
     useEffect(() => {
@@ -50,17 +69,14 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
             try {
                 const data = JSON.parse(e.data)
 
-                // 에러 → 다음
                 if (data.event === 'onError' && [2, 5, 100, 101, 150].includes(data.info)) {
                     if (failTimer.current) clearTimeout(failTimer.current)
                     onNextVideo(id)
                 }
 
-                // 재생(1) 시작 시점에 시청 기록 저장
                 if (data.event === 'onStateChange' && data.info === 1) {
                     if (failTimer.current) clearTimeout(failTimer.current)
 
-                    // modal 모드이고, 로그인 상태이고, 아직 저장 안 한 경우
                     if (mode === 'modal' && user?.uid && title && !savedRef.current) {
                         savedRef.current = true
                         const ani = aniList.find((a: any) => a.id === id)
@@ -69,17 +85,16 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
 
                         saveProgress(user.uid, {
                             tmdbId: id,
-                            title: title,
+                            title,
                             backdrop: backdropPath,
                             poster: posterPath,
                             episode: episodeNumber || 1,
                             episodeTitle: episodeTitle || '',
-                            progress: 5, // 재생 시작 = 5%로 고정 (YouTube iframe은 시간 접근 불가)
-                        })
+                            progress: 5,
+                        }, profileId)
                     }
                 }
 
-                // 버퍼링(3)
                 if (data.event === 'onStateChange' && data.info === 3) {
                     if (failTimer.current) clearTimeout(failTimer.current)
                 }
@@ -87,7 +102,7 @@ export default function VideoPlayer({ id, mode, className, title, episodeTitle, 
         }
         window.addEventListener('message', handler)
         return () => window.removeEventListener('message', handler)
-    }, [activeKey, id, mode, user?.uid, title, episodeNumber, episodeTitle, backdrop])
+    }, [activeKey, id, mode, user?.uid, title, episodeNumber, episodeTitle, backdrop, profileId])
 
     const handleClick = () => setShowControls(v => !v)
 
