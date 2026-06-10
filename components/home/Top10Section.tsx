@@ -14,7 +14,7 @@ const OVERLAP = 60
 const CARD_W = NUM_W + POSTER_W - OVERLAP
 const NUM_FONT = 220
 
-const FILTERS = ['실시간', '주간', '분기', '역대'] as const
+const FILTERS = ['실시간', '주간', '역대'] as const
 type Filter = typeof FILTERS[number]
 
 const GENRE_MAP: Record<number, string> = {
@@ -44,11 +44,6 @@ export default function Top10Section() {
         switch (filter) {
             case '실시간': return sorted.sort((a: any, b: any) => b.popularity - a.popularity).slice(0, 10)
             case '주간': return sorted.sort((a: any, b: any) => b.vote_count - a.vote_count).slice(0, 10)
-            case '분기': {
-                const sixMonthsAgo = new Date()
-                sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-                return sorted.filter((a: any) => a.first_air_date && new Date(a.first_air_date) >= sixMonthsAgo).sort((a: any, b: any) => b.popularity - a.popularity).slice(0, 10)
-            }
             case '역대': return sorted.filter((a: any) => a.vote_count > 100).sort((a: any, b: any) => b.vote_average - a.vote_average).slice(0, 10)
         }
     }
@@ -75,7 +70,7 @@ export default function Top10Section() {
                 .t10-swiper { touch-action: pan-y; user-select: none; }
                 .t10-card { position: relative; width: ${CARD_W}px; cursor: pointer; transition: transform .25s; }
                 .t10-card:hover { transform: translateY(-6px); }
-                .t10-rank { position: absolute; left: -20px; bottom: 37px; width: ${NUM_W + 20}px; font-size: ${NUM_FONT}px; font-weight: 900; line-height: 1; color: var(--text-high); text-align: right; z-index: 3; user-select: none; letter-spacing: -0.06em; text-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4); }
+                .t10-rank { position: absolute; left: -20px; bottom: 37px; width: ${NUM_W + 20}px; font-size: ${NUM_FONT}px; font-weight: 900; line-height: 1; color: #ffffff; text-align: right; z-index: 3; user-select: none; letter-spacing: -0.06em; text-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4); }
                 .t10-thumb { position: absolute; right: 0; top: 0; width: ${POSTER_W}px; height: ${POSTER_H}px; border-radius: 12px; overflow: hidden; background: var(--bg-card); box-shadow: 0 10px 32px rgba(0,0,0,0.7); z-index: 2; transition: transform .25s, box-shadow .25s; }
                 .t10-card:hover .t10-thumb { transform: translateY(-4px); box-shadow: 0 18px 48px rgba(0,0,0,0.9); }
                 .t10-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s; }
@@ -121,7 +116,7 @@ export default function Top10Section() {
                         font-size: 118px;
                         font-weight: 900;
                         line-height: 1;
-                        color: var(--text-high);
+                       color: #fff;
                         text-align: right;
                         z-index: 3;
                         user-select: none;

@@ -20,13 +20,12 @@ const TAGS = [
     { label: '드라마', genres: [18] },
     { label: '코미디', genres: [35] },
     { label: '미스터리', genres: [9648] },
-    { label: '가족', genres: [10751] },
 ]
 
 const GENRE_MAP: Record<number, string> = {
     16: '애니메이션', 10759: '액션·어드벤처', 35: '코미디', 18: '드라마',
     14: '판타지', 10765: 'SF', 9648: '미스터리', 10749: '로맨스',
-    10751: '가족', 27: '공포', 53: '스릴러', 80: '범죄',
+    27: '공포', 53: '스릴러', 80: '범죄',
 }
 
 export default function TagTop10Section() {
@@ -72,7 +71,7 @@ export default function TagTop10Section() {
                 .tt-swiper { touch-action: pan-y; user-select: none; }
                 .tt-card { position: relative; width: ${CARD_W}px; cursor: pointer; transition: transform .25s; }
                 .tt-card:hover { transform: translateY(-6px); }
-                .tt-rank { position: absolute; left: -20px; bottom: 37px; width: ${NUM_W + 20}px; font-size: ${NUM_FONT}px; font-weight: 900; line-height: 1; color: var(--text-high); text-align: right; z-index: 3; user-select: none; letter-spacing: -0.06em; text-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4); }
+                .tt-rank { position: absolute; left: -20px; bottom: 37px; width: ${NUM_W + 20}px; font-size: ${NUM_FONT}px; font-weight: 900; line-height: 1; color:#fff; text-align: right; z-index: 3; user-select: none; letter-spacing: -0.06em; text-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4); }
                 .tt-thumb { position: absolute; right: 0; top: 0; width: ${POSTER_W}px; height: ${POSTER_H}px; border-radius: 12px; overflow: hidden; background: var(--bg-card); box-shadow: 0 10px 32px rgba(0,0,0,0.7); z-index: 2; transition: transform .25s, box-shadow .25s; }
                 .tt-card:hover .tt-thumb { transform: translateY(-4px); box-shadow: 0 18px 48px rgba(0,0,0,0.9); }
                 .tt-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s; }
@@ -106,7 +105,7 @@ export default function TagTop10Section() {
                     }
                     .tt-mobile-scroll::-webkit-scrollbar { display: none; }
                     .tt-mobile-card { position: relative; flex: 0 0 198px; width: 198px; height: 286px; scroll-snap-align: start; cursor: pointer; }
-                    .tt-mobile-rank { position: absolute; left: -52px; bottom: 46px; width: 98px; font-size: 118px; font-weight: 900; line-height: 1; color: var(--text-high); text-align: right; z-index: 3; user-select: none; letter-spacing: -0.04em; text-shadow: 0 8px 28px rgba(0,0,0,0.58), 0 2px 8px rgba(0,0,0,0.4); }
+                    .tt-mobile-rank { position: absolute; left: -52px; bottom: 46px; width: 98px; font-size: 118px; font-weight: 900; line-height: 1; color:#fff; text-align: right; z-index: 3; user-select: none; letter-spacing: -0.04em; text-shadow: 0 8px 28px rgba(0,0,0,0.58), 0 2px 8px rgba(0,0,0,0.4); }
                     .tt-mobile-thumb { position: absolute; right: 0; top: 0; width: 156px; height: 234px; border-radius: 10px; overflow: hidden; background: var(--bg-card); box-shadow: 0 10px 28px rgba(0,0,0,0.62); z-index: 2; }
                     .tt-mobile-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
                     .tt-mobile-thumb-np { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; color: var(--border-subtle); }

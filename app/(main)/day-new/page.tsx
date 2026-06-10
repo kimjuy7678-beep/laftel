@@ -241,7 +241,7 @@ export default function DayNewPage() {
 .restName {
     font-size: 18px;
     font-weight: 800;
-    color: rgba(255,255,255,.75);
+     color: var(--text-primary);
 
     margin-top: 10px;
 

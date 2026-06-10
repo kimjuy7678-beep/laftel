@@ -17,7 +17,8 @@ const MenuList = [
     { id: 3, title: "라이브", path: "/live", live: true },
     { id: 4, title: "OST", path: "/ost" },
     { id: 5, title: "이벤트", path: "/event" },
-    { id: 6, title: "스토어", path: "/store", badge: "N" },
+    { id: 6, title: "커뮤니티", path: "/community" },
+    { id: 7, title: "스토어", path: "/store", badge: "N" },
 ]
 
 const membershipConfig: Record<string, { label: string; color: string | null }> = {

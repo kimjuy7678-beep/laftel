@@ -640,7 +640,7 @@ export default function TagSearch() {
     const [filters, setFilters] = useState<Filters>(() => {
         const genreParam = searchParams.get('genre')
         if (!genreParam) return DEFAULT_FILTERS
-        const matched = ALL_GENRES.find(g => g.id === Number(genreParam))
+        const matched = ALL_GENRES.find(g => g.key === genreParam)
         if (!matched) return DEFAULT_FILTERS
         return { ...DEFAULT_FILTERS, genres: [matched.key] }
     })

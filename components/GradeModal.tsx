@@ -117,7 +117,7 @@ export default function GradeModal({ onClose }: Props) {
                 .grade-modal { animation: grade-in .25s ease; }
             `}</style>
 
-            <div className="grade-modal" style={{ background: '#0e0e16', borderRadius: 24, width: '100%', maxWidth: 400, overflow: 'hidden', border: '1px solid rgba(255,255,255,.08)', position: 'relative' }}>
+            <div className="grade-modal" style={{ background: 'var(--bg-card)', borderRadius: 24, width: '100%', maxWidth: 400, overflow: 'hidden', border: '1px solid var(--border)', position: 'relative' }}>
 
                 {/* 헤더 */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 0' }}>
@@ -166,7 +166,7 @@ export default function GradeModal({ onClose }: Props) {
                                     </div>
 
                                     {/* 이미지 */}
-                                    <div style={{ width: 180, height: 180, borderRadius: 24, overflow: 'hidden', background: '#1a1a22', boxShadow: isUnlocked ? `0 0 40px ${g.color}44` : 'none', filter: isUnlocked ? 'none' : 'grayscale(1) brightness(0.4)', transition: 'all .3s' }}>
+                                    <div style={{ width: 180, height: 180, borderRadius: 24, overflow: 'hidden', background: 'var(--bg-secondary)', boxShadow: isUnlocked ? `0 0 40px ${g.color}44` : 'none', filter: isUnlocked ? 'none' : 'grayscale(1) brightness(0.4)', transition: 'all .3s' }}>
                                         <img src={g.image} alt={g.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     </div>
 
@@ -182,7 +182,7 @@ export default function GradeModal({ onClose }: Props) {
                                                 <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>다음 등급: {ng.name}</span>
                                                 <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>{watched} / {ng.req}편</span>
                                             </div>
-                                            <div style={{ height: 4, background: 'rgba(255,255,255,.1)', borderRadius: 2 }}>
+                                            <div style={{ height: 4, background: 'var(--border)', borderRadius: 2 }}>
                                                 <div style={{ height: '100%', background: g.color, borderRadius: 2, width: `${progress}%`, transition: 'width .5s ease' }} />
                                             </div>
                                         </div>
@@ -210,7 +210,7 @@ export default function GradeModal({ onClose }: Props) {
                 {/* 인디케이터 + 화살표 */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '0 24px 24px' }}>
                     <button onClick={() => setActiveIdx(v => Math.max(0, v - 1))}
-                        style={{ background: 'none', border: 'none', color: activeIdx === 0 ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.5)', cursor: activeIdx === 0 ? 'default' : 'pointer', fontSize: 18, padding: 4 }}>‹</button>
+                        style={{ background: 'none', border: 'none', color: activeIdx === 0 ? 'var(--text-faint)' : 'var(--text-muted)', cursor: activeIdx === 0 ? 'default' : 'pointer', fontSize: 18, padding: 4 }}>‹</button>
                     <div style={{ display: 'flex', gap: 6 }}>
                         {GRADES.map((g, i) => {
                             const unlocked = watched >= g.req
@@ -220,7 +220,7 @@ export default function GradeModal({ onClose }: Props) {
                                         width: i === activeIdx ? 20 : 7,
                                         height: 7,
                                         borderRadius: 4,
-                                        background: i === activeIdx ? (GRADES[i].color) : unlocked ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.12)',
+                                        background: i === activeIdx ? GRADES[i].color : unlocked ? 'var(--border-subtle)' : 'var(--border-faint)',
                                         border: 'none',
                                         cursor: 'pointer',
                                         transition: 'all .2s',
@@ -231,11 +231,10 @@ export default function GradeModal({ onClose }: Props) {
                         })}
                     </div>
                     <button onClick={() => setActiveIdx(v => Math.min(GRADES.length - 1, v + 1))}
-                        style={{ background: 'none', border: 'none', color: activeIdx === GRADES.length - 1 ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.5)', cursor: activeIdx === GRADES.length - 1 ? 'default' : 'pointer', fontSize: 18, padding: 4 }}>›</button>
+                        style={{ background: 'none', border: 'none', color: activeIdx === GRADES.length - 1 ? 'var(--text-faint)' : 'var(--text-muted)', cursor: activeIdx === GRADES.length - 1 ? 'default' : 'pointer', fontSize: 18, padding: 4 }}>›</button>
                 </div>
-
                 {/* 하단 총 시청 수 */}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,.06)', padding: '12px 24px', textAlign: 'center' }}>
+                <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '12px 24px', textAlign: 'center' }}>
                     <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>총 시청 작품 </span>
                     <span style={{ fontSize: 12, fontWeight: 800, color: currentGrade.color }}>{watched}편</span>
                 </div>
