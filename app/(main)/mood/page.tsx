@@ -195,7 +195,9 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
 }) {
     const router = useRouter()
     const mood = MOODS.find(m => m.id === moodId)!
-    const [showWishModal, setShowWishModal] = useState(false)
+    const [showWishConfirm, setShowWishConfirm] = useState(false)
+    const [showWishAdded, setShowWishAdded] = useState(false)
+    const [isWishAdding, setIsWishAdding] = useState(false)
     const isRandom = moodId === 'random'
 
     const { user } = useAuthStore()
@@ -244,6 +246,32 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
             })
         }
     }, [moodId])
+
+    const handleWishClick = () => {
+        if (!user?.uid) {
+            toast('로그인이 필요해요')
+            return
+        }
+        setIsWishAdding(!isWished)
+        setShowWishConfirm(true)
+    }
+
+    const handleWishConfirm = async () => {
+        if (!user?.uid || !hero) return
+        if (isWishAdding) {
+            await addItem(user.uid, user?.profileId || 'main', {
+                id: hero.tmdbId,
+                title: hero.koTitle,
+                poster: heroPoster || '',
+                tab: 'wishlist'
+            })
+            setShowWishConfirm(false)
+            setTimeout(() => setShowWishAdded(true), 150)
+            return
+        }
+        await removeItem(user.uid, user?.profileId || 'main', hero.tmdbId, 'wishlist')
+        setShowWishConfirm(false)
+    }
 
     return (
         <>
@@ -325,20 +353,7 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
 
                                         {/* ✅ 보고싶다 버튼 */}
                                         <button
-                                            onClick={async () => {
-                                                if (!user?.uid) { toast('로그인이 필요해요'); return }
-                                                if (isWished) {
-                                                    setShowWishModal(true)
-                                                } else {
-                                                    await addItem(user.uid, user?.profileId || 'main', {
-                                                        id: hero.tmdbId,
-                                                        title: hero.koTitle,
-                                                        poster: heroPoster || '',
-                                                        tab: 'wishlist'
-                                                    })
-                                                    setShowWishModal(true)
-                                                }
-                                            }}
+                                            onClick={handleWishClick}
                                             style={{
                                                 width: 59, height: 59,
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -349,11 +364,8 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                                             onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)' }}
                                             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
                                         >
-                                            <svg width="20" height="20" viewBox="0 0 24 24"
-                                                fill={isWished ? '#6c63ff' : 'none'}
-                                                stroke={isWished ? '#6c63ff' : 'rgba(255,255,255,.8)'}
-                                                strokeWidth="2">
-                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isWished ? '#fff' : 'rgba(255,255,255,.8)'} strokeWidth="2.2">
+                                                <path d="M12 5v14M5 12h14" />
                                             </svg>
                                         </button>
 
@@ -369,54 +381,68 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                             </div>
                         </div>
 
-                        {/* ✅ 모달 — 히어로 div 안에 위치 (z-index 때문) */}
-                        {showWishModal && (
-                            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={() => setShowWishModal(false)}>
-                                <div style={{ background: 'var(--bg-card)', borderRadius: 20, padding: 24, width: 320, border: '1px solid rgba(255,255,255,.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }} onClick={e => e.stopPropagation()}>
-                                    {isWished ? (
-                                        <>
-                                            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(239,68,68,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                                            </div>
-                                            <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 17, margin: 0 }}>보고싶다에서 지울까요?</p>
-                                            <p style={{ color: 'var(--text-subtle)', fontSize: 13, margin: 0, textAlign: 'center' }}>{hero.koTitle}이(가) 보관함에서 삭제돼요</p>
-                                            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-                                                <button
-                                                    onClick={() => setShowWishModal(false)}
-                                                    style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: 'none' }}>
-                                                    취소
-                                                </button>
-                                                <button
-                                                    onClick={async () => {
-                                                        await removeItem(user!.uid!, user?.profileId || 'main', hero.tmdbId, 'wishlist')
-                                                        setShowWishModal(false)
-                                                    }}
-                                                    style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                                                    삭제
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(108,99,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                                            </div>
-                                            <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 17, margin: 0 }}>보고싶다에 추가됐어요!</p>
-                                            <p style={{ color: 'var(--text-subtle)', fontSize: 13, margin: 0, textAlign: 'center' }}>{hero.koTitle}이(가) 보관함에 저장됐어요</p>
-                                            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-                                                <button
-                                                    onClick={() => setShowWishModal(false)}
-                                                    style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: 'none' }}>
-                                                    계속 보기
-                                                </button>
-                                                <button
-                                                    onClick={() => { setShowWishModal(false); router.push('/library?tab=wishlist') }}
-                                                    style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: 'none', background: '#6c63ff', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                                                    보관함으로
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
+                        {showWishConfirm && (
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowWishConfirm(false)}>
+                                <div style={{ width: 'min(90vw, 410px)', background: '#1b1b1c', borderRadius: 22, padding: '34px 32px', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 24px 70px rgba(0,0,0,.42)' }} onClick={e => e.stopPropagation()}>
+                                    <div style={{ width: 66, height: 66, borderRadius: '50%', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                                        {isWishAdding ? (
+                                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                                                <path d="M12 5v14M5 12h14" />
+                                            </svg>
+                                        ) : (
+                                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                                                <path d="M20 6 9 17l-5-5" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                                        <p style={{ color: '#fff', fontSize: 20, fontWeight: 900, margin: '0 0 8px' }}>
+                                            {isWishAdding ? '보고싶다에 추가할까요?' : '보고싶다에서 삭제할까요?'}
+                                        </p>
+                                        <p style={{ color: 'rgba(255,255,255,.35)', fontSize: 14, fontWeight: 600, margin: 0 }}>
+                                            {isWishAdding ? '보관함에서 언제든 확인할 수 있어요' : '보관함에서 제거됩니다'}
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <button
+                                            onClick={() => setShowWishConfirm(false)}
+                                            style={{ flex: 1, height: 50, borderRadius: 999, border: '1px solid rgba(255,255,255,.12)', background: 'transparent', color: 'rgba(255,255,255,.45)', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
+                                            취소
+                                        </button>
+                                        <button
+                                            onClick={handleWishConfirm}
+                                            style={{ flex: 1, height: 50, borderRadius: 999, border: 'none', background: isWishAdding ? '#7d68ff' : '#ef4444', color: '#fff', fontSize: 16, fontWeight: 900, cursor: 'pointer' }}>
+                                            {isWishAdding ? '추가' : '삭제'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {showWishAdded && (
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowWishAdded(false)}>
+                                <div style={{ width: 'min(90vw, 410px)', background: '#1b1b1c', borderRadius: 22, padding: '34px 32px', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 24px 70px rgba(0,0,0,.42)' }} onClick={e => e.stopPropagation()}>
+                                    <div style={{ width: 66, height: 66, borderRadius: '50%', background: 'rgba(125,104,255,.15)', color: '#8c7aff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M20 6 9 17l-5-5" />
+                                        </svg>
+                                    </div>
+                                    <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                                        <p style={{ color: '#fff', fontSize: 20, fontWeight: 900, margin: '0 0 8px' }}>보고싶다에 추가됐어요!</p>
+                                        <p style={{ color: 'rgba(255,255,255,.35)', fontSize: 14, fontWeight: 600, margin: 0 }}>보관함에서 언제든 확인할 수 있어요</p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <button
+                                            onClick={() => setShowWishAdded(false)}
+                                            style={{ flex: 1, height: 50, borderRadius: 999, border: '1px solid rgba(255,255,255,.12)', background: 'transparent', color: 'rgba(255,255,255,.45)', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
+                                            닫기
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowWishAdded(false); router.push('/library?tab=wishlist') }}
+                                            style={{ flex: 1, height: 50, borderRadius: 999, border: 'none', background: '#7d68ff', color: '#fff', fontSize: 16, fontWeight: 900, cursor: 'pointer' }}>
+                                            보관함으로 이동
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}

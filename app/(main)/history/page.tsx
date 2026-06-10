@@ -26,13 +26,16 @@ export default function HistoryPage() {
     useEffect(() => {
         if (!hydrated) return
         if (!user) { router.push('/login'); return }
+        const uid = user?.uid
+        if (!uid) { router.push('/login'); return }
+
         const load = async () => {
             setLoading(true)
-            await fetchHistory(user.uid)
+            await fetchHistory(uid)
             try {
                 const [memSnap, purSnap] = await Promise.all([
-                    getDocs(query(collection(db, 'users', user.uid, 'membership_history'), orderBy('createdAt', 'desc'))),
-                    getDocs(query(collection(db, 'users', user.uid, 'purchaseHistory'), orderBy('createdAt', 'desc'))),
+                    getDocs(query(collection(db, 'users', uid, 'membership_history'), orderBy('createdAt', 'desc'))),
+                    getDocs(query(collection(db, 'users', uid, 'purchaseHistory'), orderBy('createdAt', 'desc'))),
                 ])
                 setMembershipHistory(memSnap.docs.map(d => ({ id: d.id, ...d.data() })))
                 setPurchaseHistory(purSnap.docs.map(d => ({ id: d.id, ...d.data() })))
@@ -40,7 +43,7 @@ export default function HistoryPage() {
             setLoading(false)
         }
         load()
-    }, [user])
+    }, [user, hydrated])
 
     const fmt = (ts: any) => {
         if (!ts) return '-'

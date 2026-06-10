@@ -239,15 +239,13 @@ export default function DayNewPage() {
     width: 100%; aspect-ratio: 3 / 4; flex: 1;
 }
 .restName {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 800;
      color: var(--text-primary);
 
     margin-top: 10px;
-
     line-height: 1.3;
     height: 46px;
-
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -345,13 +343,104 @@ export default function DayNewPage() {
 
 /* ── 스켈레톤 ───────────────────────────── */
 @keyframes shimmer { 0%{opacity:1} 50%{opacity:.5} 100%{opacity:1} }
+
+/* ════════════════════════════════════════
+   반응형 — 데스크탑 스타일은 건드리지 않음
+   ════════════════════════════════════════ */
+
+/* 태블릿 (1024px 이하) */
+@media (max-width: 1024px) {
+    .todayLayout {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .featuredWrap {
+        grid-column: span 1;
+    }
+    .restGrid {
+        grid-column: span 3;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: auto;
+    }
+    .restName {
+        font-size: 13px;
+        height: 38px;
+    }
+    .dayGrid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    .dayTabLabel { font-size: 13px; }
+    .popularText { font-size: 20px; }
+}
+
+/* 모바일 (768px 이하) */
+@media (max-width: 768px) {
+    .todayLayout {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    .featuredWrap {
+        grid-column: 1;
+    }
+    .featuredCard {
+        aspect-ratio: 16 / 9;
+        width: 100%;
+    }
+    .featuredImg {
+        position: absolute;
+    }
+    /* 모바일에서 featured 오버레이 항상 표시 */
+    .featuredBottom { opacity: 1; }
+    .featuredGradient { opacity: 1; }
+
+    .restGrid {
+        grid-column: 1;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: auto;
+        gap: 10px;
+    }
+    .restName {
+        font-size: 12px;
+        margin-top: 6px;
+        height: auto;
+        -webkit-line-clamp: 1;
+    }
+
+    .dayGrid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px 10px;
+    }
+    .dayName { font-size: 13px; }
+    .dayTabLabel { font-size: 11px; }
+    .dayTab { padding: 12px 0; }
+
+    .popularBanner { margin: 30px 0 60px; }
+    .popularInner { height: 110px; }
+    .popularChar { height: 75px; }
+    .popularText { font-size: 16px; }
+
+    .calBtn span { display: none; }
+}
+
+/* 소형 모바일 (480px 이하) */
+@media (max-width: 480px) {
+    .restGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .dayGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .dayTabLabel { font-size: 10px; }
+    .dayTab { padding: 10px 2px; }
+    .popularText { font-size: 14px; }
+    .popularChar { height: 60px; }
+}
 `}</style>
 
             <div className="page">
                 <div className="new">
                     <div style={{ width: "90%", margin: "0 auto", paddingTop: 64 }}>
                         <div style={{ borderBottom: "1px solid var(--border-subtle)", padding: "4px 0 50px", marginBottom: 28 }}>
-                            <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
+                            <h1 style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
                                 <span style={{ color: "#6c63ff" }}>{todayDayName}요일</span> 신작
                             </h1>
                             <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "8px 0 0" }}>매일 업데이트되는 최신 애니메이션</p>
@@ -444,7 +533,7 @@ export default function DayNewPage() {
                     <div style={{ width: "90%", margin: "0 auto" }}>
                         <div style={{ borderBottom: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 0", marginBottom: 20 }}>
                             <div>
-                                <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2, letterSpacing: "-0.02em" }}>요일별 신작</h1>
+                                <h1 style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2, letterSpacing: "-0.02em" }}>요일별 신작</h1>
                                 <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "8px 0 0" }}>매일 업데이트되는 최신 애니메이션</p>
                             </div>
                             <button className="calBtn" onClick={() => setShowCalendar(true)}>

@@ -4,12 +4,24 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
 import { useActivityStore } from '@/store/useActiveStore'
+import { useWatchProgressStore } from '@/store/useWatchProgressStore'
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { usePageTransition } from '@/hook/usePageTransition'
 import GradeModal from './GradeModal'
 import { toast } from 'sonner'
+
+const GRADES = [
+    { level: 0, name: '베이비', req: 0, color: '#a78bfa', image: 'https://thumbnail.laftel.net/profiles/default/48363a65-24d6-45a0-9eac-8c1726656c63.png' },
+    { level: 1, name: '루키', req: 1, color: '#34d399', image: 'https://thumbnail.laftel.net/profiles/default/7478566c-4b3c-4a10-a7c0-2f8c05fb2370.jpg' },
+    { level: 2, name: '뉴비', req: 3, color: '#60a5fa', image: 'https://thumbnail.laftel.net/profiles/default/fb48c8c7-ad22-4aa9-9038-c0637ba7e275.png' },
+    { level: 3, name: '입문자', req: 5, color: '#f97316', image: 'https://thumbnail.laftel.net/profiles/default/b700435b-3ad2-4a31-9b72-3e9ae631dc47.png' },
+    { level: 4, name: '덕후', req: 10, color: '#f43f5e', image: 'https://thumbnail.laftel.net/profiles/default/c38a5328-857c-4c12-a404-53d288460e2a.jpg' },
+    { level: 5, name: '중독자', req: 30, color: '#ec4899', image: 'https://thumbnail.laftel.net/profiles/default/40028ff2-895a-4606-b759-2674b1cdc18e.jpg' },
+    { level: 6, name: '오타쿠', req: 50, color: '#facc15', image: 'https://thumbnail.laftel.net/profiles/default/37710afc-0caa-4ea3-bd6d-1c900674141e.jpg' },
+    { level: 7, name: '신', req: 100, color: '#6c63ff', image: 'https://thumbnail.laftel.net/profiles/default/8c6f615f-b949-4ed8-b027-bcf2bee4ea4a.jpg' },
+]
 
 const MenuList = [
     { id: 1, title: "태그검색", path: "/tag-search" },
@@ -84,6 +96,48 @@ function EventNotifications() {
     )
 }
 
+type GradeInfo = (typeof GRADES)[number]
+
+function GradeButton({
+    currentGrade,
+    nextGrade,
+    watched,
+    onPress,
+    size = 'md',
+}: {
+    currentGrade: GradeInfo
+    nextGrade: GradeInfo | null
+    watched: number
+    onPress: () => void
+    size?: 'sm' | 'md'
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onPress}
+            className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer p-0 group"
+        >
+            <div
+                className={`rounded-full overflow-hidden border shrink-0 ${size === 'sm' ? 'w-5 h-5' : 'w-7 h-7'}`}
+                style={{ borderColor: currentGrade.color }}
+            >
+                <img src={currentGrade.image} alt={currentGrade.name} className="w-full h-full object-cover" />
+            </div>
+            <span
+                className={`font-bold transition-opacity group-hover:opacity-70 ${size === 'sm' ? 'text-[12px]' : 'text-[14px]'}`}
+                style={{ color: currentGrade.color }}
+            >
+                {currentGrade.name}
+            </span>
+            {nextGrade && (
+                <span className={`text-[var(--text-faint)] ${size === 'sm' ? 'text-[10px]' : 'text-[12px]'}`}>
+                    ({watched}/{nextGrade.req}편)
+                </span>
+            )}
+        </button>
+    )
+}
+
 export default function Header() {
     const user = useAuthStore(s => s.user)
     const avatarConfig = useAuthStore(s => s.avatarConfig)
@@ -91,6 +145,13 @@ export default function Header() {
     const { points, fetchPoints } = usePointStore()
     const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead, clearNotifications } = useNotificationStore()
     const { counts: activityCounts, fetchCounts, resetCounts } = useActivityStore()
+    const { items: progressItems, fetchProgress } = useWatchProgressStore()
+
+    const profileId = user?.currentProfileId || user?.profileId || 'main'
+    const watched = progressItems.length
+    const currentGrade = [...GRADES].reverse().find(g => watched >= g.req) || GRADES[0]
+    const nextGrade = GRADES[currentGrade.level + 1] ?? null
+
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [notiOpen, setNotiOpen] = useState(false)
     const [searchOpen, setSearchOpen] = useState(false)
@@ -111,13 +172,11 @@ export default function Header() {
     const textMuted = scrolled ? 'var(--text-muted)' : 'rgba(255,255,255,0.7)'
     const hoverBg = scrolled ? 'var(--border)' : 'rgba(255,255,255,0.15)'
 
-    // 모바일 메뉴 열릴 때 body 스크롤 잠금
     useEffect(() => {
         document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
         return () => { document.body.style.overflow = '' }
     }, [mobileMenuOpen])
 
-    // 페이지 이동 시 모바일 메뉴 닫기
     useEffect(() => {
         const frame = requestAnimationFrame(() => {
             setMobileMenuOpen(false)
@@ -131,8 +190,9 @@ export default function Header() {
             fetchPoints(user.uid)
             subscribeNotifications(user.uid)
             fetchCounts(user.uid)
+            fetchProgress(user.uid, profileId)
         }
-    }, [user, fetchPoints, subscribeNotifications])
+    }, [user?.uid, profileId])
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -199,13 +259,13 @@ export default function Header() {
 
             {/* 모바일 메뉴 배경 오버레이 */}
             <div
-                className={`min-[1125px]:hidden fixed inset-0 z-[10000] bg-black/55 backdrop-blur-sm transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                className={`min-[1213px]:hidden fixed inset-0 z-[10000] bg-black/55 backdrop-blur-sm transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => { setMobileMenuOpen(false); setMobileNotiOpen(false) }}
             />
 
             {/* 모바일 알림 전체화면 */}
             {mobileMenuOpen && mobileNotiOpen && (
-                <div className="min-[1125px]:hidden fixed inset-0 z-[10003] flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
+                <div className="min-[1213px]:hidden fixed inset-0 z-[10003] flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
                     <div className="relative flex h-[58px] shrink-0 items-center justify-center border-b border-[var(--border)]">
                         <button
                             type="button"
@@ -268,7 +328,7 @@ export default function Header() {
 
             {/* 모바일 사이드 메뉴 */}
             <aside
-                className={`min-[1125px]:hidden fixed right-0 top-0 z-[10001] flex h-full w-[min(92vw,390px)] flex-col overflow-y-auto bg-[var(--bg-primary)] shadow-[-20px_0_60px_rgba(0,0,0,0.28)] transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                className={`min-[1213px]:hidden fixed right-0 top-0 z-[10001] flex h-full w-[min(92vw,390px)] flex-col overflow-y-auto bg-[var(--bg-primary)] shadow-[-20px_0_60px_rgba(0,0,0,0.28)] transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
             >
                 <div className="flex items-center justify-end gap-3 px-5 pb-5 pt-5">
                     <button
@@ -305,7 +365,8 @@ export default function Header() {
 
                 {user ? (
                     <div className="px-5 pb-6">
-                        <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-4">
+                        <div className="flex items-center gap-4">
+                            <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="shrink-0">
                             <div
                                 className="flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-[var(--border)]"
                                 style={{ background: memberInfo.color || '#6c63ff' }}
@@ -318,29 +379,31 @@ export default function Header() {
                                     <span className="text-2xl font-black text-white">{user.name?.[0]?.toUpperCase() || '?'}</span>
                                 )}
                             </div>
+                            </Link>
                             <div className="min-w-0">
-                                <div className="flex items-center gap-1">
+                                <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-1">
                                     <p className="truncate text-[24px] font-black text-[var(--text-primary)]">{user.name || user.email?.split('@')[0]}</p>
                                     <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="shrink-0 text-[var(--text-primary)]">
                                         <path d="m9 18 6-6-6-6" />
                                     </svg>
+                                </Link>
+                                {/* 실제 등급 표시 */}
+                                <div className="mt-2">
+                                    <GradeButton
+                                        currentGrade={currentGrade}
+                                        nextGrade={nextGrade}
+                                        watched={watched}
+                                        onPress={() => { setGradeOpen(true); setMobileMenuOpen(false) }}
+                                    />
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.preventDefault(); setGradeOpen(true); setMobileMenuOpen(false) }}
-                                    className="mt-2 flex items-center gap-2 text-[16px] font-semibold text-[var(--text-muted)]"
-                                >
-                                    <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] text-sm">😊</span>
-                                    <span>Lv.0 <strong className="text-[var(--text-primary)]">베이비</strong></span>
-                                </button>
                             </div>
-                        </Link>
+                        </div>
 
                         <div className="mt-8 grid grid-cols-3 text-center">
                             {[
-                                { label: '별점', val: activityCounts.rating, tab: 'reviews' },
-                                { label: '리뷰', val: activityCounts.review, tab: 'reviews' },
-                                { label: '댓글', val: activityCounts.comment, tab: 'comments' },
+                                { label: '별점', val: activityCounts?.rating ?? 0, tab: 'reviews' },
+                                { label: '리뷰', val: activityCounts?.review ?? 0, tab: 'reviews' },
+                                { label: '댓글', val: activityCounts?.comment ?? 0, tab: 'comments' },
                             ].map((item) => (
                                 <div key={item.label} className="cursor-pointer group"
                                     onClick={() => { setMobileMenuOpen(false); router.push(`/library?tab=${item.tab}`) }}>
@@ -470,7 +533,7 @@ export default function Header() {
                 <div className="flex min-h-[46px] w-full items-center justify-between gap-2 rounded-[18px] px-3 py-1.5 transition-colors duration-300 sm:min-h-[50px] sm:rounded-[24px] sm:px-4 sm:py-2 md:h-[55px] md:min-h-[55px] md:rounded-full md:px-[28px] md:py-0">
 
                     {/* 좌측: 로고 + 네비게이션 */}
-                    <div className="flex min-w-0 flex-1 items-center gap-x-4 gap-y-2 min-[1125px]:gap-[42px]">
+                    <div className="flex min-w-0 flex-1 items-center gap-x-4 gap-y-2 min-[1213px]:gap-[42px]">
                         <div className="flex min-w-0 items-center gap-2 sm:gap-[14px]">
                             <Link href="/" className="flex items-center gap-2 sm:gap-[12px]">
                                 <img src="/images/stone.svg" alt="" className="h-7 sm:h-8 md:h-10" />
@@ -513,7 +576,7 @@ export default function Header() {
                             </div>
                         </div>
 
-                        <nav className="hidden min-[1125px]:block">
+                        <nav className="hidden min-[1213px]:block">
                             <ul className="flex items-center gap-[32px]">
                                 {MenuList.map((menu) => {
                                     const isActive = pathname === menu.path || (menu.path !== '/' && pathname.startsWith(menu.path))
@@ -638,7 +701,7 @@ export default function Header() {
                         {!user ? (
                             <Link
                                 href="/login"
-                                className="hidden px-2 text-sm transition-colors min-[1125px]:block"
+                                className="hidden px-2 text-sm transition-colors min-[1213px]:block"
                                 style={{ color: textMuted }}
                                 onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = textColor}
                                 onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = textMuted}
@@ -646,7 +709,7 @@ export default function Header() {
                                 로그인
                             </Link>
                         ) : (
-                            <div className="relative hidden min-[1125px]:block" ref={dropdownRef}>
+                            <div className="relative hidden min-[1213px]:block" ref={dropdownRef}>
                                 <button
                                     onClick={() => setDropdownOpen(!dropdownOpen)}
                                     className="flex items-center gap-[8px] cursor-pointer group h-[55px]"
@@ -704,11 +767,15 @@ export default function Header() {
                                                     {user.name || user.email?.split('@')[0]}
                                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-subtle)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                                                 </Link>
-                                                <button
-                                                    onClick={() => { setGradeOpen(true); setDropdownOpen(false) }}
-                                                    className="text-[var(--text-subtle)] text-xs mt-0.5 hover:text-[var(--text-muted)] transition-colors bg-transparent border-none cursor-pointer p-0 block mx-auto">
-                                                    😊 Lv.0 베이비
-                                                </button>
+                                                {/* 실제 등급 뱃지 */}
+                                                <div className="mt-1.5 flex justify-center">
+                                                    <GradeButton
+                                                        currentGrade={currentGrade}
+                                                        nextGrade={nextGrade}
+                                                        watched={watched}
+                                                        onPress={() => { setGradeOpen(true); setDropdownOpen(false) }}
+                                                    />
+                                                </div>
                                                 {membership !== 'none' && (
                                                     <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
                                                         style={{ background: `${memberInfo.color}30`, color: memberInfo.color! }}>
@@ -718,9 +785,9 @@ export default function Header() {
                                             </div>
                                             <div className="flex gap-6 mt-2">
                                                 {[
-                                                    { label: '별점', val: activityCounts.rating, tab: 'reviews' },
-                                                    { label: '리뷰', val: activityCounts.review, tab: 'reviews' },
-                                                    { label: '댓글', val: activityCounts.comment, tab: 'comments' },
+                                                    { label: '별점', val: activityCounts?.rating ?? 0, tab: 'reviews' },
+                                                    { label: '리뷰', val: activityCounts?.review ?? 0, tab: 'reviews' },
+                                                    { label: '댓글', val: activityCounts?.comment ?? 0, tab: 'comments' },
                                                 ].map(s => (
                                                     <div key={s.label} className="text-center cursor-pointer group"
                                                         onClick={() => { setDropdownOpen(false); router.push(`/library?tab=${s.tab}`) }}>
@@ -779,7 +846,7 @@ export default function Header() {
                                 setDropdownOpen(false)
                                 setNotiOpen(false)
                             }}
-                            className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition-colors duration-200 hover:bg-white/15 min-[1125px]:hidden"
+                            className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition-colors duration-200 hover:bg-white/15 min-[1213px]:hidden"
                             style={{ color: textColor }}
                         >
                             {mobileMenuOpen ? (

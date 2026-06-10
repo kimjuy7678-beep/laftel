@@ -10,6 +10,7 @@ import { db } from "@/firebase/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import CartAlert from "@/components/store/CartAlert";
 import LoginAlert from "@/components/store/LoginAlert";
+import WishAlert from "@/components/store/WishAlert";
 import RestockAlertModal from "@/components/store/RestockAlertModal";
 import { RECENT_STORE_PRODUCT_IDS_KEY } from "@/types/store";
 import { getLimitedRemainingQuantity, isLimitedStoreProduct } from "@/lib/storeLimitedProducts";
@@ -439,6 +440,8 @@ export function ProductDetail({
     const [optionError, setOptionError] = useState(false);
     const [showLogin, setShowLogin] = useState(false);
     const [showCart, setShowCart] = useState(false);
+    const [wished, setWished] = useState(false);
+    const [showWish, setShowWish] = useState(false);
     const [cartLoading, setCartLoading] = useState(false);
     const [restockEnabled, setRestockEnabled] = useState(false);
     const [restockModalOpen, setRestockModalOpen] = useState(false);
@@ -523,6 +526,7 @@ export function ProductDetail({
     const cartOption = selectedOption || "기본";
     const isLimitedProduct = isLimitedStoreProduct(product.productId);
     const limitedRemainingQuantity = getLimitedRemainingQuantity(product.productId);
+    const activeWished = Boolean(user?.uid && wished);
 
     useEffect(() => {
         if (!product.productId) return;
@@ -539,6 +543,39 @@ export function ProductDetail({
             window.dispatchEvent(new Event(RECENT_STORE_PRODUCTS_UPDATED_EVENT));
         }
     }, [product.productId]);
+
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        let cancelled = false;
+        (async () => {
+            const snap = await getDoc(doc(db, "users", user.uid!));
+            const wishlist: string[] = snap.data()?.wishlist || [];
+            if (!cancelled) setWished(wishlist.includes(product.productId));
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [product.productId, user?.uid]);
+
+    const toggleWish = async () => {
+        if (!user?.uid) {
+            setShowLogin(true);
+            return;
+        }
+
+        const ref = doc(db, "users", user.uid);
+        if (activeWished) {
+            await setDoc(ref, { wishlist: arrayRemove(product.productId) }, { merge: true });
+            setWished(false);
+            return;
+        }
+
+        await setDoc(ref, { wishlist: arrayUnion(product.productId) }, { merge: true });
+        setWished(true);
+        setShowWish(true);
+    };
 
     const addToCart = async () => {
         if (isReserveClosed) return;
@@ -629,6 +666,13 @@ export function ProductDetail({
                     thumbnail={product.thumbnail}
                     option={cartOption}
                     onClose={() => setShowCart(false)}
+                />
+            )}
+            {showWish && (
+                <WishAlert
+                    title={displayTitle}
+                    thumbnail={product.thumbnail}
+                    onClose={() => setShowWish(false)}
                 />
             )}
             {lightboxOpen && (
@@ -867,21 +911,36 @@ export function ProductDetail({
                         )}
 
                         {isReserveClosed ? (
-                            <button
-                                type="button"
-                                onClick={openRestockAlert}
-                                disabled={restockEnabled}
-                                className={`flex h-[52px] w-full items-center justify-center gap-2 rounded-full text-[15px] font-bold text-white transition-colors ${restockEnabled
-                                    ? "cursor-not-allowed bg-[#7865ff] shadow-[0_4px_14px_rgba(120,101,255,0.28)]"
-                                    : "bg-[#826CFF] hover:bg-[#5a4dd6]"
-                                    }`}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill={restockEnabled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                                </svg>
-                                {restockEnabled ? "재입고 알림 설정됨" : "재입고 알림설정"}
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={openRestockAlert}
+                                    disabled={restockEnabled}
+                                    className={`flex h-[52px] flex-1 items-center justify-center gap-2 rounded-full text-[15px] font-bold text-white transition-colors ${restockEnabled
+                                        ? "cursor-not-allowed bg-[#7865ff] shadow-[0_4px_14px_rgba(120,101,255,0.28)]"
+                                        : "bg-[#826CFF] hover:bg-[#5a4dd6]"
+                                        }`}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill={restockEnabled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                    </svg>
+                                    {restockEnabled ? "재입고 알림 설정됨" : "재입고 알림설정"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={toggleWish}
+                                    aria-label="위시리스트"
+                                    className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border-2 transition-all ${activeWished
+                                        ? "border-[#ff4d6d] bg-[#ff4d6d] text-white shadow-[0_4px_14px_rgba(255,77,109,0.28)]"
+                                        : "border-[#f0d8df] bg-white text-[#b0aabb] hover:border-[#ff4d6d] hover:text-[#ff4d6d]"
+                                        }`}
+                                >
+                                    <svg width="19" height="19" viewBox="0 0 24 24" fill={activeWished ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                    </svg>
+                                </button>
+                            </div>
                         ) : (
                             <div className="flex gap-3">
                                 <button onClick={handleBuy} disabled={product.soldout} className="flex-1 h-[52px] rounded-full bg-[#826CFF] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
@@ -898,6 +957,19 @@ export function ProductDetail({
                                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                                     </svg>
                                     {cartLoading ? "담는 중" : "장바구니"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={toggleWish}
+                                    aria-label="위시리스트"
+                                    className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border-2 transition-all ${activeWished
+                                        ? "border-[#ff4d6d] bg-[#ff4d6d] text-white shadow-[0_4px_14px_rgba(255,77,109,0.28)]"
+                                        : "border-[#ff4d6d] bg-white text-[#ff4d6d] hover:border-[#ff4d6d] hover:text-[#ff4d6d]"
+                                        }`}
+                                >
+                                    <svg width="19" height="19" viewBox="0 0 24 24" fill={activeWished ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                    </svg>
                                 </button>
                             </div>
                         )}
