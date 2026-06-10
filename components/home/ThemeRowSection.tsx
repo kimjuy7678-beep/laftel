@@ -3,13 +3,15 @@ import { useRouter } from 'next/navigation'
 import { useAniStore } from '@/store/useAniStore'
 import { useEffect } from 'react'
 import { usePreviewStore } from '@/store/usePreviewStore'
+import { useFilteredAniList } from '@/hook/useFilteredAniList'
 
 interface Props { genre: number; title: string; rows?: number }
 
 export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
-    const { aniList, onFetchAni } = useAniStore()
+    const { onFetchAni } = useAniStore()
     const router = useRouter()
     const { setPreviewId } = usePreviewStore()
+    const aniList = useFilteredAniList();
 
     useEffect(() => { if (aniList.length === 0) onFetchAni() }, [])
 

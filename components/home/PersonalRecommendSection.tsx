@@ -6,6 +6,7 @@ import { db } from '@/firebase/firebase'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAniStore } from '@/store/useAniStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
+import { useFilteredAniList } from '@/hook/useFilteredAniList'
 
 const GENRE_TO_TMDB: Record<string, number> = {
     action: 10759,
@@ -32,11 +33,12 @@ interface Preferences { genres: string[]; moods: string[]; watchStyle: string }
 
 export default function PersonalRecommendSection() {
     const { user } = useAuthStore()
-    const { aniList, onFetchAni } = useAniStore()
+    const { onFetchAni } = useAniStore()
     const { setPreviewId } = usePreviewStore()
     const router = useRouter()
     const [prefs, setPrefs] = useState<Preferences | null>(null)
     const [ready, setReady] = useState(false)
+    const aniList = useFilteredAniList();
 
     // 1. preferences 로드
     useEffect(() => {
