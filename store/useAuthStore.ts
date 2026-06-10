@@ -10,6 +10,7 @@ interface User {
     photoURL?: string | null
     uid: string | null
     profileId?: string
+    currentProfileId?: string   // ← 추가: 현재 선택된 프로필 ID
     membership?: 'none' | 'anime' | 'ost' | 'allinone'
     points?: number
     ageLimit?: string
@@ -73,9 +74,8 @@ export const useAuthStore = create<AuthStore>()(
                         createdAt: new Date().toISOString(),
                     })
 
-                    // ✅ 신규 가입 시 쿠폰 2장 자동발급
                     const expiresAt = new Date()
-                    expiresAt.setMonth(expiresAt.getMonth() + 3) // 3개월 유효기간
+                    expiresAt.setMonth(expiresAt.getMonth() + 3)
 
                     await Promise.all([
                         issueCoupon({
@@ -92,7 +92,7 @@ export const useAuthStore = create<AuthStore>()(
                             discount: 0.3,
                             type: "rate",
                             minOrderAmount: 0,
-                            maxDiscountAmount: 15000, // 최대 1.5만원 한도
+                            maxDiscountAmount: 15000,
                             expiresAt: new Date("2025-08-31"),
                         }),
                     ])
@@ -109,6 +109,7 @@ export const useAuthStore = create<AuthStore>()(
                         ageLimit: data?.ageLimit || '19',
                         onboardingDone: data?.onboardingDone || false,
                         profileId: data?.lastProfileId || 'main',
+                        currentProfileId: data?.lastProfileId || 'main',
                     }
                 })
             },

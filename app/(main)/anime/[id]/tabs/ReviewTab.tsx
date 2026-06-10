@@ -1,14 +1,15 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import GradeBadge from '@/components/GradeBadge'
 import { db } from '@/firebase/firebase'
 import { doc, setDoc, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
 
 const MOCK_REVIEWS = [
-    { id: 'r1', user: 'pot**********', nickname: '파동', profileImg: '', score: 5.0, text: '이런 흔한 러브코미디에 볼게 뭐가 있다고...', date: '2026-04-01T00:00:00.000Z', edited: false, likes: 169, liked: false, spoiler: false, spoilerVisible: false },
-    { id: 'r2', user: 'itt****', nickname: '뭉', profileImg: '', score: 5.0, text: '둘이 사귀면 될 일.', date: '2026-02-08T00:00:00.000Z', edited: false, likes: 101, liked: false, spoiler: true, spoilerVisible: false },
-    { id: 'r3', user: 'lar******', nickname: '엘라라', profileImg: '', score: 5.0, text: '그냥 둘이 결혼해π', date: '2025-04-15T00:00:00.000Z', edited: false, likes: 80, liked: false, spoiler: true, spoilerVisible: false },
-    { id: 'r4', user: 'hto***', nickname: '치키차', profileImg: '', score: 5.0, text: '럽코보단 사실 액션, 배틀이 더 중심인 작품', date: '2025-04-20T00:00:00.000Z', edited: false, likes: 57, liked: false, spoiler: false, spoilerVisible: false },
-    { id: 'r5', user: 'star***', nickname: '새벽별', profileImg: '', score: 4.0, text: '작화 미쳤다 진짜 본즈 제대로 힘줬네요 ㅠㅠ', date: '2025-03-01T00:00:00.000Z', edited: false, likes: 45, liked: false, spoiler: false, spoilerVisible: false },
+    { id: 'r1', user: 'pot**********', nickname: '파동', profileImg: '', watched: 47, score: 5.0, text: '이런 흔한 러브코미디에 볼게 뭐가 있다고...', date: '2026-04-01T00:00:00.000Z', edited: false, likes: 169, liked: false, spoiler: false, spoilerVisible: false },
+    { id: 'r2', user: 'itt****', nickname: '뭉', profileImg: '', watched: 12, score: 5.0, text: '둘이 사귀면 될 일.', date: '2026-02-08T00:00:00.000Z', edited: false, likes: 101, liked: false, spoiler: true, spoilerVisible: false },
+    { id: 'r3', user: 'lar******', nickname: '엘라라', profileImg: '', watched: 3, score: 5.0, text: '그냥 둘이 결혼해π', date: '2025-04-15T00:00:00.000Z', edited: false, likes: 80, liked: false, spoiler: true, spoilerVisible: false },
+    { id: 'r4', user: 'hto***', nickname: '치키차', profileImg: '', watched: 30, score: 5.0, text: '럽코보단 사실 액션, 배틀이 더 중심인 작품', date: '2025-04-20T00:00:00.000Z', edited: false, likes: 57, liked: false, spoiler: false, spoilerVisible: false },
+    { id: 'r5', user: 'star***', nickname: '새벽별', profileImg: '', watched: 8, score: 4.0, text: '작화 미쳤다 진짜 본즈 제대로 힘줬네요 ㅠㅠ', date: '2025-03-01T00:00:00.000Z', edited: false, likes: 45, liked: false, spoiler: false, spoilerVisible: false },
 ]
 
 export default function ReviewTab({ previewId, user }: { previewId: number | string | null, user: any }) {
@@ -16,7 +17,7 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
     const [myReview, setMyReview] = useState('')
     const [hoverScore, setHoverScore] = useState(0)
     const [isSpoiler, setIsSpoiler] = useState(false)
-    const [reviews, setReviews] = useState(MOCK_REVIEWS)
+    const [reviews, setReviews] = useState<typeof MOCK_REVIEWS>(MOCK_REVIEWS)
     const [openMenuId, setOpenMenuId] = useState<string | null>(null)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editText, setEditText] = useState('')
@@ -56,7 +57,8 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
         if (!myReview.trim() || myScore === 0) return
         if (!user?.uid) { alert('로그인이 필요해요'); return }
         await setDoc(doc(db, 'reviews', `${user.uid}_${previewId}`), { uid: user.uid, animeId: previewId, score: myScore, text: myReview.trim(), spoiler: isSpoiler, createdAt: new Date().toISOString() })
-        const newReview = { id: `my_${user.uid}`, user: user.uid, nickname: user.displayName || '나', profileImg: user.photoURL || '', score: myScore, date: new Date().toISOString(), edited: false, text: myReview.trim(), likes: 0, liked: false, spoiler: isSpoiler, spoilerVisible: false }
+        const myWatched = typeof window !== 'undefined' ? (() => { try { const s = localStorage.getItem('watch-progress-storage'); return s ? (JSON.parse(s)?.state?.items?.length ?? 0) : 0 } catch { return 0 } })() : 0
+        const newReview = { id: `my_${user.uid}`, user: user.uid, nickname: user.displayName || user.name || '나', profileImg: user.photoURL || '', watched: myWatched, score: myScore, date: new Date().toISOString(), edited: false, text: myReview.trim(), likes: 0, liked: false, spoiler: isSpoiler, spoilerVisible: false }
         setReviews(prev => [newReview, ...prev.filter(r => r.id !== `my_${user.uid}`)])
         setMyReview(''); setMyScore(0); setIsSpoiler(false)
     }
@@ -200,6 +202,7 @@ export default function ReviewTab({ previewId, user }: { previewId: number | str
                                             </div>
                                         )}
                                         <span className="text-[var(--text-muted)] text-xs font-bold">{r.nickname}</span>
+                                        <GradeBadge watched={(r as any).watched ?? 0} size="sm" showName={true} />
                                         <span className="text-[var(--text-faint)] text-[10px]">({r.user})</span>
                                     </div>
                                     <div className="relative">

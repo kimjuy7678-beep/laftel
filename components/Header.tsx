@@ -9,6 +9,18 @@ import { useRouter, usePathname } from 'next/navigation'
 import { usePageTransition } from '@/hook/usePageTransition'
 import GradeModal from './GradeModal'
 import { toast } from 'sonner'
+import { useWatchProgressStore } from '@/store/useWatchProgressStore'
+
+const GRADES = [
+    { level: 0, name: '베이비', req: 0, color: '#a78bfa', image: 'https://thumbnail.laftel.net/profiles/default/48363a65-24d6-45a0-9eac-8c1726656c63.png' },
+    { level: 1, name: '루키', req: 1, color: '#34d399', image: 'https://thumbnail.laftel.net/profiles/default/7478566c-4b3c-4a10-a7c0-2f8c05fb2370.jpg' },
+    { level: 2, name: '뉴비', req: 3, color: '#60a5fa', image: 'https://thumbnail.laftel.net/profiles/default/fb48c8c7-ad22-4aa9-9038-c0637ba7e275.png' },
+    { level: 3, name: '입문자', req: 5, color: '#f97316', image: 'https://thumbnail.laftel.net/profiles/default/b700435b-3ad2-4a31-9b72-3e9ae631dc47.png' },
+    { level: 4, name: '덕후', req: 10, color: '#f43f5e', image: 'https://thumbnail.laftel.net/profiles/default/c38a5328-857c-4c12-a404-53d288460e2a.jpg' },
+    { level: 5, name: '중독자', req: 30, color: '#ec4899', image: 'https://thumbnail.laftel.net/profiles/default/40028ff2-895a-4606-b759-2674b1cdc18e.jpg' },
+    { level: 6, name: '오타쿠', req: 50, color: '#facc15', image: 'https://thumbnail.laftel.net/profiles/default/37710afc-0caa-4ea3-bd6d-1c900674141e.jpg' },
+    { level: 7, name: '신', req: 100, color: '#6c63ff', image: 'https://thumbnail.laftel.net/profiles/default/8c6f615f-b949-4ed8-b027-bcf2bee4ea4a.jpg' },
+]
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
@@ -19,7 +31,9 @@ const MenuList = [
     { id: 3, title: "라이브", path: "/live", live: true },
     { id: 4, title: "OST", path: "/ost" },
     { id: 5, title: "이벤트", path: "/event" },
-    { id: 6, title: "스토어", path: "/store", badge: "N" },
+    { id: 6, title: "커뮤니티", path: "/community" },
+    { id: 7, title: "스토어", path: "/store", badge: "N" },
+
 ]
 
 const membershipConfig: Record<string, { label: string; color: string | null }> = {
@@ -32,7 +46,7 @@ const membershipConfig: Record<string, { label: string; color: string | null }> 
 }
 
 const typeIcon: Record<string, string> = {
-    point: '💰', coupon: '🎟️', membership: '⭐', event: '🎉', live: '📺',
+    point: '💰', coupon: '🎟️', membership: '⭐', event: '🎉', live: '📺', message: '✉️',
 }
 
 const formatTime = (ts: any) => {
@@ -79,8 +93,13 @@ export default function Header() {
     const user = useAuthStore(s => s.user)
     const avatarConfig = useAuthStore(s => s.avatarConfig)
     const { onLogout } = useAuthStore()
+    const { items: progressItems, fetchProgress } = useWatchProgressStore()
+    const profileId = user?.currentProfileId || user?.profileId || 'main'
+    const watched = progressItems.length
+    const currentGrade = [...GRADES].reverse().find(g => watched >= g.req) || GRADES[0]
+    const nextGrade = GRADES[currentGrade.level + 1] ?? null
     const { points, fetchPoints } = usePointStore()
-    const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead, clearNotifications } = useNotificationStore()
+    const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead } = useNotificationStore()
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [notiOpen, setNotiOpen] = useState(false)
     const [searchOpen, setSearchOpen] = useState(false)
@@ -95,17 +114,13 @@ export default function Header() {
     const membership = user?.membership || 'none'
     const memberInfo = membershipConfig[membership] || membershipConfig['none']
 
-    // 스크롤 전(transparent)이면 항상 흰색, 스크롤 후면 테마 색
-    const textColor = scrolled ? 'var(--text-primary)' : '#ffffff'
-    const textMuted = scrolled ? 'var(--text-muted)' : 'rgba(255,255,255,0.7)'
-    const hoverBg = scrolled ? 'var(--border)' : 'rgba(255,255,255,0.15)'
-
     useEffect(() => {
         if (user?.uid) {
             fetchPoints(user.uid)
             subscribeNotifications(user.uid)
+            fetchProgress(user.uid, profileId)
         }
-    }, [user])
+    }, [user?.uid, profileId])
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -144,7 +159,6 @@ export default function Header() {
     }, [])
 
     const handleLogout = async () => {
-        clearNotifications()
         await onLogout()
         setDropdownOpen(false)
         router.push('/')
@@ -171,19 +185,9 @@ export default function Header() {
                 className="fixed top-0 left-0 w-full z-[9999] transition-colors duration-300 py-[10px] px-[10px]"
                 style={{ background: scrolled ? 'var(--bg-primary)' : 'transparent' }}
             >
-                {!scrolled && (
-                    <div style={{
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0,
-                        height: '140px',
-                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, transparent 60%)',
-                        pointerEvents: 'none',
-                        zIndex: -1,
-                    }} />
-                )}
                 <div
                     className="w-full h-[55px] flex items-center justify-between px-[28px] rounded-full transition-colors duration-300"
-
+                    style={{ background: scrolled ? 'var(--bg-card)' : 'transparent' }}
                 >
                     {/* 좌측: 로고 + 네비게이션 */}
                     <div className="flex items-center gap-[42px]">
@@ -193,16 +197,12 @@ export default function Header() {
                                 <img src="/images/logo-white.svg" alt="logo" className="h-[22px] w-auto dark:block hidden" />
                                 <img src="/images/logo-dark.png" alt="logo" className="h-[22px] w-auto dark:hidden block" />
                             </Link>
-                            <div className="flex items-center bg-[var(--border)] rounded-full p-[3px] gap-[2px]"
-                                style={{ background: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.2)' }}
-                            >
+                            <div className="flex items-center bg-[var(--border)] rounded-full p-[3px] gap-[2px]">
                                 <button
                                     onClick={() => navigate('/', 'var(--bg-primary)')}
                                     className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${!pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : scrolled
-                                            ? 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                                            : 'text-white/70 hover:text-white'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                         }`}
                                 >
                                     OTT
@@ -211,9 +211,7 @@ export default function Header() {
                                     onClick={() => navigate('/store', '#ffffff')}
                                     className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : scrolled
-                                            ? 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                                            : 'text-white/70 hover:text-white'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                         }`}
                                 >
                                     Store
@@ -229,8 +227,11 @@ export default function Header() {
                                         <li key={menu.id} className="relative">
                                             <Link
                                                 href={menu.path}
-                                                style={{ color: isActive ? textColor : textMuted }}
-                                                className={`flex items-center gap-1.5 text-[15px] transition-all duration-200 ${isActive ? 'font-extrabold' : 'font-medium hover:font-bold'}`}
+                                                className={`flex items-center gap-1.5 text-[15px] transition-all duration-200
+                                                    ${isActive
+                                                        ? 'text-[var(--text-primary)] font-extrabold'
+                                                        : 'text-[var(--text-muted)] font-medium hover:text-[var(--text-primary)] hover:font-bold'
+                                                    }`}
                                             >
                                                 {menu.title}
                                                 {menu.live && (
@@ -257,10 +258,7 @@ export default function Header() {
                             type="button"
                             aria-label="검색"
                             onClick={() => setSearchOpen(true)}
-                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full transition-colors duration-200 cursor-pointer"
-                            style={{ color: textColor }}
-                            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = hoverBg}
-                            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 cursor-pointer text-[var(--text-primary)]"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -270,10 +268,7 @@ export default function Header() {
                         <Link
                             href="/membership"
                             aria-label="멤버십"
-                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full transition-colors duration-200"
-                            style={{ color: textColor }}
-                            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = hoverBg}
-                            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'}
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
@@ -289,10 +284,7 @@ export default function Header() {
                                     if (!notiOpen && user?.uid && unreadCount > 0) markAllRead(user.uid)
                                 }}
                                 aria-label="알림"
-                                className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full transition-colors duration-200"
-                                style={{ color: textColor }}
-                                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = hoverBg}
-                                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                                className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -341,16 +333,10 @@ export default function Header() {
                             )}
                         </div>
 
-                        <div className="w-px h-5 mx-1" style={{ background: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.3)' }} />
+                        <div className="w-px h-5 bg-[var(--border)] mx-1" />
 
                         {!user ? (
-                            <Link
-                                href="/login"
-                                className="text-sm transition-colors px-2"
-                                style={{ color: textMuted }}
-                                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = textColor}
-                                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = textMuted}
-                            >
+                            <Link href="/login" className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors px-2">
                                 로그인
                             </Link>
                         ) : (
@@ -360,11 +346,8 @@ export default function Header() {
                                     className="flex items-center gap-[8px] cursor-pointer group h-[55px]"
                                 >
                                     <div
-                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 transition-all duration-200 shrink-0"
-                                        style={{
-                                            background: memberInfo.color || '#5a52e0',
-                                            ringColor: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.3)',
-                                        }}
+                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-[var(--border)] group-hover:ring-[var(--text-muted)] transition-all duration-200 shrink-0"
+                                        style={{ background: memberInfo.color || '#5a52e0' }}
                                     >
                                         {avatarConfig?.svgDataUrl ? (
                                             <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
@@ -376,14 +359,13 @@ export default function Header() {
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-sm transition-colors" style={{ color: textMuted }}>
+                                    <span className="text-sm text-[var(--text-high)] group-hover:text-[var(--text-primary)] transition-colors">
                                         {user.name}
                                     </span>
                                     <svg
                                         width="13" height="13" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2"
-                                        className={`transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
-                                        style={{ color: textMuted }}
+                                        className={`text-[var(--text-muted)] transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
                                     >
                                         <path d="m6 9 6 6 6-6" />
                                     </svg>
@@ -414,8 +396,18 @@ export default function Header() {
                                                 </Link>
                                                 <button
                                                     onClick={() => { setGradeOpen(true); setDropdownOpen(false) }}
-                                                    className="text-[var(--text-subtle)] text-xs mt-0.5 hover:text-[var(--text-muted)] transition-colors bg-transparent border-none cursor-pointer p-0 block mx-auto">
-                                                    😊 Lv.0 베이비
+                                                    className="flex items-center gap-1.5 justify-center mt-1.5 bg-transparent border-none cursor-pointer p-0 mx-auto group">
+                                                    <div className="w-7 h-7 rounded-full overflow-hidden ring-1 shrink-0" style={{ ringColor: currentGrade.color }}>
+                                                        <img src={currentGrade.image} alt={currentGrade.name} className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <span className="text-[14px] font-bold transition-colors group-hover:opacity-80" style={{ color: currentGrade.color }}>
+                                                        {currentGrade.name}
+                                                    </span>
+                                                    {nextGrade && (
+                                                        <span className="text-[12px] text-[var(--text-faint)]">
+                                                            ({watched}/{nextGrade.req}편)
+                                                        </span>
+                                                    )}
                                                 </button>
                                                 {membership !== 'none' && (
                                                     <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"

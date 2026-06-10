@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useWatchlistStore, WatchlistTab } from '@/store/useWatchlistStore'
+import { useWatchProgressStore } from '@/store/useWatchProgressStore'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 
@@ -15,13 +16,13 @@ const membershipConfig: Record<string, { label: string; color: string }> = {
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w300'
 
-const TABS: { id: WatchlistTab; label: string }[] = [
+const TABS: { id: WatchlistTab | 'recent'; label: string }[] = [
     { id: 'recent', label: '최근 본' },
     { id: 'wishlist', label: '보고싶다' },
     { id: 'purchased', label: '구매한' }
 ]
 
-const EMPTY_MSG: Record<WatchlistTab, { icon: string; text: string }> = {
+const EMPTY_MSG: Record<string, { icon: string; text: string }> = {
     recent: { icon: '/images/laftel-icon/cry.png', text: '최근 본 작품이 아직 없어요.' },
     wishlist: { icon: '/images/laftel-icon/cry.png', text: '보고싶은 작품을 추가해보세요.' },
     purchased: { icon: '/images/laftel-icon/cry.png', text: '구매한 작품이 없어요.' },
@@ -29,55 +30,58 @@ const EMPTY_MSG: Record<WatchlistTab, { icon: string; text: string }> = {
 
 export default function LibraryPage() {
     const router = useRouter()
-    const { user, avatarConfig } = useAuthStore()
+    const { user, avatarConfig, setMembership } = useAuthStore()
     const [hydrated, setHydrated] = useState(false)
-    const { items, loading, fetchWatchlist, removeItem } = useWatchlistStore()
-    const [activeTab, setActiveTab] = useState<WatchlistTab>('recent')
+    const { items, loading: wlLoading, fetchWatchlist, removeItem } = useWatchlistStore()
+    const { items: progressItems, loading: wpLoading, fetchProgress } = useWatchProgressStore()
+    const [activeTab, setActiveTab] = useState<WatchlistTab | 'recent'>('recent')
     const [selectMode, setSelectMode] = useState(false)
     const [selected, setSelected] = useState<Set<number>>(new Set())
-
-    const { setMembership } = useAuthStore()
     const [showMembershipMgmt, setShowMembershipMgmt] = useState(false)
     const [showCancelConfirm, setShowCancelConfirm] = useState(false)
     const [cancelling, setCancelling] = useState(false)
 
-    const membershipConfig: Record<string, { label: string; color: string }> = {
-        anime: { label: '애니 멤버십', color: '#6c63ff' },
-        ost: { label: 'OST 멤버십', color: '#ec4899' },
-        allinone: { label: '올인원 멤버십', color: '#f59e0b' },
-    }
     const membership = user?.membership
     const memberInfo = membership && membership !== 'none' ? membershipConfig[membership] : null
+
+    // currentProfileId 우선, 없으면 profileId, 없으면 'main'
+    const profileId = user?.currentProfileId || user?.profileId || 'main'
 
     useEffect(() => { setHydrated(true) }, [])
 
     useEffect(() => {
-        if (!hydrated) return
+        if (!hydrated || !user?.uid) return
         if (!user) { router.push('/login'); return }
-        if (user?.uid) {
-            const profileId = user?.profileId || 'main'
-            console.log('profileId:', profileId)
-            fetchWatchlist(user.uid, profileId)
-        }
-    }, [user])
+        fetchWatchlist(user.uid, profileId)
+        fetchProgress(user.uid, profileId)
+    }, [user?.uid, profileId, hydrated])
 
     useEffect(() => {
         const tab = new URLSearchParams(window.location.search).get('tab')
-        if (tab === 'recent' || tab === 'wishlist' || tab === 'purchased' || tab === 'series') {
-            setActiveTab(tab)
+        if (tab === 'recent' || tab === 'wishlist' || tab === 'purchased') {
+            setActiveTab(tab as WatchlistTab)
         }
     }, [])
 
-    const tabItems = items.filter(i => i.tab === activeTab)
+    const loading = wlLoading || wpLoading
+
+    // recent 탭은 watchProgress에서, 나머지는 watchlist에서
+    const tabItems = activeTab === 'recent'
+        ? progressItems.map(p => ({
+            id: p.tmdbId,
+            title: p.title,
+            poster: p.poster || p.backdrop,
+            addedAt: p.updatedAt,
+            tab: 'recent' as const,
+        }))
+        : items.filter(i => i.tab === activeTab)
 
     const handleDelete = async () => {
-        if (!user || !user.uid || selected.size === 0) return
-        const profileId = user?.profileId || 'main'
-        console.log('uid:', user?.uid)
-        console.log('profileId:', user?.profileId)
-        console.log('최종 profileId:', profileId)
+        if (!user?.uid || selected.size === 0) return
         for (const id of selected) {
-            await removeItem(user.uid, profileId, id, activeTab)
+            if (activeTab !== 'recent') {
+                await removeItem(user.uid, id, activeTab as WatchlistTab, profileId)
+            }
         }
         setSelected(new Set())
         setSelectMode(false)
@@ -107,8 +111,6 @@ export default function LibraryPage() {
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 56 }}>
             <style>{`
                 .lib-wrap { max-width: 1820px; margin: 0 auto; padding: 32px 48px 60px; display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start; min-height: calc(100vh - 56px); }
-
-                /* 왼쪽 프로필 카드 */
                 .lib-profile-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 28px 20px; display: flex; flex-direction: column; align-items: center; gap: 0; height: fit-content; }
                 .lib-avatar { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 12px; background: var(--bg-secondary); }
                 .lib-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -118,14 +120,8 @@ export default function LibraryPage() {
                 .lib-stat { text-align: center; }
                 .lib-stat-num { font-size: 18px; font-weight: 900; color: var(--text-primary); }
                 .lib-stat-label { font-size: 11px; color: var(--text-subtle); }
-                .lib-action-btn { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--border); background: var(--border-faint); color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all .2s; margin-bottom: 0; }
+                .lib-action-btn { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--border); background: var(--border-faint); color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all .2s; }
                 .lib-action-btn:hover { background: var(--border-subtle); color: var(--text-primary); }
-                .lib-member-banner { width: 100%; margin-top: 16px; padding: 14px 16px; background: rgba(108,99,255,.12); border: 1px solid rgba(108,99,255,.2); border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all .2s; text-decoration: none; }
-                .lib-member-banner:hover { background: rgba(108,99,255,.2); }
-                .lib-member-text { font-size: 14px; font-weight: 800; color: var(--text-primary); margin: 0 0 2px; }
-                .lib-member-sub { font-size: 11px; color: var(--text-subtle); margin: 0; }
-
-                /* 오른쪽 보관함 */
                 .lib-main { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; min-height: calc(100vh - 140px); display: flex; flex-direction: column; }
                 .lib-main-header { padding: 20px 24px 0; border-bottom: 1px solid var(--border-subtle); }
                 .lib-main-title { font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 16px; }
@@ -137,8 +133,6 @@ export default function LibraryPage() {
                 .lib-tab-action { margin-left: auto; display: flex; align-items: center; }
                 .lib-delete-btn { display: flex; align-items: center; gap: 5px; background: none; border: none; color: var(--text-subtle); font-size: 13px; cursor: pointer; padding: 8px 0; transition: color .2s; }
                 .lib-delete-btn:hover { color: #f87171; }
-
-                /* 그리드 */
                 .lib-grid { padding: 20px 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; align-content: start; }
                 .lib-item { position: relative; cursor: pointer; }
                 .lib-item-poster { width: 100%; aspect-ratio: 2/3; border-radius: 10px; overflow: hidden; background: var(--bg-secondary); transition: transform .2s; }
@@ -147,14 +141,19 @@ export default function LibraryPage() {
                 .lib-item-title { font-size: 12px; color: var(--text-muted); margin: 6px 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
                 .lib-item-check { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; transition: all .2s; }
                 .lib-item-check.checked { background: var(--main); border-color: var(--main); }
-
-                /* 빈 상태 */
                 .lib-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 12px; flex: 1; }
                 .lib-empty img { width: 80px; height: 80px; object-fit: contain; opacity: .5; filter: grayscale(1); flex-shrink: 0; }
                 .lib-empty p { font-size: 14px; color: var(--text-subtle); margin: 0; }
-
-                /* 카운트 */
                 .lib-count { font-size: 13px; color: var(--text-faint); padding: 0 24px 12px; }
+                .lib-recent-card { display: flex; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--border-faint); cursor: pointer; transition: background .15s; }
+                .lib-recent-card:hover { background: var(--bg-hover); }
+                .lib-recent-thumb { width: 80px; height: 52px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--bg-secondary); }
+                .lib-recent-thumb img { width: 100%; height: 100%; object-fit: cover; }
+                .lib-recent-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+                .lib-recent-title { font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .lib-recent-ep { font-size: 12px; color: var(--text-subtle); }
+                .lib-recent-bar { height: 3px; background: var(--border-faint); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+                .lib-recent-bar-fill { height: 100%; background: var(--main); border-radius: 2px; }
             `}</style>
 
             <div className="lib-wrap">
@@ -186,15 +185,11 @@ export default function LibraryPage() {
                         </Link>
                         {memberInfo && (
                             <>
-                                <button
-                                    onClick={() => setShowMembershipMgmt(true)}
-                                    style={{ width: '100%', marginTop: 8, padding: '8px', borderRadius: 8, border: `1px solid ${memberInfo.color}40`, background: `${memberInfo.color}10`, color: memberInfo.color, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                                >
+                                <button onClick={() => setShowMembershipMgmt(true)}
+                                    style={{ width: '100%', marginTop: 8, padding: '8px', borderRadius: 8, border: `1px solid ${memberInfo.color}40`, background: `${memberInfo.color}10`, color: memberInfo.color, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
                                     {memberInfo.label} 관리
                                 </button>
-
-                                {/* 멤버십 관리 모달 */}
                                 {showMembershipMgmt && (
                                     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60" onClick={() => setShowMembershipMgmt(false)}>
                                         <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
@@ -203,31 +198,13 @@ export default function LibraryPage() {
                                                 <p className="text-[var(--text-subtle)] text-xs">현재 <span style={{ color: memberInfo.color, fontWeight: 700 }}>{memberInfo.label}</span> 이용 중이에요</p>
                                             </div>
                                             <div className="flex flex-col gap-2">
-                                                <button
-                                                    onClick={() => { setShowMembershipMgmt(false); router.push('/membership') }}
-                                                    className="w-full py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
-                                                    style={{ background: memberInfo.color }}
-                                                >
-                                                    요금제 변경하기
-                                                </button>
-                                                <button
-                                                    onClick={() => { setShowMembershipMgmt(false); setShowCancelConfirm(true) }}
-                                                    className="w-full py-3 rounded-xl font-bold text-sm border border-[var(--border)] text-[var(--text-subtle)] hover:text-red-400 hover:border-red-400/40 transition-colors"
-                                                >
-                                                    멤버십 취소
-                                                </button>
-                                                <button
-                                                    onClick={() => setShowMembershipMgmt(false)}
-                                                    className="w-full py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-subtle)] transition-colors"
-                                                >
-                                                    닫기
-                                                </button>
+                                                <button onClick={() => { setShowMembershipMgmt(false); router.push('/membership') }} className="w-full py-3 rounded-xl font-bold text-sm text-white" style={{ background: memberInfo.color }}>요금제 변경하기</button>
+                                                <button onClick={() => { setShowMembershipMgmt(false); setShowCancelConfirm(true) }} className="w-full py-3 rounded-xl font-bold text-sm border border-[var(--border)] text-[var(--text-subtle)] hover:text-red-400 transition-colors">멤버십 취소</button>
+                                                <button onClick={() => setShowMembershipMgmt(false)} className="w-full py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-subtle)] transition-colors">닫기</button>
                                             </div>
                                         </div>
                                     </div>
                                 )}
-
-                                {/* 취소 확인 모달 */}
                                 {showCancelConfirm && (
                                     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60" onClick={() => setShowCancelConfirm(false)}>
                                         <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
@@ -236,19 +213,8 @@ export default function LibraryPage() {
                                                 <p className="text-[var(--text-subtle)] text-sm leading-relaxed">취소하면 이번 달 종료 후 멤버십 혜택이 사라져요. 정말 취소하시겠어요?</p>
                                             </div>
                                             <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => setShowCancelConfirm(false)}
-                                                    className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] text-sm font-bold hover:text-[var(--text-primary)] transition-colors"
-                                                >
-                                                    유지하기
-                                                </button>
-                                                <button
-                                                    onClick={handleCancelMembership}
-                                                    disabled={cancelling}
-                                                    className="flex-1 py-3 rounded-xl bg-red-500/80 text-white text-sm font-bold hover:bg-red-500 transition-colors disabled:opacity-50"
-                                                >
-                                                    {cancelling ? '처리 중...' : '취소하기'}
-                                                </button>
+                                                <button onClick={() => setShowCancelConfirm(false)} className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] text-sm font-bold">유지하기</button>
+                                                <button onClick={handleCancelMembership} disabled={cancelling} className="flex-1 py-3 rounded-xl bg-red-500/80 text-white text-sm font-bold disabled:opacity-50">{cancelling ? '처리 중...' : '취소하기'}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -261,7 +227,15 @@ export default function LibraryPage() {
                 {/* 오른쪽 보관함 */}
                 <div className="lib-main">
                     <div className="lib-main-header">
-                        <h1 className="lib-main-title">보관함</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <h1 className="lib-main-title" style={{ margin: 0 }}>보관함</h1>
+                            {user?.name && (
+                                <span style={{ fontSize: 12, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                    {user.name}
+                                </span>
+                            )}
+                        </div>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <div className="lib-tabs">
                                 {TABS.map(t => (
@@ -272,22 +246,18 @@ export default function LibraryPage() {
                                 ))}
                             </div>
                             <div className="lib-tab-action">
-                                {selectMode ? (
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <button className="lib-delete-btn" style={{ color: '#f87171' }} onClick={handleDelete}>
-                                            삭제 ({selected.size})
+                                {activeTab !== 'recent' && (
+                                    selectMode ? (
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button className="lib-delete-btn" style={{ color: '#f87171' }} onClick={handleDelete}>삭제 ({selected.size})</button>
+                                            <button className="lib-delete-btn" onClick={() => { setSelectMode(false); setSelected(new Set()) }}>취소</button>
+                                        </div>
+                                    ) : (
+                                        <button className="lib-delete-btn" onClick={() => setSelectMode(true)}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" /></svg>
+                                            삭제
                                         </button>
-                                        <button className="lib-delete-btn" onClick={() => { setSelectMode(false); setSelected(new Set()) }}>
-                                            취소
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button className="lib-delete-btn" onClick={() => setSelectMode(true)}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" />
-                                        </svg>
-                                        삭제
-                                    </button>
+                                    )
                                 )}
                             </div>
                         </div>
@@ -303,7 +273,30 @@ export default function LibraryPage() {
                             <img src={EMPTY_MSG[activeTab].icon} alt="" onError={e => (e.currentTarget.style.display = 'none')} />
                             <p>{EMPTY_MSG[activeTab].text}</p>
                         </div>
+                    ) : activeTab === 'recent' ? (
+                        // 최근 본 — 가로형 카드
+                        <div style={{ padding: '8px 0' }}>
+                            {progressItems.map(item => (
+                                <div key={item.tmdbId} className="lib-recent-card"
+                                    onClick={() => router.push(`/anime/${item.tmdbId}`)}>
+                                    <div className="lib-recent-thumb">
+                                        {(item.backdrop || item.poster)
+                                            ? <img src={(item.backdrop || item.poster).startsWith('http') ? (item.backdrop || item.poster) : `${TMDB_IMG}${item.backdrop || item.poster}`} alt={item.title} />
+                                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎌</div>
+                                        }
+                                    </div>
+                                    <div className="lib-recent-info">
+                                        <p className="lib-recent-title">{item.title}</p>
+                                        <p className="lib-recent-ep">{item.episode}화{item.episodeTitle ? ` · ${item.episodeTitle}` : ''}</p>
+                                        <div className="lib-recent-bar">
+                                            <div className="lib-recent-bar-fill" style={{ width: `${item.progress}%` }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     ) : (
+                        // 보고싶다 / 구매한 — 포스터 그리드
                         <>
                             <p className="lib-count">작품 ({tabItems.length})</p>
                             <div className="lib-grid">
@@ -318,9 +311,7 @@ export default function LibraryPage() {
                                         </div>
                                         {selectMode && (
                                             <div className={`lib-item-check${selected.has(item.id) ? ' checked' : ''}`}>
-                                                {selected.has(item.id) && (
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>
-                                                )}
+                                                {selected.has(item.id) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>}
                                             </div>
                                         )}
                                         <p className="lib-item-title">{item.title}</p>
