@@ -17,7 +17,7 @@ export default function WatchHistory() {
         <section>
             <style>{`
                 .wh-wrap { width: 90%; margin: 0 auto; padding: 48px 0 0; }
-                .wh-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+                .wh-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
                 .wh-title { font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.4px; margin: 0; }
                 .wh-more { font-size: 12px; color: var(--text-subtle); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 3px; transition: color .2s; }
                 .wh-more:hover { color: var(--text-high); }
@@ -36,6 +36,16 @@ export default function WatchHistory() {
                 .wh-progress-bar { height: 100%; background: #6c5ce7; }
                 .wh-name { font-size: 15px; font-weight: 700; color: var(--text-primary); overflow: hidden; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 4px; line-height: 1.3; }
                 .wh-ep { font-size: 12px; color: var(--text-subtle); line-height: 1.4; }
+                @media (max-width: 980px) {
+                    .wh-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+                }
+                @media (max-width: 640px) {
+                    .wh-wrap { width: calc(100% - 32px); padding-top: 40px; }
+                    .wh-grid { display: flex; gap: 12px; margin-right: -16px; padding-right: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+                    .wh-grid::-webkit-scrollbar { display: none; }
+                    .wh-card { flex: 0 0 min(78vw, 320px); scroll-snap-align: start; }
+                    .wh-title { font-size: 19px; }
+                }
             `}</style>
 
             <div className="wh-wrap">

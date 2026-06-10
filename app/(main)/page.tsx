@@ -39,7 +39,7 @@ export default function Home() {
         <img src="/images/stone.svg" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </div>
 
-      <div className="min-h-screen bg-[var(--bg-primary)]">
+      <div className="min-h-auto bg-[var(--bg-primary)]">
         <HeroSection />
         <DayNewSection />
         <WatchHistory />
