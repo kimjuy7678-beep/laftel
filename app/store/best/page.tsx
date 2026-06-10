@@ -21,6 +21,8 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     const groupStart = groupIndex * PAGE_GROUP + 1;
     const groupEnd = Math.min(groupStart + PAGE_GROUP - 1, total);
     const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
+    const hasPrevGroup = groupStart > 1;
+    const hasNextGroup = groupEnd < total;
     const handleChange = (p: number) => {
         onChange(p);
         window.setTimeout(() => {
@@ -63,7 +65,8 @@ export default function BestPage() {
         const price = parsePrice(p.price);
         const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
-        return matchSearch && matchPrice;
+        const matchStock = !onlyInStock || !p.soldout;
+        return matchSearch && matchPrice && matchStock;
     });
 
     const sorted = filtered; // 베스트 순위 고정

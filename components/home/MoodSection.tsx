@@ -1,6 +1,5 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
 
 const MOODS = [
     { id: 'emotional_damage', img: '/images/mood/mood1.png', label: '눈물이 멈추지 않아..', sub: '여운이 감게 남는 후유증 레전드 애니', color: '#6366f1' },
@@ -13,7 +12,6 @@ const MOODS = [
 
 export default function MoodSection() {
     const router = useRouter()
-    const [hoveredId, setHoveredId] = useState<string | null>(null)
 
     return (
         <section style={{ padding: '56px 0 0' }}>
@@ -43,6 +41,21 @@ export default function MoodSection() {
                 .mood-hover-sub { font-size: 15px; color: rgba(255,255,255,.55); margin-bottom: 20px; text-align: center; line-height: 1.5; }
                 .mood-btn { padding: 8px 20px; border-radius: 20px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .18s; backdrop-filter: blur(4px); margin-top: 10px; }
                 .mood-btn:hover { background: rgba(255,255,255,0.25); }
+                @media (max-width: 1180px) {
+                    .mood-grid { grid-template-columns: repeat(3, 1fr); }
+                }
+                @media (max-width: 640px) {
+                    .mood-wrap { width: calc(100% - 32px); }
+                    .mood-eyebrow { font-size: 11px; line-height: 1.4; }
+                    .mood-title { font-size: 21px; line-height: 1.35; }
+                    .mood-grid { display: flex; gap: 12px; margin-right: -16px; padding-right: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+                    .mood-grid::-webkit-scrollbar { display: none; }
+                    .mood-card { flex: 0 0 min(48vw, 190px); scroll-snap-align: start; border-radius: 12px; }
+                    .mood-label { font-size: 16px; }
+                    .mood-sub { font-size: 12px; }
+                    .mood-hover-label { font-size: 18px; }
+                    .mood-hover-sub { font-size: 12px; margin-bottom: 10px; }
+                }
             `}</style>
 
             <div className="mood-wrap">
@@ -55,8 +68,6 @@ export default function MoodSection() {
                 <div className="mood-grid">
                     {MOODS.map((mood) => (
                         <button key={mood.id} className="mood-card"
-                            onMouseEnter={() => setHoveredId(mood.id)}
-                            onMouseLeave={() => setHoveredId(null)}
                             onClick={() => router.push(`/mood?emotion=${mood.id}`)}>
                             <img className="mood-bg" src={mood.img} alt={mood.label} />
                             <div className="mood-grad" />

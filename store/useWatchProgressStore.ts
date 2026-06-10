@@ -13,52 +13,55 @@ export interface WatchProgressItem {
     poster: string
     episode: number
     episodeTitle: string
-    progress: number      // 0~100
+    progress: number
     updatedAt: number
 }
 
 interface WatchProgressStore {
     items: WatchProgressItem[]
     loading: boolean
-    fetchProgress: (uid: string) => Promise<void>
-    saveProgress: (uid: string, item: Omit<WatchProgressItem, 'updatedAt'>) => Promise<void>
+    currentProfileId: string | null
+    fetchProgress: (uid: string, profileId: string) => Promise<void>
+    saveProgress: (uid: string, item: Omit<WatchProgressItem, 'updatedAt'>, profileId?: string) => Promise<void>
 }
 
 export const useWatchProgressStore = create<WatchProgressStore>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             items: [],
             loading: false,
+            currentProfileId: null,
 
-            fetchProgress: async (uid) => {
-                set({ loading: true })
+            fetchProgress: async (uid, profileId) => {
+                set({ loading: true, currentProfileId: profileId })
                 try {
                     const q = query(
-                        collection(db, 'users', uid, 'watchProgress'),
+                        collection(db, 'users', uid, 'profiles', profileId, 'watchProgress'),
                         orderBy('updatedAt', 'desc'),
-                        limit(10)
+                        limit(20)
                     )
                     const snap = await getDocs(q)
-                    const items: WatchProgressItem[] = snap.docs.map(d => d.data() as WatchProgressItem)
+                    const items: WatchProgressItem[] = snap.docs
+                        .map(d => d.data() as WatchProgressItem)
+                        .filter(item => item?.tmdbId !== undefined)
                     set({ items })
                 } catch (e) {
                     console.error(e)
+                    set({ items: [] })
                 } finally {
                     set({ loading: false })
                 }
             },
 
-            saveProgress: async (uid, item) => {
+            saveProgress: async (uid, item, profileId) => {
+                const pid = profileId || get().currentProfileId || 'main'
                 const newItem: WatchProgressItem = { ...item, updatedAt: Date.now() }
                 await setDoc(
-                    doc(db, 'users', uid, 'watchProgress', String(item.tmdbId)),
+                    doc(db, 'users', uid, 'profiles', pid, 'watchProgress', String(item.tmdbId)),
                     { ...newItem, updatedAt: serverTimestamp() }
                 )
                 set(state => ({
-                    items: [
-                        newItem,
-                        ...state.items.filter(i => i.tmdbId !== item.tmdbId)
-                    ]
+                    items: [newItem, ...state.items.filter(i => i.tmdbId !== item.tmdbId)]
                 }))
             },
         }),
