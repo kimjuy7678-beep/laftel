@@ -5,12 +5,10 @@ import channels from '@/data/channels.json'
 import PartySection from '@/components/PartySection'
 import MyPartySection from '@/components/MyPartySection'
 import ScheduleBoard from '@/components/ScheduleBoard'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { buildChannels, getCurrentIdx, getTodaySeed, nowInMinutes } from '@/utils/scheduleUtils'
 import { useAniStore } from '@/store/useAniStore'
 import ScheduleMarquee from '@/components/ScheduleMarquee'
-
-const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 
 export default function LivePage() {
     const schedule = useMemo(() => buildChannels(getTodaySeed()), [])
@@ -37,8 +35,8 @@ export default function LivePage() {
 
     return (
         <div className="min-h-screen" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-            <div style={{ width: '90%', margin: '0 auto', paddingTop: 64 }}>
-                <div style={{ borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0', marginBottom: 28 }}>
+            <div className="pb-20" style={{ width: '90%', margin: '0 auto', paddingTop: 64 }}>
+                <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-subtle)] py-4 mb-6 sm:gap-3 sm:py-[18px] sm:mb-7">
                     <PageHeader title="라이브" sub="지금 이 순간, 함께 보는 애니메이션" />
                     <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500 rounded-full text-xs font-bold text-white">
                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
@@ -46,7 +44,7 @@ export default function LivePage() {
                     </span>
                 </div>
 
-                <ul className="grid grid-cols-3 gap-6">
+                <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                     {channels.map((ch) => {
                         const now = nowPlaying.find(n => n.channelId === ch.id)
                         const detail = now?.tmdbId ? aniDetails[now.tmdbId] : null
@@ -72,7 +70,7 @@ export default function LivePage() {
                                             LIVE
                                         </span>
 
-                                        <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+                                        <div className="absolute bottom-0 left-0 right-0 p-3 z-10 sm:p-4">
                                             {now?.title && (
                                                 <p className="text-white text-sm font-semibold truncate">
                                                     {now.title}
@@ -81,7 +79,7 @@ export default function LivePage() {
                                         </div>
 
                                         <div className="absolute inset-0 flex items-center justify-center z-10">
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                            <div className="opacity-100 transition-opacity w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 sm:w-14 sm:h-14">
                                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
                                                     <polygon points="5,3 19,12 5,21" />
                                                 </svg>

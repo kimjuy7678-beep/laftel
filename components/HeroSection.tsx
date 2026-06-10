@@ -88,23 +88,23 @@ export default function HeroSection() {
             <style>{`
                 .hero-section {
                     height: calc(100vw * 9 / 16);
-                    max-height: 820px;
+                    max-height: calc(100vh *16 / 18);
                 }
 
-                .hero-bg {
-                    object-position: center center;
-                }
+            .hero-bg {
+    object-position: center 20%;
+}
 
-                .hero-main-image {
-                    object-position: center center;
-                }
+.hero-main-image {
+    object-position: center 20%;
+}
 
                 .hero-copy {
                     position: absolute;
                     left: 8%;
-                    bottom: 28%;
+                    bottom: 23%;
                     max-width: min(620px, 50vw);
-                    color: var(--text-primary);
+                    color: #fff;
                     white-space: pre-line;
                     line-height: 1.6;
                     font-size: 22px;
@@ -145,7 +145,7 @@ export default function HeroSection() {
 
                     .hero-copy {
                         max-width: min(560px, 64vw);
-                        font-size: 19px;
+                        font-size: 16px;
                     }
 
                     .hero-action-btn {
@@ -175,7 +175,7 @@ export default function HeroSection() {
                         right: 20px;
                         bottom: 92px;
                         max-width: none;
-                        font-size: 12px;
+                        font-size: 8px;
                         line-height: 1.45;
                     }
 

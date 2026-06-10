@@ -25,10 +25,10 @@ function ChannelBlock({
     }, [currentIdx])
 
     return (
-        <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-[var(--border-faint)] sticky top-0 z-10 backdrop-blur-xl bg-[var(--bg-primary)]/[0.85]">
+        <div className="flex flex-col min-w-0 h-full rounded-xl border border-[var(--border-faint)] bg-[var(--bg-card)] overflow-hidden xl:rounded-none xl:border-0 xl:bg-transparent">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-faint)] sticky top-0 z-10 backdrop-blur-xl bg-[var(--bg-card)]/[0.9] sm:px-5 sm:py-4 xl:bg-[var(--bg-primary)]/[0.85]">
                 <h3 className="flex items-center justify-center flex-1">
-                    <img src={label} alt="img" className="h-8 w-30 object-contain" />
+                    <img src={label} alt="img" className="h-7 w-28 object-contain sm:h-8 sm:w-30" />
                 </h3>
             </div>
 
@@ -60,7 +60,7 @@ function ChannelBlock({
                             className={[
                                 'relative flex items-center transition-all duration-200',
                                 i < items.length - 1 ? 'border-b border-[var(--border-faint)]' : '',
-                                isCurrent ? 'gap-5 px-5 py-5' : 'gap-4 px-5 py-3',
+                                isCurrent ? 'gap-4 px-4 py-4 sm:gap-5 sm:px-5 sm:py-5' : 'gap-3 px-4 py-3 sm:gap-4 sm:px-5',
                                 isCurrent
                                     ? 'bg-[#ff6b3d]/[0.08] hover:bg-[#ff6b3d]/[0.12] cursor-pointer'
                                     : isPast
@@ -76,8 +76,8 @@ function ChannelBlock({
                                 className={[
                                     'font-bold tracking-wider flex-shrink-0 tabular-nums',
                                     isCurrent
-                                        ? 'text-[#ff6b3d] text-[15px] min-w-[52px]'
-                                        : 'text-[13px] min-w-[46px]',
+                                        ? 'text-[#ff6b3d] text-[14px] min-w-[48px] sm:text-[15px] sm:min-w-[52px]'
+                                        : 'text-[12px] min-w-[42px] sm:text-[13px] sm:min-w-[46px]',
                                     !isCurrent && isPast  ? 'text-[var(--text-faint)]' : '',
                                     !isCurrent && !isPast ? 'text-[var(--text-subtle)]' : '',
                                 ].join(' ')}
@@ -88,7 +88,7 @@ function ChannelBlock({
                             <div
                                 className={[
                                     'flex-shrink-0 rounded-lg overflow-hidden bg-[var(--border-subtle)] transition-all duration-200',
-                                    isCurrent  ? 'w-[72px] h-[100px]' : 'w-[58px] h-[80px]',
+                                    isCurrent  ? 'w-[62px] h-[88px] sm:w-[72px] sm:h-[100px]' : 'w-[50px] h-[70px] sm:w-[58px] sm:h-[80px]',
                                     isPast ? 'opacity-30' : 'opacity-100',
                                 ].join(' ')}
                             >
@@ -121,7 +121,7 @@ function ChannelBlock({
                                 <p
                                     className={[
                                         'font-semibold leading-snug tracking-tight line-clamp-2 transition-all duration-200',
-                                        isCurrent  ? 'text-[var(--text-primary)] text-[17px]' : 'text-[15px]',
+                                        isCurrent  ? 'text-[var(--text-primary)] text-[15px] sm:text-[17px]' : 'text-[14px] sm:text-[15px]',
                                         !isCurrent && isPast  ? 'text-[var(--text-subtle)]' : '',
                                         !isCurrent && !isPast ? 'text-[var(--text-muted)]' : '',
                                     ].join(' ')}
@@ -160,16 +160,17 @@ export default function ScheduleBoard() {
     }, [])
 
     return (
-        <section className="rounded-xl overflow-hidden mt-10 ">
-            <div className="px-5 py-5 border-b border-[var(--border-faint)]">
-                <h2 className="text-[17px] font-bold text-[var(--text-primary)] tracking-tight">한눈에 보는 지상파 애니메이션 편성표</h2>
+        <section className="mt-10 pb-6">
+            <div className="mb-4 flex flex-col gap-1 sm:mb-5">
+                <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">편성표</h2>
+                <p className="text-sm text-[var(--text-muted)]">지금 방송 중인 작품과 다음 방송을 확인해보세요</p>
             </div>
 
-            <div className="grid grid-cols-3 divide-x divide-[var(--border-subtle)]">
+            <div className="grid grid-flow-col auto-cols-[minmax(292px,86vw)] gap-3 overflow-x-auto pb-2 sm:auto-cols-[minmax(340px,42vw)] xl:grid-flow-row xl:grid-cols-3 xl:gap-0 xl:divide-x xl:divide-[var(--border-subtle)] xl:overflow-hidden xl:rounded-xl xl:border xl:border-[var(--border-faint)]">
                 {channels.map((ch) => {
                     const currentIdx = getCurrentIdx(ch.items, nowMin)
                     return (
-                        <div key={ch.id} className="overflow-y-auto max-h-[680px] [&::-webkit-scrollbar]:w-0">
+                        <div key={ch.id} className="overflow-y-auto max-h-[520px] [&::-webkit-scrollbar]:w-0 sm:max-h-[640px] xl:max-h-[680px]">
                             <ChannelBlock label={ch.label} items={ch.items} currentIdx={currentIdx} />
                         </div>
                     )

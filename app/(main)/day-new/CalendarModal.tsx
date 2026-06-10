@@ -56,6 +56,15 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
     const [selectedDate, setSelectedDate] = useState<string | null>(null)
     const [selectedList, setSelectedList] = useState<AniItem[]>([])
     const [listLoading, setListLoading] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
+
+    // 모바일 감지 — SSR 안전
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 640)
+        check()
+        window.addEventListener('resize', check)
+        return () => window.removeEventListener('resize', check)
+    }, [])
 
     const loadMonthData = useCallback(async (year: number, month: number) => {
         setCalLoading(true)
@@ -114,6 +123,13 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
         return `${d.getMonth() + 1}월 ${d.getDate()}일 (${DAYS_KR[jsToTabIdx(d.getDay())]})`
     })() : null
 
+    // 모바일: 날짜 선택 시 모달 너비 그대로, flexDirection column
+    const modalWidth = isMobile
+        ? '95vw'
+        : selectedDate ? 860 : 480
+
+    const modalFlexDir: React.CSSProperties['flexDirection'] = isMobile ? 'column' : 'row'
+
     return (
         <div
             style={{
@@ -146,16 +162,22 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                     border: '1px solid var(--border)',
                     borderRadius: 20,
                     display: 'flex',
-                    maxHeight: '88vh',
+                    flexDirection: modalFlexDir,
+                    maxHeight: isMobile ? '92vh' : '88vh',
                     boxShadow: '0 40px 80px rgba(0,0,0,.5)',
                     animation: 'cal-up .35s cubic-bezier(.34,1.56,.64,1)',
                     overflow: 'hidden',
-                    width: selectedDate ? 860 : 480,
+                    width: modalWidth,
                     transition: 'width .28s cubic-bezier(.4,0,.2,1)',
                 }}
             >
-                {/* ── 왼쪽: 캘린더 ── */}
-                <div style={{ width: 480, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+                {/* ── 왼쪽(데스크탑) / 위(모바일): 캘린더 ── */}
+                <div style={{
+                    width: isMobile ? '100%' : 480,
+                    flexShrink: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                }}>
 
                     {/* 헤더 */}
                     <div style={{ padding: '24px 28px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -234,9 +256,9 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                                         fontWeight: isSelected || isToday ? 700 : 400,
                                         color: isSelected ? '#fff'
                                             : isToday ? '#fff'
-                                            : colIdx === 5 ? 'rgba(167,139,250,.7)'
-                                            : colIdx === 6 ? 'rgba(248,113,113,.6)'
-                                            : 'var(--text-muted)',
+                                                : colIdx === 5 ? 'rgba(167,139,250,.7)'
+                                                    : colIdx === 6 ? 'rgba(248,113,113,.6)'
+                                                        : 'var(--text-muted)',
                                     }}>{day}</span>
                                     {hasAnime && (
                                         <span style={{ width: 4, height: 4, borderRadius: '50%', background: isSelected ? 'rgba(255,255,255,.8)' : 'rgba(108,99,255,.8)', display: 'block', flexShrink: 0 }} />
@@ -264,12 +286,21 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                     </div>
                 </div>
 
-                {/* ── 오른쪽: 방영 목록 ── */}
+                {/* ── 오른쪽(데스크탑) / 아래(모바일): 방영 목록 ── */}
                 {selectedDate && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+                    <div style={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        borderLeft: isMobile ? 'none' : '1px solid var(--border-subtle)',
+                        borderTop: isMobile ? '1px solid var(--border-subtle)' : 'none',
+                        overflow: 'hidden',
+                        // 모바일에서 목록 패널 최대 높이 제한
+                        maxHeight: isMobile ? '45vh' : undefined,
+                    }}>
 
-                        <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid var(--border-subtle)', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 5 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid var(--border-subtle)', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 5 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                                 <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{selectedLabel}</span>
                                 {!listLoading && (
                                     <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: 20, padding: '2px 8px' }}>{selectedList.length}편</span>
@@ -307,7 +338,7 @@ export default function CalendarModal({ onClose, onSelectDate }: Props) {
                                     ))}
                                 </div>
                             ) : selectedList.length === 0 ? (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 20px' }}>
                                     <p style={{ fontSize: 13, color: 'var(--text-faint)', textAlign: 'center', margin: 0 }}>이 날은 방영 작품이 없어요</p>
                                 </div>
                             ) : (
