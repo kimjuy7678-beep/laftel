@@ -7,14 +7,13 @@ const IMG = 'https://image.tmdb.org/t/p'
 
 const SUGGESTIONS = ['귀멸의 칼날', '주술회전', '하이큐', '프리렌', '나루토', '원피스', '진격의 거인', '스파이 패밀리']
 const CATEGORIES = [
-    { label: '🔥 인기', genre: null },
-    { label: '⚔️ 액션', genre: 10759 },
-    { label: '💕 로맨스', genre: 10749 },
-    { label: '✨ 판타지', genre: 10765 },
-    { label: '😂 코미디', genre: 35 },
-    { label: '😭 드라마', genre: 18 },
-    { label: '🌑 미스터리', genre: 9648 },
-    { label: '👻 호러', genre: 27 },
+    { label: '⚔️ 액션', key: 'action' },
+    { label: '💕 로맨스', key: 'romance' },
+    { label: '✨ 판타지', key: 'fantasy' },
+    { label: '😂 코미디', key: 'comedy' },
+    { label: '😭 드라마', key: 'drama' },
+    { label: '🌑 미스터리', key: 'mystery' },
+    { label: '👻 공포', key: 'horror' },
 ]
 
 function normalize(v: string) { return v.toLowerCase().replace(/[\s\-_·.,!?'"()\[\]]+/g, '') }
@@ -183,7 +182,7 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                                     {CATEGORIES.map(cat => (
                                         <button key={cat.label}
-                                            onClick={() => { onClose(); router.push(`/tag-search?genre=${cat.genre ?? ''}`) }}
+                                            onClick={() => { onClose(); router.push(`/tag-search${cat.key ? `?genre=${cat.key}` : ''}`) }}
                                             style={{ padding: '5px 13px', borderRadius: 20, background: 'rgba(108,99,255,.15)', color: '#a5a0ff', fontSize: 12, fontWeight: 700, border: '1px solid rgba(108,99,255,.25)', cursor: 'pointer', transition: 'all .15s' }}
                                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(108,99,255,.25)' }}
                                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(108,99,255,.15)' }}

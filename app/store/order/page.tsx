@@ -107,18 +107,61 @@ function ModalWrap({ title, children, onClose }: { title: string; children: Reac
     );
 }
 
+// ─── 전화번호 하이픈 포맷 ────────────────────────────────────────────────────
+function formatPhone(val: string): string {
+    const nums = val.replace(/\D/g, "").slice(0, 11);
+    if (nums.length <= 3) return nums;
+    if (nums.length <= 7) return `${nums.slice(0, 3)}-${nums.slice(3)}`;
+    return `${nums.slice(0, 3)}-${nums.slice(3, 7)}-${nums.slice(7)}`;
+}
+
 // ─── 인풋 필드 ───────────────────────────────────────────────────────────────
-function Field({ label, value, onChange, placeholder, error }: {
+function Field({ label, value, onChange, placeholder, error, type = "text" }: {
     label: string; value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     placeholder?: string;
     error?: boolean;
+    type?: string;
 }) {
+    const [nonNumericWarn, setNonNumericWarn] = useState(false);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (type === "tel") {
+            const raw = e.target.value;
+            // 숫자 외 입력 감지 (하이픈 제외)
+            if (/[^0-9\-]/.test(raw)) {
+                setNonNumericWarn(true);
+                setTimeout(() => setNonNumericWarn(false), 1500);
+            }
+            const formatted = formatPhone(raw);
+            const syntheticEvent = Object.assign({}, e, {
+                target: Object.assign({}, e.target, { value: formatted })
+            });
+            onChange(syntheticEvent as React.ChangeEvent<HTMLInputElement>);
+        } else {
+            onChange(e);
+        }
+    };
+
     return (
         <div>
             <label className="block text-[12px] font-semibold text-[#666] mb-1.5">{label}</label>
-            <input value={value} onChange={onChange} placeholder={placeholder}
-                style={{ color: "#111" }} className={`w-full h-10 rounded-[10px] border px-3 text-[13px] outline-none transition-colors ${error ? "border-[#ff4d6d] bg-[#fff5f7]" : "border-[#e0daf7] focus:border-[#826CFF]"}`} />
+            <div className="relative">
+                <input
+                    value={value}
+                    onChange={handleChange}
+                    placeholder={nonNumericWarn ? "" : placeholder}
+                    inputMode={type === "tel" ? "numeric" : undefined}
+                    style={{ color: "#111" }}
+                    className={`w-full h-10 rounded-[10px] border px-3 text-[13px] outline-none transition-colors ${nonNumericWarn ? "border-[#ff4d6d] bg-[#fff5f7]" : error ? "border-[#ff4d6d] bg-[#fff5f7]" : "border-[#e0daf7] focus:border-[#826CFF]"}`}
+                />
+                {nonNumericWarn && (
+                    <div className="absolute inset-0 flex items-center gap-1.5 px-3 pointer-events-none">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" strokeWidth="2.5" className="shrink-0"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                        <p className="text-[12px] text-[#ff4d6d] font-semibold">숫자만 입력 가능해요</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -139,7 +182,7 @@ function EditBuyerModal({ info, onSave, onClose }: {
         <ModalWrap onClose={onClose} title="주문자 정보 수정">
             <div className="space-y-3">
                 <Field label="이름" value={form.name} onChange={set("name")} placeholder="홍길동" />
-                <Field label="휴대폰" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" />
+                <Field label="휴대폰" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" type="tel" />
                 <Field label="이메일" value={form.email} onChange={set("email")} placeholder="email@example.com" />
             </div>
             <div className="flex gap-2 mt-6">
@@ -254,7 +297,7 @@ function EditShippingModal({ info, savedAddresses, onSave, onClose, uid }: {
             ) : (
                 <div className="space-y-3">
                     <Field label="수령인" value={form.name} onChange={set("name")} placeholder="홍길동" />
-                    <Field label="연락처" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" />
+                    <Field label="연락처" value={form.phone} onChange={set("phone")} placeholder="010-0000-0000" type="tel" />
                     <div className="flex gap-2 items-end">
                         <div className="flex-1">
                             <Field label="우편번호" value={form.zip} onChange={set("zip")} placeholder="03706" />
@@ -444,43 +487,87 @@ function PointInput({ livePoints, onApply, onError }: {
 }) {
     const [val, setVal] = useState("");
     const [applied, setApplied] = useState(false);
+    const [nonNumericWarn, setNonNumericWarn] = useState(false);
 
-    const handleApply = () => {
-        const v = Number(val) || 0;
-        if (v > livePoints) { onError("보유 포인트가 부족해요."); setApplied(false); return; }
+    const applyValue = (v: number) => {
         onApply(v);
         onError("");
         setApplied(true);
     };
 
+    const handleApply = () => {
+        const v = Number(val) || 0;
+        if (v > livePoints) {
+            setVal(String(livePoints));
+            applyValue(livePoints);
+            onError(`최대 사용 가능 포인트인 ${livePoints.toLocaleString()}P로 설정됐어요.`);
+            return;
+        }
+        applyValue(v);
+    };
+
     const handleUseAll = () => {
         setVal(String(livePoints));
-        onApply(livePoints);
+        applyValue(livePoints);
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value;
+
+        // 숫자 외 입력 감지
+        if (/[^0-9]/.test(raw)) {
+            setNonNumericWarn(true);
+            setTimeout(() => setNonNumericWarn(false), 1500);
+            // 숫자만 추출해서 유지
+            const numOnly = raw.replace(/[^0-9]/g, "");
+            setVal(numOnly);
+            return;
+        }
+
+        setNonNumericWarn(false);
+        const v = Number(raw) || 0;
+
+        // 최대치 초과 즉시 자동 클램핑
+        if (v > livePoints) {
+            setVal(String(livePoints));
+            applyValue(livePoints);
+            onError(`최대 사용 가능 포인트인 ${livePoints.toLocaleString()}P로 자동 설정됐어요.`);
+            return;
+        }
+
+        setVal(raw);
+        setApplied(false);
         onError("");
-        setApplied(true);
     };
 
     return (
         <div className="flex gap-2">
             <div className="relative flex-1">
                 <input
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={val}
-                    onChange={(e) => { setVal(e.target.value); setApplied(false); }}
+                    onChange={handleChange}
                     onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
-                    placeholder="0"
+                    placeholder={nonNumericWarn ? "" : "0"}
                     style={{
                         color: applied ? "#826CFF" : "#111111",
                         fontWeight: applied ? 700 : 400,
-                        MozAppearance: "textfield",
                     } as React.CSSProperties}
-                    className={`w-full h-11 rounded-[12px] border pr-8 pl-4 text-[13px] outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${applied ? "border-[#826CFF]" : "border-[#e0daf7] focus:border-[#826CFF]"}`}
+                    className={`w-full h-11 rounded-[12px] border pr-8 pl-4 text-[13px] outline-none transition-colors ${nonNumericWarn ? "border-[#ff4d6d]" : applied ? "border-[#826CFF]" : "border-[#e0daf7] focus:border-[#826CFF]"}`}
                 />
-                <span
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold pointer-events-none select-none"
-                    style={{ color: applied ? "#826CFF" : "#aaaaaa" }}
-                >P</span>
+                {nonNumericWarn ? (
+                    <div className="absolute inset-0 flex items-center gap-1.5 pl-4 pr-8 pointer-events-none">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" strokeWidth="2.5" className="shrink-0"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                        <p className="text-[12px] text-[#ff4d6d] font-semibold">숫자만 입력 가능해요</p>
+                    </div>
+                ) : (
+                    <span
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold pointer-events-none select-none"
+                        style={{ color: applied ? "#826CFF" : "#aaaaaa" }}
+                    >P</span>
+                )}
             </div>
             <button
                 type="button"
@@ -973,15 +1060,19 @@ function OrderContent() {
                                         onApply={(v) => { setAppliedPoint(v); setPointError(""); }}
                                         onError={(msg) => setPointError(msg)}
                                     />
-                                    {pointError && <p className="mt-1.5 text-[12px] text-[#ff4d6d] font-semibold">{pointError}</p>}
+                                    {pointError && (
+                                        <p className={`mt-7 text-[12px] font-semibold ${pointError.includes("최대") ? "text-[#826CFF]" : "text-[#ff4d6d]"}`}>
+                                            {pointError}
+                                        </p>
+                                    )}
                                     {!pointError && appliedPoint > 0 && (
-                                        <p className="mt-1.5 text-[12px] text-[#826CFF] font-semibold flex items-center gap-1">
+                                        <p className="mt-7 text-[12px] text-[#826CFF] font-semibold flex items-center gap-1">
                                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                                             {appliedPoint.toLocaleString()}P 사용
                                         </p>
                                     )}
                                     {!pointError && appliedPoint === 0 && (
-                                        <p className="mt-1 text-[11px] text-[#bbb]">사용 가능 포인트: {livePoints.toLocaleString()}P</p>
+                                        <p className="mt-7 text-[11px] text-[#bbb]">사용 가능 포인트: {livePoints.toLocaleString()}P</p>
                                     )}
                                 </div>
                             </div>
