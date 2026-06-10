@@ -37,9 +37,11 @@ const QUESTIONS = [
     },
 ]
 
+type SurveyAnswer = number | string | string[]
+
 function SurveyModal({ onClose }: { onClose: () => void }) {
     const { user, addPoints } = useAuthStore()
-    const [answers, setAnswers] = useState<Record<string, any>>({})
+    const [answers, setAnswers] = useState<Record<string, SurveyAnswer>>({})
     const [step, setStep] = useState(0)
     const [submitting, setSubmitting] = useState(false)
     const [done, setDone] = useState(false)
@@ -50,7 +52,7 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
     const handleRating = (val: number) => setAnswers(prev => ({ ...prev, [q.id]: val }))
     const handleSingle = (val: string) => setAnswers(prev => ({ ...prev, [q.id]: val }))
     const handleMulti = (val: string) => {
-        const cur: string[] = answers[q.id] || []
+        const cur = Array.isArray(answers[q.id]) ? answers[q.id] : []
         setAnswers(prev => ({
             ...prev,
             [q.id]: cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val]
@@ -238,9 +240,10 @@ export default function SurveyBanner() {
 
     return (
         <>
-            <section style={{ padding: '48px 0 0' }}>
+            <section className="sb-section">
                 <style>{`
-                    .sb-wrap { width: 100%; margin: 0 auto; margin-top: -30px; padding-top: 50px; }
+                    .sb-section { padding: 40px 0 0; }
+                    .sb-wrap { width: 100%; margin: 0 auto; margin-top: -24px; padding-top: 38px; }
                     .sb-inner {
                         position: relative;
                         overflow: hidden;
@@ -256,19 +259,20 @@ export default function SurveyBanner() {
                     }
                     .sb-btn {
                         position: absolute;
-                        top: 85%;
-                        right: 14%;
-                        display: inline-flex; align-items: center;
-                        padding: 15px 30px; border-radius: 50px;
+                        right: 4.5%;
+                        bottom: 7.5%;
+                        display: inline-flex; align-items: center; justify-content: center;
+                        min-height: clamp(18px, 2.35vw, 38px);
+                        padding: 0 clamp(8px, 1.5vw, 24px); border-radius: 50px;
                         background: rgba(255,255,255,0.15);
                         border: 1px solid rgba(255,255,255,0.4);
-                        color: #fff; font-size: clamp(12px, 1.5vw, 24px); font-weight: 600;
+                        color: #fff; font-size: clamp(8px, 0.86vw, 15px); font-weight: 600;
                         cursor: pointer; white-space: nowrap;
                         backdrop-filter: blur(4px); transition: background .2s;
                     }
                     .sb-btn:hover { background: rgba(255,255,255,0.5); }
                     @media (max-width: 1920px) {
-                        .sb-btn { right: 10.5%; }
+                        .sb-btn { right: 4.5%; }
                     }
                     .sb-dismiss {
                         position: absolute;
@@ -282,6 +286,40 @@ export default function SurveyBanner() {
                         transition: all .2s; backdrop-filter: blur(4px);
                     }
                     .sb-dismiss:hover { background: rgba(0,0,0,0.5); color: #fff; }
+                    @media (max-width: 900px) {
+                        .sb-section { padding-top: 32px; }
+                        .sb-wrap { margin-top: -14px; padding-top: 26px; }
+                        .sb-btn {
+                            right: 3.5%;
+                            bottom: 6.5%;
+                            min-height: clamp(13px, 3vw, 22px);
+                            padding: 0 clamp(5px, 1.8vw, 10px);
+                            font-size: clamp(6px, 1.35vw, 9px);
+                        }
+                        .sb-dismiss {
+                            width: 26px;
+                            height: 26px;
+                        }
+                    }
+                    @media (max-width: 560px) {
+                        .sb-btn {
+                            right: 2.5%;
+                            bottom: 5.5%;
+                            min-height: clamp(11px, 4vw, 16px);
+                            padding: 0 clamp(4px, 1.8vw, 6px);
+                            font-size: clamp(5px, 1.8vw, 7px);
+                        }
+                        .sb-dismiss {
+                            top: 6%;
+                            right: 1.5%;
+                            width: 22px;
+                            height: 22px;
+                        }
+                        .sb-dismiss svg {
+                            width: 10px;
+                            height: 10px;
+                        }
+                    }
                 `}</style>
 
                 <div className="sb-wrap">

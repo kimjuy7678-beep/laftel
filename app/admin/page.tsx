@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from "react";
 import { db } from "@/firebase/firebase";
 import {
     collection, getDocs, query, orderBy,
-    doc, updateDoc, serverTimestamp, where
+    doc, updateDoc, getDoc, setDoc, addDoc, serverTimestamp, where, increment
 } from "firebase/firestore";
 import { saveStoreNotification } from "@/utils/storeNotification";
 
@@ -16,8 +16,6 @@ const PAGE_SIZE = 20;
 
 type InquiryStatus = "답변대기" | "답변완료";
 type AdminTab = "문의관리" | "배송관리" | "주문취소" | "환불관리";
-
-interface UserInfo { uid: string; email: string; nickname: string; }
 
 interface Inquiry {
     id: string; uid: string; category: string; title: string; content: string;
@@ -30,7 +28,37 @@ interface Order {
     total: number; createdAt: any; date: string;
     cancelReason?: string; refundReason?: string;
     userEmail: string; userNickname: string;
+    // ✅ 쿠폰/포인트 복원에 필요한 필드
     usedPoints?: number;
+    usedCouponId?: string;
+    couponId?: string;
+}
+
+// ─── 쿠폰 복원 헬퍼 ──────────────────────────────────────────────────────────
+async function restoreCouponIfUsed(uid: string, couponId?: string | null) {
+    if (!couponId) return;
+    try {
+        const couponRef = doc(db, "users", uid, "coupons", couponId);
+        const snap = await getDoc(couponRef);
+        if (snap.exists() && snap.data().status === "used") {
+            await updateDoc(couponRef, { status: "active", usedAt: null, usedOrderId: null });
+        }
+    } catch (err) {
+        console.error("[CouponRestore]", err);
+    }
+}
+
+// ─── 포인트 환불 헬퍼 ────────────────────────────────────────────────────────
+async function refundPoints(uid: string, points: number, label: string) {
+    if (!points || points <= 0) return;
+    await setDoc(doc(db, "users", uid), { points: increment(points) }, { merge: true });
+    await addDoc(collection(db, "users", uid, "pointHistory"), {
+        amount: points,
+        type: "earn",
+        description: label,
+        label,
+        createdAt: new Date(),
+    });
 }
 
 // ─── 로그인 화면 ─────────────────────────────────────────────────────────────
@@ -41,7 +69,9 @@ function LoginView({ onLogin }: { onLogin: () => void }) {
 
     const handleLogin = () => {
         if (!id || !pw) { setError("아이디와 비밀번호를 입력해주세요."); return; }
-        if (id === ADMIN_ID && pw === ADMIN_PW) { onLogin(); }
+        if (id === ADMIN_ID && pw === ADMIN_PW) {
+            onLogin();
+        }
         else { setError("아이디 또는 비밀번호가 올바르지 않습니다."); }
     };
 
@@ -200,7 +230,7 @@ function InquiryRow({ inquiry, onAnswer }: { inquiry: Inquiry; onAnswer: (i: Inq
 // ─── 배송 카드 ───────────────────────────────────────────────────────────────
 function ShippingRow({ order, onAction }: {
     order: Order;
-    onAction: (order: Order, type: "cancel_confirm" | "refund_complete" | "shipping_start" | "shipping_complete") => void;
+    onAction: (order: Order, type: "shipping_start" | "shipping_complete") => void;
 }) {
     const [open, setOpen] = useState(false);
 
@@ -229,7 +259,6 @@ function ShippingRow({ order, onAction }: {
                 <span className="shrink-0 text-[11px] text-[#9b94b2] hidden sm:block">{order.date}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b94b2" strokeWidth="2" className="shrink-0 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
-
             {open && (
                 <div className="border-t border-[#f0edf8] px-5 py-4 bg-[#faf9ff] flex flex-col gap-3">
                     <div className="flex items-center gap-2 text-[12px] text-[#6b647a]">
@@ -300,11 +329,11 @@ function OrderRow({ order, onAction }: {
                 : "bg-[#f0fdf4] text-[#16a34a]";
 
     return (
-        <div className={`rounded-[12px] border overflow-hidden ${isRefundDone ? "border-[#f0f0f0]" : "border-[#ebe8ff]"}`}>
+        <div className={`rounded-[12px] border overflow-hidden ${isRefundDone || isCancelled ? "border-[#f0f0f0]" : "border-[#ebe8ff]"}`}>
             <button onClick={() => setOpen(v => !v)}
-                className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${isRefundDone ? "bg-[#fafafa] hover:bg-[#f5f5f5]" : "bg-white hover:bg-[#faf9ff]"}`}>
+                className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${isRefundDone || isCancelled ? "bg-[#fafafa] hover:bg-[#f5f5f5]" : "bg-white hover:bg-[#faf9ff]"}`}>
                 <div className="flex-1 min-w-0">
-                    <p className={`truncate text-[13px] font-semibold ${isRefundDone ? "text-[#888]" : "text-[#16121f]"}`}>
+                    <p className={`truncate text-[13px] font-semibold ${isRefundDone || isCancelled ? "text-[#888]" : "text-[#16121f]"}`}>
                         {order.items?.[0]?.title ?? "상품명 없음"}
                         {order.items?.length > 1 && <span className="ml-1 text-[11px] text-[#9b94b2]">외 {order.items.length - 1}건</span>}
                     </p>
@@ -318,22 +347,17 @@ function OrderRow({ order, onAction }: {
 
             {open && (
                 <div className="border-t border-[#f0edf8] px-5 py-4 bg-[#faf9ff] flex flex-col gap-3">
-                    {/* 유저 정보 */}
                     <div className="flex items-center gap-2 text-[12px] text-[#6b647a]">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                         <span className="font-semibold">{order.userNickname || "-"}</span>
                         <span className="text-[#c0bcd0]">{order.userEmail}</span>
                     </div>
-
-                    {/* 사유 */}
                     <div>
                         <p className="text-[11px] font-bold text-[#9b94b2] mb-1">
-                            {isCancelled ? "취소 사유" : "환불/교환 사유"}
+                            {isRefundPending || isRefundDone ? "환불/교환 사유" : "취소 사유"}
                         </p>
                         <p className="text-[13px] text-[#3d3755]">{order.cancelReason || order.refundReason || "-"}</p>
                     </div>
-
-                    {/* 주문 상품 */}
                     <div>
                         <p className="text-[11px] font-bold text-[#9b94b2] mb-1.5">주문 상품</p>
                         <div className="flex flex-col gap-1">
@@ -348,27 +372,41 @@ function OrderRow({ order, onAction }: {
                             ))}
                         </div>
                     </div>
-
-                    {/* 결제 정보 */}
+                    {/* ✅ 복원 예정 내역 표시 */}
+                    {(isProcessing || isRefundPending) && (order.usedPoints || order.usedCouponId || order.couponId) && (
+                        <div className="rounded-[10px] bg-[#f0eeff] border border-[#e0d8ff] px-4 py-3 flex flex-col gap-1">
+                            <p className="text-[11px] font-bold text-[#7865ff] mb-0.5">승인 시 자동 복원 예정</p>
+                            {(order.usedCouponId || order.couponId) && (
+                                <p className="text-[12px] text-[#6b647a]">🎟 쿠폰 복원</p>
+                            )}
+                            {(order.usedPoints ?? 0) > 0 && (
+                                <p className="text-[12px] text-[#6b647a]">🪙 포인트 {order.usedPoints?.toLocaleString()}P 환불</p>
+                            )}
+                        </div>
+                    )}
                     <div className="flex items-center justify-between text-[13px] border-t border-[#ebe8ff] pt-3">
                         <span className="text-[#9b94b2]">총 결제금액</span>
                         <span className="font-bold text-[#16121f]">{order.total?.toLocaleString()}원</span>
                     </div>
-
-                    {/* 액션 버튼 */}
                     <div className="flex gap-2 pt-1">
-                        {(isCancelled || order.status === "처리중") && (
+                        {(isProcessing) && (
                             <button onClick={() => onAction(order, "cancel_confirm")}
                                 className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#7865ff] text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                                취소 확인 처리
+                                취소 승인 + 복원 처리
                             </button>
+                        )}
+                        {isCancelled && (
+                            <span className="text-[12px] text-[#888] flex items-center gap-1">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                취소 처리 완료
+                            </span>
                         )}
                         {isRefundPending && (
                             <button onClick={() => onAction(order, "refund_complete")}
                                 className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#16a34a] text-[12px] font-semibold text-white hover:bg-[#15803d] transition">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                                환불 완료 처리
+                                환불 완료 + 복원 처리
                             </button>
                         )}
                         {isRefundDone && (
@@ -411,6 +449,12 @@ function Pagination({ total, page, onPage }: { total: number; page: number; onPa
 // ─── 메인 ────────────────────────────────────────────────────────────────────
 export default function AdminPage() {
     const [isAdmin, setIsAdmin] = useState(false);
+    const [authChecked, setAuthChecked] = useState(false);
+
+    useEffect(() => {
+        if (sessionStorage.getItem("admin_auth") === "1") setIsAdmin(true);
+        setAuthChecked(true);
+    }, []);
     const [adminTab, setAdminTab] = useState<AdminTab>("문의관리");
     const [inquiries, setInquiries] = useState<Inquiry[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
@@ -418,10 +462,11 @@ export default function AdminPage() {
 
     const [inquiryTab, setInquiryTab] = useState<"전체" | "답변대기" | "답변완료">("답변대기");
     const [inquiryPage, setInquiryPage] = useState(1);
-
-    const [orderTab, setOrderTab] = useState<"주문취소" | "환불신청" | "환불완료">("환불신청");
+    const [orderTab, setOrderTab] = useState<"환불신청" | "환불완료">("환불신청");
     const [orderPage, setOrderPage] = useState(1);
-
+    const [shippingPage, setShippingPage] = useState(1);
+    const [shippingTab, setShippingTab] = useState<"진행중" | "배송완료">("진행중");
+    const [cancelPage, setCancelPage] = useState(1);
     const [target, setTarget] = useState<Inquiry | null>(null);
 
     // ── 전체 유저 순회 데이터 로드 ────────────────────────────────────────────
@@ -438,7 +483,6 @@ export default function AdminPage() {
                 const userEmail = userData.email ?? "";
                 const userNickname = userData.nickname ?? userData.name ?? "";
 
-                // 문의
                 try {
                     const iqSnap = await getDocs(query(
                         collection(db, "users", uid, "inquiries"),
@@ -450,7 +494,6 @@ export default function AdminPage() {
                     } as Inquiry));
                 } catch { }
 
-                // 주문 (취소/환불)
                 try {
                     const orSnap = await getDocs(query(
                         collection(db, "users", uid, "orders"),
@@ -465,7 +508,6 @@ export default function AdminPage() {
 
             allInquiries.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
             allOrders.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
-
             setInquiries(allInquiries);
             setOrders(allOrders);
         } catch (e) { console.error(e); }
@@ -490,27 +532,54 @@ export default function AdminPage() {
     };
 
     // ── 주문 액션 처리 ─────────────────────────────────────────────────────────
-    const handleOrderAction = async (order: Order, type: "cancel_confirm" | "refund_complete" | "shipping_start" | "shipping_complete") => {
-        const confirmMsg = type === "cancel_confirm"
-            ? `취소 처리완료 알림을 보낼까요?\n${order.userNickname || order.userEmail}`
-            : `환불 완료 처리할까요?\n${order.items?.[0]?.title} · ${order.total?.toLocaleString()}원`;
+    const handleOrderAction = async (
+        order: Order,
+        type: "cancel_confirm" | "refund_complete" | "shipping_start" | "shipping_complete"
+    ) => {
+        const confirmMsg =
+            type === "cancel_confirm" ? `취소 승인하고 쿠폰·포인트를 복원할까요?\n${order.userNickname || order.userEmail}`
+                : type === "refund_complete" ? `환불 완료 처리하고 쿠폰·포인트를 복원할까요?\n${order.items?.[0]?.title} · ${order.total?.toLocaleString()}원`
+                    : type === "shipping_start" ? `배송을 시작할까요?\n${order.items?.[0]?.title}`
+                        : `배송 완료 처리할까요?\n${order.items?.[0]?.title}`;
+
         if (!confirm(confirmMsg)) return;
 
         if (type === "cancel_confirm") {
-            // 처리중 → 주문취소로 상태 변경 + 알림
+            // ✅ 주문취소 승인 — 상태변경 + 쿠폰복원 + 포인트환불
             await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
                 status: "주문취소",
                 cancelConfirmedAt: serverTimestamp(),
             });
+            await restoreCouponIfUsed(order.uid, order.usedCouponId ?? order.couponId);
+            await refundPoints(order.uid, order.usedPoints ?? 0, "주문 취소 포인트 환불");
             await saveStoreNotification(order.uid, {
                 type: "cancel",
                 title: "주문 취소가 처리됐어요",
-                body: `취소 요청이 확인됐어요. 결제금액은 3~5일 내 환불돼요.`,
-                link: "/store/profile",
+                body: `취소가 승인됐어요. 쿠폰·포인트가 복원됐고, 결제금액은 3~5일 내 환불돼요.`,
+                link: "/store/profile?tab=교환환불/취소",
             });
             setOrders(prev => prev.map(o =>
                 o.id === order.id && o.uid === order.uid ? { ...o, status: "주문취소" } : o
             ));
+
+        } else if (type === "refund_complete") {
+            // ✅ 환불완료 승인 — 상태변경 + 쿠폰복원 + 포인트환불
+            await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
+                status: "환불완료",
+                refundCompletedAt: serverTimestamp(),
+            });
+            await restoreCouponIfUsed(order.uid, order.usedCouponId ?? order.couponId);
+            await refundPoints(order.uid, order.usedPoints ?? 0, "교환/환불 포인트 환불");
+            await saveStoreNotification(order.uid, {
+                type: "cancel",
+                title: "환불이 완료됐어요",
+                body: `쿠폰·포인트가 복원됐고, 환불금액은 3~5일 내 입금돼요.`,
+                link: "/store/profile?tab=교환환불/취소",
+            });
+            setOrders(prev => prev.map(o =>
+                o.id === order.id && o.uid === order.uid ? { ...o, status: "환불완료" } : o
+            ));
+
         } else if (type === "shipping_start") {
             await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
                 status: "배송시작", shippingStartedAt: serverTimestamp(),
@@ -519,11 +588,12 @@ export default function AdminPage() {
                 type: "order",
                 title: "상품이 출발했어요 🚚",
                 body: `${order.items?.[0]?.title} 배송이 시작됐어요.`,
-                link: "/store/profile",
+                link: "/store/profile?tab=배송중",
             });
             setOrders(prev => prev.map(o =>
                 o.id === order.id && o.uid === order.uid ? { ...o, status: "배송시작" } : o
             ));
+
         } else if (type === "shipping_complete") {
             await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
                 status: "배송완료", deliveredAt: serverTimestamp(),
@@ -532,24 +602,10 @@ export default function AdminPage() {
                 type: "order",
                 title: "배송이 완료됐어요 📦",
                 body: `${order.items?.[0]?.title} 배송이 완료됐어요. 상품을 확인해주세요!`,
-                link: "/store/profile",
+                link: "/store/profile?tab=배송완료",
             });
             setOrders(prev => prev.map(o =>
                 o.id === order.id && o.uid === order.uid ? { ...o, status: "배송완료" } : o
-            ));
-        } else {
-            // 교환환불신청 → 환불완료로 상태 변경 + 알림
-            await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
-                status: "환불완료", refundCompletedAt: serverTimestamp(),
-            });
-            await saveStoreNotification(order.uid, {
-                type: "cancel",
-                title: "환불이 완료되었어요",
-                body: `${order.items?.[0]?.title} 환불이 처리됐어요. 3~5일 내 입금돼요.`,
-                link: "/store/profile",
-            });
-            setOrders(prev => prev.map(o =>
-                o.id === order.id && o.uid === order.uid ? { ...o, status: "환불완료" } : o
             ));
         }
     };
@@ -564,20 +620,19 @@ export default function AdminPage() {
         [filteredInquiries, inquiryPage]
     );
 
-    // 주문취소 탭 전용 (orderTab과 무관)
-    const cancelOrders = useMemo(() => orders.filter(o => o.status === "처리중" || o.status === "주문취소"), [orders]);
+    const cancelOrders = useMemo(() =>
+        orders.filter(o => o.status === "처리중" || o.status === "주문취소"),
+        [orders]
+    );
     const pagedCancelOrders = useMemo(() =>
-        cancelOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE),
-        [cancelOrders, orderPage]
+        cancelOrders.slice((cancelPage - 1) * PAGE_SIZE, cancelPage * PAGE_SIZE),
+        [cancelOrders, cancelPage]
     );
 
-    // 배송관리 탭 전용
     const shippingOrders = useMemo(() =>
         orders.filter(o => ["결제완료", "배송시작", "배송중", "배송완료"].includes(o.status)),
         [orders]
     );
-    const [shippingPage, setShippingPage] = useState(1);
-    const [shippingTab, setShippingTab] = useState<"진행중" | "배송완료">("진행중");
     const filteredShipping = useMemo(() =>
         shippingTab === "진행중"
             ? shippingOrders.filter(o => ["결제완료", "배송시작", "배송중"].includes(o.status))
@@ -589,11 +644,12 @@ export default function AdminPage() {
         [filteredShipping, shippingPage]
     );
 
-    // 환불관리 탭 전용
-    const filteredOrders = useMemo(() => {
-        if (orderTab === "환불신청") return orders.filter(o => o.status === "교환환불신청");
-        return orders.filter(o => o.status === "환불완료");
-    }, [orders, orderTab]);
+    const filteredOrders = useMemo(() =>
+        orderTab === "환불신청"
+            ? orders.filter(o => o.status === "교환환불신청")
+            : orders.filter(o => o.status === "환불완료"),
+        [orders, orderTab]
+    );
     const pagedOrders = useMemo(() =>
         filteredOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE),
         [filteredOrders, orderPage]
@@ -601,11 +657,13 @@ export default function AdminPage() {
 
     const waitCount = inquiries.filter(i => i.status === "답변대기").length;
     const shippingPendingCount = shippingOrders.filter(o => ["결제완료", "배송시작", "배송중"].includes(o.status)).length;
-    const cancelCount = orders.filter(o => o.status === "처리중" || o.status === "주문취소").length;
+    const cancelPendingCount = orders.filter(o => o.status === "처리중").length;
+    const cancelCount = cancelOrders.length;
     const refundPendingCount = orders.filter(o => o.status === "교환환불신청").length;
     const refundDoneCount = orders.filter(o => o.status === "환불완료").length;
 
-    if (!isAdmin) return <LoginView onLogin={() => setIsAdmin(true)} />;
+    if (!authChecked) return null;
+    if (!isAdmin) return <LoginView onLogin={() => { sessionStorage.setItem("admin_auth", "1"); setIsAdmin(true); }} />;
 
     return (
         <div className="min-h-screen bg-[#f5f3ff]">
@@ -619,14 +677,13 @@ export default function AdminPage() {
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="text-[12px] text-[#9b94b2]">{ADMIN_ID}</span>
-                        <button onClick={() => setIsAdmin(false)}
+                        <button onClick={() => { sessionStorage.removeItem("admin_auth"); setIsAdmin(false); }}
                             className="text-[12px] text-[#9b94b2] hover:text-[#ff4d6d] transition">로그아웃</button>
                     </div>
                 </div>
             </header>
 
             <main className="mx-auto max-w-[1200px] px-6 py-10">
-                {/* 상단 탭 */}
                 <div className="mb-8 flex gap-2 flex-wrap">
                     {(["문의관리", "배송관리", "주문취소", "환불관리"] as AdminTab[]).map(t => (
                         <button key={t} onClick={() => setAdminTab(t)}
@@ -635,8 +692,8 @@ export default function AdminPage() {
                             {t === "배송관리" && shippingPendingCount > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#7865ff] px-1 text-[10px] font-bold text-white">{shippingPendingCount}</span>
                             )}
-                            {t === "주문취소" && cancelCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#888] px-1 text-[10px] font-bold text-white">{cancelCount}</span>
+                            {t === "주문취소" && cancelPendingCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#f59e0b] px-1 text-[10px] font-bold text-white">{cancelPendingCount}</span>
                             )}
                             {t === "환불관리" && refundPendingCount > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ff4d6d] px-1 text-[10px] font-bold text-white">{refundPendingCount}</span>
@@ -699,9 +756,7 @@ export default function AdminPage() {
                         <div className="mb-4 flex items-center gap-5 border-b border-[#f0edf8]">
                             {(["진행중", "배송완료"] as const).map(t => (
                                 <button key={t} onClick={() => { setShippingTab(t); setShippingPage(1); }}
-                                    className={`pb-3 text-[13px] font-semibold transition border-b-2 ${shippingTab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
-                                    {t}
-                                </button>
+                                    className={`pb-3 text-[13px] font-semibold transition border-b-2 ${shippingTab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>{t}</button>
                             ))}
                             <span className="ml-auto text-[12px] text-[#c0bcd0]">{filteredShipping.length}건</span>
                         </div>
@@ -715,17 +770,22 @@ export default function AdminPage() {
                 {/* ── 주문취소 ── */}
                 {adminTab === "주문취소" && (
                     <>
-                        <div className="mb-6 grid grid-cols-1 gap-3">
-                            <div className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4">
-                                <p className="text-[12px] text-[#9b94b2]">주문취소 건수</p>
-                                <p className="mt-1 text-[22px] font-bold text-[#888]">{cancelCount}<span className="text-[13px] font-medium ml-1">건</span></p>
-                            </div>
+                        <div className="mb-6 grid grid-cols-2 gap-3">
+                            {[
+                                { label: "승인 대기", value: cancelPendingCount, color: "#f59e0b" },
+                                { label: "취소 완료", value: orders.filter(o => o.status === "주문취소").length, color: "#888" },
+                            ].map(s => (
+                                <div key={s.label} className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4">
+                                    <p className="text-[12px] text-[#9b94b2]">{s.label}</p>
+                                    <p className="mt-1 text-[22px] font-bold" style={{ color: s.color }}>{s.value}<span className="text-[13px] font-medium ml-1">건</span></p>
+                                </div>
+                            ))}
                         </div>
-                        <p className="mb-4 text-[12px] text-[#9b94b2]">취소 처리완료 버튼을 누르면 고객에게 알림이 발송돼요.</p>
+                        <p className="mb-4 text-[12px] text-[#9b94b2]">승인 버튼을 누르면 쿠폰·포인트가 자동 복원되고 고객에게 알림이 발송돼요.</p>
                         {loading ? <div className="flex h-[200px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e2ddf5] border-t-[#7865ff]" /></div>
                             : pagedCancelOrders.length === 0 ? <div className="flex h-[200px] items-center justify-center"><p className="text-[13px] text-[#9b94b2]">주문취소 내역이 없어요.</p></div>
                                 : <div className="flex flex-col gap-2.5">{pagedCancelOrders.map(o => <OrderRow key={`${o.uid}-${o.id}`} order={o} onAction={handleOrderAction} />)}</div>}
-                        <Pagination total={cancelOrders.length} page={orderPage} onPage={setOrderPage} />
+                        <Pagination total={cancelCount} page={cancelPage} onPage={setCancelPage} />
                     </>
                 )}
 
@@ -753,6 +813,7 @@ export default function AdminPage() {
                             ))}
                             <span className="ml-auto text-[12px] text-[#c0bcd0]">{filteredOrders.length}건</span>
                         </div>
+                        <p className="mb-4 text-[12px] text-[#9b94b2]">환불 완료 버튼을 누르면 쿠폰·포인트가 자동 복원되고 고객에게 알림이 발송돼요.</p>
                         {loading ? <div className="flex h-[200px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e2ddf5] border-t-[#7865ff]" /></div>
                             : pagedOrders.length === 0 ? <div className="flex h-[200px] items-center justify-center"><p className="text-[13px] text-[#9b94b2]">내역이 없어요.</p></div>
                                 : <div className="flex flex-col gap-2.5">{pagedOrders.map(o => <OrderRow key={`${o.uid}-${o.id}`} order={o} onAction={handleOrderAction} />)}</div>}
