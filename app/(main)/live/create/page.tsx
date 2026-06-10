@@ -31,17 +31,17 @@ export default function CreatePartyPage() {
 
     const isDark = mounted ? theme === 'dark' : true
 
-    const bg        = isDark ? '#1a1a1a' : '#ffffff'
-    const bgHeader  = isDark ? '#111111' : '#f5f5f7'
-    const bgHover   = isDark ? 'rgba(108,99,255,0.2)' : 'rgba(108,99,255,0.1)'
+    const bg = isDark ? '#1a1a1a' : '#ffffff'
+    const bgHeader = isDark ? '#111111' : '#f5f5f7'
+    const bgHover = isDark ? 'rgba(108,99,255,0.2)' : 'rgba(108,99,255,0.1)'
     const borderCol = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
-    const textMain  = isDark ? '#ffffff' : '#0a0a0a'
-    const textSub   = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'
-    const textDay   = isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.75)'
-    const textOff   = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.2)'
-    const textDis   = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)'
-    const navArrow  = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'
-    const scrollBg  = isDark ? '#111111' : '#f0f0f5'
+    const textMain = isDark ? '#ffffff' : '#0a0a0a'
+    const textSub = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'
+    const textDay = isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.75)'
+    const textOff = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.2)'
+    const textDis = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)'
+    const navArrow = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'
+    const scrollBg = isDark ? '#111111' : '#f0f0f5'
     const scrollThumb = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'
 
     const filteredAnime = searchQuery.length > 0
@@ -82,7 +82,7 @@ export default function CreatePartyPage() {
     }
 
     return (
-        <div className="min-h-screen mt-70">
+        <div className="min-h-screen pt-20 sm:pt-24">
             <style>{`
                 /* ── wrapper ── */
                 .react-datepicker-wrapper { width: 100%; }
@@ -241,17 +241,39 @@ export default function CreatePartyPage() {
                 }
                 .dp-input:focus { border-color: #6c63ff; }
                 .dp-input::placeholder { color: var(--text-faint); }
+                @media (max-width: 640px) {
+                    .react-datepicker {
+                        max-width: calc(100vw - 32px) !important;
+                        display: block !important;
+                    }
+                    .react-datepicker__time-container {
+                        width: 100% !important;
+                        border-left: 0 !important;
+                        border-top: 1px solid ${borderCol} !important;
+                    }
+                    .react-datepicker__time-box {
+                        width: 100% !important;
+                    }
+                    .react-datepicker__time-list {
+                        display: grid !important;
+                        grid-template-columns: repeat(4, minmax(0, 1fr));
+                        height: 132px !important;
+                    }
+                    .react-datepicker__time-list-item {
+                        height: 32px !important;
+                    }
+                }
             `}</style>
 
-            <div className="max-w-xl mx-auto px-6 py-16">
+            <div className="w-full max-w-xl mx-auto px-4 py-10 sm:px-6 sm:py-16">
 
                 {/* 헤더 */}
-                <div className="mb-10">
-                    <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1 text-center">파티 개설</h1>
+                <div className="mb-8 sm:mb-10">
+                    <h1 className="text-[22px] font-bold text-[var(--text-primary)] mb-1 text-center sm:text-2xl">파티 개설</h1>
                     <p className="text-sm text-[var(--text-faint)] text-center">함께 볼 애니와 시간을 정해보세요</p>
                 </div>
 
-                <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-6 sm:gap-8">
 
                     {/* 애니 검색 */}
                     <div className="flex flex-col gap-2">
@@ -284,8 +306,8 @@ export default function CreatePartyPage() {
                         {selectedAnime && (
                             <div className="flex items-center gap-3 px-3 py-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border)] mt-1">
                                 <img src={`https://image.tmdb.org/t/p/w92${selectedAnime.poster_path}`} alt={selectedAnime.name} className="w-8 h-12 object-cover rounded" />
-                                <div>
-                                    <p className="text-sm font-medium text-[var(--text-primary)]">{selectedAnime.name}</p>
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium text-[var(--text-primary)]">{selectedAnime.name}</p>
                                     <p className="text-xs text-[var(--text-faint)]">선택됨</p>
                                 </div>
                                 <button onClick={() => { setSelectedAnime(null); setSearchQuery('') }}
@@ -330,14 +352,13 @@ export default function CreatePartyPage() {
                     {/* 최대 인원 */}
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-medium text-[var(--text-muted)]">최대 인원</label>
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             {([10, 20, 30] as const).map(n => (
                                 <button key={n} onClick={() => setMaxAttendees(n)}
-                                    className={`flex-1 py-3 rounded-xl text-sm font-medium border transition-colors ${
-                                        maxAttendees === n
-                                            ? 'bg-[#6c63ff] text-white border-[#6c63ff]'
-                                            : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text-muted)]'
-                                    }`}
+                                    className={`flex-1 py-3 rounded-xl text-sm font-medium border transition-colors ${maxAttendees === n
+                                        ? 'bg-[#6c63ff] text-white border-[#6c63ff]'
+                                        : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text-muted)]'
+                                        }`}
                                 >
                                     {n}명
                                 </button>
@@ -349,7 +370,7 @@ export default function CreatePartyPage() {
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="w-full py-4 bg-[#6c63ff] text-white font-bold rounded-xl hover:bg-[#5a52e0] transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-2"
+                        className="w-full py-3.5 bg-[#6c63ff] text-white font-bold rounded-xl hover:bg-[#5a52e0] transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-2 sm:py-4"
                     >
                         {isSubmitting ? '개설 중...' : '파티 개설하기'}
                     </button>
