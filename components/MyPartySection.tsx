@@ -94,12 +94,12 @@ export default function MyPartySection() {
 
     return (
         <section className="mb-2">
-            <div className="flex items-center gap-2 mb-4 pt-20">
+            <div className="flex items-center gap-2 mb-4 pt-14 sm:pt-20">
                 <h2 className="text-xl font-bold text-[var(--text-primary)]">내 파티</h2>
                 <span className="px-2 py-0.5 bg-[var(--border)] rounded-full text-xs text-[var(--text-muted)]">{myParties.length}</span>
             </div>
 
-            <ul className="grid grid-cols-4 gap-2 list-none p-0 m-0">
+            <ul className="grid grid-cols-1 gap-3 list-none p-0 m-0 sm:grid-cols-2 xl:grid-cols-4 xl:gap-2">
                 {myParties.slice(0, 4).map((party, idx) => {
                     const isUpcoming = party.status === 'upcoming'
                     return (
@@ -145,9 +145,9 @@ export default function MyPartySection() {
                                     ✕
                                 </button>
 
-                                <div className="absolute bottom-2.5 left-2.5 flex flex-col gap-1">
-                                    <div className="flex flex-col">
-                                        <span className="text-[16px] font-bold text-white drop-shadow">{party.animeName}</span>
+                                <div className="absolute bottom-2.5 left-2.5 right-12 flex flex-col gap-1">
+                                    <div className="flex min-w-0 flex-col">
+                                        <span className="truncate text-[14px] font-bold text-white drop-shadow sm:text-[16px]">{party.animeName}</span>
                                         <span className="text-[11px] font-semibold text-white/90 whitespace-nowrap">개설자 : {party.hostName}</span>
                                         <span className="text-[10px] text-white/60 whitespace-nowrap">
                                             파티 시작 : {formatDate(party.scheduledAt)}
@@ -158,7 +158,7 @@ export default function MyPartySection() {
                                     </span>
                                 </div>
 
-                                <span className="absolute bottom-1 right-3 text-[52px] font-black italic text-white/20 leading-none pointer-events-none select-none">
+                                <span className="absolute bottom-1 right-3 text-[42px] font-black italic text-white/20 leading-none pointer-events-none select-none sm:text-[52px]">
                                     {idx + 1}
                                 </span>
                             </div>
