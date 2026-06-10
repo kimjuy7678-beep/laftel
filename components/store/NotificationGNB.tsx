@@ -110,9 +110,10 @@ export default function NotificationGNB() {
                         {notifications.length === 0 ? (
                             <p className="py-8 text-center text-[13px] text-[#9b94b2]">알림이 없어요</p>
                         ) : notifications.slice(0, 5).map((n) => {
-                            const status = typeof (n as { status?: unknown }).status === "string"
-                                ? (n as { status: string }).status
-                                : undefined;
+                            const notificationWithStatus = n as typeof n & { status?: unknown }
+                            const status = typeof notificationWithStatus.status === "string"
+                                ? notificationWithStatus.status
+                                : undefined
 
                             return (
                                 <button

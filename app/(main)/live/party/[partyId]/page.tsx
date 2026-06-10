@@ -176,7 +176,7 @@ export default function PartyRoomPage() {
         const poster = dummyDetail?.poster_path ?? ''
         return (
             <div className="min-h-screen flex flex-col">
-                <div className="flex items-center px-6 py-4 border-b border-[var(--border)] gap-3 mt-10">
+                <div className="flex items-center px-4 py-4 border-b border-[var(--border)] gap-3 mt-10 sm:px-6">
                     <button onClick={() => router.push('/live')} className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-sm cursor-pointer">← 돌아가기</button>
                     <div className="w-px h-4 bg-[var(--border)]" />
                     <div>
@@ -201,7 +201,7 @@ export default function PartyRoomPage() {
     const isUpcoming = !isDummyAny && party?.status === 'upcoming' && new Date(party.scheduledAt) > new Date()
     if (isUpcoming && party) return (
         <div className="min-h-screen flex flex-col">
-            <div className="flex items-center px-6 py-4 border-b border-[var(--border)] gap-3 mt-10">
+            <div className="flex items-center px-4 py-4 border-b border-[var(--border)] gap-3 mt-10 sm:px-6">
                 <button onClick={() => router.push('/live')} className="text-[var(--text-subtle)] hover:text-[var(--text-primary)] transition-colors text-sm cursor-pointer">← 돌아가기</button>
                 <div className="w-px h-4 bg-[var(--border)]" />
                 <div>
@@ -251,10 +251,10 @@ export default function PartyRoomPage() {
                 type="anime"
             />
 
-            <div className="inner px-6 py-6">
+            <div className="inner px-4 py-5 sm:px-6 sm:py-6">
                 {/* 상단 바 */}
-                <div className="flex items-center justify-between py-4 mb-4 border-b border-[var(--border)]">
-                    <div className="flex items-center gap-3 mt-10">
+                <div className="flex flex-wrap items-center justify-between gap-3 py-4 mb-4 border-b border-[var(--border)]">
+                    <div className="flex min-w-0 items-center gap-3 mt-8 sm:mt-10">
                         <button onClick={() => router.push('/live')}
                             className="flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm transition-colors">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -271,7 +271,7 @@ export default function PartyRoomPage() {
                             }
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500 rounded-full text-xs font-bold text-white">
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                             LIVE
@@ -288,7 +288,7 @@ export default function PartyRoomPage() {
                     </div>
                 </div>
 
-                <div className="flex gap-6 items-start">
+                <div className="flex flex-col gap-6 items-stretch lg:flex-row lg:items-start">
                     {/* 왼쪽: 플레이어 + 정보 */}
                     <div className="flex-1 min-w-0">
                         <div className="aspect-video rounded-xl overflow-hidden bg-black relative" ref={playerRef}>
@@ -342,9 +342,9 @@ export default function PartyRoomPage() {
 
                         <div className="flex items-center gap-3 mt-4">
                             {animePoster && <img src={`https://image.tmdb.org/t/p/w92${animePoster}`} alt={animeName} className="w-10 h-14 object-cover rounded-lg shrink-0" />}
-                            <div>
-                                <h2 className="text-[var(--text-primary)] font-bold text-lg">{animeName}</h2>
-                                <p className="text-[var(--text-muted)] text-sm mt-0.5">{title}</p>
+                            <div className="min-w-0">
+                                <h2 className="truncate text-[var(--text-primary)] font-bold text-base sm:text-lg">{animeName}</h2>
+                                <p className="truncate text-[var(--text-muted)] text-xs mt-0.5 sm:text-sm">{title}</p>
                                 {scheduledAt && (
                                     <p className="text-[var(--text-faint)] text-xs mt-0.5">
                                         시작 : {new Date(scheduledAt).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -356,7 +356,7 @@ export default function PartyRoomPage() {
                         {relatedAnime.length > 0 && (
                             <div className="mt-8">
                                 <h3 className="text-[var(--text-primary)] font-bold text-base mb-4">관련 작품</h3>
-                                <div className="grid grid-cols-6 gap-3">
+                                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-6">
                                     {relatedAnime.map((ani) => (
                                         <div key={ani.id} className="group cursor-pointer" onClick={() => router.push(`/anime/${ani.id}`)}>
                                             <div className="aspect-[3/4] rounded-lg overflow-hidden relative">
@@ -378,8 +378,8 @@ export default function PartyRoomPage() {
                     </div>
 
                     {/* 오른쪽: 채팅 */}
-                    <div className="w-[380px] shrink-0 flex flex-col bg-[var(--bg-card)] rounded-xl overflow-hidden border border-[var(--border-subtle)]"
-                        style={{ height: playerHeight > 0 ? `${playerHeight}px` : '500px' }}>
+                    <div className="w-full shrink-0 flex flex-col bg-[var(--bg-card)] rounded-xl overflow-hidden border border-[var(--border-subtle)] lg:w-[380px]"
+                        style={{ height: playerHeight > 0 ? `min(${playerHeight}px, 62vh)` : 'min(500px, 62vh)' }}>
                         <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
                             <p className="text-[var(--text-primary)] font-medium text-sm">실시간 채팅</p>
                         </div>
