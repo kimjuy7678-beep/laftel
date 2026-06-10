@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from "@/store/useAuthStore"
 import { useRouter } from "next/navigation"
 import { useActivityStore } from "@/store/useActiveStore"
+import GradeBadge from "@/components/GradeBadge"
 
 const AVATAR_COLORS = [
     { bg: 'rgba(108,99,255,0.2)', text: '#9d97ff' },
@@ -52,6 +53,7 @@ interface Comment {
     liked: boolean
     episodeNumber: number
     animeId: number
+    watched?: number  // 등급 뱃지용
 }
 
 interface Props {
@@ -76,7 +78,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     const { user, avatarConfig } = useAuthStore()
     const myAvatarSrc = avatarConfig?.svgDataUrl || user?.photoURL || null
     const myName = user?.name || user?.email?.split('@')[0] || '나'
-    const { counts, fetchCounts } = useActivityStore()
     const router = useRouter()
     const [comments, setComments] = useState<Comment[]>([])
     const [input, setInput] = useState('')
@@ -84,9 +85,15 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     const [loading, setLoading] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
+    const myWatched = (() => {
+        try {
+            const s = typeof window !== 'undefined' ? localStorage.getItem('watch-progress-storage') : null
+            return s ? (JSON.parse(s)?.state?.items?.length ?? 0) : 0
+        } catch { return 0 }
+    })()
+
     const colName = 'anime_comments'
 
-    // 댓글 fetch — animeId로만 쿼리 후 클라이언트에서 화 필터링 (복합 인덱스 불필요)
     useEffect(() => {
         if (!animeId || !episodeId || isNaN(Number(animeId))) return
         setLoading(true)
@@ -98,7 +105,7 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         ).then(snap => {
             const docs = snap.docs
                 .map(d => ({ id: d.id, ...d.data() } as Comment))
-                .filter(d => d.episodeNumber === Number(episodeId))  // 클라이언트 필터
+                .filter(d => d.episodeNumber === Number(episodeId))
                 .sort((a, b) => {
                     const aTime = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
                     const bTime = b.createdAt?.toDate?.() ?? new Date(b.createdAt ?? 0)
@@ -132,7 +139,8 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 episodeNumber: Number(episodeId),
                 animeId: Number(animeId),
                 animeTitle: animeTitle || '',
-                animePoster: animePoster || null,  // ✅ 포스터 추가
+                animePoster: animePoster || null,
+                watched: myWatched,  // 등급 뱃지용
             }
             const ref = await addDoc(collection(db, colName), payload)
             setComments(prev => [{
@@ -142,7 +150,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
             } as Comment, ...prev])
             setInput('')
             if (inputRef.current) inputRef.current.style.height = 'auto'
-            // 헤더 카운트 +1 즉시 반영
             useActivityStore.setState(s => ({
                 counts: { ...s.counts, comment: s.counts.comment + 1 }
             }))
@@ -154,7 +161,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         if (!confirm('댓글을 삭제할까요?')) return
         await deleteDoc(doc(db, colName, id))
         setComments(prev => prev.filter(c => c.id !== id))
-        // 헤더 카운트 -1 즉시 반영
         useActivityStore.setState(s => ({
             counts: { ...s.counts, comment: Math.max(0, s.counts.comment - 1) }
         }))
@@ -218,6 +224,7 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="text-[12px] font-semibold text-[var(--text-muted)]">{c.author}</span>
+                                    <GradeBadge watched={c.watched ?? 0} size="sm" showName={true} />
                                     <span className="text-[11px] text-[var(--text-faint)]">{formatTime(c.createdAt)}</span>
                                     {c.uid === user?.uid && (
                                         <button
