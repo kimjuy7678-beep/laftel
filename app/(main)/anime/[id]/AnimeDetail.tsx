@@ -10,8 +10,12 @@ import EpisodeSidebar from "./Episodesidebar"
 import EpisodeInfo from "./EpisodeInfo"
 import styles from "./scss/AnimeDeatilpage.module.scss"
 import { useAuthStore } from "@/store/useAuthStore"
+import { useParams } from "next/navigation"
 
-export default function AnimeDetailPage() {
+export default function AnimeDetailPage({ animeId }: { animeId: number }) {
+    const params = useParams()
+    const directId = Number(Array.isArray(params?.id) ? params.id[0] : params?.id)
+
     const {
         id, numericId, router,
         detail, loading,
@@ -134,9 +138,10 @@ export default function AnimeDetailPage() {
             </div>
 
             <div className={styles.bottomRow}>
-                <EpisodeInfo episode={activeEpisode} seriesTitle={detail.name} />
                 <EpisodeComments
                     episodeId={activeEpisode?.episode_number ?? episodes[0]?.episode_number}
+                    animeId={animeId}
+                    animeTitle={detail.name}
                 />
             </div>
         </div>

@@ -39,10 +39,11 @@ export default function EventPage() {
                 </div>
 
                 <div style={{ padding: '28px 0 60px' }}>
-                    {/* 필터 탭 */}
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
+                    {/* 필터 탭 — 모바일에서 가로 스크롤 */}
+                    <div className="flex gap-2 mb-7 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
                         {filters.map((f) => (
                             <button key={f.value} onClick={() => setActiveFilter(f.value)}
+                                className="shrink-0"
                                 style={{
                                     padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
                                     fontSize: 13, fontWeight: 500, transition: 'all .15s',
@@ -65,7 +66,8 @@ export default function EventPage() {
                             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
                         </div>
                     ) : (
-                        <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+                        // 그리드: 모바일 1열 → sm 2열 → lg 3열 (데스크탑 3열은 원본 유지)
+                        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filtered.map((event) => {
                                 const isPast = event.status === "past"
                                 return (

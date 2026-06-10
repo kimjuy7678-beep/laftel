@@ -14,9 +14,10 @@ export const GENRE_MAP: Record<number, string> = {
 }
 
 export function useAnimeDetail() {
-    const { id } = useParams()
     const router = useRouter()
     const searchParams = useSearchParams()
+    const rawId = useParams()?.id
+    const id = Array.isArray(rawId) ? rawId[0] : rawId
     const numericId = Number(id)
 
     const onFetchVideo = useAniStore(state => state.onFetchVideo)

@@ -21,9 +21,7 @@ declare global {
 }
 
 // ─── 주소 추가/수정 모달 ──────────────────────────
-function AddressModal({
-    initial, onClose, onSave,
-}: {
+function AddressModal({ initial, onClose, onSave }: {
     initial?: Address | null;
     onClose: () => void;
     onSave: (data: Omit<Address, "id">) => Promise<void>;
@@ -70,10 +68,6 @@ function AddressModal({
         return `${nums.slice(0, 3)}-${nums.slice(3, 7)}-${nums.slice(7)}`;
     };
 
-    const handleLabelChange = (val: string) => {
-        if (val.length <= 6) setLabel(val);
-    };
-
     const handleSubmit = async () => {
         if (!label.trim()) { setError("배송지명을 입력해주세요."); return; }
         if (!name.trim()) { setError("수령인 이름을 입력해주세요."); return; }
@@ -91,13 +85,17 @@ function AddressModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-            <div className="w-full max-w-[500px] rounded-[20px] bg-white shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4" onClick={onClose}>
+            <div className="w-full md:max-w-[500px] rounded-t-[24px] md:rounded-[20px] bg-white shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}>
+                {/* 모바일 핸들 */}
+                <div className="flex justify-center pt-3 pb-1 md:hidden">
+                    <div className="w-10 h-1 rounded-full bg-[#e2ddf5]" />
+                </div>
 
                 {/* 헤더 */}
-                <div className="flex items-center justify-between border-b border-[#f0edf8] px-6 py-5 sticky top-0 bg-white z-10">
-                    <h3 className="text-[16px] font-bold text-[#16121f]">
+                <div className="flex items-center justify-between border-b border-[#f0edf8] px-5 md:px-6 py-4 md:py-5 sticky top-0 bg-white z-10">
+                    <h3 className="text-[15px] md:text-[16px] font-bold text-[#16121f]">
                         {initial ? "배송지 수정" : "배송지 추가"}
                     </h3>
                     <button onClick={onClose}
@@ -108,18 +106,16 @@ function AddressModal({
                     </button>
                 </div>
 
-                <div className="px-6 py-5 flex flex-col gap-4">
-
+                <div className="px-5 md:px-6 py-4 md:py-5 flex flex-col gap-4">
                     {/* 배송지명 */}
                     <div>
                         <p className="mb-1.5 text-[12px] font-semibold text-[#6b647a]">
                             배송지명 <span className="text-[#ff4d6d]">*</span>
                         </p>
-                        {/* 프리셋 + 직접입력 뱃지 */}
                         <div className="flex gap-2 mb-2 flex-wrap">
                             {PRESETS.map(preset => (
                                 <button key={preset} onClick={() => { setLabel(preset); setShowCustomInput(false); }}
-                                    className="h-[28px] rounded-full px-3 text-[11px] font-semibold transition-all"
+                                    className="h-[30px] rounded-full px-3 text-[11px] font-semibold transition-all"
                                     style={label === preset && !showCustomInput
                                         ? { background: '#7865ff', color: '#fff' }
                                         : { background: '#f4f2ff', color: '#9b94b2', border: '1px solid #e2ddf5' }
@@ -127,9 +123,8 @@ function AddressModal({
                                     {preset}
                                 </button>
                             ))}
-                            {/* 직접입력 뱃지 */}
                             <button onClick={() => { setShowCustomInput(true); if (PRESETS.includes(label)) setLabel(""); }}
-                                className="h-[28px] rounded-full px-3 text-[11px] font-semibold transition-all flex items-center gap-1"
+                                className="h-[30px] rounded-full px-3 text-[11px] font-semibold transition-all flex items-center gap-1"
                                 style={showCustomInput
                                     ? { background: '#7865ff', color: '#fff' }
                                     : { background: '#f4f2ff', color: '#9b94b2', border: '1px solid #e2ddf5' }
@@ -141,13 +136,12 @@ function AddressModal({
                                 직접입력
                             </button>
                         </div>
-                        {/* 직접 입력 input — 직접입력 뱃지 클릭 시 표시 */}
                         {showCustomInput && (
                             <div className="relative">
                                 <input
                                     autoFocus
                                     value={label}
-                                    onChange={e => handleLabelChange(e.target.value)}
+                                    onChange={e => { if (e.target.value.length <= 6) setLabel(e.target.value); }}
                                     placeholder="배송지명 입력 (최대 6자)"
                                     maxLength={6}
                                     className="w-full rounded-[10px] border border-[#7865ff] bg-[#faf9ff] px-4 py-2.5 pr-12 text-[13px] text-[#16121f] outline-none placeholder:text-[#c0bcd0] transition"
@@ -181,9 +175,9 @@ function AddressModal({
                         <p className="mb-1.5 text-[12px] font-semibold text-[#6b647a]">주소 <span className="text-[#ff4d6d]">*</span></p>
                         <div className="flex gap-2 mb-2">
                             <input value={zip} readOnly placeholder="우편번호"
-                                className="w-[120px] rounded-[10px] border border-[#e2ddf5] bg-[#f4f2ff] px-4 py-2.5 text-[13px] text-[#16121f] outline-none placeholder:text-[#c0bcd0] cursor-default" />
+                                className="w-[100px] md:w-[120px] rounded-[10px] border border-[#e2ddf5] bg-[#f4f2ff] px-3 md:px-4 py-2.5 text-[13px] text-[#16121f] outline-none placeholder:text-[#c0bcd0] cursor-default" />
                             <button onClick={handleSearchAddress}
-                                className="flex h-[42px] flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-[#7865ff] text-[13px] font-semibold text-[#7865ff] transition hover:bg-[#f0eeff]">
+                                className="flex h-[42px] flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-[#7865ff] text-[12px] md:text-[13px] font-semibold text-[#7865ff] transition hover:bg-[#f0eeff]">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <circle cx="11" cy="11" r="7" /><path d="M16.5 16.5L21 21" strokeLinecap="round" />
                                 </svg>
@@ -219,14 +213,13 @@ function AddressModal({
                         </p>
                     )}
 
-                    {/* 버튼 */}
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex gap-2 pt-1 pb-2 md:pb-0">
                         <button onClick={onClose}
-                            className="flex-1 h-[42px] rounded-[10px] border border-[#e2ddf5] text-[13px] font-semibold text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
+                            className="flex-1 h-[44px] md:h-[42px] rounded-[10px] border border-[#e2ddf5] text-[13px] font-semibold text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
                             취소
                         </button>
                         <button onClick={handleSubmit} disabled={loading}
-                            className="flex-1 h-[42px] rounded-[10px] bg-[#7865ff] text-[13px] font-semibold text-white transition hover:bg-[#6b55f0] disabled:opacity-50">
+                            className="flex-1 h-[44px] md:h-[42px] rounded-[10px] bg-[#7865ff] text-[13px] font-semibold text-white transition hover:bg-[#6b55f0] disabled:opacity-50">
                             {loading ? "저장 중..." : initial ? "수정 완료" : "배송지 추가"}
                         </button>
                     </div>
@@ -242,14 +235,14 @@ function DeleteConfirmModal({ label, onClose, onConfirm }: {
 }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-            <div className="w-full max-w-[340px] rounded-[20px] bg-white p-6 shadow-2xl text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-full max-w-[320px] md:max-w-[340px] rounded-[20px] bg-white p-5 md:p-6 shadow-2xl text-center" onClick={e => e.stopPropagation()}>
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#fff0f3]">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" strokeWidth="2">
                         <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
                     </svg>
                 </div>
-                <h3 className="mb-2 text-[16px] font-bold text-[#16121f]">배송지 삭제</h3>
-                <p className="mb-5 text-[13px] text-[#9b94b2]">
+                <h3 className="mb-2 text-[15px] md:text-[16px] font-bold text-[#16121f]">배송지 삭제</h3>
+                <p className="mb-5 text-[12px] md:text-[13px] text-[#9b94b2]">
                     <span className="font-semibold text-[#3d3755]">"{label}"</span> 배송지를 삭제할까요?<br />삭제 후 복구가 불가능해요.
                 </p>
                 <div className="flex gap-2">
@@ -311,18 +304,20 @@ export default function AddressPage() {
 
     return (
         <>
-            <div className="mb-6 flex items-start justify-between">
-                <div>
-                    <h2 className="text-[20px] font-bold text-[#16121f]">배송지 관리</h2>
-                    <p className="mt-1 text-[13px] text-[#9b94b2]">자주 사용하는 배송지를 등록해두면 결제 시 편리해요.</p>
+            {/* 헤더 */}
+            <div className="mb-5 md:mb-6">
+                <div className="flex items-center justify-between gap-3 mb-1">
+                    <h2 className="text-[18px] md:text-[20px] font-bold text-[#16121f]">배송지 관리</h2>
+                    <button onClick={() => setEditTarget("new")}
+                        className="shrink-0 flex h-[36px] md:h-[38px] items-center gap-1.5 rounded-[10px] bg-[#7865ff] px-3 md:px-4 text-[12px] md:text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(120,101,255,0.3)] transition hover:bg-[#6b55f0]">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        <span className="hidden md:inline">배송지 추가</span>
+                        <span className="md:hidden">추가</span>
+                    </button>
                 </div>
-                <button onClick={() => setEditTarget("new")}
-                    className="flex h-[38px] items-center gap-1.5 rounded-[10px] bg-[#7865ff] px-4 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(120,101,255,0.3)] transition hover:bg-[#6b55f0]">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    배송지 추가
-                </button>
+                <p className="text-[12px] md:text-[13px] text-[#9b94b2]">자주 사용하는 배송지를 등록해두면 결제 시 편리해요.</p>
             </div>
 
             {loading ? (
@@ -347,23 +342,23 @@ export default function AddressPage() {
                     </button>
                 </div>
             ) : (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2.5 md:gap-3">
                     {addresses.map(a => (
                         <div key={a.id}
-                            className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4 transition hover:border-[#c4baff]"
+                            className="rounded-[14px] border border-[#ebe8ff] bg-white px-4 md:px-5 py-3.5 md:py-4 transition hover:border-[#c4baff]"
                             style={a.isDefault ? { borderColor: '#7865ff', boxShadow: '0 0 0 1px #7865ff20' } : {}}>
-                            <div className="flex items-start justify-between gap-3 mb-3">
-                                <div className="flex items-center gap-2">
-                                    <p className="text-[14px] font-bold text-[#16121f]">{a.label}</p>
+                            <div className="flex items-start justify-between gap-2 mb-2.5 md:mb-3">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <p className="text-[13px] md:text-[14px] font-bold text-[#16121f] truncate">{a.label}</p>
                                     {a.isDefault && (
-                                        <span className="rounded-full bg-[#f0eeff] px-2 py-0.5 text-[10px] font-bold text-[#7865ff] border border-[#d8d4ff]">
-                                            기본 배송지
+                                        <span className="shrink-0 rounded-full bg-[#f0eeff] px-2 py-0.5 text-[10px] font-bold text-[#7865ff] border border-[#d8d4ff]">
+                                            기본
                                         </span>
                                     )}
                                 </div>
-                                <div className="flex gap-1.5 shrink-0">
+                                <div className="flex gap-1 md:gap-1.5 shrink-0">
                                     <button onClick={() => setEditTarget(a)}
-                                        className="flex h-[28px] items-center gap-1 rounded-[6px] border border-[#ddd8f4] px-2.5 text-[11px] font-semibold text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
+                                        className="flex h-[26px] md:h-[28px] items-center gap-1 rounded-[6px] border border-[#ddd8f4] px-2 md:px-2.5 text-[10px] md:text-[11px] font-semibold text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -371,7 +366,7 @@ export default function AddressPage() {
                                         수정
                                     </button>
                                     <button onClick={() => setDeleteTarget(a)}
-                                        className="flex h-[28px] items-center gap-1 rounded-[6px] border border-[#ddd8f4] px-2.5 text-[11px] font-semibold text-[#9b94b2] transition hover:border-[#ff4d6d] hover:text-[#ff4d6d]">
+                                        className="flex h-[26px] md:h-[28px] items-center gap-1 rounded-[6px] border border-[#ddd8f4] px-2 md:px-2.5 text-[10px] md:text-[11px] font-semibold text-[#9b94b2] transition hover:border-[#ff4d6d] hover:text-[#ff4d6d]">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" />
                                         </svg>
@@ -381,11 +376,11 @@ export default function AddressPage() {
                             </div>
                             <div className="flex flex-col gap-0.5">
                                 <div className="flex items-center gap-2">
-                                    <p className="text-[13px] font-semibold text-[#3d3755]">{a.name}</p>
+                                    <p className="text-[12px] md:text-[13px] font-semibold text-[#3d3755]">{a.name}</p>
                                     <span className="h-3 w-px bg-[#e2ddf5]" />
-                                    <p className="text-[12px] text-[#9b94b2]">{a.phone}</p>
+                                    <p className="text-[11px] md:text-[12px] text-[#9b94b2]">{a.phone}</p>
                                 </div>
-                                <p className="text-[12px] text-[#6b647a]">
+                                <p className="text-[11px] md:text-[12px] text-[#6b647a] leading-relaxed">
                                     [{a.zip}] {a.address}{a.detail && ` ${a.detail}`}
                                 </p>
                             </div>
@@ -395,7 +390,7 @@ export default function AddressPage() {
             )}
 
             {addresses.length > 0 && (
-                <div className="mt-5 rounded-[12px] border border-[#ebe8ff] bg-[#faf9ff] px-5 py-4">
+                <div className="mt-4 md:mt-5 rounded-[12px] border border-[#ebe8ff] bg-[#faf9ff] px-4 md:px-5 py-4">
                     <p className="mb-2 text-[12px] font-semibold text-[#7865ff]">배송지 안내</p>
                     <ul className="flex flex-col gap-1.5">
                         {[
@@ -403,7 +398,7 @@ export default function AddressPage() {
                             "배송지는 최대 10개까지 등록 가능해요.",
                             "배송 시작 후에는 배송지 변경이 불가능해요.",
                         ].map((t, i) => (
-                            <li key={i} className="flex items-start gap-2 text-[12px] text-[#9b94b2]">
+                            <li key={i} className="flex items-start gap-2 text-[11px] md:text-[12px] text-[#9b94b2]">
                                 <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#c4baff]" />
                                 {t}
                             </li>

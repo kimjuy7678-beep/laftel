@@ -24,7 +24,7 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
         <section style={{ padding: '80px 0 0' }}>
             <style>{`
                 .tr-wrap { width: 90%; margin: 0 auto; }
-                .tr-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+                .tr-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
                 .tr-title { font-size: 25px; font-weight: 800; color: var(--text-primary); margin: 0; line-height: 1.4; }
                 .tr-more { font-size: 12px; color: var(--text-subtle); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 3px; transition: color .2s; white-space: nowrap; }
                 .tr-more:hover { color: var(--text-high); }
@@ -42,6 +42,19 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
                 .tr-badge-only { background: #6c5ce7; color: #fff; }
                 .tr-info { padding: 10px 10px 12px; }
                 .tr-name { font-size: 18px; font-weight: 600; color: var(--text-high); margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.4; }
+                @media (max-width: 900px) {
+                    .tr-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+                    .tr-title { font-size: 22px; }
+                }
+                @media (max-width: 640px) {
+                    .tr-wrap { width: calc(100% - 32px); }
+                    .tr-head { align-items: flex-start; }
+                    .tr-title { font-size: 20px; }
+                    .tr-grid { display: flex; gap: 12px; margin-right: -16px; padding-right: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+                    .tr-grid::-webkit-scrollbar { display: none; }
+                    .tr-card { flex: 0 0 min(78vw, 320px); scroll-snap-align: start; }
+                    .tr-name { font-size: 15px; }
+                }
             `}</style>
 
             <div className="tr-wrap">

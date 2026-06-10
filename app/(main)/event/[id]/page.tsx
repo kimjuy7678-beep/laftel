@@ -136,6 +136,9 @@ export default function EventDetailPage() {
                 createdAt: serverTimestamp(),
                 likeCount: 0,
                 replyCount: 0,
+                eventId: eventId,
+                eventName: detail?.name ?? '',
+                eventImg: detail?.img ?? detail?.banner_img ?? null,
             })
 
             setLocalComments(prev => [newComment, ...prev])

@@ -163,7 +163,10 @@ export default function PaymentModal({ isOpen, onClose, onCloseAll, planId }: Pa
                             ? <p className="text-[var(--text-faint)] text-sm">등록된 카드가 없어요</p>
                             : cards.map(card => (
                                 <div key={card.id} onClick={() => setSelectedCardId(card.id)}
-                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedCardId === card.id ? 'border-[var(--main)] bg-[var(--main)]/10' : 'border-[var(--border)] hover:border-white/30'}`}>
+                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedCardId === card.id
+                                        ? 'border-[var(--main)] bg-[var(--main)]/10'
+                                        : 'border-[var(--border)] hover:border-[var(--text-subtle)]'
+                                        }`}>
                                     <div className="w-10 h-7 rounded bg-[var(--main)]/20 border border-[var(--main)]/30 flex items-center justify-center">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--main)" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
                                     </div>
@@ -172,19 +175,35 @@ export default function PaymentModal({ isOpen, onClose, onCloseAll, planId }: Pa
                             ))
                         }
                         {!showAddCard && (
-                            <button onClick={() => setShowAddCard(true)} className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-[var(--border)] text-[var(--text-subtle)] hover:text-[--bg-secondary] transition-all text-sm">
+                            <button onClick={() => setShowAddCard(true)} className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-[var(--border)] text-[var(--text-subtle)] hover:text-[--text-muted] transition-all text-sm">
                                 <span className="text-lg">+</span> 카드 추가
                             </button>
                         )}
                         {showAddCard && (
-                            <div className="rounded-xl p-4 border border-[var(--text-muted)] bg-white/[0.03] flex flex-col gap-4">
+                            <div className="rounded-xl p-4 border border-[var(--border)] bg-[var(--bg-secondary)] flex flex-col gap-4"> {/* bg-white/[0.03] → 수정 */}
                                 <p className="text-[var(--text-primary)] text-sm font-bold">카드 등록</p>
-                                <input className="w-full bg-transparent border-b border-[var(--text-muted)] focus:border-white/60 outline-none text-sm py-2 text-[var(--text-primary)] placeholder-white/25" value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))} placeholder="0000 0000 0000 0000" maxLength={19} />
+                                <input
+                                    className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--text-primary)] outline-none text-sm py-2 text-[var(--text-primary)] placeholder:text-[var(--text-faint)]"
+                                    value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))}
+                                    placeholder="0000 0000 0000 0000" maxLength={19}
+                                />
                                 <div className="grid grid-cols-2 gap-4">
-                                    <input className="w-full bg-transparent border-b border-[var(--text-muted)] focus:border-[var(--text-muted)] outline-none text-sm py-2 text-[var(--text-primary)] placeholder-white/25" value={cardExpiry} onChange={e => setCardExpiry(formatExpiry(e.target.value))} placeholder="MM/YY" maxLength={5} />
-                                    <input className="w-full bg-transparent border-b border-[var(--text-muted)] focus:border-[var(--text-muted)] outline-none text-sm py-2 text-[var(--text-primary)] placeholder-white/25" value={cardCvc} onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="000" maxLength={4} type="password" />
+                                    <input
+                                        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--text-primary)] outline-none text-sm py-2 text-[var(--text-primary)] placeholder:text-[var(--text-faint)]"
+                                        value={cardExpiry} onChange={e => setCardExpiry(formatExpiry(e.target.value))}
+                                        placeholder="MM/YY" maxLength={5}
+                                    />
+                                    <input
+                                        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--text-primary)] outline-none text-sm py-2 text-[var(--text-primary)] placeholder:text-[var(--text-faint)]"
+                                        value={cardCvc} onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                        placeholder="000" maxLength={4} type="password"
+                                    />
                                 </div>
-                                <input className="w-full bg-transparent border-b border-[var(--text-muted)] focus:border-[var(--text-muted)] outline-none text-sm py-2 text-[var(--text-primary)] placeholder-white/25" value={cardName} onChange={e => setCardName(e.target.value)} placeholder="홍길동" />
+                                <input
+                                    className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--text-primary)] outline-none text-sm py-2 text-[var(--text-primary)] placeholder:text-[var(--text-faint)]"
+                                    value={cardName} onChange={e => setCardName(e.target.value)}
+                                    placeholder="홍길동"
+                                />
                                 {cardError && <p className="text-xs text-red-400">{cardError}</p>}
                                 <div className="flex gap-2">
                                     <button onClick={() => { setShowAddCard(false); setCardError('') }} className="flex-1 py-2 rounded-xl border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] transition-colors">취소</button>
@@ -208,7 +227,8 @@ export default function PaymentModal({ isOpen, onClose, onCloseAll, planId }: Pa
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((key, i) => (
                                 <button key={i} disabled={paying}
                                     onClick={() => { if (key === '⌫') setPassword(prev => prev.slice(0, -1)); else if (key !== '' && password.length < 6) setPassword(prev => prev + key) }}
-                                    className={`py-3 rounded-xl text-[var(--text-primary)] font-semibold text-lg transition-all ${key === '' ? '' : 'hover:bg-white/10 active:bg-white/20'} disabled:opacity-50`}>{key}
+                                    className={`py-3 rounded-xl text-[var(--text-primary)] font-semibold text-lg transition-all ${key === '' ? '' : 'hover:bg-[var(--bg-hover)] active:bg-[var(--bg-secondary)]'} disabled:opacity-50`}>
+                                    {key}
                                 </button>
                             ))}
                         </div>

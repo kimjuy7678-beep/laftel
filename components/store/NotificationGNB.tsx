@@ -59,6 +59,18 @@ export default function NotificationGNB() {
 
     return (
         <div className="relative" ref={ref}>
+            {/* 스크롤바 스타일 */}
+            <style>{`
+                .store-notif-scroll::-webkit-scrollbar { width: 4px; }
+                .store-notif-scroll::-webkit-scrollbar-track { background: transparent; }
+                .store-notif-scroll::-webkit-scrollbar-thumb {
+                    background: rgba(180, 170, 220, 0.6);
+                    border-radius: 999px;
+                }
+                .store-notif-scroll::-webkit-scrollbar-button { display: none; }
+                .store-notif-scroll::-webkit-scrollbar-thumb:hover { background: #7865ff; }
+            `}</style>
+
             {/* 종 버튼 */}
             <button
                 aria-label="알림"
@@ -91,7 +103,10 @@ export default function NotificationGNB() {
                     </div>
 
                     {/* 알림 목록 */}
-                    <div className="max-h-[300px] overflow-y-auto">
+                    <div
+                        className="max-h-[300px] overflow-y-auto store-notif-scroll"
+                        style={{ scrollbarWidth: "thin" }}
+                    >
                         {notifications.length === 0 ? (
                             <p className="py-8 text-center text-[13px] text-[#9b94b2]">알림이 없어요</p>
                         ) : notifications.slice(0, 5).map((n) => {
@@ -123,10 +138,10 @@ export default function NotificationGNB() {
                                             {/* 이동 힌트 */}
                                             <span className="text-[10px] text-[#c4baff]">·</span>
                                             <span className="text-[10px] text-[#c4baff]">
-                                                {n.type === "point" ? "포인트 내역 →" :
-                                                    n.type === "coupon" ? "쿠폰함 →" :
-                                                        n.type === "inquiry" ? "문의 내역 →" :
-                                                            "주문 내역 →"}
+                                                {n.type === "point" ? "포인트 내역" :
+                                                    n.type === "coupon" ? "쿠폰함" :
+                                                        n.type === "inquiry" ? "문의 내역" :
+                                                            "주문 내역"}
                                             </span>
                                         </div>
                                     </div>

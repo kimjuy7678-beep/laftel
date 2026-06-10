@@ -182,7 +182,7 @@ function OtherMoodsSection({ currentId, onSelect }: { currentId: string; onSelec
                     )
                 })}
             </div>
-        </div >
+        </div>
     )
 }
 
@@ -199,7 +199,7 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
     const isRandom = moodId === 'random'
 
     const { user } = useAuthStore()
-    const { addItem } = useWatchlistStore()
+    const { addItem, removeItem, hasItem, fetchWatchlist } = useWatchlistStore()
 
     const [randomAnime] = useState<AnimeMeta | null>(() =>
         isRandom ? meta[Math.floor(Math.random() * meta.length)] : null
@@ -214,13 +214,23 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
     const hero = allForMood[0]
     const subs = allForMood.slice(1)
 
+    // ✅ hero 선언 이후에 hasItem 호출
+    const isWished = hero ? hasItem(hero.tmdbId, 'wishlist') : false
+
     const [heroBackdrop, setHeroBackdrop] = useState<string | null>(null)
     const [heroPoster, setHeroPoster] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (user?.uid) {
+            fetchWatchlist(user.uid, user?.profileId || 'main')
+        }
+    }, [user?.uid])
 
     useEffect(() => {
         if (!hero) return
         setHeroBackdrop(null)
         setHeroPoster(null)
+
 
         const quickBackdrop = getBackdrop(aniList, hero.tmdbId)
         const quickPoster = getPoster(aniList, hero.tmdbId)
@@ -249,12 +259,10 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                 {/* ── 히어로 ── */}
                 {hero && (
                     <div style={{ position: 'relative', width: '100%', height: '50vh', minHeight: 680, overflow: 'hidden', animation: 'hero-in .5s ease' }}>
-                        {/* 배경 이미지 */}
                         {heroBackdrop
                             ? <img src={heroBackdrop} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />
                             : <div style={{ position: 'absolute', inset: 0, background: mood.gradient }} />
                         }
-                        {/* 그라디언트 오버레이 */}
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,10,10,.98) 0%, rgba(10,10,10,.85) 40%, rgba(10,10,10,.2) 75%, transparent 100%)' }} />
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,10,10,.6) 0%, transparent 20%, transparent 60%, rgba(10,10,10,1) 100%)' }} />
 
@@ -263,9 +271,9 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                             <div style={{ width: '90%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <button
                                     onClick={onReset}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0)', border: '1px solid rgba(255, 255, 255, 0.498)', borderRadius: 20, color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '10px 16px', fontFamily: 'inherit', transition: 'all .18s' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0)', border: '1px solid rgba(255,255,255,0.498)', borderRadius: 20, color: 'rgba(255,255,255,.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '10px 16px', fontFamily: 'inherit', transition: 'all .18s' }}
                                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--main)'; e.currentTarget.style.color = '#fff' }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0)'; color: 'rgba(255,255,255,.6)' }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0)'; e.currentTarget.style.color = 'rgba(255,255,255,.6)' }}
                                 >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
                                     홈으로
@@ -282,37 +290,26 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                         {/* 히어로 콘텐츠 */}
                         <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', alignItems: 'center', paddingTop: 150 }}>
                             <div style={{ width: '90%', margin: '0 auto', display: 'flex', alignItems: 'center', gap: 48 }}>
-                                {/* 포스터 */}
                                 {heroPoster && (
                                     <img src={heroPoster} alt={hero.koTitle}
                                         style={{ width: 250, height: 340, objectFit: 'cover', borderRadius: 14, flexShrink: 0, boxShadow: `0 32px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.08)`, animation: 'slide-up .45s ease .05s both' }} />
                                 )}
 
-                                {/* 텍스트 */}
                                 <div style={{ animation: 'slide-up .45s ease .1s both', maxWidth: 580 }}>
-                                    {/* 무드 뱃지 */}
                                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
                                         <span style={{ fontSize: 22 }}>{mood.emoji}</span>
                                         <span style={{ fontSize: 15, fontWeight: 600, color: mood.color, padding: '6px 15px', borderRadius: 20 }}>{mood.label}</span>
                                     </div>
 
-                                    {/* 타이틀 */}
                                     <h1 style={{ fontSize: 52, fontWeight: 700, color: '#fff', margin: '0 0 8px', lineHeight: 1.1, letterSpacing: '-0.03em' }}>{hero.koTitle}</h1>
                                     <p style={{ fontSize: 18, color: 'rgba(255,255,255,.5)', margin: '0 0 20px', letterSpacing: '.02em' }}>{hero.title}</p>
 
-                                    {/* 태그 */}
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 28 }}>
                                         {hero.recommendationLabels.slice(0, 3).map((label, i) => (
-                                            <span key={i} style={{
-                                                fontSize: 11, fontWeight: 500, padding: '4px 11px', borderRadius: 10,
-                                                color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)',
-                                            }}># {label}</span>
+                                            <span key={i} style={{ fontSize: 11, fontWeight: 500, padding: '4px 11px', borderRadius: 10, color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}># {label}</span>
                                         ))}
                                         {hero.moods.slice(0, 3).map((m, i) => (
-                                            <span key={`m${i}`} style={{
-                                                fontSize: 11, fontWeight: 600, padding: '4px 11px', borderRadius: 10,
-                                                color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)',
-                                            }}># {m}</span>
+                                            <span key={`m${i}`} style={{ fontSize: 11, fontWeight: 600, padding: '4px 11px', borderRadius: 10, color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}># {m}</span>
                                         ))}
                                     </div>
 
@@ -325,22 +322,41 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
                                             재생하기
                                         </button>
+
+                                        {/* ✅ 보고싶다 버튼 */}
                                         <button
                                             onClick={async () => {
                                                 if (!user?.uid) { toast('로그인이 필요해요'); return }
-                                                await addItem(user.uid, {
-                                                    id: hero.tmdbId,
-                                                    title: hero.koTitle,
-                                                    poster: heroPoster || '',
-                                                    tab: 'wishlist'
-                                                })
-                                                setShowWishModal(true)
+                                                if (isWished) {
+                                                    setShowWishModal(true)
+                                                } else {
+                                                    await addItem(user.uid, user?.profileId || 'main', {
+                                                        id: hero.tmdbId,
+                                                        title: hero.koTitle,
+                                                        poster: heroPoster || '',
+                                                        tab: 'wishlist'
+                                                    })
+                                                    setShowWishModal(true)
+                                                }
                                             }}
-                                            style={{ width: 59, height: 59, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 30, cursor: 'pointer', transition: 'all .15s' }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.14)'; e.currentTarget.style.transform = 'scale(1.06)' }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.transform = 'scale(1)' }}>
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                            style={{
+                                                width: 59, height: 59,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                background: isWished ? 'rgba(108,99,255,0.35)' : 'rgba(255,255,255,.08)',
+                                                border: isWished ? '1px solid rgba(108,99,255,0.6)' : '1px solid rgba(255,255,255,.12)',
+                                                borderRadius: 30, cursor: 'pointer', transition: 'all .15s'
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)' }}
+                                            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+                                        >
+                                            <svg width="20" height="20" viewBox="0 0 24 24"
+                                                fill={isWished ? '#6c63ff' : 'none'}
+                                                stroke={isWished ? '#6c63ff' : 'rgba(255,255,255,.8)'}
+                                                strokeWidth="2">
+                                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                                            </svg>
                                         </button>
+
                                         <button
                                             onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/anime/${hero.tmdbId}`); toast('링크가 복사됐어요!') }}
                                             style={{ width: 59, height: 59, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 30, cursor: 'pointer', transition: 'all .15s' }}
@@ -352,33 +368,62 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                                 </div>
                             </div>
                         </div>
+
+                        {/* ✅ 모달 — 히어로 div 안에 위치 (z-index 때문) */}
                         {showWishModal && (
                             <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={() => setShowWishModal(false)}>
                                 <div style={{ background: 'var(--bg-card)', borderRadius: 20, padding: 24, width: 320, border: '1px solid rgba(255,255,255,.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }} onClick={e => e.stopPropagation()}>
-                                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(108,99,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                                    </div>
-                                    <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 17, margin: 0 }}>보고싶다에 추가됐어요!</p>
-                                    <p style={{ color: 'var(--text-subtle)', fontSize: 13, margin: 0, textAlign: 'center' }}>{hero?.koTitle}이(가) 보관함에 저장됐어요</p>
-                                    <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-                                        <button
-                                            onClick={() => setShowWishModal(false)}
-                                            style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                                            계속 보기
-                                        </button>
-                                        <button
-                                            onClick={() => { setShowWishModal(false); router.push('/library?tab=wishlist') }}
-                                            style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: 'none', background: '#6c63ff', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                                            보관함으로
-                                        </button>
-                                    </div>
+                                    {isWished ? (
+                                        <>
+                                            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(239,68,68,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                            </div>
+                                            <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 17, margin: 0 }}>보고싶다에서 지울까요?</p>
+                                            <p style={{ color: 'var(--text-subtle)', fontSize: 13, margin: 0, textAlign: 'center' }}>{hero.koTitle}이(가) 보관함에서 삭제돼요</p>
+                                            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                                                <button
+                                                    onClick={() => setShowWishModal(false)}
+                                                    style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: 'none' }}>
+                                                    취소
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        await removeItem(user!.uid!, user?.profileId || 'main', hero.tmdbId, 'wishlist')
+                                                        setShowWishModal(false)
+                                                    }}
+                                                    style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                                                    삭제
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(108,99,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                            </div>
+                                            <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 17, margin: 0 }}>보고싶다에 추가됐어요!</p>
+                                            <p style={{ color: 'var(--text-subtle)', fontSize: 13, margin: 0, textAlign: 'center' }}>{hero.koTitle}이(가) 보관함에 저장됐어요</p>
+                                            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                                                <button
+                                                    onClick={() => setShowWishModal(false)}
+                                                    style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', background: 'none' }}>
+                                                    계속 보기
+                                                </button>
+                                                <button
+                                                    onClick={() => { setShowWishModal(false); router.push('/library?tab=wishlist') }}
+                                                    style={{ flex: 1, padding: '10px 0', borderRadius: 30, border: 'none', background: '#6c63ff', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                                                    보관함으로
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* ── 관련 작품 ── */}
+                {/* ✅ 관련 작품 — 히어로 div 밖으로 이동 */}
                 {subs.length > 0 && (
                     <div style={{ width: '90%', margin: '0 auto', paddingTop: 30, paddingBottom: 20 }}>
                         <div style={{ borderBottom: '1px solid rgba(255,255,255,.07)', padding: '18px 0', marginBottom: 32 }}>
@@ -395,10 +440,10 @@ function ResultView({ moodId, aniList, onReset, onMoodChange }: {
                     </div>
                 )}
 
-                {/* ── 다른 감정 ── */}
+                {/* ✅ 다른 감정 — 히어로 div 밖으로 이동 */}
                 <OtherMoodsSection currentId={moodId} onSelect={onMoodChange} />
 
-            </div >
+            </div>
         </>
     )
 }

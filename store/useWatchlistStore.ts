@@ -5,7 +5,7 @@ import {
     collection, serverTimestamp, query, orderBy
 } from 'firebase/firestore'
 
-export type WatchlistTab = 'recent' | 'wishlist' | 'purchased' | 'series'
+export type WatchlistTab = 'recent' | 'wishlist' | 'purchased' | 'reviews' | 'comments'
 
 export interface WatchlistItem {
     id: number
