@@ -2,7 +2,7 @@
 
 // app/store/profile/page.tsx
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { db } from "@/firebase/firebase";
@@ -26,10 +26,10 @@ type Order = {
     items: OrderItem[];
     total: number;
     usedPoints: number;
-    couponId?: string;       // legacy
-    usedCouponId?: string;  // ✅ order/page.tsx 저장 필드명
-    couponLabel?: string;       // legacy
-    usedCouponLabel?: string;   // ✅ order/page.tsx 저장 필드명
+    couponId?: string;
+    usedCouponId?: string;
+    couponLabel?: string;
+    usedCouponLabel?: string;
     couponDiscount?: number;
     createdAt?: Date | { toDate?: () => Date } | null;
     cancelReason?: string;
@@ -52,10 +52,12 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const CANCEL_REASONS = ["단순 변심", "상품 불량/파손", "배송 지연", "주문 실수", "기타"];
+
+// ✅ label과 activeRange 값 통일
 const DATE_RANGE_BUTTONS = [
-    { label: "1개월", months: 1, days: 0 },
-    { label: "3개월", months: 3, days: 0 },
-    { label: "6개월", months: 6, days: 0 },
+    { label: "1개월", months: 1 },
+    { label: "3개월", months: 3 },
+    { label: "6개월", months: 6 },
 ];
 
 function toDateInputValue(date: Date) {
@@ -68,28 +70,30 @@ function toOrderDateLabel(date?: Date) {
     if (!date) return "-";
     return toDateInputValue(date).replaceAll("-", ".");
 }
-function getOrderCreatedDate(createdAt: Order["createdAt"]) {
+function getOrderCreatedDate(createdAt: Order["createdAt"]): Date | undefined {
+    if (!createdAt) return undefined;
     if (createdAt instanceof Date) return createdAt;
-    return createdAt?.toDate?.();
+    const c = createdAt as any;
+    if (typeof c.toDate === "function") return c.toDate();
+    // Firestore Timestamp: { seconds, nanoseconds }
+    if (typeof c.seconds === "number") return new Date(c.seconds * 1000);
+    if (typeof createdAt === "string" || typeof createdAt === "number") return new Date(createdAt);
+    return undefined;
 }
-function getDateRange(months: number, days: number) {
+function getDateRange(months: number) {
     const to = new Date();
     const from = new Date(to);
-    if (months > 0) from.setMonth(from.getMonth() - months);
-    if (days > 0) from.setDate(from.getDate() - days);
+    from.setMonth(from.getMonth() - months);
     return { from: toDateInputValue(from), to: toDateInputValue(to) };
 }
 
 // ─── 주문 상세 팝업 ────────────────────────────────────────────────────────────
 function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => void }) {
     const subtotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
-
-    // ✅ usedCouponId / usedCouponLabel (order/page.tsx 저장 필드명) 우선, couponId/couponLabel 폴백
     const resolvedCouponId = order.usedCouponId ?? order.couponId;
     const [couponLabel, setCouponLabel] = useState<string | null>(
         order.usedCouponLabel ?? order.couponLabel ?? null
     );
-
     const { user } = useAuthStore();
 
     useEffect(() => {
@@ -100,9 +104,7 @@ function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => voi
                 const snap = await getDoc(doc(db, "users", user.uid!, "coupons", resolvedCouponId));
                 if (snap.exists()) setCouponLabel(snap.data().label ?? "쿠폰 할인");
                 else setCouponLabel("쿠폰 할인");
-            } catch {
-                setCouponLabel("쿠폰 할인");
-            }
+            } catch { setCouponLabel("쿠폰 할인"); }
         })();
     }, [resolvedCouponId, user?.uid]);
 
@@ -110,17 +112,13 @@ function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => voi
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
             <div className="relative w-full max-w-[460px] max-h-[90vh] overflow-y-auto rounded-[20px] bg-white shadow-2xl"
                 onClick={e => e.stopPropagation()}>
-                {/* 헤더 */}
                 <div className="sticky top-0 bg-white flex items-center justify-between border-b border-[#f0edf8] px-6 py-4 z-10">
                     <h3 className="text-[16px] font-bold text-[#16121f]">주문 상세</h3>
-                    <button onClick={onClose}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[#e2ddf5] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] transition">
+                    <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#e2ddf5] text-[#9b94b2] hover:border-[#7865ff] hover:text-[#7865ff] transition">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                     </button>
                 </div>
-
                 <div className="px-6 py-5 flex flex-col gap-5">
-                    {/* 주문 번호 / 날짜 / 상태 */}
                     <div className="rounded-[12px] bg-[#f5f3ff] px-4 py-3 flex flex-col gap-1">
                         <div className="flex items-center justify-between">
                             <p className="text-[11px] text-[#9b94b2]">주문번호</p>
@@ -135,8 +133,6 @@ function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => voi
                             <p className={`text-[12px] font-bold ${STATUS_COLOR[order.status] ?? "text-[#7865ff]"}`}>{order.status}</p>
                         </div>
                     </div>
-
-                    {/* 주문 상품 */}
                     <div>
                         <p className="mb-2 text-[12px] font-bold text-[#6b647a]">주문 상품</p>
                         <div className="flex flex-col gap-3">
@@ -154,8 +150,6 @@ function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => voi
                             ))}
                         </div>
                     </div>
-
-                    {/* 결제 내역 */}
                     <div>
                         <p className="mb-2 text-[12px] font-bold text-[#6b647a]">결제 내역</p>
                         <div className="rounded-[12px] border border-[#ebe8ff] overflow-hidden">
@@ -163,14 +157,11 @@ function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => voi
                                 <p className="text-[12px] text-[#6b647a]">상품 금액</p>
                                 <p className="text-[12px] font-semibold text-[#16121f]">{subtotal.toLocaleString()}원</p>
                             </div>
-                            {/* ✅ 쿠폰 할인: label 포함해서 표시 */}
                             {(order.couponDiscount ?? 0) > 0 && (
                                 <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#f0edf8]">
                                     <div className="flex flex-col gap-0.5">
                                         <p className="text-[12px] text-[#6b647a]">쿠폰 할인</p>
-                                        {couponLabel && (
-                                            <p className="text-[10px] text-[#a89fce]">{couponLabel}</p>
-                                        )}
+                                        {couponLabel && <p className="text-[10px] text-[#a89fce]">{couponLabel}</p>}
                                     </div>
                                     <p className="text-[12px] font-semibold text-[#ff4d6d]">-{(order.couponDiscount ?? 0).toLocaleString()}원</p>
                                 </div>
@@ -187,8 +178,6 @@ function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => voi
                             </div>
                         </div>
                     </div>
-
-                    {/* 결제 수단 */}
                     {order.paymentMethod && (
                         <div>
                             <p className="mb-2 text-[12px] font-bold text-[#6b647a]">결제 수단</p>
@@ -197,8 +186,6 @@ function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => voi
                             </div>
                         </div>
                     )}
-
-                    {/* 배송지 */}
                     {order.shipping && (
                         <div>
                             <p className="mb-2 text-[12px] font-bold text-[#6b647a]">배송지</p>
@@ -211,8 +198,6 @@ function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => voi
                             </div>
                         </div>
                     )}
-
-                    {/* 취소/환불 사유 */}
                     {order.cancelReason && (
                         <div className="rounded-[12px] bg-[#fff0f3] border border-[#ffb3c1] px-4 py-3">
                             <p className="text-[11px] font-bold text-[#ff4d6d] mb-1">취소 사유</p>
@@ -273,14 +258,14 @@ function CancelPopup({ order, onClose, onConfirm }: {
                                 className={`shrink-0 flex h-6 w-6 items-center justify-center rounded-full border-2 transition ${selected.includes(item.productId) ? "bg-[#7865ff] border-[#7865ff]" : "bg-white border-[#d8d4ee]"}`}>
                                 {selected.includes(item.productId) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>}
                             </button>
-                            <div className="h-[72px] w-[72px] sm:h-[90px] sm:w-[90px] shrink-0 overflow-hidden rounded-[10px] bg-[#e8e4f8]">
+                            <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[10px] bg-[#e8e4f8]">
                                 {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
                             </div>
                             <div>
-                                <p className="line-clamp-1 text-[13px] sm:text-[14px] font-medium text-[#16121f]">{item.title}</p>
-                                <p className="text-[11px] sm:text-[12px] text-[#9b94b2]">옵션 : {item.option}</p>
-                                <p className="mt-1 text-[14px] sm:text-[15px] font-bold text-[#16121f]">{item.price.toLocaleString()}원</p>
-                                <p className="text-[11px] sm:text-[12px] text-[#9b94b2]">총 수량 : {item.qty}</p>
+                                <p className="line-clamp-1 text-[13px] font-medium text-[#16121f]">{item.title}</p>
+                                <p className="text-[11px] text-[#9b94b2]">옵션 : {item.option}</p>
+                                <p className="mt-1 text-[14px] font-bold text-[#16121f]">{item.price.toLocaleString()}원</p>
+                                <p className="text-[11px] text-[#9b94b2]">총 수량 : {item.qty}</p>
                             </div>
                         </div>
                     ))}
@@ -399,6 +384,79 @@ function RefundPopup({ order, onClose, onConfirm }: {
     );
 }
 
+
+// ─── 날짜 범위 필터 컴포넌트 ─────────────────────────────────────────────────
+function DateRangeFilter({ dateFrom, dateTo, activeRange, onDateFromChange, onDateToChange, onRangeClick, onSearch, onReset }: {
+    dateFrom: string;
+    dateTo: string;
+    activeRange: string;
+    onDateFromChange: (v: string) => void;
+    onDateToChange: (v: string) => void;
+    onRangeClick: (label: string, months: number) => void;
+    onSearch: () => void;
+    onReset: () => void;
+}) {
+    const fromRef = useRef<HTMLInputElement>(null);
+    const toRef = useRef<HTMLInputElement>(null);
+
+    const openFromPicker = () => {
+        try { fromRef.current?.showPicker(); } catch { fromRef.current?.focus(); }
+    };
+    const openToPicker = () => {
+        try { toRef.current?.showPicker(); } catch { toRef.current?.focus(); }
+    };
+
+    return (
+        <div className="mb-5 flex items-center gap-2 flex-wrap">
+            {DATE_RANGE_BUTTONS.map((range) => (
+                <button key={range.label} type="button"
+                    onClick={() => onRangeClick(range.label, range.months)}
+                    className={`h-[36px] rounded-[8px] px-3 text-[12px] font-semibold transition ${activeRange === range.label ? "bg-[#7865ff] text-white" : "border border-[#ddd8f4] hover:border-[#7865ff]"}`}
+                    style={{ color: activeRange === range.label ? "#fff" : "#111" }}>
+                    {range.label}
+                </button>
+            ))}
+            {/* 날짜 from — 클릭 시 달력 오픈 */}
+            <div className="relative cursor-pointer" onClick={openFromPicker}>
+                <input
+                    ref={fromRef}
+                    type="date"
+                    value={dateFrom}
+                    onChange={e => onDateFromChange(e.target.value)}
+                    className="h-[36px] w-[130px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff] cursor-pointer"
+                    style={{ color: "#111" }}
+                />
+            </div>
+            <span className="text-[#9b94b2]">~</span>
+            {/* 날짜 to — 클릭 시 달력 오픈 */}
+            <div className="relative cursor-pointer" onClick={openToPicker}>
+                <input
+                    ref={toRef}
+                    type="date"
+                    value={dateTo}
+                    onChange={e => onDateToChange(e.target.value)}
+                    className="h-[36px] w-[130px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff] cursor-pointer"
+                    style={{ color: "#111" }}
+                />
+            </div>
+            <button
+                onClick={onSearch}
+                className="h-[36px] rounded-[8px] bg-[#7865ff] px-4 text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
+                기간 검색
+            </button>
+            <button
+                onClick={onReset}
+                className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] font-semibold hover:border-[#7865ff] transition flex items-center gap-1"
+                style={{ color: "#111" }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
+                </svg>
+                초기화
+            </button>
+        </div>
+    );
+}
+
 // ─── 메인 ────────────────────────────────────────────────────────────────────
 function ProfileContent() {
     const { user } = useAuthStore();
@@ -418,12 +476,14 @@ function ProfileContent() {
     const [detailTarget, setDetailTarget] = useState<Order | null>(null);
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 6;
-    const [initialDateRange] = useState(() => getDateRange(1, 0));
+
+    // ✅ 초기값을 "1개월"로 label과 통일
+    const [initialDateRange] = useState(() => getDateRange(1));
     const [dateFrom, setDateFrom] = useState(initialDateRange.from);
     const [dateTo, setDateTo] = useState(initialDateRange.to);
     const [appliedFrom, setAppliedFrom] = useState(initialDateRange.from);
     const [appliedTo, setAppliedTo] = useState(initialDateRange.to);
-    const [activeRange, setActiveRange] = useState("1달");
+    const [activeRange, setActiveRange] = useState("1개월"); // ✅ "1달" → "1개월"
 
     useEffect(() => {
         const t = searchParams.get("tab");
@@ -440,7 +500,6 @@ function ProfileContent() {
                     return {
                         id: d.id,
                         ...data,
-                        // ✅ order/page.tsx 저장 필드명 → Order 타입 필드명 매핑
                         couponId: data.usedCouponId ?? data.couponId ?? null,
                         couponLabel: data.usedCouponLabel ?? data.couponLabel ?? null,
                         couponDiscount: data.couponDiscount ?? data.usedCouponDiscount ?? null,
@@ -452,7 +511,6 @@ function ProfileContent() {
         })();
     }, [user?.uid]);
 
-    // ✅ 주문 취소 신청 — 상태만 처리중으로 (쿠폰/포인트 복원은 관리자 승인 시 처리)
     const handleCancel = async (orderId: string, selectedIds: string[], reason: string) => {
         if (!user?.uid) return;
         const uid = user.uid;
@@ -470,7 +528,6 @@ function ProfileContent() {
         } catch (err) { console.error("[Cancel]", err); alert("취소 처리 중 오류가 발생했습니다."); }
     };
 
-    // ✅ 교환/환불 신청 — 상태만 변경 (쿠폰/포인트 복원은 관리자 환불완료 처리 시)
     const handleRefund = async (orderId: string, reason: string, refundType: "제품하자" | "단순변심") => {
         if (!user?.uid) return;
         const uid = user.uid;
@@ -490,8 +547,9 @@ function ProfileContent() {
     const canCancel = (status: string) => status === "결제완료" || status === "배송시작";
     const canRefund = (status: string) => status === "배송완료";
 
-    const applyDateRange = (label: string, months: number, days: number) => {
-        const range = getDateRange(months, days);
+    // ✅ days 파라미터 제거, months만 사용
+    const applyDateRange = (label: string, months: number) => {
+        const range = getDateRange(months);
         setDateFrom(range.from); setDateTo(range.to);
         setAppliedFrom(range.from); setAppliedTo(range.to);
         setActiveRange(label); setPage(1);
@@ -507,9 +565,10 @@ function ProfileContent() {
         if (tab === "교환환불/취소" && !(o.status === "처리중" || o.status === "주문취소" || o.status === "교환환불신청" || o.status === "환불완료")) return false;
         if (appliedFrom || appliedTo) {
             const orderDate = getOrderCreatedDate(o.createdAt);
-            if (!orderDate) return false;
-            if (appliedFrom && orderDate < new Date(appliedFrom)) return false;
-            if (appliedTo && orderDate > new Date(appliedTo + "T23:59:59")) return false;
+            if (orderDate) {
+                if (appliedFrom && orderDate < new Date(appliedFrom)) return false;
+                if (appliedTo && orderDate > new Date(appliedTo + "T23:59:59")) return false;
+            }
         }
         return true;
     });
@@ -532,24 +591,21 @@ function ProfileContent() {
             </div>
 
             {/* 날짜 검색 */}
-            <div className="mb-5 flex items-center gap-2 flex-wrap">
-                {DATE_RANGE_BUTTONS.map((range) => (
-                    <button key={range.label} type="button"
-                        onClick={() => applyDateRange(range.label, range.months, range.days)}
-                        className={`h-[36px] rounded-[8px] px-3 text-[12px] font-semibold transition ${activeRange === range.label ? "bg-[#7865ff] text-white" : "border border-[#ddd8f4] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
-                        {range.label}
-                    </button>
-                ))}
-                <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                    className="h-[36px] w-full sm:w-auto rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
-                <span className="text-[#9b94b2]">~</span>
-                <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                    className="h-[36px] w-full sm:w-auto rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff]" />
-                <button onClick={applyCustomDateRange}
-                    className="h-[36px] rounded-[8px] bg-[#7865ff] px-4 text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
-                    기간 검색
-                </button>
-            </div>
+            <DateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                activeRange={activeRange}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+                onRangeClick={applyDateRange}
+                onSearch={applyCustomDateRange}
+                onReset={() => {
+                    const range = getDateRange(1);
+                    setDateFrom(range.from); setDateTo(range.to);
+                    setAppliedFrom(range.from); setAppliedTo(range.to);
+                    setActiveRange("1개월"); setPage(1);
+                }}
+            />
 
             {/* 주문 목록 */}
             {loading ? (
