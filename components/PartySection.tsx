@@ -2,6 +2,9 @@
 import { useEffect, useState } from 'react'
 import { useAniStore } from '@/store/useAniStore'
 import { useRouter } from 'next/navigation'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { FreeMode } from 'swiper/modules'
+import 'swiper/css'
 
 const DUMMY_PARTIES = [
     { hostName: '메롱포켓몬', time: '21:22', attendees: 15, maxAttendees: 30, img: '/images/character/ch-1.png' },
@@ -31,29 +34,41 @@ export default function PartySection() {
 
     if (aniList.length === 0) return null
 
-    const startIdx = (offset * 4) % Math.max(aniList.length - 4, 1)
-    const displayed = aniList.slice(startIdx, startIdx + 4)
+    const startIdx = (offset * 4) % Math.max(aniList.length - 8, 1)
+    const displayed = [...aniList.slice(startIdx), ...aniList.slice(0, startIdx)].slice(0, 12)
 
     return (
         <section>
-            <div className="relative flex flex-col gap-1 mb-5 pt-20">
-                <h2 className="text-xl font-bold text-[var(--text-primary)]">Party Now</h2>
-                <p className="text-sm text-[var(--text-muted)]">지금 이 순간, 혼자 보기엔 아쉬우니까</p>
+            <div className="relative flex flex-col gap-3 mb-5 pt-14 sm:pt-20 md:flex-row md:items-end md:justify-between">
+                <div className="flex flex-col gap-1">
+                    <h2 className="text-xl font-bold text-[var(--text-primary)]">Party Now</h2>
+                    <p className="text-sm text-[var(--text-muted)]">지금 이 순간, 혼자 보기엔 아쉬우니까</p>
+                </div>
                 <button
                     onClick={() => router.push('/live/create')}
-                    className="absolute right-0 px-8 py-2 bg-[var(--border)] hover:bg-[var(--border-subtle)] transition-colors rounded-xl text-sm text-[var(--text-primary)] font-medium cursor-pointer"
+                    className="w-fit px-5 py-2 bg-[var(--border)] hover:bg-[var(--border-subtle)] transition-colors rounded-xl text-sm text-[var(--text-primary)] font-medium cursor-pointer md:px-8"
                 >
                     파티 개설하기
                 </button>
             </div>
 
-            <ul className="grid grid-cols-4 gap-2 list-none p-0 m-0">
+            <Swiper
+                modules={[FreeMode]}
+                freeMode={{ sticky: false }}
+                slidesPerView="auto"
+                spaceBetween={12}
+                className="!overflow-visible"
+                style={{ marginRight: '-5vw', paddingRight: '5vw' }}
+            >
                 {displayed.map((ani, idx) => {
                     const party = DUMMY_PARTIES[(idx + offset) % DUMMY_PARTIES.length]
                     const imgPath = ani.backdrop_path || ani.poster_path
 
                     return (
-                        <li key={`${ani.id}-${offset}-${idx}`} className="relative">
+                        <SwiperSlide
+                            key={`${ani.id}-${offset}-${idx}`}
+                            style={{ width: 'min(82vw, 360px)' }}
+                        >
                             <div
                                 onClick={() => router.push(`/live/party/party-${ani.id}`)}
                                 className="relative overflow-hidden rounded-xl aspect-video bg-[var(--bg-card)] cursor-pointer group"
@@ -67,13 +82,13 @@ export default function PartySection() {
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
 
-                                <div className="absolute bottom-2.5 left-2.5 flex flex-col gap-1">
+                                <div className="absolute bottom-2.5 left-2.5 right-12 flex flex-col gap-1">
                                     <div className="flex items-center gap-1.5">
-                                        <div className="w-15 h-15 rounded-full border-2 border-[var(--border)] flex-shrink-0 overflow-hidden">
+                                        <div className="w-10 h-10 rounded-full border-2 border-[var(--border)] flex-shrink-0 overflow-hidden sm:w-12 sm:h-12 xl:w-15 xl:h-15">
                                             <img src={party.img} alt={party.hostName} className="w-full h-full object-cover" />
                                         </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[16px] font-bold text-white drop-shadow">{ani.name}</span>
+                                        <div className="flex min-w-0 flex-col">
+                                            <span className="truncate text-[14px] font-bold text-white drop-shadow sm:text-[16px]">{ani.name}</span>
                                             <span className="text-[11px] font-semibold text-white/90 whitespace-nowrap">개설자 : {party.hostName}</span>
                                             <span className="text-[10px] text-white/50 whitespace-nowrap">개설 시간 : {party.time}</span>
                                         </div>
@@ -83,14 +98,14 @@ export default function PartySection() {
                                     </span>
                                 </div>
 
-                                <span className="absolute bottom-1 right-3 text-[52px] font-black italic text-white/10 leading-none pointer-events-none select-none">
+                                <span className="absolute bottom-1 right-3 text-[42px] font-black italic text-white/10 leading-none pointer-events-none select-none sm:text-[52px]">
                                     {idx + 1}
                                 </span>
                             </div>
-                        </li>
+                        </SwiperSlide>
                     )
                 })}
-            </ul>
+            </Swiper>
 
             <RotationTimer offset={offset} />
         </section>
