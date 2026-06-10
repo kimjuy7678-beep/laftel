@@ -102,6 +102,22 @@ export default function PersonalRecommendSection() {
                 .pr-pill { position: absolute; top: 8px; left: 8px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: rgba(108,99,255,0.85); color: #fff; }
                 .pr-info { padding: 10px 10px 12px; }
                 .pr-name { font-size: 14px; font-weight: 600; color: var(--text-high); margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+                @media (max-width: 900px) {
+                    .pr-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+                }
+                @media (max-width: 640px) {
+                    .pr-wrap { width: calc(100% - 32px); }
+                    .pr-header { margin-bottom: 26px; }
+                    .pr-title { font-size: 21px; }
+                    .pr-sub { font-size: 13px; }
+                    .pr-tags { flex-wrap: nowrap; overflow-x: auto; padding-right: 16px; margin-right: -16px; scrollbar-width: none; }
+                    .pr-tags::-webkit-scrollbar { display: none; }
+                    .pr-tag { flex: 0 0 auto; }
+                    .pr-section { margin-bottom: 40px; }
+                    .pr-grid { display: flex; gap: 12px; margin-right: -16px; padding-right: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+                    .pr-grid::-webkit-scrollbar { display: none; }
+                    .pr-card { flex: 0 0 min(78vw, 320px); scroll-snap-align: start; }
+                }
   
             `}</style>
 

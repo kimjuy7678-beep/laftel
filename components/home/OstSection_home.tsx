@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAniStore } from '@/store/useAniStore'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation } from 'swiper/modules'
+import type { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 
 const LASTFM_KEY = process.env.NEXT_PUBLIC_LASTFM_API_KEY
@@ -84,6 +85,15 @@ function HomeBottomPlayer({ track, isPlaying, progress, onPlayPause, onPrev, onN
                 .hbp-time{font-size:12px;color:var(--text-faint);flex-shrink:0;min-width:80px;text-align:center}
                 .hbp-close-btn{width:30px;height:30px;border-radius:50%;background:var(--border-faint);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-faint);transition:all .2s}
                 .hbp-close-btn:hover{background:var(--border);color:var(--text-primary)}
+                @media (max-width: 640px) {
+                    .hbp-wrap{height:auto;min-height:96px;padding:12px 14px 14px;gap:10px;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center}
+                    .hbp-cover{width:44px;height:44px}
+                    .hbp-controls{grid-column:1/-1;justify-content:center;gap:10px}
+                    .hbp-time{min-width:auto;font-size:11px}
+                    .hbp-icon-btn{width:32px;height:32px}
+                    .hbp-play-btn{width:40px;height:40px}
+                    .hbp-close-btn{position:absolute;right:10px;top:10px}
+                }
             `}</style>
             <div className="hbp-wrap">
                 <div ref={barRef} className="hbp-bar-wrap" onClick={handleBarClick}>
@@ -131,6 +141,13 @@ export default function OstSection() {
     const tracksRef = useRef<OstTrack[]>([])
     const prevRef = useRef<HTMLButtonElement>(null)
     const nextRef = useRef<HTMLButtonElement>(null)
+
+    const bindNavigation = (swiper: SwiperType) => {
+        const navigation = swiper.params.navigation
+        if (!navigation || typeof navigation === 'boolean') return
+        navigation.prevEl = prevRef.current
+        navigation.nextEl = nextRef.current
+    }
 
     useEffect(() => { tracksRef.current = tracks }, [tracks])
     useEffect(() => { if (aniList.length === 0) onFetchAni() }, [])
@@ -222,17 +239,19 @@ export default function OstSection() {
             <section style={{ padding: '48px 0 0' }}>
                 <style>{`
                     .ost-wrap { width: 90%; margin: 0 auto; }
-                    .ost-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-                    .ost-head-left { display: flex; align-items: center; gap: 12px; }
+                    .ost-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+                    .ost-head-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
                     .ost-title { font-size: 25px; font-weight: 800; color: var(--text-primary); margin: 0; }
                     .ost-badge { font-size: 11px; font-weight: 700; color: #9d97ff; background: rgba(108,99,255,0.15); border: 1px solid rgba(108,99,255,0.3); padding: 3px 10px; border-radius: 20px; }
-                    .ost-nav { display: flex; gap: 8px; }
+                    .ost-nav { display: flex; gap: 8px; flex-shrink: 0; }
                     .ost-nav-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--border-subtle); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; }
                     .ost-nav-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+                    .ost-swiper { touch-action: pan-y; user-select: none; }
+                    .ost-mobile-scroll { display: none; }
                     .ost-card { width: 180px; cursor: pointer; transition: transform .22s cubic-bezier(.25,.46,.45,.94); }
                     .ost-card:hover { transform: translateY(-4px); }
                     .ost-card:hover .ost-jacket img { transform: scale(1.05); }
-                    .ost-jacket { width: 180px; height: 180px; border-radius: 10px; overflow: hidden; background: var(--bg-secondary); position: relative; margin-bottom: 10px; border: 2px solid transparent; transition: border-color .2s; }
+                    .ost-jacket { width: 100%; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--bg-secondary); position: relative; margin-bottom: 10px; border: 2px solid transparent; transition: border-color .2s; }
                     .ost-card.playing .ost-jacket { border-color: #6c63ff; }
                     .ost-jacket img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
                     .ost-jacket-np { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 36px; background: linear-gradient(135deg,#1a1535,#0f0f1a); }
@@ -255,6 +274,19 @@ export default function OstSection() {
                     .ost-loading { display: flex; align-items: center; gap: 10px; color: var(--text-faint); font-size: 13px; height: 200px; }
                     .ost-spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: #6c63ff; border-radius: 50%; animation: ost-spin .7s linear infinite; }
                     @keyframes ost-spin { to { transform: rotate(360deg) } }
+                    @media (max-width: 720px) {
+                        .ost-wrap { width: calc(100% - 32px); }
+                        .ost-head { align-items: flex-start; }
+                        .ost-head-left { display: block; }
+                        .ost-title { font-size: 20px; line-height: 1.35; }
+                        .ost-badge { display: inline-flex; margin-top: 8px; }
+                        .ost-nav { display: none; }
+                        .ost-swiper { display: none; }
+                        .ost-mobile-scroll { display: flex; gap: 12px; margin-left: -16px; margin-right: -16px; padding: 0 16px 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; touch-action: pan-x; }
+                        .ost-mobile-scroll::-webkit-scrollbar { display: none; }
+                        .ost-mobile-scroll .ost-card { flex: 0 0 min(42vw, 160px); width: min(42vw, 160px); scroll-snap-align: start; }
+                        .ost-track-name { font-size: 13px; }
+                    }
                 `}</style>
 
                 <div className="ost-wrap">
@@ -280,14 +312,16 @@ export default function OstSection() {
                         </div>
                     ) : (
                         <Swiper
+                            className="ost-swiper"
                             modules={[Navigation]}
-                            navigation={{ prevEl: prevRef.current, nextEl: nextRef.current }}
-                            onBeforeInit={(swiper: any) => {
-                                swiper.params.navigation.prevEl = prevRef.current
-                                swiper.params.navigation.nextEl = nextRef.current
-                            }}
+                            navigation
+                            onBeforeInit={bindNavigation}
                             slidesPerView="auto"
                             spaceBetween={16}
+                            allowTouchMove
+                            simulateTouch={false}
+                            touchRatio={1.15}
+                            watchOverflow
                             style={{ overflow: 'visible' }}
                         >
                             {tracks.map(track => (
@@ -323,6 +357,41 @@ export default function OstSection() {
                                 </SwiperSlide>
                             ))}
                         </Swiper>
+                    )}
+                    {!loading && tracks.length > 0 && (
+                        <div className="ost-mobile-scroll">
+                            {tracks.map(track => (
+                                <div
+                                    key={track.id}
+                                    className={`ost-card${playingId === track.id ? ' playing' : ''}`}
+                                    onClick={() => handlePlay(track.previewUrl, track.id)}
+                                >
+                                    <div className="ost-jacket">
+                                        {track.cover
+                                            ? <img src={track.cover} alt={track.title} />
+                                            : <div className="ost-jacket-np">🎵</div>
+                                        }
+                                        <div className="ost-overlay">
+                                            {playingId === track.id ? (
+                                                <div className="ost-eq"><span /><span /><span /><span /></div>
+                                            ) : (
+                                                <button className="ost-play-btn">
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="#111"><polygon points="5,3 19,12 5,21" /></svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                        {playingId === track.id && (
+                                            <div className="ost-prog">
+                                                <div className="ost-prog-fill" style={{ width: `${progress}%` }} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="ost-anime-name">{track.animeName} ost</p>
+                                    <p className="ost-track-name">{track.title}</p>
+                                    <p className="ost-artist">{track.artist}</p>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
             </section>

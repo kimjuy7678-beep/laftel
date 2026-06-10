@@ -49,7 +49,8 @@ export default function HeroSection() {
             const t = setTimeout(() => setVideoOpacity(1), 50)
             return () => clearTimeout(t)
         } else {
-            setVideoOpacity(0)
+            const t = setTimeout(() => setVideoOpacity(0), 0)
+            return () => clearTimeout(t)
         }
     }, [playingId])
 
@@ -83,14 +84,164 @@ export default function HeroSection() {
     }
 
     return (
-        <section className="relative w-full h-screen overflow-hidden">
+        <section className="hero-section relative w-full overflow-hidden">
+            <style>{`
+                .hero-section {
+                    height: calc(100vw * 9 / 16);
+                    max-height: 820px;
+                }
+
+                .hero-bg {
+                    object-position: center center;
+                }
+
+                .hero-main-image {
+                    object-position: center center;
+                }
+
+                .hero-copy {
+                    position: absolute;
+                    left: 8%;
+                    bottom: 28%;
+                    max-width: min(620px, 50vw);
+                    color: var(--text-primary);
+                    white-space: pre-line;
+                    line-height: 1.6;
+                    font-size: 22px;
+                    font-weight: 600;
+                    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+                }
+
+                .hero-actions {
+                    position: absolute;
+                    left: 8%;
+                    bottom: 14%;
+                    z-index: 30;
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                }
+
+                .hero-action-btn {
+                    height: 52px;
+                    padding: 0 32px;
+                    font-size: 14px;
+                }
+
+                .hero-close {
+                    top: 5%;
+                    right: 24px;
+                }
+
+                .hero-dots {
+                    bottom: 40px;
+                }
+
+                @media (max-width: 1024px) {
+                    .hero-section {
+                        height: calc(100vw * 9 / 16);
+                        max-height: none;
+                    }
+
+                    .hero-copy {
+                        max-width: min(560px, 64vw);
+                        font-size: 19px;
+                    }
+
+                    .hero-action-btn {
+                        height: 48px;
+                        padding: 0 24px;
+                        font-size: 13px;
+                    }
+                }
+
+                @media (max-width: 640px) {
+                    .hero-section {
+                        height: calc(100vw * 9 / 16);
+                        min-height: 0;
+                        max-height: none;
+                    }
+
+                    .hero-bg {
+                        object-position: 58% center;
+                    }
+
+                    .hero-main-image {
+                        object-position: 58% center;
+                    }
+
+                    .hero-copy {
+                        left: 20px;
+                        right: 20px;
+                        bottom: 92px;
+                        max-width: none;
+                        font-size: 12px;
+                        line-height: 1.45;
+                    }
+
+                    .hero-actions {
+                        left: 20px;
+                        right: 20px;
+                        bottom: 42px;
+                        gap: 10px;
+                    }
+
+                    .hero-action-btn {
+                        flex: 1;
+                        min-width: 0;
+                        height: 34px;
+                        padding: 0 10px;
+                        font-size: 11px;
+                    }
+
+                    .hero-close {
+                        top: 72px;
+                        right: 16px;
+                        font-size: 12px;
+                    }
+
+                    .hero-close svg {
+                        width: 18px;
+                        height: 18px;
+                    }
+
+                    .hero-dots {
+                        bottom: 12px;
+                        gap: 8px;
+                    }
+
+                    .hero-dots > div {
+                        height: 3px;
+                    }
+
+                    .hero-dots > div.active {
+                        width: 36px;
+                    }
+
+                    .hero-dots > div.idle {
+                        width: 12px;
+                    }
+                }
+
+                @media (max-width: 380px) {
+                    .hero-copy {
+                        bottom: 84px;
+                        font-size: 11px;
+                    }
+
+                    .hero-action-btn {
+                        height: 32px;
+                        font-size: 10px;
+                    }
+                }
+            `}</style>
             <Swiper
                 modules={[Autoplay, EffectFade]}
                 effect="fade"
                 loop={true}
                 autoplay={{ delay: 7000, disableOnInteraction: false }}
                 onSwiper={swiper => { swiperRef.current = swiper }}
-                onSlideChange={swiper => {
+                onSlideChange={() => {
                     setPlayingId(null)
                     if (hoverTimer.current) clearTimeout(hoverTimer.current)
                 }}
@@ -106,7 +257,7 @@ export default function HeroSection() {
             >
                 {heroes.map((hero, i) => {
                     if (!hero?.id) return null
-                    const name = (hero as any).name || ''
+                    const name = typeof hero.name === 'string' ? hero.name : ''
                     const isActive = i === activeIndex
                     const isPlaying = playingId === hero.id
 
@@ -120,7 +271,7 @@ export default function HeroSection() {
                                 <img
                                     src={hero.image}
                                     alt={name}
-                                    className="absolute inset-0 w-full h-full object-cover"
+                                    className="hero-bg hero-main-image absolute inset-0 w-full h-full object-cover"
                                 />
 
                                 {isPlaying && (
@@ -143,7 +294,7 @@ export default function HeroSection() {
                                     {isPlaying && (
                                         <button
                                             onClick={handleCloseVideo}
-                                            className="absolute top-[5%] right-6 z-50 flex items-center gap-2
+                                            className="hero-close absolute z-50 flex items-center gap-2
                                                        text-[var(--text-muted)] hover:text-white text-sm transition-colors duration-200 cursor-pointer"
                                         >
                                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -157,29 +308,13 @@ export default function HeroSection() {
                                     {!isPlaying && (
                                         <>
                                             <h1
-                                                style={{
-                                                    position: 'absolute',
-                                                    bottom: '28%',
-                                                    left: '8%',
-                                                    fontSize: 'clamp(14px, 1.4vw, 26px)',
-                                                    color: 'var(--text-primary)',
-                                                    whiteSpace: 'pre-line',
-                                                    lineHeight: 1.6,
-                                                }}
+                                                className="hero-copy"
                                             >
                                                 {hero.text}
                                             </h1>
 
                                             <div
-                                                style={{
-                                                    position: 'absolute',
-                                                    bottom: '14%',
-                                                    left: '8%',
-                                                    zIndex: 30,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '16px',
-                                                }}
+                                                className="hero-actions"
                                             >
                                                 <button
                                                     onClick={() => router.push(`/anime/${hero.id}?play=1`)}
@@ -193,8 +328,7 @@ export default function HeroSection() {
                                                     }}
                                                     className="inline-flex items-center justify-center rounded-full border border-[var(--border-faint)]0 text-white font-semibold
                                                     backdrop-blur-md bg-white/10 hover:bg-white hover:text-black
-                                                    transition-all duration-300 cursor-pointer whitespace-nowrap"
-                                                    style={{ fontSize: 'clamp(11px, 1vw, 14px)', height: 'clamp(40px, 4vw, 52px)', padding: '0 clamp(16px, 2vw, 32px)' }}
+                                                    transition-all duration-300 cursor-pointer whitespace-nowrap hero-action-btn"
                                                 >
                                                     1화 보러가기
                                                 </button>
@@ -210,8 +344,7 @@ export default function HeroSection() {
                                                     }}
                                                     className="inline-flex items-center justify-center rounded-full border border-[var(--border-faint)]0 text-white font-semibold
                                                     hover:bg-white hover:text-black
-                                                    transition-all duration-300 cursor-pointer whitespace-nowrap"
-                                                    style={{ fontSize: 'clamp(11px, 1vw, 14px)', height: 'clamp(40px, 4vw, 52px)', padding: '0 clamp(16px, 2vw, 32px)' }}
+                                                    transition-all duration-300 cursor-pointer whitespace-nowrap hero-action-btn"
                                                 >
                                                     상세보기
                                                 </button>
@@ -225,12 +358,12 @@ export default function HeroSection() {
                 })}
             </Swiper>
 
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-40 pointer-events-none">
+            <div className="hero-dots absolute left-1/2 -translate-x-1/2 flex gap-3 z-40 pointer-events-none">
                 {heroes.map((_, i) => (
                     <div
                         key={i}
                         className={`h-1 rounded-full transition-all duration-500
-                                   ${activeIndex === i ? 'w-14 bg-white' : 'w-4 bg-white/30'}`}
+                                   ${activeIndex === i ? 'active w-14 bg-white' : 'idle w-4 bg-white/30'}`}
                     />
                 ))}
             </div>
