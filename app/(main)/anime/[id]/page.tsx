@@ -12,8 +12,12 @@ import MembershipRequiredModal from "@/components/MembershipRequiredModal"
 import styles from "./scss/AnimeDeatilpage.module.scss"
 import { useAuthStore } from "@/store/useAuthStore"
 import LoginModal from "@/components/LoginModal"
+import AnimeDetailPage from "@/components/anime/AnimeDetail"
+import { use } from "react"
 
-export default function AnimeDetailPage() {
+export default function Page({ params }: { params: Promise<{ id: string }> }) {
+    const { id: pageId } = use(params)
+
     const {
         id, numericId, router,
         detail, loading,
@@ -201,6 +205,9 @@ export default function AnimeDetailPage() {
                 <EpisodeInfo episode={activeEpisode} seriesTitle={detail.name} />
                 <EpisodeComments
                     episodeId={activeEpisode?.episode_number ?? episodes[0]?.episode_number}
+                    animeId={Number(pageId)}
+                    animeTitle={detail.name}
+                    animePoster={detail.poster_path}
                 />
             </div>
         </div>

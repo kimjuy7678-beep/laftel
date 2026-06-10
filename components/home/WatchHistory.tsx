@@ -9,7 +9,11 @@ export default function WatchHistory() {
     const { user } = useAuthStore()
     const { items, loading, fetchProgress } = useWatchProgressStore()
 
-    useEffect(() => { if (user?.uid) fetchProgress(user.uid) }, [user?.uid])
+    const profileId = user?.currentProfileId || user?.profileId || 'main'
+
+    useEffect(() => {
+        if (user?.uid) fetchProgress(user.uid, profileId)
+    }, [user?.uid, profileId])
 
     if (!user || loading || items.length === 0) return null
 
@@ -51,7 +55,7 @@ export default function WatchHistory() {
             <div className="wh-wrap">
                 <div className="wh-head">
                     <h2 className="wh-title">이어서 정주행하기</h2>
-                    <button className="wh-more" onClick={() => router.push('/history')}>
+                    <button className="wh-more" onClick={() => router.push('/library?tab=recent')}>
                         전체보기
                         <svg viewBox="0 0 12 12" fill="none">
                             <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -63,18 +67,20 @@ export default function WatchHistory() {
                         <div key={item.tmdbId} className="wh-card" onClick={() => router.push(`/anime/${item.tmdbId}`)}>
                             <div className="wh-thumb">
                                 {item.backdrop
-                                    ? <img className="wh-img" src={`https://image.tmdb.org/t/p/w780${item.backdrop}`} alt={item.title} />
-                                    : <div className="wh-img-fallback">{item.title[0]}</div>
+                                    ? <img className="wh-img" src={item.backdrop.startsWith('http') ? item.backdrop : `https://image.tmdb.org/t/p/w780${item.backdrop}`} alt={item.title} />
+                                    : item.poster
+                                        ? <img className="wh-img" src={item.poster.startsWith('http') ? item.poster : `https://image.tmdb.org/t/p/w780${item.poster}`} alt={item.title} />
+                                        : <div className="wh-img-fallback">{item.title?.[0] ?? '?'}</div>
                                 }
                                 <div className="wh-play">
                                     <svg viewBox="0 0 12 14"><path d="M1 1l10 6L1 13V1z" /></svg>
                                 </div>
                                 <div className="wh-progress">
-                                    <div className="wh-progress-bar" style={{ width: `${item.progress}%` }} />
+                                    <div className="wh-progress-bar" style={{ width: `${item.progress ?? 5}%` }} />
                                 </div>
                             </div>
                             <p className="wh-name">{item.title}</p>
-                            <p className="wh-ep">{item.episode}화 · {item.episodeTitle}</p>
+                            <p className="wh-ep">{item.episode}화{item.episodeTitle ? ` · ${item.episodeTitle}` : ''}</p>
                         </div>
                     ))}
                 </div>

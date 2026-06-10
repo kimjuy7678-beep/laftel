@@ -3,12 +3,28 @@ import HeaderSearch from './HeaderSearch'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
+import { useActivityStore } from '@/store/useActiveStore'
 import Link from 'next/link'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { usePageTransition } from '@/hook/usePageTransition'
 import GradeModal from './GradeModal'
 import { toast } from 'sonner'
+import { useWatchProgressStore } from '@/store/useWatchProgressStore'
+
+const GRADES = [
+    { level: 0, name: '베이비', req: 0, color: '#a78bfa', image: 'https://thumbnail.laftel.net/profiles/default/48363a65-24d6-45a0-9eac-8c1726656c63.png' },
+    { level: 1, name: '루키', req: 1, color: '#34d399', image: 'https://thumbnail.laftel.net/profiles/default/7478566c-4b3c-4a10-a7c0-2f8c05fb2370.jpg' },
+    { level: 2, name: '뉴비', req: 3, color: '#60a5fa', image: 'https://thumbnail.laftel.net/profiles/default/fb48c8c7-ad22-4aa9-9038-c0637ba7e275.png' },
+    { level: 3, name: '입문자', req: 5, color: '#f97316', image: 'https://thumbnail.laftel.net/profiles/default/b700435b-3ad2-4a31-9b72-3e9ae631dc47.png' },
+    { level: 4, name: '덕후', req: 10, color: '#f43f5e', image: 'https://thumbnail.laftel.net/profiles/default/c38a5328-857c-4c12-a404-53d288460e2a.jpg' },
+    { level: 5, name: '중독자', req: 30, color: '#ec4899', image: 'https://thumbnail.laftel.net/profiles/default/40028ff2-895a-4606-b759-2674b1cdc18e.jpg' },
+    { level: 6, name: '오타쿠', req: 50, color: '#facc15', image: 'https://thumbnail.laftel.net/profiles/default/37710afc-0caa-4ea3-bd6d-1c900674141e.jpg' },
+    { level: 7, name: '신', req: 100, color: '#6c63ff', image: 'https://thumbnail.laftel.net/profiles/default/8c6f615f-b949-4ed8-b027-bcf2bee4ea4a.jpg' },
+]
+
+const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
+const IMG = 'https://image.tmdb.org/t/p'
 
 const MenuList = [
     { id: 1, title: "태그검색", path: "/tag-search" },
@@ -16,7 +32,8 @@ const MenuList = [
     { id: 3, title: "라이브", path: "/live", live: true },
     { id: 4, title: "OST", path: "/ost" },
     { id: 5, title: "이벤트", path: "/event" },
-    { id: 6, title: "스토어", path: "/store", badge: "N" },
+    { id: 6, title: "커뮤니티", path: "/community", },
+    { id: 7, title: "스토어", path: "/store", badge: "N" },
 ]
 
 const membershipConfig: Record<string, { label: string; color: string | null }> = {
@@ -32,19 +49,9 @@ const typeIcon: Record<string, string> = {
     point: '💰', coupon: '🎟️', membership: '⭐', event: '🎉', live: '📺',
 }
 
-type DateLike = { toDate?: () => Date } | string | number | Date | null | undefined
-type EventItem = {
-    id: string | number
-    status?: string
-    img: string
-    name: string
-}
-
-const formatTime = (ts: DateLike) => {
+const formatTime = (ts: any) => {
     if (!ts) return ''
-    const date = typeof ts === 'object' && 'toDate' in ts && typeof ts.toDate === 'function'
-        ? ts.toDate()
-        : new Date(ts as string | number | Date)
+    const date = ts.toDate ? ts.toDate() : new Date(ts)
     const diff = Math.floor((Date.now() - date.getTime()) / 1000)
     if (diff < 60) return '방금'
     if (diff < 3600) return `${Math.floor(diff / 60)}분 전`
@@ -53,13 +60,13 @@ const formatTime = (ts: DateLike) => {
 }
 
 function EventNotifications() {
-    const [events, setEvents] = useState<EventItem[]>([])
+    const [events, setEvents] = useState<any[]>([])
     const router = useRouter()
 
     useEffect(() => {
         fetch('https://api.laftel.net/api/events/v2/list/?offset=0&limit=5')
             .then(r => r.json())
-            .then((d: { results?: EventItem[] }) => setEvents(d.results?.filter((e) => e.status === 'ongoing').slice(0, 3) || []))
+            .then(d => setEvents(d.results?.filter((e: any) => e.status === 'ongoing').slice(0, 3) || []))
             .catch(() => { })
     }, [])
 
@@ -68,7 +75,7 @@ function EventNotifications() {
     return (
         <div className="border-t border-[var(--border)]">
             <p className="text-[10px] text-[var(--text-faint)] px-4 py-2 font-medium">진행중인 이벤트</p>
-            {events.map((e) => (
+            {events.map((e: any) => (
                 <div key={e.id} onClick={() => router.push(`/event/${e.id}`)}
                     className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-hover)] cursor-pointer transition-colors border-b border-[var(--border-faint)] last:border-0">
                     <img src={e.img} alt={e.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
@@ -86,15 +93,19 @@ export default function Header() {
     const user = useAuthStore(s => s.user)
     const avatarConfig = useAuthStore(s => s.avatarConfig)
     const { onLogout } = useAuthStore()
+    const { items: progressItems, fetchProgress } = useWatchProgressStore()
+    const profileId = user?.currentProfileId || user?.profileId || 'main'
+    const watched = progressItems.length
+    const currentGrade = [...GRADES].reverse().find(g => watched >= g.req) || GRADES[0]
+    const nextGrade = GRADES[currentGrade.level + 1] ?? null
     const { points, fetchPoints } = usePointStore()
+    const { counts: activityCounts, fetchCounts, resetCounts } = useActivityStore()
     const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead, clearNotifications } = useNotificationStore()
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [notiOpen, setNotiOpen] = useState(false)
     const [searchOpen, setSearchOpen] = useState(false)
     const [gradeOpen, setGradeOpen] = useState(false)
     const [scrolled, setScrolled] = useState(false)
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-    const [mobileNotiOpen, setMobileNotiOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const notiRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
@@ -102,32 +113,19 @@ export default function Header() {
     const { navigate } = usePageTransition()
 
     const membership = user?.membership || 'none'
-    const memberInfo = membershipConfig[membership] || membershipConfig['none']
 
-    // 스크롤 전(transparent)이면 항상 흰색, 스크롤 후면 테마 색
     const textColor = scrolled ? 'var(--text-primary)' : '#ffffff'
     const textMuted = scrolled ? 'var(--text-muted)' : 'rgba(255,255,255,0.7)'
     const hoverBg = scrolled ? 'var(--border)' : 'rgba(255,255,255,0.15)'
-
-    useEffect(() => {
-        document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
-        return () => { document.body.style.overflow = '' }
-    }, [mobileMenuOpen])
-
-    useEffect(() => {
-        const frame = requestAnimationFrame(() => {
-            setMobileMenuOpen(false)
-            setMobileNotiOpen(false)
-        })
-        return () => cancelAnimationFrame(frame)
-    }, [pathname])
+    const memberInfo = membershipConfig[membership] || membershipConfig['none']
 
     useEffect(() => {
         if (user?.uid) {
             fetchPoints(user.uid)
             subscribeNotifications(user.uid)
+            fetchProgress(user.uid, profileId)
         }
-    }, [user, fetchPoints, subscribeNotifications])
+    }, [user?.uid, profileId])
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -167,10 +165,9 @@ export default function Header() {
 
     const handleLogout = async () => {
         clearNotifications()
+        resetCounts()
         await onLogout()
         setDropdownOpen(false)
-        setMobileMenuOpen(false)
-        setMobileNotiOpen(false)
         router.push('/')
         toast("로그아웃되었습니다")
     }
@@ -191,308 +188,37 @@ export default function Header() {
             {searchOpen && <HeaderSearch onClose={() => setSearchOpen(false)} />}
             {gradeOpen && <GradeModal onClose={() => setGradeOpen(false)} />}
 
-            <div
-                className={`min-[1125px]:hidden fixed inset-0 z-[10000] bg-black/55 backdrop-blur-sm transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-                onClick={() => { setMobileMenuOpen(false); setMobileNotiOpen(false) }}
-            />
-
-            {mobileMenuOpen && mobileNotiOpen && (
-                <div className="min-[1125px]:hidden fixed inset-0 z-[10003] flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
-                    <div className="relative flex h-[58px] shrink-0 items-center justify-center border-b border-[var(--border)]">
-                        <button
-                            type="button"
-                            aria-label="뒤로가기"
-                            onClick={() => setMobileNotiOpen(false)}
-                            className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-[var(--text-primary)]"
-                        >
-                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="m15 18-6-6 6-6" />
-                            </svg>
-                        </button>
-                        <h2 className="text-[19px] font-black text-[var(--text-primary)]">알림</h2>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto bg-[var(--bg-primary)]">
-                        {notifications.length === 0 ? (
-                            <div className="flex h-full items-center justify-center px-6 text-center">
-                                <p className="text-[15px] font-semibold text-[var(--text-muted)]">알림이 없어요</p>
-                            </div>
-                        ) : (
-                            <ul>
-                                {notifications.map((n) => (
-                                    <li key={n.id} className="border-b border-[var(--border)]">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (user?.uid) markOneRead(user.uid, n.id)
-                                                if (n.link) router.push(n.link)
-                                                setMobileNotiOpen(false)
-                                                setMobileMenuOpen(false)
-                                            }}
-                                            className="flex w-full items-start gap-4 px-5 py-5 text-left hover:bg-[var(--bg-hover)] transition-colors"
-                                        >
-                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center text-[24px] leading-none">
-                                                {typeIcon[n.type] || '🔔'}
-                                            </span>
-
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block text-[15px] font-bold leading-snug text-[var(--text-muted)]">
-                                                    {n.title || '알림이 도착했어요'}
-                                                </span>
-                                                {n.body && (
-                                                    <span className="mt-1.5 block text-[15px] leading-relaxed text-[var(--text-subtle)]">{n.body}</span>
-                                                )}
-                                                <span className="mt-2.5 block text-[13px] font-medium text-[var(--text-faint)]">{formatTime(n.createdAt) || '방금 전'}</span>
-                                            </span>
-
-                                            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center text-[var(--text-subtle)]">
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                                    <circle cx="12" cy="5" r="1.5" />
-                                                    <circle cx="12" cy="12" r="1.5" />
-                                                    <circle cx="12" cy="19" r="1.5" />
-                                                </svg>
-                                            </span>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            <aside
-                className={`min-[1125px]:hidden fixed right-0 top-0 z-[10001] flex h-full w-[min(92vw,390px)] flex-col overflow-y-auto bg-[var(--bg-primary)] shadow-[-20px_0_60px_rgba(0,0,0,0.28)] transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
-            >
-                <div className="flex items-center justify-end gap-3 px-5 pb-5 pt-5">
-                    <button
-                        type="button"
-                        aria-label="알림"
-                        onClick={() => {
-                            const nextOpen = !mobileNotiOpen
-                            setMobileNotiOpen(nextOpen)
-                            if (nextOpen && user?.uid && unreadCount > 0) markAllRead(user.uid)
-                        }}
-                        className="relative flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                        </svg>
-                        {unreadCount > 0 && (
-                            <span className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
-                        )}
-                    </button>
-                    <button
-                        type="button"
-                        aria-label="메뉴 닫기"
-                        onClick={() => { setMobileMenuOpen(false); setMobileNotiOpen(false) }}
-                        className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
-                    >
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                            <path d="M18 6 6 18" />
-                            <path d="m6 6 12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                {user ? (
-                    <div className="px-5 pb-6">
-                        <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-4">
-                            <div
-                                className="flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-[var(--border)]"
-                                style={{ background: memberInfo.color || '#6c63ff' }}
-                            >
-                                {avatarConfig?.svgDataUrl ? (
-                                    <img src={avatarConfig.svgDataUrl} alt="프로필" className="h-full w-full object-cover" />
-                                ) : user.photoURL ? (
-                                    <img src={user.photoURL} alt="프로필" className="h-full w-full object-cover" />
-                                ) : (
-                                    <span className="text-2xl font-black text-white">{user.name?.[0]?.toUpperCase() || '?'}</span>
-                                )}
-                            </div>
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-1">
-                                    <p className="truncate text-[24px] font-black text-[var(--text-primary)]">{user.name || user.email?.split('@')[0]}</p>
-                                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="shrink-0 text-[var(--text-primary)]">
-                                        <path d="m9 18 6-6-6-6" />
-                                    </svg>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.preventDefault(); setGradeOpen(true); setMobileMenuOpen(false) }}
-                                    className="mt-2 flex items-center gap-2 text-[16px] font-semibold text-[var(--text-muted)]"
-                                >
-                                    <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] text-sm">😊</span>
-                                    <span>Lv.0 <strong className="text-[var(--text-primary)]">베이비</strong></span>
-                                </button>
-                            </div>
-                        </Link>
-
-                        <div className="mt-8 grid grid-cols-3 text-center">
-                            {[{ label: '별점', val: 0 }, { label: '리뷰', val: 0 }, { label: '댓글', val: 0 }].map((item) => (
-                                <div key={item.label}>
-                                    <p className="text-[22px] font-black text-[var(--text-primary)]">{item.val}</p>
-                                    <p className="mt-2 text-[15px] font-medium text-[var(--text-subtle)]">{item.label}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        <Link
-                            href="/library"
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="mt-6 flex h-[54px] w-full items-center justify-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] text-[16px] font-black text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
-                        >
-                            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 7h18v13H3z" />
-                                <path d="m7 7 2-4h6l2 4" />
-                            </svg>
-                            보관함
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="px-5 pb-6">
-                        <p className="text-[24px] font-black text-[var(--text-primary)]">라프텔</p>
-                        <p className="mt-2 text-sm text-[var(--text-muted)]">로그인하면 보관함과 알림을 확인할 수 있어요.</p>
-                        <Link
-                            href="/login"
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="mt-6 flex h-12 items-center justify-center rounded-xl bg-[#6c5ce7] text-sm font-bold text-white"
-                        >
-                            로그인
-                        </Link>
-                    </div>
-                )}
-
-                <nav className="flex-1 overflow-y-auto">
-                    <ul className="py-2">
-                        {MenuList.map((menu) => {
-                            const isActive = pathname === menu.path || (menu.path !== '/' && pathname.startsWith(menu.path))
-                            return (
-                                <li key={menu.id}>
-                                    <Link
-                                        href={menu.path}
-                                        onClick={() => setMobileMenuOpen(false)}
-                                        className={`flex items-center justify-between px-5 py-3.5 text-[15px] transition-colors ${isActive ? 'bg-[var(--bg-hover)] font-bold text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'}`}
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            {menu.title}
-                                            {menu.live && <span className="inline-flex h-4 items-center justify-center rounded bg-red-500 px-1.5 text-[10px] font-bold text-white">LIVE</span>}
-                                            {menu.badge && <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#6c5ce7] text-[10px] font-bold text-white">{menu.badge}</span>}
-                                        </span>
-                                        {isActive && <span className="h-1.5 w-1.5 rounded-full bg-[#6c5ce7]" />}
-                                    </Link>
-                                </li>
-                            )
-                        })}
-                    </ul>
-
-                    {user && (
-                        <>
-                            <div className="mx-5 my-1 h-px bg-[var(--border)]" />
-                            <ul className="py-2">
-                                {DropdownMenu.slice(0, 5).map((item) => (
-                                    <li key={item.title}>
-                                        <Link
-                                            href={item.path}
-                                            onClick={() => setMobileMenuOpen(false)}
-                                            target={item.path.startsWith('http') ? '_blank' : undefined}
-                                            rel={item.path.startsWith('http') ? 'noopener noreferrer' : undefined}
-                                            className="flex items-center justify-between px-5 py-3 text-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-                                        >
-                                            <span className="flex items-center gap-3">
-                                                <span style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : 'var(--text-subtle)' }}>
-                                                    {item.icon}
-                                                </span>
-                                                <span style={{ color: item.title === memberInfo.label && memberInfo.color ? memberInfo.color : undefined }}>
-                                                    {item.title}
-                                                </span>
-                                            </span>
-                                            {item.sub && <span className="text-xs" style={{ color: item.subColor || undefined }}>{item.sub}</span>}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </>
-                    )}
-                </nav>
-
-                <div className="border-t border-[var(--border)] p-4">
-                    {user ? (
-                        <button
-                            onClick={handleLogout}
-                            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-red-400 transition-colors hover:bg-[var(--bg-hover)] hover:text-red-300"
-                        >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16,17 21,12 16,7" /><line x1="21" y1="12" x2="9" y2="12" />
-                            </svg>
-                            로그아웃
-                        </button>
-                    ) : (
-                        <Link
-                            href="/login"
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="flex w-full items-center justify-center rounded-xl bg-[#6c5ce7] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#5a4bd6]"
-                        >
-                            로그인
-                        </Link>
-                    )}
-                </div>
-            </aside>
-
             <header
-                className="fixed top-0 left-0 w-full z-[9999] transition-colors duration-300 px-[10px] py-1.5 md:py-[10px]"
+                className="fixed top-0 left-0 w-full z-[9999] transition-colors duration-300 py-[10px] px-[10px]"
                 style={{ background: scrolled ? 'var(--bg-primary)' : 'transparent' }}
             >
-                {!scrolled && (
-                    <div style={{
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0,
-                        height: '140px',
-                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, transparent 60%)',
-                        pointerEvents: 'none',
-                        zIndex: -1,
-                    }} />
-                )}
-                <div className="flex min-h-[46px] w-full items-center justify-between gap-2 rounded-[18px] px-3 py-1.5 transition-colors duration-300 sm:min-h-[50px] sm:rounded-[24px] sm:px-4 sm:py-2 md:h-[55px] md:min-h-[55px] md:rounded-full md:px-[28px] md:py-0">
+                <div
+                    className="w-full h-[55px] flex items-center justify-between px-[28px] rounded-full transition-colors duration-300"
+                    style={{ background: scrolled ? 'var(--bg-card)' : 'transparent' }}
+                >
                     {/* 좌측: 로고 + 네비게이션 */}
-                    <div className="flex min-w-0 flex-1 items-center gap-x-4 gap-y-2 min-[1125px]:gap-[42px]">
-                        <div className="flex min-w-0 items-center gap-2 sm:gap-[14px]">
-                            <Link href="/" className="flex items-center gap-2 sm:gap-[12px]">
-                                <img src="/images/stone.svg" alt="" className="h-7 sm:h-8 md:h-10" />
-                                <img
-                                    src="/images/logo-white.svg"
-                                    alt="logo"
-                                    className={`${scrolled ? 'hidden dark:block' : 'block'} h-[16px] w-auto sm:h-[18px] md:h-[22px]`}
-                                />
-                                <img
-                                    src="/images/logo-dark.png"
-                                    alt="logo"
-                                    className={`${scrolled ? 'block dark:hidden' : 'hidden'} h-[16px] w-auto sm:h-[18px] md:h-[22px]`}
-                                />
+                    <div className="flex items-center gap-[42px]">
+                        <div className="flex items-center gap-[14px]">
+                            <Link href="/" className="flex items-center gap-[12px]">
+                                <img src="/images/stone.svg" alt="" className="h-10" />
+                                <img src="/images/logo-white.svg" alt="logo" className="h-[22px] w-auto dark:block hidden" />
+                                <img src="/images/logo-dark.png" alt="logo" className="h-[22px] w-auto dark:hidden block" />
                             </Link>
-                            <div className="flex shrink-0 items-center gap-[2px] rounded-full bg-[var(--border)] p-[3px]"
-                                style={{ background: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.2)' }}
-                            >
+                            <div className="flex items-center bg-[var(--border)] rounded-full p-[3px] gap-[2px]">
                                 <button
                                     onClick={() => navigate('/', 'var(--bg-primary)')}
-                                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all duration-200 sm:px-2.5 sm:py-1 sm:text-[11px] md:px-3 md:text-[12px] ${!pathname.startsWith('/store')
+                                    className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${!pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : scrolled
-                                            ? 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                                            : 'text-white/70 hover:text-white'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                         }`}
                                 >
                                     OTT
                                 </button>
                                 <button
                                     onClick={() => navigate('/store', '#ffffff')}
-                                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all duration-200 sm:px-2.5 sm:py-1 sm:text-[11px] md:px-3 md:text-[12px] ${pathname.startsWith('/store')
+                                    className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all duration-200 ${pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : scrolled
-                                            ? 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                                            : 'text-white/70 hover:text-white'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                         }`}
                                 >
                                     Store
@@ -500,7 +226,7 @@ export default function Header() {
                             </div>
                         </div>
 
-                        <nav className="hidden min-[1125px]:block">
+                        <nav>
                             <ul className="flex items-center gap-[32px]">
                                 {MenuList.map((menu) => {
                                     const isActive = pathname === menu.path || (menu.path !== '/' && pathname.startsWith(menu.path))
@@ -531,15 +257,12 @@ export default function Header() {
                     </div>
 
                     {/* 우측: 아이콘 + 유저 */}
-                    <div className="flex shrink-0 items-center gap-1 sm:gap-[8px]">
+                    <div className="flex items-center gap-[8px]">
                         <button
                             type="button"
                             aria-label="검색"
                             onClick={() => setSearchOpen(true)}
-                            className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition-colors duration-200"
-                            style={{ color: textColor }}
-                            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = hoverBg}
-                            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 cursor-pointer text-[var(--text-primary)]"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -549,10 +272,7 @@ export default function Header() {
                         <Link
                             href="/membership"
                             aria-label="멤버십"
-                            className="hidden h-[34px] w-[34px] items-center justify-center rounded-full transition-colors duration-200 md:flex sm:h-[36px] sm:w-[36px]"
-                            style={{ color: textColor }}
-                            onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = hoverBg}
-                            onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'}
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
@@ -561,17 +281,14 @@ export default function Header() {
                         </Link>
 
                         {/* 알림 */}
-                        <div className="relative hidden md:block" ref={notiRef}>
+                        <div className="relative" ref={notiRef}>
                             <button
                                 onClick={() => {
                                     setNotiOpen(!notiOpen)
                                     if (!notiOpen && user?.uid && unreadCount > 0) markAllRead(user.uid)
                                 }}
                                 aria-label="알림"
-                                className="relative flex h-[34px] w-[34px] items-center justify-center rounded-full transition-colors duration-200 sm:h-[36px] sm:w-[36px]"
-                                style={{ color: textColor }}
-                                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = hoverBg}
-                                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                                className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -584,7 +301,7 @@ export default function Header() {
                             </button>
 
                             {notiOpen && (
-                                <div className="absolute right-0 top-[calc(100%+8px)] w-[min(320px,calc(100vw-24px))] bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden z-50">
+                                <div className="absolute right-0 top-[calc(100%+8px)] w-[320px] bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden z-50">
                                     <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
                                         <span className="text-sm font-bold text-[var(--text-primary)]">알림</span>
                                         {unreadCount > 0 && (
@@ -620,30 +337,21 @@ export default function Header() {
                             )}
                         </div>
 
-                        <div className="mx-1 hidden h-5 w-px md:block" style={{ background: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.3)' }} />
+                        <div className="w-px h-5 bg-[var(--border)] mx-1" />
 
                         {!user ? (
-                            <Link
-                                href="/login"
-                                className="hidden px-2 text-sm transition-colors min-[1125px]:block"
-                                style={{ color: textMuted }}
-                                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.color = textColor}
-                                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.color = textMuted}
-                            >
+                            <Link href="/login" className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors px-2">
                                 로그인
                             </Link>
                         ) : (
-                            <div className="relative hidden min-[1125px]:block" ref={dropdownRef}>
+                            <div className="relative" ref={dropdownRef}>
                                 <button
                                     onClick={() => setDropdownOpen(!dropdownOpen)}
                                     className="flex items-center gap-[8px] cursor-pointer group h-[55px]"
                                 >
                                     <div
-                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 transition-all duration-200 shrink-0"
-                                        style={{
-                                            background: memberInfo.color || '#5a52e0',
-                                            '--tw-ring-color': scrolled ? 'var(--border)' : 'rgba(255,255,255,0.3)',
-                                        } as React.CSSProperties}
+                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-[var(--border)] group-hover:ring-[var(--text-muted)] transition-all duration-200 shrink-0"
+                                        style={{ background: memberInfo.color || '#5a52e0' }}
                                     >
                                         {avatarConfig?.svgDataUrl ? (
                                             <img src={avatarConfig.svgDataUrl} alt="프로필" className="w-full h-full object-cover" />
@@ -655,14 +363,13 @@ export default function Header() {
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-sm transition-colors" style={{ color: textMuted }}>
+                                    <span className="text-sm text-[var(--text-high)] group-hover:text-[var(--text-primary)] transition-colors">
                                         {user.name}
                                     </span>
                                     <svg
                                         width="13" height="13" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" strokeWidth="2"
-                                        className={`transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
-                                        style={{ color: textMuted }}
+                                        className={`text-[var(--text-muted)] transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
                                     >
                                         <path d="m6 9 6 6 6-6" />
                                     </svg>
@@ -693,8 +400,18 @@ export default function Header() {
                                                 </Link>
                                                 <button
                                                     onClick={() => { setGradeOpen(true); setDropdownOpen(false) }}
-                                                    className="text-[var(--text-subtle)] text-xs mt-0.5 hover:text-[var(--text-muted)] transition-colors bg-transparent border-none cursor-pointer p-0 block mx-auto">
-                                                    😊 Lv.0 베이비
+                                                    className="flex items-center gap-1.5 justify-center mt-1.5 bg-transparent border-none cursor-pointer p-0 mx-auto group">
+                                                    <div className="w-7 h-7 rounded-full overflow-hidden ring-1 shrink-0" style={{ ringColor: currentGrade.color }}>
+                                                        <img src={currentGrade.image} alt={currentGrade.name} className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <span className="text-[14px] font-bold transition-colors group-hover:opacity-80" style={{ color: currentGrade.color }}>
+                                                        {currentGrade.name}
+                                                    </span>
+                                                    {nextGrade && (
+                                                        <span className="text-[12px] text-[var(--text-faint)]">
+                                                            ({watched}/{nextGrade.req}편)
+                                                        </span>
+                                                    )}
                                                 </button>
                                                 {membership !== 'none' && (
                                                     <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
@@ -704,10 +421,11 @@ export default function Header() {
                                                 )}
                                             </div>
                                             <div className="flex gap-6 mt-2">
-                                                {[{ label: '별점', val: 0 }, { label: '리뷰', val: 0 }, { label: '댓글', val: 0 }].map(s => (
-                                                    <div key={s.label} className="text-center">
-                                                        <p className="text-[var(--text-primary)] font-black text-base">{s.val}</p>
-                                                        <p className="text-[var(--text-subtle)] text-[11px]">{s.label}</p>
+                                                {[{ label: '별점', val: activityCounts?.rating ?? 0, tab: 'reviews' }, { label: '리뷰', val: activityCounts?.review ?? 0, tab: 'reviews' }, { label: '댓글', val: activityCounts?.comment ?? 0, tab: 'comments' }].map(s => (
+                                                    <div key={s.label} className="text-center cursor-pointer group"
+                                                        onClick={() => { setDropdownOpen(false); router.push(`/library?tab=${(s as any).tab || 'reviews'}`) }}>
+                                                        <p className="text-[var(--text-primary)] font-black text-base group-hover:text-[#6c63ff] transition-colors">{s.val}</p>
+                                                        <p className="text-[var(--text-subtle)] text-[11px] group-hover:text-[#6c63ff] transition-colors">{s.label}</p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -749,33 +467,6 @@ export default function Header() {
                                 )}
                             </div>
                         )}
-
-                        <button
-                            type="button"
-                            aria-label={mobileMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
-                            aria-expanded={mobileMenuOpen}
-                            onClick={() => {
-                                setMobileMenuOpen((open) => !open)
-                                setMobileNotiOpen(false)
-                                setDropdownOpen(false)
-                                setNotiOpen(false)
-                            }}
-                            className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition-colors duration-200 hover:bg-white/15 min-[1125px]:hidden"
-                            style={{ color: textColor }}
-                        >
-                            {mobileMenuOpen ? (
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                                    <path d="M18 6 6 18" />
-                                    <path d="m6 6 12 12" />
-                                </svg>
-                            ) : (
-                                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                                    <path d="M4 7h16" />
-                                    <path d="M4 12h16" />
-                                    <path d="M4 17h16" />
-                                </svg>
-                            )}
-                        </button>
                     </div>
                 </div>
             </header>
