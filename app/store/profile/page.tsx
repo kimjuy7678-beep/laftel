@@ -6,7 +6,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { db } from "@/firebase/firebase";
-import { collection, getDocs, orderBy, query, doc, updateDoc, serverTimestamp, getDoc, setDoc, increment, addDoc } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { saveStoreNotification } from "@/utils/storeNotification";
 import Link from "next/link";
 
@@ -26,7 +26,10 @@ type Order = {
     items: OrderItem[];
     total: number;
     usedPoints: number;
-    couponId?: string;
+    couponId?: string;       // legacy
+    usedCouponId?: string;  // ✅ order/page.tsx 저장 필드명
+    couponLabel?: string;       // legacy
+    usedCouponLabel?: string;   // ✅ order/page.tsx 저장 필드명
     couponDiscount?: number;
     createdAt?: Date | { toDate?: () => Date } | null;
     cancelReason?: string;
@@ -80,7 +83,28 @@ function getDateRange(months: number, days: number) {
 // ─── 주문 상세 팝업 ────────────────────────────────────────────────────────────
 function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => void }) {
     const subtotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
-    const discountTotal = (order.couponDiscount ?? 0) + (order.usedPoints ?? 0);
+
+    // ✅ usedCouponId / usedCouponLabel (order/page.tsx 저장 필드명) 우선, couponId/couponLabel 폴백
+    const resolvedCouponId = order.usedCouponId ?? order.couponId;
+    const [couponLabel, setCouponLabel] = useState<string | null>(
+        order.usedCouponLabel ?? order.couponLabel ?? null
+    );
+
+    const { user } = useAuthStore();
+
+    useEffect(() => {
+        if (!resolvedCouponId || couponLabel !== null) return;
+        if (!user?.uid) return;
+        (async () => {
+            try {
+                const snap = await getDoc(doc(db, "users", user.uid!, "coupons", resolvedCouponId));
+                if (snap.exists()) setCouponLabel(snap.data().label ?? "쿠폰 할인");
+                else setCouponLabel("쿠폰 할인");
+            } catch {
+                setCouponLabel("쿠폰 할인");
+            }
+        })();
+    }, [resolvedCouponId, user?.uid]);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -139,9 +163,15 @@ function OrderDetailPopup({ order, onClose }: { order: Order; onClose: () => voi
                                 <p className="text-[12px] text-[#6b647a]">상품 금액</p>
                                 <p className="text-[12px] font-semibold text-[#16121f]">{subtotal.toLocaleString()}원</p>
                             </div>
+                            {/* ✅ 쿠폰 할인: label 포함해서 표시 */}
                             {(order.couponDiscount ?? 0) > 0 && (
                                 <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#f0edf8]">
-                                    <p className="text-[12px] text-[#6b647a]">쿠폰 할인</p>
+                                    <div className="flex flex-col gap-0.5">
+                                        <p className="text-[12px] text-[#6b647a]">쿠폰 할인</p>
+                                        {couponLabel && (
+                                            <p className="text-[10px] text-[#a89fce]">{couponLabel}</p>
+                                        )}
+                                    </div>
                                     <p className="text-[12px] font-semibold text-[#ff4d6d]">-{(order.couponDiscount ?? 0).toLocaleString()}원</p>
                                 </div>
                             )}
@@ -385,7 +415,7 @@ function ProfileContent() {
     const [loading, setLoading] = useState(false);
     const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
     const [refundTarget, setRefundTarget] = useState<Order | null>(null);
-    const [detailTarget, setDetailTarget] = useState<Order | null>(null); // ✅ 상세 팝업
+    const [detailTarget, setDetailTarget] = useState<Order | null>(null);
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 6;
     const [initialDateRange] = useState(() => getDateRange(1, 0));
@@ -405,54 +435,50 @@ function ProfileContent() {
         (async () => {
             try {
                 const snap = await getDocs(query(collection(db, "users", user.uid!, "orders"), orderBy("createdAt", "desc")));
-                setOrders(snap.docs.map(d => ({
-                    id: d.id, ...d.data(),
-                    date: toOrderDateLabel(getOrderCreatedDate(d.data().createdAt)),
-                })) as Order[]);
+                setOrders(snap.docs.map(d => {
+                    const data = d.data();
+                    return {
+                        id: d.id,
+                        ...data,
+                        // ✅ order/page.tsx 저장 필드명 → Order 타입 필드명 매핑
+                        couponId: data.usedCouponId ?? data.couponId ?? null,
+                        couponLabel: data.usedCouponLabel ?? data.couponLabel ?? null,
+                        couponDiscount: data.couponDiscount ?? data.usedCouponDiscount ?? null,
+                        date: toOrderDateLabel(getOrderCreatedDate(data.createdAt)),
+                    };
+                }) as Order[]);
             } catch (err) { console.error("[Orders]", err); }
             finally { setLoading(false); }
         })();
     }, [user?.uid]);
 
+    // ✅ 주문 취소 신청 — 상태만 처리중으로 (쿠폰/포인트 복원은 관리자 승인 시 처리)
     const handleCancel = async (orderId: string, selectedIds: string[], reason: string) => {
         if (!user?.uid) return;
         const uid = user.uid;
         try {
-            const order = orders.find(o => o.id === orderId);
             await updateDoc(doc(db, "users", uid, "orders", orderId), {
                 status: "처리중", cancelReason: reason,
                 cancelledItems: selectedIds, cancelledAt: serverTimestamp(),
             });
-            if (order?.usedPoints && order.usedPoints > 0) {
-                await setDoc(doc(db, "users", uid), { points: increment(order.usedPoints) }, { merge: true });
-                await addDoc(collection(db, "users", uid, "pointHistory"), {
-                    amount: order.usedPoints, type: "earn",
-                    description: "주문 취소 포인트 환불", label: "주문 취소 포인트 환불", createdAt: new Date(),
-                });
-            }
-            if (order?.couponId) {
-                const couponRef = doc(db, "users", uid, "coupons", order.couponId);
-                const couponSnap = await getDoc(couponRef);
-                if (couponSnap.exists() && couponSnap.data().status === "used") {
-                    await updateDoc(couponRef, { status: "active", usedAt: null, usedOrderId: null });
-                }
-            }
             await saveStoreNotification(uid, {
                 type: "cancel", title: "주문 취소 신청이 접수됐어요",
-                body: `사유: ${reason} · 관리자 확인 후 처리돼요.`,
+                body: `사유: ${reason} · 관리자 확인 후 쿠폰·포인트가 복원돼요.`,
                 link: "/store/profile?tab=교환환불/취소", status: "처리중",
             });
             setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "처리중" } : o));
         } catch (err) { console.error("[Cancel]", err); alert("취소 처리 중 오류가 발생했습니다."); }
     };
 
+    // ✅ 교환/환불 신청 — 상태만 변경 (쿠폰/포인트 복원은 관리자 환불완료 처리 시)
     const handleRefund = async (orderId: string, reason: string, refundType: "제품하자" | "단순변심") => {
         if (!user?.uid) return;
+        const uid = user.uid;
         try {
-            await updateDoc(doc(db, "users", user.uid, "orders", orderId), {
+            await updateDoc(doc(db, "users", uid, "orders", orderId), {
                 status: "교환환불신청", refundReason: reason, refundType, refundRequestedAt: serverTimestamp(),
             });
-            await saveStoreNotification(user.uid, {
+            await saveStoreNotification(uid, {
                 type: "order", title: "교환/환불 신청이 완료됐어요",
                 body: `[${refundType}] ${reason} · 영업일 기준 3~5일 내 처리돼요.`,
                 link: "/store/profile?tab=교환환불/취소", status: "교환환불신청",
@@ -570,7 +596,6 @@ function ProfileContent() {
                                             {order.usedPoints > 0 && <p className="text-[11px] text-[#9b94b2]">🪙 {order.usedPoints.toLocaleString()}원</p>}
                                         </div>
                                         <div className="flex flex-row flex-wrap sm:flex-col gap-1.5 sm:items-end">
-                                            {/* ✅ 주문 상세 버튼 */}
                                             <button onClick={() => setDetailTarget(order)}
                                                 className="rounded-[8px] border border-[#e2ddf5] px-3 py-1 text-[11px] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition">
                                                 상세 보기
