@@ -3,6 +3,7 @@ import HeaderSearch from './HeaderSearch'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
+import { useActivityStore } from '@/store/useActiveStore'
 import Link from 'next/link'
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
@@ -31,9 +32,7 @@ const MenuList = [
     { id: 3, title: "라이브", path: "/live", live: true },
     { id: 4, title: "OST", path: "/ost" },
     { id: 5, title: "이벤트", path: "/event" },
-    { id: 6, title: "커뮤니티", path: "/community" },
-    { id: 7, title: "스토어", path: "/store", badge: "N" },
-
+    { id: 6, title: "스토어", path: "/store", badge: "N" },
 ]
 
 const membershipConfig: Record<string, { label: string; color: string | null }> = {
@@ -46,7 +45,7 @@ const membershipConfig: Record<string, { label: string; color: string | null }> 
 }
 
 const typeIcon: Record<string, string> = {
-    point: '💰', coupon: '🎟️', membership: '⭐', event: '🎉', live: '📺', message: '✉️',
+    point: '💰', coupon: '🎟️', membership: '⭐', event: '🎉', live: '📺',
 }
 
 const formatTime = (ts: any) => {
@@ -99,7 +98,8 @@ export default function Header() {
     const currentGrade = [...GRADES].reverse().find(g => watched >= g.req) || GRADES[0]
     const nextGrade = GRADES[currentGrade.level + 1] ?? null
     const { points, fetchPoints } = usePointStore()
-    const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead } = useNotificationStore()
+    const { counts: activityCounts, fetchCounts, resetCounts } = useActivityStore()
+    const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead, clearNotifications } = useNotificationStore()
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [notiOpen, setNotiOpen] = useState(false)
     const [searchOpen, setSearchOpen] = useState(false)
@@ -112,6 +112,10 @@ export default function Header() {
     const { navigate } = usePageTransition()
 
     const membership = user?.membership || 'none'
+
+    const textColor = scrolled ? 'var(--text-primary)' : '#ffffff'
+    const textMuted = scrolled ? 'var(--text-muted)' : 'rgba(255,255,255,0.7)'
+    const hoverBg = scrolled ? 'var(--border)' : 'rgba(255,255,255,0.15)'
     const memberInfo = membershipConfig[membership] || membershipConfig['none']
 
     useEffect(() => {
@@ -159,6 +163,8 @@ export default function Header() {
     }, [])
 
     const handleLogout = async () => {
+        clearNotifications()
+        resetCounts()
         await onLogout()
         setDropdownOpen(false)
         router.push('/')
@@ -227,11 +233,8 @@ export default function Header() {
                                         <li key={menu.id} className="relative">
                                             <Link
                                                 href={menu.path}
-                                                className={`flex items-center gap-1.5 text-[15px] transition-all duration-200
-                                                    ${isActive
-                                                        ? 'text-[var(--text-primary)] font-extrabold'
-                                                        : 'text-[var(--text-muted)] font-medium hover:text-[var(--text-primary)] hover:font-bold'
-                                                    }`}
+                                                style={{ color: isActive ? textColor : textMuted }}
+                                                className={`flex items-center gap-1.5 text-[15px] transition-all duration-200 ${isActive ? 'font-extrabold' : 'font-medium hover:font-bold'}`}
                                             >
                                                 {menu.title}
                                                 {menu.live && (
@@ -417,10 +420,11 @@ export default function Header() {
                                                 )}
                                             </div>
                                             <div className="flex gap-6 mt-2">
-                                                {[{ label: '별점', val: 0 }, { label: '리뷰', val: 0 }, { label: '댓글', val: 0 }].map(s => (
-                                                    <div key={s.label} className="text-center">
-                                                        <p className="text-[var(--text-primary)] font-black text-base">{s.val}</p>
-                                                        <p className="text-[var(--text-subtle)] text-[11px]">{s.label}</p>
+                                                {[{ label: '별점', val: activityCounts?.rating ?? 0, tab: 'reviews' }, { label: '리뷰', val: activityCounts?.review ?? 0, tab: 'reviews' }, { label: '댓글', val: activityCounts?.comment ?? 0, tab: 'comments' }].map(s => (
+                                                    <div key={s.label} className="text-center cursor-pointer group"
+                                                        onClick={() => { setDropdownOpen(false); router.push(`/library?tab=${(s as any).tab || 'reviews'}`) }}>
+                                                        <p className="text-[var(--text-primary)] font-black text-base group-hover:text-[#6c63ff] transition-colors">{s.val}</p>
+                                                        <p className="text-[var(--text-subtle)] text-[11px] group-hover:text-[#6c63ff] transition-colors">{s.label}</p>
                                                     </div>
                                                 ))}
                                             </div>

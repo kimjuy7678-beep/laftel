@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useWatchlistStore, WatchlistTab } from '@/store/useWatchlistStore'
 import { useWatchProgressStore } from '@/store/useWatchProgressStore'
-import { doc, setDoc } from 'firebase/firestore'
+import { usePreviewStore } from '@/store/usePreviewStore'
+import { syncActivityCounts } from '@/store/useActiveStore'
+import { doc, setDoc, collection, query, where, getDocs, orderBy, deleteDoc, collectionGroup } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 
 const membershipConfig: Record<string, { label: string; color: string }> = {
@@ -16,16 +18,34 @@ const membershipConfig: Record<string, { label: string; color: string }> = {
 
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w300'
 
-const TABS: { id: WatchlistTab | 'recent'; label: string }[] = [
+const TABS: { id: WatchlistTab; label: string }[] = [
     { id: 'recent', label: '최근 본' },
     { id: 'wishlist', label: '보고싶다' },
-    { id: 'purchased', label: '구매한' }
+    { id: 'purchased', label: '구매한' },
+    { id: 'reviews', label: '내 리뷰' },
+    { id: 'comments', label: '내 댓글' },
 ]
 
 const EMPTY_MSG: Record<string, { icon: string; text: string }> = {
-    recent: { icon: '/images/laftel-icon/cry.png', text: '최근 본 작품이 아직 없어요.' },
-    wishlist: { icon: '/images/laftel-icon/cry.png', text: '보고싶은 작품을 추가해보세요.' },
+    recent:   { icon: '/images/laftel-icon/cry.png', text: '최근 본 작품이 아직 없어요.' },
+    wishlist:  { icon: '/images/laftel-icon/cry.png', text: '보고싶은 작품을 추가해보세요.' },
     purchased: { icon: '/images/laftel-icon/cry.png', text: '구매한 작품이 없어요.' },
+    reviews:   { icon: '/images/laftel-icon/cry.png', text: '작성한 리뷰가 아직 없어요.' },
+    comments:  { icon: '/images/laftel-icon/cry.png', text: '작성한 댓글이 아직 없어요.' },
+}
+
+interface ReviewItem {
+    id: string; animeId: number; animeTitle?: string; animePoster?: string | null
+    score: number; text: string; spoiler: boolean; createdAt: string; uid: string
+}
+interface CommentItem {
+    id: string; eventId: number; eventName?: string; eventImg?: string | null
+    authorId: string; authorNickname: string; content: string; createdAt: any
+    likeCount: number; replyCount: number
+}
+interface AnimeCommentItem {
+    id: string; uid: string; animeId: number; animeTitle?: string; animePoster?: string | null
+    episodeNumber: number; author: string; avatar: string; text: string; createdAt: any; likes: number
 }
 
 export default function LibraryPage() {
@@ -34,17 +54,22 @@ export default function LibraryPage() {
     const [hydrated, setHydrated] = useState(false)
     const { items, loading: wlLoading, fetchWatchlist, removeItem } = useWatchlistStore()
     const { items: progressItems, loading: wpLoading, fetchProgress } = useWatchProgressStore()
-    const [activeTab, setActiveTab] = useState<WatchlistTab | 'recent'>('recent')
+    const [activeTab, setActiveTab] = useState<WatchlistTab>('recent')
     const [selectMode, setSelectMode] = useState(false)
     const [selected, setSelected] = useState<Set<number>>(new Set())
+    const { setPreviewId } = usePreviewStore()
     const [showMembershipMgmt, setShowMembershipMgmt] = useState(false)
     const [showCancelConfirm, setShowCancelConfirm] = useState(false)
     const [cancelling, setCancelling] = useState(false)
 
+    const [reviews, setReviews] = useState<ReviewItem[]>([])
+    const [comments, setComments] = useState<CommentItem[]>([])
+    const [animeComments, setAnimeComments] = useState<AnimeCommentItem[]>([])
+    const [activityLoading, setActivityLoading] = useState(false)
+    const [activityCount, setActivityCount] = useState({ rating: 0, review: 0, comment: 0 })
+
     const membership = user?.membership
     const memberInfo = membership && membership !== 'none' ? membershipConfig[membership] : null
-
-    // currentProfileId 우선, 없으면 profileId, 없으면 'main'
     const profileId = user?.currentProfileId || user?.profileId || 'main'
 
     useEffect(() => { setHydrated(true) }, [])
@@ -54,45 +79,108 @@ export default function LibraryPage() {
         if (!user) { router.push('/login'); return }
         fetchWatchlist(user.uid, profileId)
         fetchProgress(user.uid, profileId)
+        fetchActivity(user.uid)
     }, [user?.uid, profileId, hydrated])
 
     useEffect(() => {
         const tab = new URLSearchParams(window.location.search).get('tab')
-        if (tab === 'recent' || tab === 'wishlist' || tab === 'purchased') {
-            setActiveTab(tab as WatchlistTab)
-        }
+        if (tab && TABS.some(t => t.id === tab)) setActiveTab(tab as WatchlistTab)
     }, [])
 
+    const fetchActivity = async (uid: string) => {
+        setActivityLoading(true)
+        let reviewDocs: ReviewItem[] = []
+        try {
+            const snap = await getDocs(query(collection(db, 'reviews'), where('uid', '==', uid), orderBy('createdAt', 'desc')))
+            reviewDocs = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ReviewItem[]
+            const missing = reviewDocs.filter(r => (!r.animeTitle || !r.animePoster) && r.animeId)
+            if (missing.length > 0) {
+                const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
+                const results = await Promise.allSettled(
+                    missing.map(r => fetch(`https://api.themoviedb.org/3/tv/${r.animeId}?api_key=${TMDB_KEY}&language=ko-KR`)
+                        .then(res => res.json()).then(d => ({ animeId: r.animeId, title: d.name || '', poster: d.poster_path || null })))
+                )
+                const map: Record<number, { title: string; poster: string | null }> = {}
+                results.forEach(r => { if (r.status === 'fulfilled') map[r.value.animeId] = { title: r.value.title, poster: r.value.poster } })
+                reviewDocs = reviewDocs.map(r => (!r.animeTitle || !r.animePoster) && map[r.animeId]
+                    ? { ...r, animeTitle: r.animeTitle || map[r.animeId].title, animePoster: r.animePoster || map[r.animeId].poster } : r)
+            }
+            setReviews(reviewDocs)
+        } catch (e) { console.error('reviews fetch error:', e) }
+
+        let commentDocs: CommentItem[] = []
+        try {
+            const snap = await getDocs(query(collectionGroup(db, 'event_comments'), where('authorId', '==', uid)))
+            commentDocs = snap.docs.map(d => {
+                const eventId = parseInt(d.ref.parent.id.replace('event_comments_', '')) || 0
+                return { id: d.id, eventId, ...d.data() }
+            }).sort((a: any, b: any) => {
+                const at = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
+                const bt = b.createdAt?.toDate?.() ?? new Date(b.createdAt ?? 0)
+                return bt.getTime() - at.getTime()
+            }) as CommentItem[]
+            setComments(commentDocs)
+        } catch (e) { console.error('event_comments fetch error:', e) }
+
+        let animeCommentDocs: AnimeCommentItem[] = []
+        try {
+            const snap = await getDocs(query(collection(db, 'anime_comments'), where('uid', '==', uid)))
+            animeCommentDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                .sort((a: any, b: any) => {
+                    const at = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
+                    const bt = b.createdAt?.toDate?.() ?? new Date(b.createdAt ?? 0)
+                    return bt.getTime() - at.getTime()
+                }) as AnimeCommentItem[]
+            setAnimeComments(animeCommentDocs)
+        } catch (e) { console.error('anime_comments fetch error:', e) }
+
+        const { useActivityStore } = await import('@/store/useActiveStore')
+        const existing = useActivityStore.getState().counts
+        const counts = {
+            rating: reviewDocs.filter(r => r.score > 0).length,
+            review: reviewDocs.length,
+            comment: (commentDocs.length + animeCommentDocs.length) > 0
+                ? commentDocs.length + animeCommentDocs.length : existing.comment,
+        }
+        setActivityCount(counts)
+        syncActivityCounts(counts)
+        setActivityLoading(false)
+    }
+
+    const isActivityTab = activeTab === 'reviews' || activeTab === 'comments'
     const loading = wlLoading || wpLoading
 
-    // recent 탭은 watchProgress에서, 나머지는 watchlist에서
+    // recent 탭 → watchProgress, 나머지 → watchlist
     const tabItems = activeTab === 'recent'
-        ? progressItems.map(p => ({
-            id: p.tmdbId,
-            title: p.title,
-            poster: p.poster || p.backdrop,
-            addedAt: p.updatedAt,
-            tab: 'recent' as const,
-        }))
+        ? progressItems.map(p => ({ id: p.tmdbId, title: p.title, poster: p.poster || p.backdrop, addedAt: p.updatedAt, tab: 'recent' as const, episode: p.episode, episodeTitle: p.episodeTitle, progress: p.progress }))
         : items.filter(i => i.tab === activeTab)
 
     const handleDelete = async () => {
         if (!user?.uid || selected.size === 0) return
         for (const id of selected) {
-            if (activeTab !== 'recent') {
-                await removeItem(user.uid, id, activeTab as WatchlistTab, profileId)
-            }
+            if (activeTab !== 'recent') await removeItem(user.uid, id, activeTab as WatchlistTab, profileId)
         }
-        setSelected(new Set())
-        setSelectMode(false)
+        setSelected(new Set()); setSelectMode(false)
+    }
+
+    const handleDeleteActivity = async (item: ReviewItem | CommentItem, e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!confirm('삭제할까요?')) return
+        try {
+            if (activeTab === 'reviews') {
+                await deleteDoc(doc(db, 'reviews', item.id))
+                setReviews(prev => prev.filter(r => r.id !== item.id))
+                setActivityCount(prev => ({ ...prev, review: prev.review - 1, rating: (item as ReviewItem).score > 0 ? prev.rating - 1 : prev.rating }))
+            } else {
+                await deleteDoc(doc(db, `event_comments_${(item as CommentItem).eventId}`, item.id))
+                setComments(prev => prev.filter(c => c.id !== item.id))
+                setActivityCount(prev => ({ ...prev, comment: prev.comment - 1 }))
+            }
+        } catch (e) { console.error(e) }
     }
 
     const toggleSelect = (id: number) => {
-        setSelected(prev => {
-            const next = new Set(prev)
-            next.has(id) ? next.delete(id) : next.add(id)
-            return next
-        })
+        setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
     }
 
     const handleCancelMembership = async () => {
@@ -100,12 +188,12 @@ export default function LibraryPage() {
         setCancelling(true)
         try {
             await setDoc(doc(db, 'users', user.uid), { membership: 'none' }, { merge: true })
-            setMembership('none')
-            setShowCancelConfirm(false)
-            setShowMembershipMgmt(false)
+            setMembership('none'); setShowCancelConfirm(false); setShowMembershipMgmt(false)
         } catch (e) { console.error(e) }
         finally { setCancelling(false) }
     }
+
+    const switchTab = (tab: WatchlistTab) => { setActiveTab(tab); setSelectMode(false); setSelected(new Set()) }
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 56 }}>
@@ -117,7 +205,8 @@ export default function LibraryPage() {
                 .lib-username { font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px; }
                 .lib-level { font-size: 12px; color: var(--text-subtle); margin: 0 0 16px; }
                 .lib-stats { display: flex; gap: 24px; margin-bottom: 20px; width: 100%; justify-content: center; }
-                .lib-stat { text-align: center; }
+                .lib-stat { text-align: center; cursor: pointer; padding: 6px 8px; border-radius: 8px; transition: background .15s; }
+                .lib-stat:hover { background: var(--border-faint); }
                 .lib-stat-num { font-size: 18px; font-weight: 900; color: var(--text-primary); }
                 .lib-stat-label { font-size: 11px; color: var(--text-subtle); }
                 .lib-action-btn { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--border); background: var(--border-faint); color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all .2s; }
@@ -126,7 +215,7 @@ export default function LibraryPage() {
                 .lib-main-header { padding: 20px 24px 0; border-bottom: 1px solid var(--border-subtle); }
                 .lib-main-title { font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 16px; }
                 .lib-tabs { display: flex; gap: 0; }
-                .lib-tab { padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text-subtle); background: none; border: none; cursor: pointer; position: relative; transition: color .2s; }
+                .lib-tab { padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text-subtle); background: none; border: none; cursor: pointer; position: relative; transition: color .2s; white-space: nowrap; }
                 .lib-tab:hover { color: var(--text-muted); }
                 .lib-tab.active { color: var(--text-primary); }
                 .lib-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--main); border-radius: 1px; }
@@ -145,6 +234,7 @@ export default function LibraryPage() {
                 .lib-empty img { width: 80px; height: 80px; object-fit: contain; opacity: .5; filter: grayscale(1); flex-shrink: 0; }
                 .lib-empty p { font-size: 14px; color: var(--text-subtle); margin: 0; }
                 .lib-count { font-size: 13px; color: var(--text-faint); padding: 0 24px 12px; }
+                /* 최근 본 카드 */
                 .lib-recent-card { display: flex; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--border-faint); cursor: pointer; transition: background .15s; }
                 .lib-recent-card:hover { background: var(--bg-hover); }
                 .lib-recent-thumb { width: 80px; height: 52px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--bg-secondary); }
@@ -154,6 +244,20 @@ export default function LibraryPage() {
                 .lib-recent-ep { font-size: 12px; color: var(--text-subtle); }
                 .lib-recent-bar { height: 3px; background: var(--border-faint); border-radius: 2px; margin-top: 4px; overflow: hidden; }
                 .lib-recent-bar-fill { height: 100%; background: var(--main); border-radius: 2px; }
+                /* 리뷰/댓글 */
+                .lib-activity-list { padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; }
+                .lib-activity-item { display: flex; gap: 14px; padding: 14px 16px; background: var(--bg-secondary); border-radius: 12px; cursor: pointer; border: 1px solid var(--border-subtle); transition: background .15s; position: relative; }
+                .lib-activity-item:hover { background: var(--bg-hover); }
+                .lib-activity-poster { width: 48px; height: 68px; border-radius: 7px; object-fit: cover; flex-shrink: 0; background: var(--bg-card); }
+                .lib-activity-poster-placeholder { width: 48px; height: 68px; border-radius: 7px; flex-shrink: 0; background: var(--border-faint); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+                .lib-activity-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
+                .lib-activity-anime { font-size: 13px; font-weight: 700; color: var(--text-primary); margin: 0; }
+                .lib-activity-text { font-size: 13px; color: var(--text-muted); margin: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.5; }
+                .lib-activity-meta { font-size: 11px; color: var(--text-faint); margin: 0; }
+                .lib-activity-del { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 4px; border-radius: 6px; transition: color .15s; flex-shrink: 0; align-self: flex-start; }
+                .lib-activity-del:hover { color: #f87171; }
+                .lib-spoiler-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(239,68,68,.12); color: #ef4444; margin-left: 6px; }
+                @keyframes spin { to { transform: rotate(360deg) } }
             `}</style>
 
             <div className="lib-wrap">
@@ -173,9 +277,18 @@ export default function LibraryPage() {
                         <p className="lib-username">{user?.name || user?.email?.split('@')[0]}</p>
                         <p className="lib-level">😊 Lv.0 베이비</p>
                         <div className="lib-stats">
-                            <div className="lib-stat"><p className="lib-stat-num">0</p><p className="lib-stat-label">별점</p></div>
-                            <div className="lib-stat"><p className="lib-stat-num">0</p><p className="lib-stat-label">리뷰</p></div>
-                            <div className="lib-stat"><p className="lib-stat-num">0</p><p className="lib-stat-label">댓글</p></div>
+                            <div className="lib-stat" onClick={() => switchTab('reviews')}>
+                                <p className="lib-stat-num">{activityCount.rating}</p>
+                                <p className="lib-stat-label">별점</p>
+                            </div>
+                            <div className="lib-stat" onClick={() => switchTab('reviews')}>
+                                <p className="lib-stat-num">{activityCount.review}</p>
+                                <p className="lib-stat-label">리뷰</p>
+                            </div>
+                            <div className="lib-stat" onClick={() => switchTab('comments')}>
+                                <p className="lib-stat-num">{activityCount.comment}</p>
+                                <p className="lib-stat-label">댓글</p>
+                            </div>
                         </div>
                         <Link href="/profile" style={{ width: '100%', textDecoration: 'none' }}>
                             <button className="lib-action-btn">
@@ -198,8 +311,8 @@ export default function LibraryPage() {
                                                 <p className="text-[var(--text-subtle)] text-xs">현재 <span style={{ color: memberInfo.color, fontWeight: 700 }}>{memberInfo.label}</span> 이용 중이에요</p>
                                             </div>
                                             <div className="flex flex-col gap-2">
-                                                <button onClick={() => { setShowMembershipMgmt(false); router.push('/membership') }} className="w-full py-3 rounded-xl font-bold text-sm text-white" style={{ background: memberInfo.color }}>요금제 변경하기</button>
-                                                <button onClick={() => { setShowMembershipMgmt(false); setShowCancelConfirm(true) }} className="w-full py-3 rounded-xl font-bold text-sm border border-[var(--border)] text-[var(--text-subtle)] hover:text-red-400 transition-colors">멤버십 취소</button>
+                                                <button onClick={() => { setShowMembershipMgmt(false); router.push('/membership') }} className="w-full py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90" style={{ background: memberInfo.color }}>요금제 변경하기</button>
+                                                <button onClick={() => { setShowMembershipMgmt(false); setShowCancelConfirm(true) }} className="w-full py-3 rounded-xl font-bold text-sm border border-[var(--border)] text-[var(--text-subtle)] hover:text-red-400 hover:border-red-400/40 transition-colors">멤버십 취소</button>
                                                 <button onClick={() => setShowMembershipMgmt(false)} className="w-full py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-subtle)] transition-colors">닫기</button>
                                             </div>
                                         </div>
@@ -213,8 +326,8 @@ export default function LibraryPage() {
                                                 <p className="text-[var(--text-subtle)] text-sm leading-relaxed">취소하면 이번 달 종료 후 멤버십 혜택이 사라져요. 정말 취소하시겠어요?</p>
                                             </div>
                                             <div className="flex gap-2">
-                                                <button onClick={() => setShowCancelConfirm(false)} className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] text-sm font-bold">유지하기</button>
-                                                <button onClick={handleCancelMembership} disabled={cancelling} className="flex-1 py-3 rounded-xl bg-red-500/80 text-white text-sm font-bold disabled:opacity-50">{cancelling ? '처리 중...' : '취소하기'}</button>
+                                                <button onClick={() => setShowCancelConfirm(false)} className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] text-sm font-bold hover:text-[var(--text-primary)] transition-colors">유지하기</button>
+                                                <button onClick={handleCancelMembership} disabled={cancelling} className="flex-1 py-3 rounded-xl bg-red-500/80 text-white text-sm font-bold hover:bg-red-500 transition-colors disabled:opacity-50">{cancelling ? '처리 중...' : '취소하기'}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -239,15 +352,12 @@ export default function LibraryPage() {
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <div className="lib-tabs">
                                 {TABS.map(t => (
-                                    <button key={t.id} className={`lib-tab${activeTab === t.id ? ' active' : ''}`}
-                                        onClick={() => { setActiveTab(t.id); setSelectMode(false); setSelected(new Set()) }}>
-                                        {t.label}
-                                    </button>
+                                    <button key={t.id} className={`lib-tab${activeTab === t.id ? ' active' : ''}`} onClick={() => switchTab(t.id)}>{t.label}</button>
                                 ))}
                             </div>
-                            <div className="lib-tab-action">
-                                {activeTab !== 'recent' && (
-                                    selectMode ? (
+                            {!isActivityTab && activeTab !== 'recent' && (
+                                <div className="lib-tab-action">
+                                    {selectMode ? (
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <button className="lib-delete-btn" style={{ color: '#f87171' }} onClick={handleDelete}>삭제 ({selected.size})</button>
                                             <button className="lib-delete-btn" onClick={() => { setSelectMode(false); setSelected(new Set()) }}>취소</button>
@@ -257,28 +367,112 @@ export default function LibraryPage() {
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" /></svg>
                                             삭제
                                         </button>
-                                    )
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {loading ? (
-                        <div className="lib-empty">
-                            <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--main)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
-                            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-                        </div>
+                    {/* 리뷰/댓글 탭 */}
+                    {isActivityTab ? (
+                        activityLoading ? (
+                            <div className="lib-empty"><div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--main)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} /></div>
+                        ) : (activeTab === 'reviews' ? reviews.length : comments.length + animeComments.length) === 0 ? (
+                            <div className="lib-empty">
+                                <img src={EMPTY_MSG[activeTab].icon} alt="" onError={e => (e.currentTarget.style.display = 'none')} />
+                                <p>{EMPTY_MSG[activeTab].text}</p>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="lib-count">{activeTab === 'reviews' ? `리뷰 (${reviews.length})` : `댓글 (${comments.length + animeComments.length})`}</p>
+                                <div className="lib-activity-list">
+                                    {activeTab === 'reviews' && reviews.map(item => (
+                                        <div key={item.id} className="lib-activity-item" onClick={() => setPreviewId(item.animeId)}>
+                                            {item.animePoster ? <img src={`${TMDB_IMG}${item.animePoster}`} alt={item.animeTitle} className="lib-activity-poster" /> : <div className="lib-activity-poster-placeholder">🎌</div>}
+                                            <div className="lib-activity-body">
+                                                <p className="lib-activity-anime">{item.animeTitle || `애니 #${item.animeId}`}{item.spoiler && <span className="lib-spoiler-badge">스포</span>}</p>
+                                                {item.score > 0 && (
+                                                    <p style={{ display: 'flex', alignItems: 'center', gap: 1, margin: 0 }}>
+                                                        {[1,2,3,4,5].map(s => {
+                                                            const full = item.score >= s, half = !full && item.score >= s - 0.5
+                                                            return (
+                                                                <span key={s} style={{ position: 'relative', display: 'inline-block', width: 14, height: 14 }}>
+                                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--border)" stroke="none" style={{ position: 'absolute', top: 0, left: 0 }}><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>
+                                                                    {(full || half) && <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none" style={{ position: 'absolute', top: 0, left: 0, clipPath: half ? 'inset(0 50% 0 0)' : 'none' }}><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>}
+                                                                </span>
+                                                            )
+                                                        })}
+                                                        <span style={{ fontSize: 11, color: 'var(--text-faint)', marginLeft: 4 }}>{item.score.toFixed(1)}점</span>
+                                                    </p>
+                                                )}
+                                                <p className="lib-activity-text">{item.text}</p>
+                                                <p className="lib-activity-meta">{item.createdAt ? new Date(item.createdAt).toLocaleDateString('ko-KR') : ''}</p>
+                                            </div>
+                                            <button className="lib-activity-del" onClick={e => handleDeleteActivity(item, e)} title="삭제">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" /></svg>
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {activeTab === 'comments' && (
+                                        <>
+                                            {animeComments.map(item => (
+                                                <div key={item.id} className="lib-activity-item" onClick={() => router.push(`/anime/${item.animeId}?ep=${item.episodeNumber}`)}>
+                                                    {item.animePoster ? <img src={`${TMDB_IMG}${item.animePoster}`} alt={item.animeTitle} className="lib-activity-poster" /> : <div className="lib-activity-poster-placeholder">🎌</div>}
+                                                    <div className="lib-activity-body">
+                                                        <p className="lib-activity-anime">
+                                                            {item.animeTitle || `애니 #${item.animeId}`}
+                                                            <span style={{ fontSize: 11, fontWeight: 600, color: '#6c63ff', marginLeft: 6, background: 'rgba(108,99,255,.12)', padding: '1px 6px', borderRadius: 4 }}>{item.episodeNumber}화</span>
+                                                        </p>
+                                                        <p className="lib-activity-text">{item.text}</p>
+                                                        <p className="lib-activity-meta">
+                                                            {item.likes > 0 && `좋아요 ${item.likes} · `}
+                                                            {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString('ko-KR') : item.createdAt ? new Date(item.createdAt).toLocaleDateString('ko-KR') : ''}
+                                                        </p>
+                                                    </div>
+                                                    <button className="lib-activity-del" title="삭제"
+                                                        onClick={async e => {
+                                                            e.stopPropagation(); if (!confirm('삭제할까요?')) return
+                                                            await deleteDoc(doc(db, 'anime_comments', item.id))
+                                                            setAnimeComments(prev => prev.filter(c => c.id !== item.id))
+                                                            setActivityCount(prev => ({ ...prev, comment: prev.comment - 1 }))
+                                                        }}>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" /></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {comments.map(item => (
+                                                <div key={item.id} className="lib-activity-item" onClick={() => router.push(`/event/${item.eventId}`)}>
+                                                    {item.eventImg ? <img src={item.eventImg} alt={item.eventName} className="lib-activity-poster" /> : <div className="lib-activity-poster-placeholder">🎪</div>}
+                                                    <div className="lib-activity-body">
+                                                        <p className="lib-activity-anime">{item.eventName || `이벤트 #${item.eventId}`}</p>
+                                                        <p className="lib-activity-text">{item.content}</p>
+                                                        <p className="lib-activity-meta">
+                                                            {item.likeCount > 0 && `좋아요 ${item.likeCount} · `}
+                                                            {item.replyCount > 0 && `답글 ${item.replyCount} · `}
+                                                            {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString('ko-KR') : item.createdAt ? new Date(item.createdAt).toLocaleDateString('ko-KR') : ''}
+                                                        </p>
+                                                    </div>
+                                                    <button className="lib-activity-del" onClick={e => handleDeleteActivity(item, e)} title="삭제">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" /></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+                                </div>
+                            </>
+                        )
+                    ) : loading ? (
+                        <div className="lib-empty"><div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--main)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} /></div>
                     ) : tabItems.length === 0 ? (
                         <div className="lib-empty">
-                            <img src={EMPTY_MSG[activeTab].icon} alt="" onError={e => (e.currentTarget.style.display = 'none')} />
-                            <p>{EMPTY_MSG[activeTab].text}</p>
+                            <img src={EMPTY_MSG[activeTab]?.icon} alt="" onError={e => (e.currentTarget.style.display = 'none')} />
+                            <p>{EMPTY_MSG[activeTab]?.text}</p>
                         </div>
                     ) : activeTab === 'recent' ? (
-                        // 최근 본 — 가로형 카드
                         <div style={{ padding: '8px 0' }}>
                             {progressItems.map(item => (
-                                <div key={item.tmdbId} className="lib-recent-card"
-                                    onClick={() => router.push(`/anime/${item.tmdbId}`)}>
+                                <div key={item.tmdbId} className="lib-recent-card" onClick={() => router.push(`/anime/${item.tmdbId}`)}>
                                     <div className="lib-recent-thumb">
                                         {(item.backdrop || item.poster)
                                             ? <img src={(item.backdrop || item.poster).startsWith('http') ? (item.backdrop || item.poster) : `${TMDB_IMG}${item.backdrop || item.poster}`} alt={item.title} />
@@ -288,21 +482,17 @@ export default function LibraryPage() {
                                     <div className="lib-recent-info">
                                         <p className="lib-recent-title">{item.title}</p>
                                         <p className="lib-recent-ep">{item.episode}화{item.episodeTitle ? ` · ${item.episodeTitle}` : ''}</p>
-                                        <div className="lib-recent-bar">
-                                            <div className="lib-recent-bar-fill" style={{ width: `${item.progress}%` }} />
-                                        </div>
+                                        <div className="lib-recent-bar"><div className="lib-recent-bar-fill" style={{ width: `${item.progress}%` }} /></div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        // 보고싶다 / 구매한 — 포스터 그리드
                         <>
                             <p className="lib-count">작품 ({tabItems.length})</p>
                             <div className="lib-grid">
                                 {tabItems.map(item => (
-                                    <div key={item.id} className="lib-item"
-                                        onClick={() => selectMode ? toggleSelect(item.id) : router.push(`/anime/${item.id}`)}>
+                                    <div key={item.id} className="lib-item" onClick={() => selectMode ? toggleSelect(item.id) : router.push(`/anime/${item.id}`)}>
                                         <div className="lib-item-poster">
                                             {item.poster
                                                 ? <img src={item.poster.startsWith('http') ? item.poster : `${TMDB_IMG}${item.poster}`} alt={item.title} />
