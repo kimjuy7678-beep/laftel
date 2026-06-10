@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from "@/store/useAuthStore"
 import { useRouter } from "next/navigation"
 import { useActivityStore } from "@/store/useActiveStore"
+import GradeBadge from "@/components/GradeBadge"
 
 const AVATAR_COLORS = [
     { bg: 'rgba(108,99,255,0.2)', text: '#9d97ff' },
@@ -52,6 +53,7 @@ interface Comment {
     liked: boolean
     episodeNumber: number
     animeId: number
+    watched?: number  // 등급 뱃지용
 }
 
 interface Props {
@@ -84,6 +86,15 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     const [loading, setLoading] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
+    const myWatched = (() => {
+        try {
+            const s = typeof window !== 'undefined' ? localStorage.getItem('watch-progress-storage') : null
+            return s ? (JSON.parse(s)?.state?.items?.length ?? 0) : 0
+        } catch { return 0 }
+    })()
+
+    const colName = 'anime_comments'
+
     const colName = 'anime_comments'
 
     // 댓글 fetch — animeId로만 쿼리 후 클라이언트에서 화 필터링 (복합 인덱스 불필요)
@@ -98,6 +109,7 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         ).then(snap => {
             const docs = snap.docs
                 .map(d => ({ id: d.id, ...d.data() } as Comment))
+                .filter(d => d.episodeNumber === Number(episodeId))
                 .filter(d => d.episodeNumber === Number(episodeId))  // 클라이언트 필터
                 .sort((a, b) => {
                     const aTime = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
@@ -132,6 +144,8 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 episodeNumber: Number(episodeId),
                 animeId: Number(animeId),
                 animeTitle: animeTitle || '',
+                animePoster: animePoster || null,
+                watched: myWatched,  // 등급 뱃지용
                 animePoster: animePoster || null,  // ✅ 포스터 추가
             }
             const ref = await addDoc(collection(db, colName), payload)
@@ -218,6 +232,7 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="text-[12px] font-semibold text-[var(--text-muted)]">{c.author}</span>
+                                    <GradeBadge watched={c.watched ?? 0} size="sm" showName={true} />
                                     <span className="text-[11px] text-[var(--text-faint)]">{formatTime(c.createdAt)}</span>
                                     {c.uid === user?.uid && (
                                         <button

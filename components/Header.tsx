@@ -10,6 +10,18 @@ import { useRouter, usePathname } from 'next/navigation'
 import { usePageTransition } from '@/hook/usePageTransition'
 import GradeModal from './GradeModal'
 import { toast } from 'sonner'
+import { useWatchProgressStore } from '@/store/useWatchProgressStore'
+
+const GRADES = [
+    { level: 0, name: '베이비', req: 0, color: '#a78bfa', image: 'https://thumbnail.laftel.net/profiles/default/48363a65-24d6-45a0-9eac-8c1726656c63.png' },
+    { level: 1, name: '루키', req: 1, color: '#34d399', image: 'https://thumbnail.laftel.net/profiles/default/7478566c-4b3c-4a10-a7c0-2f8c05fb2370.jpg' },
+    { level: 2, name: '뉴비', req: 3, color: '#60a5fa', image: 'https://thumbnail.laftel.net/profiles/default/fb48c8c7-ad22-4aa9-9038-c0637ba7e275.png' },
+    { level: 3, name: '입문자', req: 5, color: '#f97316', image: 'https://thumbnail.laftel.net/profiles/default/b700435b-3ad2-4a31-9b72-3e9ae631dc47.png' },
+    { level: 4, name: '덕후', req: 10, color: '#f43f5e', image: 'https://thumbnail.laftel.net/profiles/default/c38a5328-857c-4c12-a404-53d288460e2a.jpg' },
+    { level: 5, name: '중독자', req: 30, color: '#ec4899', image: 'https://thumbnail.laftel.net/profiles/default/40028ff2-895a-4606-b759-2674b1cdc18e.jpg' },
+    { level: 6, name: '오타쿠', req: 50, color: '#facc15', image: 'https://thumbnail.laftel.net/profiles/default/37710afc-0caa-4ea3-bd6d-1c900674141e.jpg' },
+    { level: 7, name: '신', req: 100, color: '#6c63ff', image: 'https://thumbnail.laftel.net/profiles/default/8c6f615f-b949-4ed8-b027-bcf2bee4ea4a.jpg' },
+]
 
 const MenuList = [
     { id: 1, title: "태그검색", path: "/tag-search" },
@@ -88,7 +100,13 @@ export default function Header() {
     const user = useAuthStore(s => s.user)
     const avatarConfig = useAuthStore(s => s.avatarConfig)
     const { onLogout } = useAuthStore()
+    const { items: progressItems, fetchProgress } = useWatchProgressStore()
+    const profileId = user?.currentProfileId || user?.profileId || 'main'
+    const watched = progressItems.length
+    const currentGrade = [...GRADES].reverse().find(g => watched >= g.req) || GRADES[0]
+    const nextGrade = GRADES[currentGrade.level + 1] ?? null
     const { points, fetchPoints } = usePointStore()
+    const { counts: activityCounts, fetchCounts, resetCounts } = useActivityStore()
     const { notifications, unreadCount, subscribeNotifications, markAllRead, markOneRead, clearNotifications } = useNotificationStore()
     const { counts: activityCounts, fetchCounts, resetCounts } = useActivityStore()  // ✅ Header 안으로 이동
     const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -105,11 +123,11 @@ export default function Header() {
     const { navigate } = usePageTransition()
 
     const membership = user?.membership || 'none'
-    const memberInfo = membershipConfig[membership] || membershipConfig['none']
 
     const textColor = scrolled ? 'var(--text-primary)' : '#ffffff'
     const textMuted = scrolled ? 'var(--text-muted)' : 'rgba(255,255,255,0.7)'
     const hoverBg = scrolled ? 'var(--border)' : 'rgba(255,255,255,0.15)'
+    const memberInfo = membershipConfig[membership] || membershipConfig['none']
 
     useEffect(() => {
         document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
@@ -128,6 +146,9 @@ export default function Header() {
         if (user?.uid) {
             fetchPoints(user.uid)
             subscribeNotifications(user.uid)
+            fetchProgress(user.uid, profileId)
+        }
+    }, [user?.uid, profileId])
             fetchCounts(user.uid)
         }
     }, [user, fetchPoints, subscribeNotifications])
@@ -449,6 +470,10 @@ export default function Header() {
                 className="fixed top-0 left-0 w-full z-[9999] transition-colors duration-300 px-[10px] py-1.5 md:py-[10px]"
                 style={{ background: scrolled ? 'var(--bg-primary)' : 'transparent' }}
             >
+                <div
+                    className="w-full h-[55px] flex items-center justify-between px-[28px] rounded-full transition-colors duration-300"
+                    style={{ background: scrolled ? 'var(--bg-card)' : 'transparent' }}
+                >
                 {!scrolled && (
                     <div style={{
                         position: 'absolute', top: 0, left: 0, right: 0, height: '140px',
@@ -474,6 +499,7 @@ export default function Header() {
                                     className={`${scrolled ? 'block dark:hidden' : 'hidden'} h-[16px] w-auto sm:h-[18px] md:h-[22px]`}
                                 />
                             </Link>
+                            <div className="flex items-center bg-[var(--border)] rounded-full p-[3px] gap-[2px]">
                             <div className="flex items-center bg-[var(--border)] rounded-full p-[3px] gap-[2px]"
                                 style={{ background: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.2)' }}>
                                 <button onClick={() => navigate('/', 'var(--bg-primary)')}
@@ -489,9 +515,7 @@ export default function Header() {
                                     onClick={() => navigate('/', 'var(--bg-primary)')}
                                     className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all duration-200 sm:px-2.5 sm:py-1 sm:text-[11px] md:px-3 md:text-[12px] ${!pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : scrolled
-                                            ? 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                                            : 'text-white/70 hover:text-white'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                         }`}
                                 >
                                     OTT
@@ -500,9 +524,7 @@ export default function Header() {
                                     onClick={() => navigate('/store', '#ffffff')}
                                     className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all duration-200 sm:px-2.5 sm:py-1 sm:text-[11px] md:px-3 md:text-[12px] ${pathname.startsWith('/store')
                                         ? 'bg-white text-[#826CFF] shadow-sm'
-                                        : scrolled
-                                            ? 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                                            : 'text-white/70 hover:text-white'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                         }`}
                                 >
                                     Store
@@ -539,6 +561,8 @@ export default function Header() {
                             type="button"
                             aria-label="검색"
                             onClick={() => setSearchOpen(true)}
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 cursor-pointer text-[var(--text-primary)]"
+                        >
                             className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition-colors duration-200"
                             style={{ color: textColor }}
                             onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = hoverBg}
@@ -553,6 +577,8 @@ export default function Header() {
                         <Link
                             href="/membership"
                             aria-label="멤버십"
+                            className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
+                        >
                             className="hidden h-[34px] w-[34px] items-center justify-center rounded-full transition-colors duration-200 md:flex sm:h-[36px] sm:w-[36px]"
                             style={{ color: textColor }}
                             onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = hoverBg}
@@ -573,6 +599,8 @@ export default function Header() {
                                     if (!notiOpen && user?.uid && unreadCount > 0) markAllRead(user.uid)
                                 }}
                                 aria-label="알림"
+                                className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-[var(--border)] transition-colors duration-200 text-[var(--text-primary)]"
+                            >
                                 className="relative flex h-[34px] w-[34px] items-center justify-center rounded-full transition-colors duration-200 sm:h-[36px] sm:w-[36px]"
                                 style={{ color: textColor }}
                                 onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = hoverBg}
@@ -619,6 +647,10 @@ export default function Header() {
                             )}
                         </div>
 
+                        <div className="w-px h-5 bg-[var(--border)] mx-1" />
+
+                        {!user ? (
+                            <Link href="/login" className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors px-2">
                         <div className="mx-1 hidden h-5 w-px md:block" style={{ background: scrolled ? 'var(--border)' : 'rgba(255,255,255,0.3)' }} />
 
                         {!user ? (
@@ -642,6 +674,8 @@ export default function Header() {
                                     className="flex items-center gap-[8px] cursor-pointer group h-[55px]"
                                 >
                                     <div
+                                        className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-[var(--border)] group-hover:ring-[var(--text-muted)] transition-all duration-200 shrink-0"
+                                        style={{ background: memberInfo.color || '#5a52e0' }}
                                         className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ring-2 transition-all duration-200 shrink-0"
                                         style={{
                                             background: memberInfo.color || '#5a52e0',
@@ -656,6 +690,14 @@ export default function Header() {
                                             <span className="text-white text-xs font-bold">{user.name?.[0]?.toUpperCase() || '?'}</span>
                                         )}
                                     </div>
+                                    <span className="text-sm text-[var(--text-high)] group-hover:text-[var(--text-primary)] transition-colors">
+                                        {user.name}
+                                    </span>
+                                    <svg
+                                        width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" strokeWidth="2"
+                                        className={`text-[var(--text-muted)] transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`}
+                                    >
                                     <span className="text-sm transition-colors" style={{ color: textMuted }}>{user.name}</span>
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                                         className={`transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`} style={{ color: textMuted }}>
@@ -684,6 +726,20 @@ export default function Header() {
                                                     {user.name || user.email?.split('@')[0]}
                                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-subtle)" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
                                                 </Link>
+                                                <button
+                                                    onClick={() => { setGradeOpen(true); setDropdownOpen(false) }}
+                                                    className="flex items-center gap-1.5 justify-center mt-1.5 bg-transparent border-none cursor-pointer p-0 mx-auto group">
+                                                    <div className="w-7 h-7 rounded-full overflow-hidden ring-1 shrink-0" style={{ ringColor: currentGrade.color }}>
+                                                        <img src={currentGrade.image} alt={currentGrade.name} className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <span className="text-[14px] font-bold transition-colors group-hover:opacity-80" style={{ color: currentGrade.color }}>
+                                                        {currentGrade.name}
+                                                    </span>
+                                                    {nextGrade && (
+                                                        <span className="text-[12px] text-[var(--text-faint)]">
+                                                            ({watched}/{nextGrade.req}편)
+                                                        </span>
+                                                    )}
                                                 <button onClick={() => { setGradeOpen(true); setDropdownOpen(false) }}
                                                     className="text-[var(--text-subtle)] text-xs mt-0.5 hover:text-[var(--text-muted)] transition-colors bg-transparent border-none cursor-pointer p-0 block mx-auto">
                                                     😊 Lv.0 베이비
@@ -696,6 +752,9 @@ export default function Header() {
                                                 )}
                                             </div>
                                             <div className="flex gap-6 mt-2">
+                                                {[{ label: '별점', val: activityCounts?.rating ?? 0, tab: 'reviews' }, { label: '리뷰', val: activityCounts?.review ?? 0, tab: 'reviews' }, { label: '댓글', val: activityCounts?.comment ?? 0, tab: 'comments' }].map(s => (
+                                                    <div key={s.label} className="text-center cursor-pointer group"
+                                                        onClick={() => { setDropdownOpen(false); router.push(`/library?tab=${(s as any).tab || 'reviews'}`) }}>
                                                 {[
                                                     { label: '별점', val: activityCounts.rating, tab: 'reviews' },
                                                     { label: '리뷰', val: activityCounts.review, tab: 'reviews' },

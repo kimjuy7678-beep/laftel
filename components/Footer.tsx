@@ -30,8 +30,12 @@ export default function Footer({ variant = "default" }: FooterProps) {
             <div style={{ width: '90%', margin: '0 auto', padding: '40px 0' }}>
                 <div className="flex items-start justify-between">
                     <div className="flex flex-col gap-2">
-                        <span className={`font-black text-lg tracking-widest ${isStore ? "text-[#343840]" : "text-[var(--text-primary)]"}`}>
-                            LAFTEL
+                        <span className={`${isStore ? "text-[#343840]" : "text-[var(--text-primary)]"}`}>
+                            <img
+                                src={isStore ? "/images/logo-dark.png" : "/images/logo-white.svg"}
+                                alt="logo"
+                                style={{ width: '120px' }}
+                            />
                         </span>
                         <button className={`flex items-center gap-1 text-sm transition-colors ${isStore ? "text-[#6b7280] hover:text-[#343840]" : "text-[var(--text-subtle)] hover:text-[var(--text-primary)]"}`}>
                             (주)라프텔 사업자 정보
