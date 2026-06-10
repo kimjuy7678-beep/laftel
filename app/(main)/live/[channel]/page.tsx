@@ -147,10 +147,10 @@ export default function LiveChannelPage() {
                 type="anime"
             />
 
-            <div className="inner px-6 py-6">
+            <div className="inner px-4 py-5 sm:px-6 sm:py-6">
                 {/* 상단 바 */}
-                <div className="flex items-center justify-between py-4 mb-4 border-b border-[var(--border)]">
-                    <div className="flex items-center gap-3 mt-10">
+                <div className="flex flex-wrap items-center justify-between gap-3 py-4 mb-4 border-b border-[var(--border)]">
+                    <div className="flex min-w-0 items-center gap-3 mt-8 sm:mt-10">
                         <Link href="/live" className="flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm transition-colors">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="m15 18-6-6 6-6" />
@@ -171,7 +171,7 @@ export default function LiveChannelPage() {
                     </div>
                 </div>
 
-                <div className="flex gap-6 items-start">
+                <div className="flex flex-col gap-6 items-stretch lg:flex-row lg:items-start">
                     {/* 왼쪽: 플레이어 */}
                     <div className="flex-1 min-w-0">
                         <div className="aspect-video rounded-xl overflow-hidden bg-black relative" ref={iframeRef}>
@@ -229,31 +229,31 @@ export default function LiveChannelPage() {
                             )}
                         </div>
 
-                        <div className="flex items-center gap-4 mt-4">
+                        <div className="flex items-center gap-3 mt-4 sm:gap-4">
                             <img src={ch.logo} alt={ch.name} className="w-12 h-12 object-contain shrink-0" />
                             <div>
-                                <div className="flex items-center gap-2">
-                                    <h2 className="text-[var(--text-primary)] font-bold text-lg">{ch.name}</h2>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h2 className="text-[var(--text-primary)] font-bold text-base sm:text-lg">{ch.name}</h2>
                                     <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500 rounded text-xs text-white font-bold">
                                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                                         LIVE
                                     </span>
                                 </div>
-                                {currentProgram && <p className="text-[var(--text-muted)] text-sm mt-0.5">현재 방영중: {currentProgram.koTitle}</p>}
+                                {currentProgram && <p className="text-[var(--text-muted)] text-xs mt-0.5 sm:text-sm">현재 방영중: {currentProgram.koTitle}</p>}
                             </div>
                         </div>
 
                         {/* 다른 채널 */}
                         <div className="mt-8">
                             <h3 className="text-[var(--text-primary)] font-bold text-base mb-4">다른 채널</h3>
-                            <div className="flex gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 {otherChannels.map((oc) => {
                                     const ocSchedule = allChannels.find(c => c.id === oc.id)
                                     const ocCurrentIdx = ocSchedule ? getCurrentIdx(ocSchedule.items, nowMin) : -1
                                     const ocCurrent = ocSchedule?.items[ocCurrentIdx]
                                     return (
                                         <Link key={oc.id} href={`/live/${oc.slug}`}
-                                            className="flex-1 bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-faint)] hover:border-[var(--border)] rounded-xl p-4 transition-all group">
+                                            className="bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] border border-[var(--border-faint)] hover:border-[var(--border)] rounded-xl p-4 transition-all group">
                                             <div className="flex items-center gap-3 mb-3">
                                                 <img src={oc.logo} alt={oc.name} className="w-10 h-10 object-contain shrink-0" />
                                                 <div>
@@ -306,7 +306,7 @@ export default function LiveChannelPage() {
                         {relatedAnime.length > 0 && (
                             <div className="mt-8">
                                 <h3 className="text-[var(--text-primary)] font-bold text-base mb-4">관련 작품</h3>
-                                <div className="grid grid-cols-6 gap-3">
+                                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-6">
                                     {relatedAnime.map((ani) => (
                                         <div key={ani.id} className="group cursor-pointer" onClick={() => router.push(`/anime/${ani.id}`)}>
                                             <div className="aspect-[3/4] rounded-lg overflow-hidden relative">
@@ -327,8 +327,8 @@ export default function LiveChannelPage() {
                     </div>
 
                     {/* 오른쪽: 채팅 + 편성표 */}
-                    <div className="w-[380px] shrink-0 flex flex-col bg-[var(--bg-card)] rounded-xl overflow-hidden border border-[var(--border-subtle)]"
-                        style={{ height: playerHeight > 0 ? `${playerHeight}px` : '500px' }}>
+                    <div className="w-full shrink-0 flex flex-col bg-[var(--bg-card)] rounded-xl overflow-hidden border border-[var(--border-subtle)] lg:w-[380px]"
+                        style={{ height: playerHeight > 0 ? `min(${playerHeight}px, 62vh)` : 'min(500px, 62vh)' }}>
                         <div className="flex border-b border-[var(--border)] shrink-0">
                             <button onClick={() => setTab('chat')}
                                 className={`flex-1 py-3 text-sm font-medium transition-colors ${tab === 'chat' ? 'text-[var(--text-primary)] border-b-2 border-[var(--main)]' : 'text-[var(--text-subtle)] hover:text-[var(--text-muted)]'}`}>
