@@ -40,7 +40,7 @@ export default function EventSection() {
             <style>{`
                 .ev-wrap { width: 90%; margin: 0 auto; }
 
-                .ev-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+                .ev-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
                 .ev-title { font-size: 25px; font-weight: 700; color: var(--text-primary); margin: 0; }
                 .ev-more { font-size: 12px; color: var(--text-subtle); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 3px; transition: color .2s; }
                 .ev-more:hover { color: var(--text-high); }
@@ -98,6 +98,20 @@ export default function EventSection() {
                 .ev-spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: #6c63ff; border-radius: 50%; animation: ev-spin .7s linear infinite; }
                 @keyframes ev-spin { to { transform: rotate(360deg) } }
                 .ev-empty { text-align: center; padding: 60px 0; color: var(--text-faint); font-size: 14px; }
+                @media (max-width: 900px) {
+                    .ev-grid { grid-template-columns: repeat(2, 1fr); }
+                }
+                @media (max-width: 640px) {
+                    .ev-wrap { width: calc(100% - 32px); }
+                    .ev-title { font-size: 21px; line-height: 1.35; }
+                    .ev-filters { overflow-x: auto; margin-right: -16px; padding-right: 16px; scrollbar-width: none; }
+                    .ev-filters::-webkit-scrollbar { display: none; }
+                    .ev-filter { flex: 0 0 auto; }
+                    .ev-grid { display: flex; gap: 12px; margin-right: -16px; padding-right: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+                    .ev-grid::-webkit-scrollbar { display: none; }
+                    .ev-card { flex: 0 0 min(82vw, 340px); scroll-snap-align: start; }
+                    .ev-name { font-size: 15px; }
+                }
             `}</style>
 
             <div className="ev-wrap">

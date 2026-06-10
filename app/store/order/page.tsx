@@ -32,7 +32,7 @@ type SavedAddress = {
 
 type SavedCard = {
     id: string;
-    name?: string;   // 카드 별칭
+    name?: string;
     brand: string;
     last4: string;
     expiry?: string;
@@ -108,16 +108,17 @@ function ModalWrap({ title, children, onClose }: { title: string; children: Reac
 }
 
 // ─── 인풋 필드 ───────────────────────────────────────────────────────────────
-function Field({ label, value, onChange, placeholder }: {
+function Field({ label, value, onChange, placeholder, error }: {
     label: string; value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     placeholder?: string;
+    error?: boolean;
 }) {
     return (
         <div>
             <label className="block text-[12px] font-semibold text-[#666] mb-1.5">{label}</label>
             <input value={value} onChange={onChange} placeholder={placeholder}
-                className="w-full h-10 rounded-[10px] border border-[#e0daf7] px-3 text-[13px] outline-none focus:border-[#826CFF] transition-colors" />
+                style={{ color: "#111" }} className={`w-full h-10 rounded-[10px] border px-3 text-[13px] outline-none transition-colors ${error ? "border-[#ff4d6d] bg-[#fff5f7]" : "border-[#e0daf7] focus:border-[#826CFF]"}`} />
         </div>
     );
 }
@@ -221,7 +222,6 @@ function EditShippingModal({ info, savedAddresses, onSave, onClose, uid }: {
 
     return (
         <ModalWrap onClose={onClose} title="배송지 변경">
-            {/* 탭 */}
             {savedAddresses.length > 0 && (
                 <div className="flex gap-1 mb-4 rounded-[10px] bg-[#f5f3ff] p-1">
                     {(["saved", "new"] as const).map(t => (
@@ -281,7 +281,6 @@ function EditShippingModal({ info, savedAddresses, onSave, onClose, uid }: {
                 </div>
             )}
 
-            {/* 버튼 3개 */}
             <div className="flex gap-2 mt-5">
                 <button onClick={onClose}
                     className="flex-1 h-10 rounded-full border-2 border-[#e0daf7] text-[#888] text-[13px] font-bold hover:bg-[#f5f3ff] transition-colors">
@@ -309,16 +308,6 @@ function EditShippingModal({ info, savedAddresses, onSave, onClose, uid }: {
 }
 
 // ─── 결제수단 선택 모달 ──────────────────────────────────────────────────────
-const PAYMENT_OPTIONS = [
-    { id: "laftel_pay", label: "라프텔 페이", desc: "1초 만에 결제", img: null, tall: false },
-    { id: "kakaopay", label: "카카오페이", desc: null, img: "/images/pay/kakao.png", tall: false },
-    { id: "naverpay", label: "네이버페이", desc: null, img: "/images/pay/naver.png", tall: false },
-    { id: "tosspay", label: "토스페이", desc: null, img: "/images/pay/toss.png", tall: false },
-    { id: "applepay", label: "Apple Pay", desc: null, img: "/images/pay/apple.png", tall: true },
-    { id: "card", label: "신용 / 체크카드", desc: null, img: null, tall: false },
-    { id: "phone", label: "휴대폰 결제", desc: null, img: null, tall: false },
-];
-
 function CardSelectModal({ savedCards, selectedPayment, selectedCardId, onSelect, onClose }: {
     savedCards: SavedCard[];
     selectedPayment: string;
@@ -331,28 +320,10 @@ function CardSelectModal({ savedCards, selectedPayment, selectedCardId, onSelect
             <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
         </svg>
     );
-    const phoneIcon = (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#826CFF" strokeWidth="2">
-            <rect x="5" y="2" width="14" height="20" rx="2" /><line x1="12" y1="18" x2="12.01" y2="18" />
-        </svg>
-    );
-    const laftelIcon = (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#826CFF" strokeWidth="2.2">
-            <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
-        </svg>
-    );
-
-    const getIcon = (id: string) => {
-        if (id === "card") return cardIcon();
-        if (id === "phone") return phoneIcon;
-        return laftelIcon;
-    };
 
     return (
         <ModalWrap onClose={onClose} title="결제수단 선택">
             <div className="flex flex-col gap-2 max-h-[460px] overflow-y-auto pr-1">
-
-                {/* 등록된 카드 */}
                 {savedCards.length > 0 && (
                     <>
                         <p className="text-[11px] font-semibold text-[#aaa] mb-0.5">등록된 결제수단</p>
@@ -387,7 +358,6 @@ function CardSelectModal({ savedCards, selectedPayment, selectedCardId, onSelect
                             );
                         })}
                         <div className="border-t border-[#f0eeff] my-1" />
-                        <p className="text-[11px] font-semibold text-[#aaa] mb-0.5">간편결제 / 기타</p>
                     </>
                 )}
 
@@ -465,6 +435,71 @@ function CouponSelectModal({ coupons, selectedId, orderAmount, onSelect, onClose
     );
 }
 
+
+// ─── 포인트 입력 컴포넌트 (리마운트 격리) ──────────────────────────────────
+function PointInput({ livePoints, onApply, onError }: {
+    livePoints: number;
+    onApply: (v: number) => void;
+    onError: (msg: string) => void;
+}) {
+    const [val, setVal] = useState("");
+    const [applied, setApplied] = useState(false);
+
+    const handleApply = () => {
+        const v = Number(val) || 0;
+        if (v > livePoints) { onError("보유 포인트가 부족해요."); setApplied(false); return; }
+        onApply(v);
+        onError("");
+        setApplied(true);
+    };
+
+    const handleUseAll = () => {
+        setVal(String(livePoints));
+        onApply(livePoints);
+        onError("");
+        setApplied(true);
+    };
+
+    return (
+        <div className="flex gap-2">
+            <div className="relative flex-1">
+                <input
+                    type="number"
+                    min={0}
+                    value={val}
+                    onChange={(e) => { setVal(e.target.value); setApplied(false); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
+                    placeholder="0"
+                    style={{
+                        color: applied ? "#826CFF" : "#111111",
+                        fontWeight: applied ? 700 : 400,
+                        MozAppearance: "textfield",
+                    } as React.CSSProperties}
+                    className={`w-full h-11 rounded-[12px] border pr-8 pl-4 text-[13px] outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${applied ? "border-[#826CFF]" : "border-[#e0daf7] focus:border-[#826CFF]"}`}
+                />
+                <span
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-bold pointer-events-none select-none"
+                    style={{ color: applied ? "#826CFF" : "#aaaaaa" }}
+                >P</span>
+            </div>
+            <button
+                type="button"
+                onClick={handleUseAll}
+                className="h-11 px-3 rounded-[12px] border border-[#e0daf7] text-[#826CFF] text-[12px] font-bold hover:bg-[#f5f3ff] transition-colors whitespace-nowrap"
+            >
+                전체사용
+            </button>
+            <button
+                type="button"
+                onClick={handleApply}
+                className="h-11 px-3 rounded-[12px] bg-[#826CFF] text-white text-[12px] font-bold hover:bg-[#6B5CE7] transition-colors"
+            >
+                적용
+            </button>
+        </div>
+    );
+}
+
 // ─── 메인 페이지 ─────────────────────────────────────────────────────────────
 function OrderContent() {
     const router = useRouter();
@@ -519,6 +554,13 @@ function OrderContent() {
     const [showShippingModal, setShowShippingModal] = useState(false);
     const [isDefaultAddress, setIsDefaultAddress] = useState(false);
 
+    // ── 유효성 에러 상태 ──
+    const [formErrors, setFormErrors] = useState<{
+        buyerName?: boolean;
+        buyerPhone?: boolean;
+        shippingAddress?: boolean;
+    }>({});
+
     // ── 저장된 주소 목록 (Firebase) ──
     const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
 
@@ -530,7 +572,6 @@ function OrderContent() {
     useEffect(() => {
         if (!user?.uid) return;
 
-        // 주소 로드
         getDocs(collection(db, "users", user.uid, "addresses")).then(snap => {
             const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as SavedAddress));
             list.sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0));
@@ -542,7 +583,6 @@ function OrderContent() {
             }
         });
 
-        // 카드 로드
         getDoc(doc(db, "users", user.uid)).then(snap => {
             if (!snap.exists()) return;
             const cards: SavedCard[] = snap.data()?.cards ?? [];
@@ -555,7 +595,7 @@ function OrderContent() {
         });
     }, [user?.uid]);
 
-    // ── 쿠폰 (Firebase 실데이터) ──
+    // ── 쿠폰 ──
     const { activeCoupons, fetchActiveCoupons, selectCoupon, selectedCoupon } = useCouponStore();
     const [showCouponModal, setShowCouponModal] = useState(false);
     const [couponLoading, setCouponLoading] = useState(false);
@@ -569,9 +609,8 @@ function OrderContent() {
 
     const couponDiscount = selectedCoupon ? calcCouponDiscount(selectedCoupon, totalItemsPrice) : 0;
 
-    // ── 포인트 (Firebase 실시간) ──
+    // ── 포인트 ──
     const [livePoints, setLivePoints] = useState(user?.points ?? 0);
-    const [pointInput, setPointInput] = useState("");
     const [appliedPoint, setAppliedPoint] = useState(0);
     const [pointError, setPointError] = useState("");
 
@@ -583,20 +622,8 @@ function OrderContent() {
         return () => unsub();
     }, [user?.uid]);
 
-    const applyPoint = () => {
-        const v = parseInt(pointInput.replace(/[^0-9]/g, ""), 10) || 0;
-        const maxUsable = Math.max(0, totalItemsPrice + shippingFee - couponDiscount);
-        if (v > livePoints) { setPointError("보유 포인트가 부족해요."); return; }
-        if (v > maxUsable) { setPointError("사용 포인트가 결제 금액을 초과해요."); return; }
-        setPointError("");
-        setAppliedPoint(v);
-    };
-    const useAllPoints = () => {
-        const max = Math.min(livePoints, Math.max(0, totalItemsPrice + shippingFee - couponDiscount));
-        setPointInput(String(max));
-        setAppliedPoint(max);
-        setPointError("");
-    };
+
+
 
     // ── 금액 계산 ──
     const totalDiscount = couponDiscount + appliedPoint;
@@ -614,8 +641,32 @@ function OrderContent() {
     const animDiscount = useAnimatedNumber(totalDiscount);
     const flashTotal = useFlash(totalPrice);
 
+    // ─── 버그1 수정: 유효성 검사 ──────────────────────────────────────────────
+    const validate = (): boolean => {
+        const errors: typeof formErrors = {};
+        if (!buyer.name.trim()) errors.buyerName = true;
+        if (!buyer.phone.trim()) errors.buyerPhone = true;
+        if (!shipping.address.trim()) errors.shippingAddress = true;
+
+        setFormErrors(errors);
+
+        if (Object.keys(errors).length > 0) {
+            // 첫 번째 에러 필드로 스크롤
+            if (errors.buyerName || errors.buyerPhone) {
+                document.getElementById("section-buyer")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            } else if (errors.shippingAddress) {
+                document.getElementById("section-shipping")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+            return false;
+        }
+        return true;
+    };
+
     // ── 결제 처리 ──
     const handlePay = async () => {
+        // 필수 정보 유효성 체크
+        if (!validate()) return;
+
         if (!agreed) {
             setAgreeError(true);
             document.getElementById("agree-checkbox")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -632,6 +683,7 @@ function OrderContent() {
                     usedPoints: appliedPoint,
                     usedCouponId: selectedCoupon?.id ?? null,
                     usedCouponLabel: selectedCoupon?.label ?? null,
+                    usedCouponDiscount: couponDiscount > 0 ? couponDiscount : null,
                     createdAt: serverTimestamp(),
                     notified: false,
                     buyer: { name: buyer.name, phone: buyer.phone, email: buyer.email },
@@ -648,12 +700,10 @@ function OrderContent() {
                 }
             );
 
-            // 쿠폰 사용 처리
             if (selectedCoupon) {
                 await useCouponLib(user.uid, selectedCoupon.id, orderRef.id);
             }
 
-            // 포인트 차감 + 내역 저장
             if (appliedPoint > 0) {
                 const newPoints = Math.max(0, livePoints - appliedPoint);
                 await setDoc(doc(db, "users", user.uid), { points: newPoints }, { merge: true });
@@ -665,7 +715,6 @@ function OrderContent() {
                 });
             }
 
-            // 장바구니 제거
             if (cartRaws.length > 0) {
                 await setDoc(
                     doc(db, "users", user.uid),
@@ -724,7 +773,7 @@ function OrderContent() {
                     coupons={activeCoupons}
                     selectedId={selectedCoupon?.id ?? ""}
                     orderAmount={totalItemsPrice}
-                    onSelect={(c) => { selectCoupon(c); setAppliedPoint(0); setPointInput(""); }}
+                    onSelect={(c) => { selectCoupon(c); setAppliedPoint(0); }}
                     onClose={() => setShowCouponModal(false)}
                 />
             )}
@@ -812,9 +861,16 @@ function OrderContent() {
                         </section>
 
                         {/* 주문자 정보 */}
-                        <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
+                        <section id="section-buyer" className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-[18px] font-bold text-[#111018]">주문자 정보</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-[18px] font-bold text-[#111018]">주문자 정보</h3>
+                                    {(formErrors.buyerName || formErrors.buyerPhone) && (
+                                        <span className="text-[11px] font-bold text-[#ff4d6d] bg-[#fff0f3] px-2 py-0.5 rounded-full" style={{ animation: "fadeSlideIn 0.2s ease" }}>
+                                            필수 정보를 입력해주세요
+                                        </span>
+                                    )}
+                                </div>
                                 <button onClick={() => setShowBuyerModal(true)}
                                     className="text-[12px] text-[#826CFF] hover:underline font-semibold flex items-center gap-1">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -822,8 +878,15 @@ function OrderContent() {
                                 </button>
                             </div>
                             <div className="space-y-2 text-[14px]">
-                                <p className="font-bold text-[#111]">{buyer.name || "이름을 입력해주세요"}</p>
-                                <div className="flex gap-3"><span className="w-14 text-[#aaa]">휴대폰</span><span className="text-[#333] font-medium">{buyer.phone || "-"}</span></div>
+                                <p className={`font-bold ${formErrors.buyerName && !buyer.name ? "text-[#ff4d6d]" : "text-[#111]"}`}>
+                                    {buyer.name || <span className="font-normal text-[#bbb]">이름 미입력</span>}
+                                </p>
+                                <div className="flex gap-3">
+                                    <span className="w-14 text-[#aaa]">휴대폰</span>
+                                    <span className={`font-medium ${formErrors.buyerPhone && !buyer.phone ? "text-[#ff4d6d]" : "text-[#333]"}`}>
+                                        {buyer.phone || <span className="font-normal text-[#bbb]">미입력</span>}
+                                    </span>
+                                </div>
                                 <div className="flex gap-3"><span className="w-14 text-[#aaa]">이메일</span><span className="text-[#333] font-medium">{buyer.email || "-"}</span></div>
                             </div>
                             <p className="mt-3 text-[12px] text-[#ccc] leading-relaxed">
@@ -832,13 +895,17 @@ function OrderContent() {
                         </section>
 
                         {/* 배송지 */}
-                        <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
+                        <section id="section-shipping" className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
                                     <h3 className="text-[18px] font-bold text-[#111018]">배송지 주소</h3>
-                                    {/* 기본 배송지 뱃지 */}
                                     {isDefaultAddress && (
                                         <span className="text-[11px] font-bold text-white bg-[#826CFF] px-2 py-0.5 rounded-full">기본 배송지</span>
+                                    )}
+                                    {formErrors.shippingAddress && (
+                                        <span className="text-[11px] font-bold text-[#ff4d6d] bg-[#fff0f3] px-2 py-0.5 rounded-full" style={{ animation: "fadeSlideIn 0.2s ease" }}>
+                                            배송지를 입력해주세요
+                                        </span>
                                     )}
                                 </div>
                                 <button onClick={() => setShowShippingModal(true)}
@@ -847,7 +914,7 @@ function OrderContent() {
                                     주소변경
                                 </button>
                             </div>
-                            <div className="space-y-1 text-[14px]">
+                            <div className="space-y-2 text-[14px]">
                                 {shipping.address ? (
                                     <>
                                         <p className="font-bold text-[#111]">{shipping.name}</p>
@@ -858,7 +925,9 @@ function OrderContent() {
                                         {shipping.memo && <p className="mt-2 text-[#aaa]">요청사항: {shipping.memo}</p>}
                                     </>
                                 ) : (
-                                    <p className="text-[13px] text-[#aaa]">배송지를 입력해주세요.</p>
+                                    <p className={`text-[13px] ${formErrors.shippingAddress ? "text-[#ff4d6d] font-semibold" : "text-[#aaa]"}`}>
+                                        배송지를 입력해주세요.
+                                    </p>
                                 )}
                             </div>
                         </section>
@@ -868,7 +937,7 @@ function OrderContent() {
                             <h3 className="text-[18px] font-bold text-[#111018] mb-4">할인혜택</h3>
                             <div className="grid grid-cols-2 gap-4">
 
-                                {/* 쿠폰 — Firebase 실데이터 */}
+                                {/* 쿠폰 */}
                                 <div>
                                     <label className="block text-[12px] font-semibold text-[#666] mb-1.5">
                                         쿠폰 적용
@@ -893,33 +962,17 @@ function OrderContent() {
                                     ) : <p className="mt-1 text-[11px] text-transparent select-none">-</p>}
                                 </div>
 
-                                {/* 포인트 — Firebase 실시간 */}
+                                {/* 포인트 */}
                                 <div>
                                     <label className="block text-[12px] font-semibold text-[#666] mb-1.5">
                                         포인트
                                         <span className="text-[#aaa] font-normal ml-1.5">(보유 {livePoints.toLocaleString()}P)</span>
                                     </label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={pointInput}
-                                            onChange={(e) => {
-                                                setPointInput(e.target.value.replace(/[^0-9]/g, ""));
-                                                setAppliedPoint(0);
-                                                setPointError("");
-                                            }}
-                                            placeholder="0"
-                                            className={`flex-1 h-11 rounded-[12px] border px-4 text-[13px] outline-none transition-colors ${pointError ? "border-[#ff4d6d]" : "border-[#e0daf7] focus:border-[#826CFF]"}`}
-                                        />
-                                        <button onClick={useAllPoints}
-                                            className="h-11 px-3 rounded-[12px] border border-[#e0daf7] text-[#826CFF] text-[12px] font-bold hover:bg-[#f5f3ff] transition-colors whitespace-nowrap">
-                                            전체사용
-                                        </button>
-                                        <button onClick={applyPoint}
-                                            className="h-11 px-3 rounded-[12px] bg-[#826CFF] text-white text-[12px] font-bold hover:bg-[#6B5CE7] transition-colors">
-                                            적용
-                                        </button>
-                                    </div>
+                                    <PointInput
+                                        livePoints={livePoints}
+                                        onApply={(v) => { setAppliedPoint(v); setPointError(""); }}
+                                        onError={(msg) => setPointError(msg)}
+                                    />
                                     {pointError && <p className="mt-1.5 text-[12px] text-[#ff4d6d] font-semibold">{pointError}</p>}
                                     {!pointError && appliedPoint > 0 && (
                                         <p className="mt-1.5 text-[12px] text-[#826CFF] font-semibold flex items-center gap-1">
@@ -977,7 +1030,7 @@ function OrderContent() {
 
                                 <div className={`border-t border-[#f0eeff] pt-3 flex justify-between items-center rounded-[10px] px-2 py-2 -mx-2 transition-colors duration-300 ${flashTotal === "down" ? "bg-[#f0fdf4]" : flashTotal === "up" ? "bg-[#fff0f0]" : ""}`}>
                                     <span className="font-bold text-[#111]">총 결제 금액</span>
-                                    <span className="text-[20px] font-extrabold text-[#826CFF] tabular-nums">
+                                    <span className="text-[20px] font-extrabold tabular-nums" style={{ color: "#826CFF" }}>
                                         {animTotal.toLocaleString()}원
                                     </span>
                                 </div>
@@ -997,7 +1050,6 @@ function OrderContent() {
                             <h3 className="text-[15px] font-bold text-[#111018] mb-4">결제수단</h3>
                             <div className="space-y-2">
 
-                                {/* 등록된 카드 — 버튼 클릭 시 모달 */}
                                 {savedCards.length > 0 && (
                                     <>
                                         <p className="text-[11px] font-semibold text-[#aaa] mb-1">등록된 결제수단</p>
@@ -1029,14 +1081,12 @@ function OrderContent() {
                                     </>
                                 )}
 
-                                {/* 라프텔 페이 */}
                                 <button onClick={() => setSelectedPayment("laftel_pay")}
                                     className={`w-full h-11 rounded-[12px] text-[13px] font-bold transition-all flex items-center justify-center gap-2 ${selectedPayment === "laftel_pay" ? "bg-[#826CFF] text-white shadow-md shadow-[#826cff40]" : "bg-[#f0eeff] text-[#826CFF] hover:bg-[#e8e3ff]"}`}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
                                     라프텔 페이로 1초 만에 결제
                                 </button>
 
-                                {/* 간편결제 */}
                                 <div className="grid grid-cols-2 gap-2">
                                     {[
                                         { id: "kakaopay", label: "카카오페이", img: "/images/pay/kakao.png" },
@@ -1051,7 +1101,6 @@ function OrderContent() {
                                     ))}
                                 </div>
 
-                                {/* 신용카드 / 휴대폰 */}
                                 <div className="grid grid-cols-2 gap-2">
                                     {[{ id: "card", label: "신용 / 체크카드" }, { id: "phone", label: "휴대폰 결제" }].map((pm) => (
                                         <button key={pm.id} onClick={() => setSelectedPayment(pm.id)}
@@ -1088,7 +1137,6 @@ function OrderContent() {
                             </p>
                         )}
 
-                        {/* 결제하기 */}
                         <button onClick={handlePay} disabled={loading}
                             className="w-full h-[54px] rounded-full bg-[#826CFF] hover:bg-[#6B5CE7] text-white text-[16px] font-extrabold transition-all shadow-lg shadow-[#826cff30] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                             {loading ? (
@@ -1115,6 +1163,7 @@ function OrderContent() {
         </div>
     );
 }
+
 
 export default function OrderPage() {
     return (

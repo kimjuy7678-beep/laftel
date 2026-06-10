@@ -53,16 +53,20 @@ function WriteModal({ onClose, onSubmit }: {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-            <div className="w-full max-w-[520px] rounded-[20px] bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between border-b border-[#f0edf8] px-6 py-5">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4" onClick={onClose}>
+            <div className="w-full md:max-w-[520px] rounded-t-[24px] md:rounded-[20px] bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                {/* 모바일 핸들 */}
+                <div className="flex justify-center pt-3 pb-1 md:hidden">
+                    <div className="w-10 h-1 rounded-full bg-[#e2ddf5]" />
+                </div>
+                <div className="flex items-center justify-between border-b border-[#f0edf8] px-5 md:px-6 py-4 md:py-5">
                     <h3 className="text-[16px] font-bold text-[#16121f]">문의 작성</h3>
                     <button onClick={onClose}
                         className="flex h-7 w-7 items-center justify-center rounded-full border border-[#e2ddf5] text-[#9b94b2] transition hover:border-[#7865ff] hover:text-[#7865ff]">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                     </button>
                 </div>
-                <div className="px-6 py-5 flex flex-col gap-4">
+                <div className="px-5 md:px-6 py-4 md:py-5 flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
                     <div>
                         <p className="mb-2 text-[12px] font-semibold text-[#6b647a]">문의 유형</p>
                         <div className="flex flex-wrap gap-2">
@@ -98,13 +102,13 @@ function WriteModal({ onClose, onSubmit }: {
                             {error}
                         </p>
                     )}
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex gap-2 pt-1 pb-2 md:pb-0">
                         <button onClick={onClose}
-                            className="flex-1 h-[42px] rounded-[10px] border border-[#e2ddf5] text-[13px] font-semibold text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
+                            className="flex-1 h-[44px] md:h-[42px] rounded-[10px] border border-[#e2ddf5] text-[13px] font-semibold text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
                             취소
                         </button>
                         <button onClick={handleSubmit} disabled={loading}
-                            className="flex-1 h-[42px] rounded-[10px] bg-[#7865ff] text-[13px] font-semibold text-white transition hover:bg-[#6b55f0] disabled:opacity-50">
+                            className="flex-1 h-[44px] md:h-[42px] rounded-[10px] bg-[#7865ff] text-[13px] font-semibold text-white transition hover:bg-[#6b55f0] disabled:opacity-50">
                             {loading ? "등록 중..." : "문의 등록"}
                         </button>
                     </div>
@@ -134,19 +138,18 @@ function InquiryCard({ inquiry, onDelete }: {
         <div className="rounded-[12px] border border-[#ebe8ff] overflow-hidden transition hover:border-[#c4baff]">
             {/* 헤더 행 */}
             <button onClick={() => setOpen(v => !v)}
-                className="w-full flex items-center gap-3 px-4 sm:px-5 py-4 text-left bg-white hover:bg-[#faf9ff] transition">
-                <span className="shrink-0 rounded-[6px] bg-[#f0eeff] px-2.5 py-1 text-[11px] font-bold text-[#7865ff]">
+                className="w-full flex items-center gap-2 md:gap-3 px-3 md:px-5 py-3 md:py-4 text-left bg-white hover:bg-[#faf9ff] transition">
+                <span className="shrink-0 rounded-[6px] bg-[#f0eeff] px-2 md:px-2.5 py-1 text-[11px] font-bold text-[#7865ff]">
                     {inquiry.category}
                 </span>
-                <p className="flex-1 min-w-0 truncate text-[13px] font-semibold text-[#16121f]">
+                <p className="flex-1 min-w-0 truncate text-[12px] md:text-[13px] font-semibold text-[#16121f]">
                     {inquiry.title}
                 </p>
-                <span className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                <span className="shrink-0 rounded-full px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-bold"
                     style={{ background: statusStyle.bg, color: statusStyle.color }}>
                     {inquiry.status}
                 </span>
-                <span className="shrink-0 text-[11px] text-[#9b94b2] hidden sm:block">{inquiry.date}</span>
-                {/* ✅ 답변대기일 때만 삭제 버튼 */}
+                <span className="shrink-0 text-[11px] text-[#9b94b2] hidden md:block">{inquiry.date}</span>
                 {inquiry.status === "답변대기" && (
                     <button
                         onClick={handleDelete}
@@ -165,10 +168,17 @@ function InquiryCard({ inquiry, onDelete }: {
                 </svg>
             </button>
 
+            {/* 모바일 날짜 표시 */}
+            {open && (
+                <div className="px-3 py-1 bg-white border-t border-[#f5f3ff] md:hidden">
+                    <p className="text-[11px] text-[#c0bcd0]">{inquiry.date}</p>
+                </div>
+            )}
+
             {/* 펼침 내용 */}
             {open && (
                 <div className="border-t border-[#f0edf8]">
-                    <div className="px-4 sm:px-5 py-4 bg-[#faf9ff]">
+                    <div className="px-3 md:px-5 py-4 bg-[#faf9ff]">
                         <div className="flex items-center gap-2 mb-2">
                             <div className="h-5 w-5 shrink-0 flex items-center justify-center rounded-full bg-[#e2ddf5]">
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#7865ff" strokeWidth="2.5">
@@ -176,12 +186,11 @@ function InquiryCard({ inquiry, onDelete }: {
                                 </svg>
                             </div>
                             <p className="text-[11px] font-bold text-[#9b94b2]">내 문의</p>
-                            <p className="ml-auto text-[11px] text-[#c0bcd0]">{inquiry.date}</p>
                         </div>
                         <p className="text-[13px] text-[#3d3755] leading-relaxed whitespace-pre-wrap">{inquiry.content}</p>
                     </div>
                     {inquiry.status === "답변완료" && inquiry.answer ? (
-                        <div className="px-4 sm:px-5 py-4 bg-[#f0eeff] border-t border-[#e8e2ff]">
+                        <div className="px-3 md:px-5 py-4 bg-[#f0eeff] border-t border-[#e8e2ff]">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="h-5 w-5 shrink-0 flex items-center justify-center rounded-full bg-[#7865ff]">
                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2">
@@ -194,7 +203,7 @@ function InquiryCard({ inquiry, onDelete }: {
                             <p className="text-[13px] text-[#3d3755] leading-relaxed whitespace-pre-wrap">{inquiry.answer}</p>
                         </div>
                     ) : (
-                        <div className="px-4 sm:px-5 py-4 bg-[#fffbf0] border-t border-[#fde68a]/40 flex items-center gap-2">
+                        <div className="px-3 md:px-5 py-4 bg-[#fffbf0] border-t border-[#fde68a]/40 flex items-center gap-2">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                             </svg>
@@ -242,7 +251,6 @@ export default function InquiryPage() {
         await fetchInquiries();
     };
 
-    // ✅ 삭제 핸들러 — 답변대기 상태만 삭제 가능
     const handleDelete = async (id: string) => {
         if (!user?.uid) return;
         await deleteDoc(doc(db, "users", user.uid, "inquiries", id));
@@ -255,46 +263,57 @@ export default function InquiryPage() {
 
     return (
         <>
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                    <h2 className="text-[18px] sm:text-[20px] font-bold text-[#16121f]">문의 내역</h2>
-                    <p className="mt-1 text-[13px] text-[#9b94b2]">상품, 배송, 교환/환불 관련 문의를 남겨주세요.</p>
+            {/* 헤더 */}
+            <div className="mb-5 md:mb-6">
+                <div className="flex items-center justify-between gap-3 mb-1">
+                    <h2 className="text-[18px] md:text-[20px] font-bold text-[#16121f]">문의 내역</h2>
+                    <button onClick={() => setShowWrite(true)}
+                        className="flex shrink-0 h-[36px] items-center gap-1.5 rounded-[10px] bg-[#7865ff] px-3 md:px-4 text-[12px] md:text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(120,101,255,0.3)] transition hover:bg-[#6b55f0]">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        문의하기
+                    </button>
                 </div>
-                <button onClick={() => setShowWrite(true)}
-                    className="flex h-[38px] items-center gap-1.5 rounded-[10px] bg-[#7865ff] px-4 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(120,101,255,0.3)] transition hover:bg-[#6b55f0] w-fit">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    문의하기
-                </button>
+                <p className="text-[12px] md:text-[13px] text-[#9b94b2]">상품, 배송, 교환/환불 관련 문의를 남겨주세요.</p>
             </div>
 
-            <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3">
+            {/* 통계 카드 — 모바일: 세로 중앙 정렬 / PC: 아이콘+텍스트 가로 배치 */}
+            <div className="mb-5 grid grid-cols-3 gap-2 md:gap-3">
                 {[
-                    { label: "전체 문의", value: inquiries.length, unit: "건", color: "#7865ff", bg: "#f0eeff" },
-                    { label: "답변대기", value: waitCount, unit: "건", color: "#d97706", bg: "#fff8e6" },
-                    { label: "답변완료", value: doneCount, unit: "건", color: "#16a34a", bg: "#f0fdf4" },
+                    { label: "전체 문의", labelMobile: "전체", value: inquiries.length, unit: "건", color: "#7865ff", bg: "#f0eeff" },
+                    { label: "답변대기", labelMobile: "대기", value: waitCount, unit: "건", color: "#d97706", bg: "#fff8e6" },
+                    { label: "답변완료", labelMobile: "완료", value: doneCount, unit: "건", color: "#16a34a", bg: "#f0fdf4" },
                 ].map(s => (
-                    <div key={s.label} className="rounded-[12px] border border-[#ebe8ff] bg-white px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-3">
-                        <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-full flex items-center justify-center" style={{ background: s.bg }}>
+                    <div key={s.label} className="rounded-[12px] border border-[#ebe8ff] bg-white px-2.5 md:px-4 py-3 flex flex-col items-center justify-center gap-1 md:flex-row md:items-center md:gap-3">
+                        {/* 아이콘 — PC만 표시 */}
+                        <div className="hidden md:flex h-9 w-9 shrink-0 rounded-full items-center justify-center" style={{ background: s.bg }}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                             </svg>
                         </div>
-                        <div>
-                            <p className="text-[10px] sm:text-[11px] text-[#9b94b2]">{s.label}</p>
-                            <p className="text-[14px] sm:text-[16px] font-bold" style={{ color: s.color }}>
-                                {s.value}<span className="text-[11px] font-medium ml-0.5">{s.unit}</span>
+                        {/* 텍스트 */}
+                        <div className="flex flex-col items-center md:items-start">
+                            <p className="text-[10px] md:text-[11px] text-[#9b94b2]">
+                                <span className="md:hidden">{s.labelMobile}</span>
+                                <span className="hidden md:inline">{s.label}</span>
                             </p>
+                            <p className="text-[18px] md:text-[16px] font-bold leading-none md:leading-normal" style={{ color: s.color }}>
+                                {s.value}
+                                <span className="text-[10px] md:text-[11px] font-medium ml-0.5 hidden md:inline">{s.unit}</span>
+                            </p>
+                            {/* 건 — 모바일만 표시 */}
+                            <p className="text-[10px] text-[#9b94b2] md:hidden">건</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="mb-4 flex items-center gap-5 border-b border-[#f0edf8]">
+            {/* 탭 */}
+            <div className="mb-4 flex items-center gap-4 md:gap-5 border-b border-[#f0edf8] overflow-x-auto">
                 {STATUS_TABS.map(t => (
                     <button key={t} onClick={() => setTab(t)}
-                        className={`pb-3 text-[13px] font-semibold transition border-b-2 ${tab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
+                        className={`pb-3 text-[13px] font-semibold transition border-b-2 whitespace-nowrap ${tab === t ? "border-[#7865ff] text-[#7865ff]" : "border-transparent text-[#9b94b2] hover:text-[#3d3755]"}`}>
                         {t}
                         {t === "답변대기" && waitCount > 0 && (
                             <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#7865ff] px-1 text-[10px] font-bold text-white">
@@ -305,6 +324,7 @@ export default function InquiryPage() {
                 ))}
             </div>
 
+            {/* 목록 */}
             {loading ? (
                 <div className="flex h-[200px] items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
@@ -336,7 +356,8 @@ export default function InquiryPage() {
                 </div>
             )}
 
-            <div className="mt-6 rounded-[12px] border border-[#ebe8ff] bg-[#faf9ff] px-5 py-4">
+            {/* 안내 */}
+            <div className="mt-5 md:mt-6 rounded-[12px] border border-[#ebe8ff] bg-[#faf9ff] px-4 md:px-5 py-4">
                 <p className="mb-2 text-[12px] font-semibold text-[#7865ff]">문의 안내</p>
                 <ul className="flex flex-col gap-1.5">
                     {[

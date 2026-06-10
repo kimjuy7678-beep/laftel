@@ -28,7 +28,7 @@ export default function LiveSection() {
                 const duration = endMin - startMin
                 progress = Math.min(100, Math.max(0, ((nowMin - startMin) / duration) * 100))
             }
-            return { channelId: sch.id, item, next }
+            return { channelId: sch.id, item, next, progress }
         })
     }, [schedule, nowMin])
 
@@ -77,7 +77,7 @@ export default function LiveSection() {
                                     </div>
 
                                     <div className={styles.progressWrap}>
-                                        <div className={styles.progressBar} style={{ width: `${progress}` }} />
+                                        <div className={styles.progressBar} style={{ width: `${progress}%` }} />
                                     </div>
                                 </div>
 

@@ -13,7 +13,7 @@ import {
 
 interface Notification {
     id: string
-    type: 'point' | 'coupon' | 'membership' | 'event' | 'live' | 'order' | 'cancel'
+    type: 'point' | 'coupon' | 'membership' | 'event' | 'live' | 'order' | 'cancel' | 'message'
     title: string
     body: string
     link?: string
