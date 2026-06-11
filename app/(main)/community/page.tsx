@@ -1,5 +1,6 @@
 'use client'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import PageHeader from '@/components/PageHeader'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import { db, storage } from '@/firebase/firebase'
@@ -86,10 +87,124 @@ function generateRandomPosts() {
     }))
 }
 
+const T = (h: number) => new Date(Date.now() - 3600000 * h).toISOString()
+
 const MOCK_COMMENTS: Record<string, any[]> = {
     m1: [
-        { id: 'mc1', authorNickname: '에렌빠', authorProfileImg: '', authorWatched: 55, content: '엘런 입장에서는 그게 유일한 방법이었다고 봄.', createdAt: new Date(Date.now() - 3600000).toISOString(), likes: 23 },
-        { id: 'mc2', authorNickname: '미카사사랑', authorProfileImg: '', authorWatched: 8, content: '미카사 엔딩이 너무 슬펐음 ㅠㅠ', createdAt: new Date(Date.now() - 1800000).toISOString(), likes: 11 },
+        { id: 'mc1', authorNickname: '에렌빠', authorProfileImg: '', authorWatched: 55, content: '엘런 입장에서는 그게 유일한 방법이었다고 봄. 이미 미래를 봤으니 선택의 여지가 없었던 거지', createdAt: T(1.5), likes: 23 },
+        { id: 'mc2', authorNickname: '미카사사랑', authorProfileImg: '', authorWatched: 8, content: '미카사 엔딩이 너무 슬펐음 ㅠㅠ 그냥 같이 있을 수 없었나...', createdAt: T(0.8), likes: 11 },
+        { id: 'mc3', authorNickname: '역사덕', authorProfileImg: '', authorWatched: 73, content: '작가가 인터뷰에서 엘런은 처음부터 끝까지 자유를 원했던 캐릭터라고 했음. 그 자유가 결국 모두의 죽음을 선택한 거고', createdAt: T(0.3), likes: 44 },
+    ],
+    m2: [
+        { id: 'mc4', authorNickname: '진격분석러', authorProfileImg: '', authorWatched: 90, content: '엘런이 기억을 가진 채로 태어났다는 설정 자체가 이미 결말을 정해놓은 거잖아. 자유의지가 있었냐는 철학적 문제임', createdAt: T(5), likes: 31 },
+        { id: 'mc5', authorNickname: '리바이최애', authorProfileImg: '', authorWatched: 44, content: '동의해. 엘런이 악인이라기보다 비극의 주인공에 가까움. 다 알면서도 해야 했으니까', createdAt: T(3), likes: 18 },
+    ],
+    m3: [
+        { id: 'mc6', authorNickname: '조사병단원', authorProfileImg: '', authorWatched: 62, content: '리바이 병장 진짜 인간적임. 부하 잃을 때마다 눈에 띄게 무너지는 게 보임', createdAt: T(8), likes: 37 },
+        { id: 'mc7', authorNickname: '에르빈덕', authorProfileImg: '', authorWatched: 51, content: '4기에서 눈이랑 손가락 잃고도 끝까지 싸우는 장면... 진짜 캐릭터 소비가 아니라 서사가 있음', createdAt: T(5), likes: 29 },
+        { id: 'mc8', authorNickname: '진격입문자', authorProfileImg: '', authorWatched: 12, content: '이제 막 1기 봤는데 리바이 등장 장면에서 소름 돋았어요', createdAt: T(1), likes: 8 },
+    ],
+    m4: [
+        { id: 'mc9', authorNickname: 'WIT팬', authorProfileImg: '', authorWatched: 35, content: 'WIT 1기 오프닝 지금 들어도 닭살이잖아ㅋㅋ 진격은 배경음악이 진짜 작품의 절반임', createdAt: T(12), likes: 22 },
+        { id: 'mc10', authorNickname: 'MAPPA지지자', authorProfileImg: '', authorWatched: 28, content: 'MAPPA도 나름 잘한 거 같은데. 파이널 시즌 특히 인류의 왕 장면 연출은 진짜였음', createdAt: T(7), likes: 15 },
+    ],
+    m5: [
+        { id: 'mc11', authorNickname: 'OST수집가2', authorProfileImg: '', authorWatched: 48, content: 'YouSeeBIGGIRL 들을 때마다 전투 장면이 눈에 선해ㅠ 진짜 소음악 천재임', createdAt: T(16), likes: 41 },
+        { id: 'mc12', authorNickname: '진격팬', authorProfileImg: '', authorWatched: 39, content: 'Attack on Titan ~蛍の光~ 도 추가해줘요. 엔딩곡 중 가장 감동적이었음', createdAt: T(9), likes: 19 },
+        { id: 'mc13', authorNickname: '사운드트랙러버', authorProfileImg: '', authorWatched: 77, content: 'Call of Silence가 빠졌는데... 개인적으로 그게 시리즈 최고봉임', createdAt: T(3), likes: 33 },
+    ],
+    m6: [
+        { id: 'mc14', authorNickname: '작화오타쿠', authorProfileImg: '', authorWatched: 22, content: '진짜 Ufotable은 어떻게 저걸 TV로 뽑아내는 거임? 극장판이랑 퀄 차이가 없잖아', createdAt: T(4), likes: 56 },
+        { id: 'mc15', authorNickname: '귀멸덕', authorProfileImg: '', authorWatched: 17, content: '카마도 탄지로 vs 아카자 전투 장면은 진짜 2D 애니 역사에 남을 듯', createdAt: T(2), likes: 38 },
+    ],
+    m7: [
+        { id: 'mc16', authorNickname: '렌고쿠최애', authorProfileImg: '', authorWatched: 22, content: '극장에서 봤을 때 옆에 앉은 아저씨도 울고 있었음... 세대를 초월하는 캐릭터임', createdAt: T(6), likes: 89 },
+        { id: 'mc17', authorNickname: '귀멸입문', authorProfileImg: '', authorWatched: 4, content: '렌고쿠 상! 이 대사 진짜 오래 기억에 남음. 단순하지만 핵심을 찌르는 말', createdAt: T(4), likes: 47 },
+        { id: 'mc18', authorNickname: '무한열차n회차', authorProfileImg: '', authorWatched: 33, content: '도시락 먹는 장면이 왜 이렇게 감동인지ㅋㅋ 그냥 밥 먹는 건데 눈물이 남', createdAt: T(1.5), likes: 31 },
+    ],
+    m8: [
+        { id: 'mc19', authorNickname: '귀멸뉴비', authorProfileImg: '', authorWatched: 2, content: '감사합니다!! 이 순서대로 봤는데 극장판 맥락이 잘 이해됐어요', createdAt: T(9), likes: 14 },
+        { id: 'mc20', authorNickname: '귀멸고수', authorProfileImg: '', authorWatched: 55, content: '도오마 편부터 보려면 1기부터 감정선 쌓아야 해서 진짜 순서 중요함. 좋은 글!', createdAt: T(5), likes: 22 },
+    ],
+    m9: [
+        { id: 'mc21', authorNickname: '네즈코수호대2', authorProfileImg: '', authorWatched: 18, content: '오니화 컨트롤하는 장면부터 완전 달라짐. 그냥 마스코트 아니었음', createdAt: T(14), likes: 27 },
+        { id: 'mc22', authorNickname: '귀멸분석가', authorProfileImg: '', authorWatched: 40, content: '네즈코가 선택한 "인간을 지키는 오니"라는 정체성이 작품 주제랑 딱 맞아 떨어짐', createdAt: T(7), likes: 19 },
+    ],
+    m10: [
+        { id: 'mc23', authorNickname: 'BGM수집가', authorProfileImg: '', authorWatched: 29, content: '저도 유이가오카가 제일 좋아요ㅠ 출퇴근길에 들으면 감정이입 과다 됨', createdAt: T(19), likes: 33 },
+        { id: 'mc24', authorNickname: '귀멸OST덕', authorProfileImg: '', authorWatched: 36, content: 'Kamado Tanjiro no Uta도 진짜... 이 애니는 OST만으로도 스토리가 전해짐', createdAt: T(11), likes: 21 },
+    ],
+    m11: [
+        { id: 'mc25', authorNickname: '애니평론가지망생', authorProfileImg: '', authorWatched: 100, content: 'BGM은 진격이 압도적이고 스토리는 귀멸이 대중성 있고... 연출만큼은 주술이 요즘 제일 미친 것 같음', createdAt: T(20), likes: 67 },
+        { id: 'mc26', authorNickname: 'MAPPA신도', authorProfileImg: '', authorWatched: 55, content: '시부야 사변 기준으로 주술 연출은 진짜 넘사벽이었음. 카메라 무빙이 만화 원작 레이아웃 그대로 살림', createdAt: T(16), likes: 44 },
+        { id: 'mc27', authorNickname: '소년점프덕', authorProfileImg: '', authorWatched: 82, content: '셋 다 각자 분야에서 최고인데 굳이 줄 세우자면 스토리 완결성은 진격이 독보적이라고 생각함', createdAt: T(8), likes: 38 },
+        { id: 'mc28', authorNickname: '애니뉴비', authorProfileImg: '', authorWatched: 5, content: '아직 셋 다 못 봤는데 이 댓글들 읽고 다 보고 싶어짐ㅋㅋ', createdAt: T(2), likes: 12 },
+    ],
+    m12: [
+        { id: 'mc29', authorNickname: '고조빠', authorProfileImg: '', authorWatched: 44, content: '고조 없는 주술은 진짜 긴장감이 달라짐. 근데 그게 또 매력인 것 같기도 하고', createdAt: T(25), likes: 51 },
+        { id: 'mc30', authorNickname: '겟토팬', authorProfileImg: '', authorWatched: 38, content: '겟토 편 보고 고조 없어도 충분히 재밌다는 걸 알았음. 오히려 더 몰입됨', createdAt: T(18), likes: 29 },
+        { id: 'mc31', authorNickname: '주술입문', authorProfileImg: '', authorWatched: 9, content: '스포 조심해요! 저 아직 거기까지 못 봤어요ㅠㅠ', createdAt: T(10), likes: 7 },
+    ],
+    m13: [
+        { id: 'mc32', authorNickname: '작화덕후', authorProfileImg: '', authorWatched: 60, content: '이타도리 vs 마화노 전투에서 원화가가 엄청난 거 느꼈음. 키 포즈마다 무게감이 달랐음', createdAt: T(30), likes: 48 },
+        { id: 'mc33', authorNickname: '주술작화러', authorProfileImg: '', authorWatched: 47, content: '그 장면에서 배경 배우 기법이 실제로 쓰인 거라고 들었음. 미술 퀄도 넘사였음', createdAt: T(22), likes: 35 },
+    ],
+    m14: [
+        { id: 'mc34', authorNickname: '노바라덕', authorProfileImg: '', authorWatched: 26, content: '노바라 시점 팬픽 읽다가 여기까지 왔음ㅋㅋ 진짜 주인공 해도 될 캐릭터임', createdAt: T(35), likes: 23 },
+        { id: 'mc35', authorNickname: '주술여캐팬', authorProfileImg: '', authorWatched: 31, content: '마키도 그렇고 주술 여캐들 서사 진짜 잘 씀. 단순한 히로인 포지션이 없음', createdAt: T(20), likes: 17 },
+    ],
+    m15: [
+        { id: 'mc36', authorNickname: '주술덕', authorProfileImg: '', authorWatched: 52, content: '저도 귀멸 먼저 보고 주술 입문했는데 능력 시스템이 이렇게 깊을 줄 몰랐음ㅋㅋ', createdAt: T(40), likes: 19 },
+        { id: 'mc37', authorNickname: '주술고수', authorProfileImg: '', authorWatched: 88, content: '저주 에너지 시스템이 처음에 복잡해 보여도 익숙해지면 전투 볼 때 완전 다르게 보임', createdAt: T(28), likes: 14 },
+    ],
+    m16: [
+        { id: 'mc38', authorNickname: '이번분기러', authorProfileImg: '', authorWatched: 70, content: '어떤 작품인지 알려줘요!! 댓글에 힌트라도ㅠ', createdAt: T(6), likes: 31 },
+        { id: 'mc39', authorNickname: '소년점프러버', authorProfileImg: '', authorWatched: 88, content: '스포 싫어하는 분들 계실 것 같아서 DM 줄게요ㅋㅋ 진짜 후회 없을 거임', createdAt: T(4), likes: 22 },
+        { id: 'mc40', authorNickname: '애니탐정', authorProfileImg: '', authorWatched: 43, content: '태그 보면 대충 알 것 같은데ㅋㅋ 저도 보고 있는데 진짜 명작 맞음', createdAt: T(1), likes: 15 },
+    ],
+    m17: [
+        { id: 'mc41', authorNickname: '입문자추천러', authorProfileImg: '', authorWatched: 65, content: '귀멸 다음으로는 진격의 거인 추천함. 스케일이 완전 다름', createdAt: T(10), likes: 44 },
+        { id: 'mc42', authorNickname: '나루토세대', authorProfileImg: '', authorWatched: 77, content: '나루토나 원피스 같은 장기물도 도전해보세요. 처음엔 부담되는데 빠지면 못 나옴ㅋㅋ', createdAt: T(8), likes: 36 },
+        { id: 'mc43', authorNickname: '애니입문도우미', authorProfileImg: '', authorWatched: 33, content: '바이올렛에버가든은 감성 힐링물인데 울 준비 하고 보세요. 주술, 진격이랑 분위기 달라서 같이 보면 좋음', createdAt: T(5), likes: 28 },
+        { id: 'mc44', authorNickname: '덕후3년차', authorProfileImg: '', authorWatched: 21, content: '저도 귀멸로 입문했어요! 진격 보는 중인데 진짜 세계관이 남다름', createdAt: T(2), likes: 13 },
+    ],
+    m18: [
+        { id: 'mc45', authorNickname: '바이올렛팬', authorProfileImg: '', authorWatched: 24, content: '손 ✋ 진짜 지하철에서 눈물 참다가 결국 한 방울 흘렸음... 반칙임', createdAt: T(30), likes: 71 },
+        { id: 'mc46', authorNickname: 'OST힐링러', authorProfileImg: '', authorWatched: 16, content: 'Violet Snow 들을 때마다 1화 그 장면이 생각나서 반사적으로 울게 됨', createdAt: T(22), likes: 53 },
+        { id: 'mc47', authorNickname: '감성오타쿠', authorProfileImg: '', authorWatched: 41, content: '사실 음악이 반임. 이 애니는 작화 + 음악 + 연출 삼박자가 완벽하게 맞아 떨어짐', createdAt: T(14), likes: 39 },
+    ],
+    m19: [
+        { id: 'mc48', authorNickname: '원피스마라톤러', authorProfileImg: '', authorWatched: 120, content: '1000화 달리고 나면 진짜 성취감이 있음ㅋㅋ 우리 다 같이 달렸다는 느낌', createdAt: T(20), likes: 58 },
+        { id: 'mc49', authorNickname: '루피빠', authorProfileImg: '', authorWatched: 98, content: '기어5 첫 등장 장면은 인생 애니 씬임. 배경음악이랑 합쳐서 소름이 돋음', createdAt: T(12), likes: 45 },
+        { id: 'mc50', authorNickname: '원피스신규', authorProfileImg: '', authorWatched: 15, content: '1000화는 언제 다 보나 싶었는데 어느새 400화 넘었음. 중독성이 있음', createdAt: T(5), likes: 22 },
+    ],
+    m20: [
+        { id: 'mc51', authorNickname: '조로팬', authorProfileImg: '', authorWatched: 85, content: '미호크 눈 앞에서 "이 패배는 내 꿈이 진 게 아니다" 하는 장면이 최고였음', createdAt: T(45), likes: 34 },
+        { id: 'mc52', authorNickname: '루피파', authorProfileImg: '', authorWatched: 72, content: '조로도 좋은데 루피가 최강이 되어야 원피스지ㅋㅋ 둘 다 최강이면 안 되나', createdAt: T(30), likes: 26 },
+    ],
+    m21: [
+        { id: 'mc53', authorNickname: '아냐덕후', authorProfileImg: '', authorWatched: 14, content: '아냐 표정 짤이 진짜 실생활에서 너무 유용함ㅋㅋㅋ 어디서든 쓸 수 있음', createdAt: T(32), likes: 48 },
+        { id: 'mc54', authorNickname: '스파이패밀리러', authorProfileImg: '', authorWatched: 19, content: '로이드-요르 커플 관계 진전이 너무 느린 게 유일한 단점ㅋㅋ 나머지는 다 완벽함', createdAt: T(18), likes: 31 },
+        { id: 'mc55', authorNickname: '코믹스독자', authorProfileImg: '', authorWatched: 27, content: '원작도 진짜 재밌으니 애니 다 보셨으면 만화도 추천', createdAt: T(7), likes: 19 },
+    ],
+    m22: [
+        { id: 'mc56', authorNickname: '이번시즌러', authorProfileImg: '', authorWatched: 66, content: '저도 같은 거 보고 있는 것 같은데 진짜 숨겨진 명작임', createdAt: T(6), likes: 29 },
+        { id: 'mc57', authorNickname: '애니탐험가', authorProfileImg: '', authorWatched: 53, content: '매 분기마다 이런 다크호스가 있는 게 신기함. 애니판 숨은 보석 찾는 재미가 있음', createdAt: T(3), likes: 17 },
+    ],
+    m23: [
+        { id: 'mc58', authorNickname: '귀멸추천러', authorProfileImg: '', authorWatched: 45, content: '귀멸 보셨으면 바로 진격의 거인 가세요. 분위기 다르지만 스케일이 완전 달라짐', createdAt: T(10), likes: 52 },
+        { id: 'mc59', authorNickname: '주술추천러', authorProfileImg: '', authorWatched: 67, content: '주술회전도 추천해요. 전투씬 퀄이 귀멸 못지않고 능력 시스템이 독특함', createdAt: T(8), likes: 41 },
+        { id: 'mc60', authorNickname: '원피스전도사', authorProfileImg: '', authorWatched: 110, content: '용기있으시면 원피스도ㅋㅋ 1000화지만 빠지면 멈추기 힘들어요', createdAt: T(5), likes: 33 },
+        { id: 'mc61', authorNickname: '바이올렛추천', authorProfileImg: '', authorWatched: 20, content: '감성물 원하시면 바이올렛에버가든 강추. 울 준비만 하고 보세요', createdAt: T(2), likes: 27 },
+    ],
+    m24: [
+        { id: 'mc62', authorNickname: '분기체커', authorProfileImg: '', authorWatched: 88, content: '이번 분기 다크호스가 뭔지 너무 궁금한데 힌트만 줘요', createdAt: T(88), likes: 43 },
+        { id: 'mc63', authorNickname: '애니총평러', authorProfileImg: '', authorWatched: 72, content: '저도 이번 분기 전반적으로 만족스러움. 특히 이세계물이 줄고 오리지널 설정이 늘어난 게 좋았음', createdAt: T(60), likes: 31 },
+    ],
+    m25: [
+        { id: 'mc64', authorNickname: '주술고인물', authorProfileImg: '', authorWatched: 88, content: '주술 처음 볼 때 그 두근거림이 그리움ㅋㅋ 부럽다 진짜', createdAt: T(40), likes: 36 },
+        { id: 'mc65', authorNickname: '주술2기기대', authorProfileImg: '', authorWatched: 62, content: '2기 시부야 사변 아크는 진짜 준비하고 봐야 함. 감정 소모가 심함', createdAt: T(28), likes: 25 },
+        { id: 'mc66', authorNickname: '주술뉴비팬', authorProfileImg: '', authorWatched: 7, content: '저도 이제 막 봤는데 고조 선생 첫 등장 장면에서 완전 빠짐', createdAt: T(10), likes: 18 },
     ],
 }
 
@@ -116,11 +231,19 @@ const PAGE_SIZE = 20
 
 export default function CommunityPage() {
     const router = useRouter()
-    const { user } = useAuthStore()
+    const { user, isLoading: _authLoading } = useAuthStore()
+    // useAuthStore에 isLoading 없는 경우 대비 — 로컬 authReady로 깜빡임 방지
+    const [authReady, setAuthReady] = useState(false)
+    useEffect(() => {
+        // user 값이 확정되면(null이든 객체든) ready
+        const timer = setTimeout(() => setAuthReady(true), 50)
+        return () => clearTimeout(timer)
+    }, [user])
+    const authLoading = _authLoading ?? !authReady
 
     const [realPosts, setRealPosts] = useState<Post[]>([])
     const [randomMockPosts] = useState<Post[]>(() => generateRandomPosts())
-    const [sort, setSort] = useState<SortType>('latest')
+    const [sort, setSort] = useState<SortType>('hot')
     const [activeTag, setActiveTag] = useState<string | null>(null)           // 태그바 선택
     const [customTag, setCustomTag] = useState<string | null>(null)           // 검색으로 들어온 커스텀 태그
     const [activeCategory, setActiveCategory] = useState<string | null>(null)
@@ -138,10 +261,19 @@ export default function CommunityPage() {
     const animeTimer = useRef<NodeJS.Timeout | null>(null)
 
     const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set())
+    const [bookmarkedPostIds, setBookmarkedPostIds] = useState<Set<string>>(() => {
+        try {
+            const s = typeof window !== 'undefined' ? localStorage.getItem('community-bookmarks') : null
+            return s ? new Set(JSON.parse(s)) : new Set()
+        } catch { return new Set() }
+    })
+    const [showBookmarks, setShowBookmarks] = useState(false)
+    const [showMyComments, setShowMyComments] = useState(false)
     const [expandedId, setExpandedId] = useState<string | null>(null)
     const [spoilerVisible, setSpoilerVisible] = useState<Set<string>>(new Set())
     const [commentsMap, setCommentsMap] = useState<Record<string, Comment[]>>({})
     const [commentInput, setCommentInput] = useState<Record<string, string>>({})
+    const commentInputRef = useRef<Record<string, string>>({})  // input 리셋 방지용 ref
     const [commentLoading, setCommentLoading] = useState<Record<string, boolean>>({})
 
     const [tagCounts, setTagCounts] = useState<Record<string, number>>(Object.fromEntries(HOT_TAGS_BASE.map(t => [t.tag, t.base])))
@@ -163,6 +295,8 @@ export default function CommunityPage() {
     const [recentWatched, setRecentWatched] = useState<{ name: string; tag: string }[]>([])
 
     const loaderRef = useRef<HTMLDivElement>(null)
+    const commentsMapRef = useRef(commentsMap)
+    useEffect(() => { commentsMapRef.current = commentsMap }, [commentsMap])
 
     // Firebase 재생기록에서 최근 시청 애니 이름 로드
     useEffect(() => {
@@ -259,12 +393,18 @@ export default function CommunityPage() {
         return () => obs.disconnect()
     }, [handleObserver])
 
-    useEffect(() => { setVisibleCount(PAGE_SIZE) }, [sort, activeTag, customTag, activeCategory, searchQuery, showMyPosts, myActiveCategory])
+    useEffect(() => { setVisibleCount(PAGE_SIZE) }, [sort, activeTag, customTag, activeCategory, searchQuery, showMyPosts, showMyComments, showBookmarks, myActiveCategory])
 
     const loadComments = async (postId: string) => {
-        const baseId = postId.replace(/^rand_\d+_/, '')
-        if (postId.startsWith('m') || postId.startsWith('rand')) {
-            setCommentsMap(prev => ({ ...prev, [postId]: MOCK_COMMENTS[baseId] || [] })); return
+        if (commentLoading[postId]) return
+        // rand_숫자_m숫자 형태에서 원본 mock id 추출
+        const baseId = postId.startsWith('rand_')
+            ? postId.replace(/^rand_\d+_/, '')
+            : postId
+        if (postId.startsWith('m') || postId.startsWith('rand_')) {
+            const mockComments = MOCK_COMMENTS[baseId] ?? MOCK_COMMENTS[baseId.replace(/^m/, 'm')] ?? []
+            setCommentsMap(prev => ({ ...prev, [postId]: mockComments }))
+            return
         }
         setCommentLoading(prev => ({ ...prev, [postId]: true }))
         try {
@@ -278,14 +418,16 @@ export default function CommunityPage() {
     const handleCardClick = (postId: string) => {
         if (expandedId === postId) { setExpandedId(null); return }
         setExpandedId(postId)
-        if (!commentsMap[postId]) loadComments(postId)
+        // commentsMap에 키 자체가 없을 때만 로드 (빈 배열 []도 이미 로드된 것)
+        if (!(postId in commentsMap)) loadComments(postId)
     }
 
     const handleComment = async (postId: string, isMock: boolean) => {
-        const text = commentInput[postId]?.trim()
+        const text = (commentInputRef.current[postId] || commentInput[postId] || '').trim()
         if (!text || !user) return
         const newComment: Comment = { id: `temp_${Date.now()}`, authorId: user.uid || '', authorNickname: user.name || '익명', authorProfileImg: user.photoURL || '', authorWatched: myWatched, content: text, createdAt: new Date().toISOString(), likes: 0 }
         setCommentsMap(prev => ({ ...prev, [postId]: [...(prev[postId] || []), newComment] }))
+        commentInputRef.current[postId] = ''
         setCommentInput(prev => ({ ...prev, [postId]: '' }))
         if (!isMock) {
             try {
@@ -303,6 +445,27 @@ export default function CommunityPage() {
         if (!post.isMock) {
             try { await updateDoc(doc(db, 'community_posts', post.id), { likes: increment(isLiked ? -1 : 1) }) } catch { }
         }
+    }
+
+    // 탭 전환 헬퍼: 나머지 탭 전부 초기화
+    const goTab = (tab: 'all' | 'myPosts' | 'myComments' | 'bookmarks') => {
+        setShowMyPosts(tab === 'myPosts')
+        setShowMyComments(tab === 'myComments')
+        setShowBookmarks(tab === 'bookmarks')
+        if (tab !== 'myPosts') setMyActiveCategory(null)
+        if (tab === 'all') { setActiveTag(null); setCustomTag(null); setSearchQuery(''); setSearchInput('') }
+        setShowSidebar(false)
+    }
+
+    const handleBookmark = (e: React.MouseEvent, postId: string) => {
+        e.stopPropagation()
+        if (!user) return
+        setBookmarkedPostIds(prev => {
+            const n = new Set(prev)
+            n.has(postId) ? n.delete(postId) : n.add(postId)
+            localStorage.setItem('community-bookmarks', JSON.stringify([...n]))
+            return n
+        })
     }
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -335,38 +498,64 @@ export default function CommunityPage() {
         finally { setPosting(false) }
     }
 
-    // 게시글 필터링
-    const knownTags = new Set(HOT_TAGS_BASE.map(t => t.tag))
-    const allPosts: Post[] = [...realPosts, ...randomMockPosts]
-    const myRealPosts = realPosts.filter(p => p.authorId === user?.uid)
+    // 게시글 필터링 — useMemo로 불필요한 재계산 방지
+    const knownTags = useMemo(() => new Set(HOT_TAGS_BASE.map(t => t.tag)), [])
     const effectiveTag = customTag || activeTag
 
-    const filtered = (showMyPosts ? myRealPosts : allPosts).filter(p => {
-        if (showMyPosts && myActiveCategory && p.category !== myActiveCategory) return false
-        if (!showMyPosts) {
-            if (effectiveTag) {
-                if (effectiveTag === '#기타') { if (p.tags.some(t => knownTags.has(t))) return false }
-                else { if (!p.tags.includes(effectiveTag) && !p.tags.some(t => t.toLowerCase().includes(effectiveTag.slice(1).toLowerCase()))) return false }
-            }
-            if (activeCategory) {
-                if (activeCategory === '스포일러') { if (!p.isSpoiler) return false }
-                else { if (p.category !== activeCategory) return false }
-            }
-            if (searchQuery.trim()) {
-                const q = searchQuery.toLowerCase()
-                return p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q) || p.tags.some(t => t.toLowerCase().includes(q))
-            }
-        }
-        return true
-    }).sort((a, b) => sort === 'hot'
-        ? (b.likes + (commentsMap[b.id]?.length ?? b.commentCount) * 2) - (a.likes + (commentsMap[a.id]?.length ?? a.commentCount) * 2)
-        : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    const allPosts = useMemo<Post[]>(
+        () => [...realPosts, ...randomMockPosts],
+        [realPosts, randomMockPosts]
     )
+    const myRealPosts = useMemo(
+        () => realPosts.filter(p => p.authorId === user?.uid),
+        [realPosts, user?.uid]
+    )
+    // commentsMap 변경이 피드 리렌더를 유발하지 않도록 별도 메모
+    const myCommentedPostIds = useMemo(() => new Set(
+        Object.entries(commentsMap)
+            .filter(([, cs]) => cs.some(c => c.authorId === user?.uid))
+            .map(([id]) => id)
+    ), [commentsMap, user?.uid])
 
-    const visiblePosts = filtered.slice(0, visibleCount)
+    const filtered = useMemo(() => {
+        const base =
+            showBookmarks ? allPosts.filter(p => bookmarkedPostIds.has(p.id))
+                : showMyComments ? allPosts.filter(p => myCommentedPostIds.has(p.id))
+                    : showMyPosts ? myRealPosts
+                        : allPosts
+
+        return base.filter(p => {
+            if (showMyPosts && myActiveCategory && p.category !== myActiveCategory) return false
+            if (!showMyPosts && !showBookmarks && !showMyComments) {
+                if (effectiveTag) {
+                    if (effectiveTag === '#기타') { if (p.tags.some(t => knownTags.has(t))) return false }
+                    else { if (!p.tags.includes(effectiveTag) && !p.tags.some(t => t.toLowerCase().includes(effectiveTag.slice(1).toLowerCase()))) return false }
+                }
+                if (activeCategory) {
+                    if (activeCategory === '스포일러') { if (!p.isSpoiler) return false }
+                    else { if (p.category !== activeCategory) return false }
+                }
+                if (searchQuery.trim()) {
+                    const q = searchQuery.toLowerCase()
+                    return p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q) || p.tags.some(t => t.toLowerCase().includes(q))
+                }
+            }
+            return true
+        }).sort((a, b) => sort === 'hot'
+            ? (b.likes + b.commentCount * 2) - (a.likes + a.commentCount * 2)
+            : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+    }, [allPosts, myRealPosts, showBookmarks, showMyComments, showMyPosts,
+        myCommentedPostIds, bookmarkedPostIds, myActiveCategory, effectiveTag, activeCategory, searchQuery, sort, knownTags])
+
+    const visiblePosts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
     const hasMore = visibleCount < filtered.length
-    const otherCount = allPosts.filter(p => !p.tags.some(t => knownTags.has(t))).length
+    const otherCount = useMemo(() => allPosts.filter(p => !p.tags.some(t => knownTags.has(t))).length, [allPosts, knownTags])
     const myPostCount = myRealPosts.length
+    // 커뮤니티 게시글 댓글 수: commentsMap에서 user가 작성한 댓글 집계
+    // myCommentCount — commentsMap 직접 참조 (사이드바 숫자용, 렌더 횟수 중요하지 않음)
+    const myCommentCount = Object.values(commentsMap).reduce((total, comments) =>
+        total + comments.filter(c => c.authorId === user?.uid).length, 0)
     const myCatCounts = ['분석', '감상평', '추천'].reduce((acc, cat) => { acc[cat] = myRealPosts.filter(p => p.category === cat).length; return acc }, {} as Record<string, number>)
 
     // 탭바에 표시할 태그 목록: HOT_TAGS_BASE + 커스텀태그(있으면)
@@ -375,89 +564,128 @@ export default function CommunityPage() {
         : HOT_TAGS_BASE
 
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 64 }}>
+        <div className="min-h-screen" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
             <style>{`
+                
+                
+                
+                
                 @keyframes gradientShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
                 @keyframes floatOrb1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(40px,-25px) scale(1.1)} 66%{transform:translate(-20px,18px) scale(0.95)} }
                 @keyframes floatOrb2 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-30px,22px) scale(1.08)} 70%{transform:translate(22px,-18px) scale(0.97)} }
                 @keyframes floatOrb3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(18px,28px)} }
+                @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
                 @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
                 @keyframes expandDown { from{opacity:0} to{opacity:1} }
                 @keyframes spin { to{transform:rotate(360deg)} }
-                @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+                
                 @keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
                 @keyframes backdropIn { from{opacity:0} to{opacity:1} }
                 @keyframes popupFadeIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
 
-                /* ── HERO: 헤더 아래 full-width, 이너 맞춤 ── */
+
+
+                /* ── HERO ── */
                 .cp-hero {
-                    position: relative; overflow: hidden;
-                    padding: 28px 0 26px;
-                    background: linear-gradient(270deg,#120824,#0e1a3f,#081c30,#1a0a3a,#120824);
-                    background-size: 500% 500%;
-                    animation: gradientShift 12s ease infinite;
+                    position:relative;overflow:hidden;
+                    background:linear-gradient(270deg,#120824,#0e1a3f,#081c30,#1a0a3a,#120824);
+                    background-size:500% 500%;
+                    animation:gradientShift 12s ease infinite;
                 }
                 .cp-hero-inner {
-                    width: 100%; max-width: 1500px; margin: 0 auto;
-                    padding: 0 24px; box-sizing: border-box;
-                    position: relative; z-index: 1;
+                    width:90%;margin:0 auto;
+                    box-sizing:border-box;
+                    position:relative;z-index:1;
                 }
-                .cp-hero-orb { position:absolute; border-radius:50%; filter:blur(72px); pointer-events:none; will-change:transform; }
-                .cp-hero-orb1 { width:380px;height:380px;background:radial-gradient(circle,rgba(124,58,237,0.4) 0%,transparent 65%);top:-120px;left:-80px;animation:floatOrb1 9s ease-in-out infinite; }
-                .cp-hero-orb2 { width:300px;height:300px;background:radial-gradient(circle,rgba(37,99,235,0.28) 0%,transparent 65%);top:-60px;right:8%;animation:floatOrb2 11s ease-in-out infinite; }
-                .cp-hero-orb3 { width:240px;height:240px;background:radial-gradient(circle,rgba(219,39,119,0.18) 0%,transparent 65%);bottom:-80px;right:28%;animation:floatOrb3 7s ease-in-out infinite; }
-                .cp-hero-eyebrow { display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;color:rgba(196,181,253,0.85);text-transform:uppercase;margin-bottom:7px; }
-                .cp-hero-dot { width:6px;height:6px;border-radius:50%;background:#a78bfa;animation:blink 2.2s ease-in-out infinite; }
-                .cp-hero-title { font-size:28px;font-weight:900;color:#fff;margin:0 0 5px;letter-spacing:-0.5px;line-height:1.15; }
-                .cp-hero-sub { font-size:12.5px;color:rgba(196,181,253,0.65);margin:0; }
+                .cp-hero-orb{position:absolute;border-radius:50%;filter:blur(72px);pointer-events:none;will-change:transform;}
+                .cp-hero-orb1{width:380px;height:380px;background:radial-gradient(circle,rgba(124,58,237,0.4) 0%,transparent 65%);top:-120px;left:-80px;animation:floatOrb1 9s ease-in-out infinite;}
+                .cp-hero-orb2{width:300px;height:300px;background:radial-gradient(circle,rgba(37,99,235,0.28) 0%,transparent 65%);top:-60px;right:8%;animation:floatOrb2 11s ease-in-out infinite;}
+                .cp-hero-orb3{width:240px;height:240px;background:radial-gradient(circle,rgba(219,39,119,0.18) 0%,transparent 65%);bottom:-40px;right:28%;animation:floatOrb3 7s ease-in-out infinite;}
 
-                /* ── 검색 섹션 (image1 스타일) ── */
+                .cp-hero-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:0.1em;color:rgba(196,181,253,0.85);text-transform:uppercase;margin-bottom:7px;}
+                .cp-hero-dot{width:6px;height:6px;border-radius:50%;background:#a78bfa;animation:blink 2.2s ease-in-out infinite;}
+                .cp-hero-title{font-size:28px;font-weight:900;color:#fff;margin:0 0 5px;letter-spacing:-0.5px;line-height:1.15;}
+                .cp-hero-sub{font-size:12.5px;color:rgba(196,181,253,0.65);margin:0;}
+
+                /* ── 태그바 + 검색 통합 바 (히어로와 동일 bg로 연결) ── */
+                .cp-topbar {
+                    background:linear-gradient(270deg,#120824,#0e1a3f,#081c30,#1a0a3a,#120824);
+                    background-size:500% 500%;
+                    animation:gradientShift 12s ease infinite;
+                    border-bottom:1px solid rgba(139,92,246,0.25);
+                    padding:0;
+                }
+                .cp-topbar-inner {
+                    width:100%;max-width:1500px;margin:0 auto;
+                    padding:0 24px;box-sizing:border-box;
+                }
+                /* 검색행 */
+                .cp-topbar-search {
+                    display:flex;align-items:center;gap:10px;
+                    padding:10px 0 8px;
+                    border-bottom:1px solid rgba(139,92,246,0.15);
+                }
+                /* 최근시청 + 태그 스크롤 행 */
+                .cp-topbar-tags {
+                    display:flex;align-items:center;gap:0;
+                    overflow-x:auto;scrollbar-width:none;
+                    padding:0;
+                }
+                .cp-topbar-tags::-webkit-scrollbar{display:none;}
+
+                /* 검색 섹션 (image1 스타일) ── */
                 .cp-search-section {
-                    background: var(--bg-card);
-                    border-bottom: 1px solid var(--border-subtle);
-                    padding: 12px 0;
+                    background: rgba(10,7,28,0.96);
+                    border-bottom: 1px solid rgba(139,92,246,0.18);
                 }
                 .cp-search-inner {
-                    width: 100%; max-width: 1500px; margin: 0 auto;
-                    padding: 0 24px; box-sizing: border-box;
+                    width: 90%; margin: 0 auto;
+                    box-sizing: border-box;
+                    display: flex; align-items: center; gap: 12px;
+                    height: 46px;
                 }
-                .cp-search-wrap { position:relative; width:100%; }
+                .cp-search-wrap { position:relative; flex:1; min-width:0; }
                 .cp-search-input {
                     width: 100%; box-sizing: border-box;
-                    background: var(--bg-secondary);
-                    border: 1px solid var(--border-subtle);
-                    border-radius: 24px;
-                    padding: 10px 44px 10px 18px;
-                    font-size: 13px; color: var(--text-primary);
+                    background: rgba(255,255,255,0.06);
+                    border: 1px solid rgba(139,92,246,0.18);
+                    border-radius: 20px;
+                    padding: 7px 34px 7px 14px;
+                    font-size: 12.5px; color: rgba(255,255,255,0.85);
                     outline: none; font-family: inherit;
-                    transition: border-color .2s, box-shadow .2s;
+                    transition: border-color .2s, background .2s;
                 }
-                .cp-search-input:focus { border-color:rgba(139,92,246,.5);box-shadow:0 0 0 3px rgba(139,92,246,.07); }
-                .cp-search-input::placeholder { color:var(--text-faint); }
-                .cp-search-icon { position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-faint);pointer-events:none; }
+                .cp-search-input:focus { border-color:rgba(139,92,246,.5); background:rgba(255,255,255,0.09); }
+                .cp-search-input::placeholder { color:rgba(196,181,253,0.38); }
+                .cp-search-icon { position:absolute;right:11px;top:50%;transform:translateY(-50%);color:rgba(196,181,253,0.5);pointer-events:none; }
                 .cp-search-clear { position:absolute;right:40px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:13px;line-height:1;padding:2px 4px; }
 
                 /* 최근 시청 칩 */
-                .cp-recent-row { display:flex;align-items:center;gap:7px;margin-top:9px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px; }
+                .cp-recent-row { display:flex;align-items:center;gap:6px;flex-shrink:0;overflow:hidden;max-width:55%; }
                 .cp-recent-row::-webkit-scrollbar { display:none; }
-                .cp-recent-label { font-size:11px;font-weight:800;color:var(--text-faint);white-space:nowrap;flex-shrink:0; }
-                .cp-recent-chip { display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:var(--bg-secondary);font-size:11px;font-weight:700;color:var(--text-muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;font-family:inherit; }
-                .cp-recent-chip:hover { border-color:rgba(139,92,246,.4);color:#a78bfa;background:rgba(139,92,246,.08); }
-                .cp-recent-chip.active { border-color:rgba(139,92,246,.5);color:#a78bfa;background:rgba(139,92,246,.1); }
+                .cp-recent-label { font-size:10.5px;font-weight:700;color:rgba(196,181,253,0.4);white-space:nowrap;flex-shrink:0;margin-right:2px; }
+                .cp-recent-chip { display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:14px;border:1px solid rgba(139,92,246,0.22);background:rgba(139,92,246,0.08);font-size:11px;font-weight:700;color:rgba(196,181,253,0.7);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;font-family:inherit; }
+                .cp-recent-chip:hover { border-color:rgba(139,92,246,.5);color:#c4b5fd;background:rgba(139,92,246,.15); }
+                .cp-recent-chip.active { border-color:rgba(139,92,246,.6);color:#c4b5fd;background:rgba(139,92,246,.2); }
 
-                /* ── 태그바 ── */
+                /* 히어로 내 CSS 변수 재정의 — 컴포넌트 스타일 무력화 없이 색상만 조정 */
+                .cp-hero { --text-primary: #ffffff; --text-subtle: rgba(196,181,253,0.7); }
+                /* ── 태그바 (히어로 동일 배경) ── */
                 .cp-tagbar {
-                    background:rgba(88,28,220,0.18);
-                    border-bottom:1px solid rgba(139,92,246,0.15);
+                    background:linear-gradient(270deg,#120824,#0e1a3f,#081c30,#1a0a3a,#120824);
+                    background-size:500% 500%;
+                    animation:gradientShift 12s ease infinite;
+                    border-bottom:1px solid rgba(139,92,246,0.25);
                     padding:0;
                 }
                 .cp-tagbar-inner {
-                    width:100%;max-width:1500px;margin:0 auto;
-                    padding:0 24px;box-sizing:border-box;
+                    width:90%;margin:0 auto;
+                    box-sizing:border-box;
                     display:flex;align-items:center;gap:0;
                     overflow-x:auto;scrollbar-width:none;
                 }
-                .cp-tagbar-inner::-webkit-scrollbar { display:none; }
+                .cp-tagbar-inner::-webkit-scrollbar{display:none;}
+                /* 태그바 아이템 스타일 */
                 .cp-tagbar-more { display:inline-flex;align-items:center;gap:5px;padding:11px 14px 11px 0;margin-right:10px;font-size:11.5px;font-weight:700;color:rgba(196,181,253,0.8);cursor:pointer;white-space:nowrap;background:none;border:none;font-family:inherit;border-right:1px solid rgba(139,92,246,0.2);padding-right:14px;transition:color .15s;flex-shrink:0; }
                 .cp-tagbar-more:hover { color:#a78bfa; }
                 .cp-tagbar-item { display:inline-flex;align-items:center;gap:6px;padding:10px 11px;font-size:11.5px;font-weight:700;color:rgba(196,181,253,0.65);cursor:pointer;white-space:nowrap;background:none;border:none;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;flex-shrink:0; }
@@ -500,7 +728,7 @@ export default function CommunityPage() {
                 .cp-anime-loading { padding:20px;text-align:center;font-size:13px;color:var(--text-faint); }
 
                 /* ── OUTER ── */
-                .cp-outer { width:100%;max-width:1500px;margin:0 auto;padding:0 24px 80px;box-sizing:border-box; }
+                .cp-outer { width:90%;margin:0 auto;padding-bottom:80px;box-sizing:border-box; }
 
                 /* ── 3열 레이아웃 ── */
                 .cp-layout { display:grid;grid-template-columns:80px 1fr 260px;gap:0 20px;align-items:start;padding-top:22px; }
@@ -563,8 +791,10 @@ export default function CommunityPage() {
                 .cp-sidebar-card { background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:16px;padding:15px 17px;margin-bottom:12px;overflow:hidden; }
                 .cp-sidebar-title { font-size:11px;font-weight:800;color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;margin:0 0 11px; }
                 .cp-user-stats { display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border-faint);border-radius:10px;overflow:hidden;margin-top:11px; }
-                .cp-stat-cell { background:var(--bg-secondary);padding:9px 6px;text-align:center;cursor:pointer;transition:background .15s; }
+                .cp-stat-cell { background:var(--bg-secondary);padding:9px 6px;text-align:center;cursor:pointer;transition:all .15s; }
                 .cp-stat-cell:hover { background:rgba(139,92,246,.08); }
+                .cp-stat-cell.active { background:rgba(139,92,246,.15); }
+                .cp-stat-cell.active .cp-stat-num { color:#a78bfa; }
                 .cp-stat-num { font-size:16px;font-weight:900;color:var(--text-primary);display:block;line-height:1; }
                 .cp-stat-label { font-size:10px;color:var(--text-faint);margin-top:3px;display:block; }
                 .cp-hot-row { display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--border-faint);cursor:pointer;transition:all .15s; }
@@ -575,9 +805,9 @@ export default function CommunityPage() {
                 .cp-write-btn { display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 15px;background:#7c3aed;border:none;border-radius:9px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap; }
                 .cp-write-btn:hover { background:#6d28d9;box-shadow:0 4px 16px rgba(124,58,237,.35); }
 
-                /* 햄버거 (반응형) */
-                .cp-sidebar-toggle { display:none;position:fixed;bottom:22px;right:18px;z-index:500;width:46px;height:46px;border-radius:50%;background:#7c3aed;border:none;color:#fff;cursor:pointer;box-shadow:0 4px 20px rgba(124,58,237,.4);align-items:center;justify-content:center;transition:all .2s; }
-                .cp-sidebar-toggle:hover { background:#6d28d9;transform:scale(1.05); }
+                /* 햄버거 (반응형) — 히어로 우상단 */
+                .cp-sidebar-toggle { display:none;position:absolute;top:50%;right:5%;transform:translateY(-50%);z-index:10;width:44px;height:44px;border-radius:50%;background:none;border:none;cursor:pointer;align-items:center;justify-content:center;transition:all .2s; }
+                .cp-sidebar-toggle:hover { opacity: 0.8; }
                 @media (max-width:1000px) { .cp-sidebar-toggle { display:flex; } }
 
                 /* 슬라이드 패널 */
@@ -602,55 +832,28 @@ export default function CommunityPage() {
                 .cp-mobile-btn.active { background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.35);color:#a78bfa; }
             `}</style>
 
-            {/* ── 히어로 (full-width, 이너 max-width 맞춤) ── */}
-            <div className="cp-hero">
+            {/* ── 히어로 — PageHeader 컴포넌트 + 배경 유지 ── */}
+            <div className="cp-hero" style={{ paddingTop: 64 }}>
                 <div className="cp-hero-orb cp-hero-orb1" />
                 <div className="cp-hero-orb cp-hero-orb2" />
                 <div className="cp-hero-orb cp-hero-orb3" />
                 <div className="cp-hero-inner">
-                    <div className="cp-hero-eyebrow"><span className="cp-hero-dot" />Community of Laftel</div>
-                    <h1 className="cp-hero-title">덕후들의 광장</h1>
-                    <p className="cp-hero-sub">애니라면 뭐든 ! 분석, 감상, 추천, 스포일러까지</p>
+                    <PageHeader title="덕후들의 광장" sub="애니라면 뭐든 ! 분석, 감상, 추천, 스포일러까지" />
                 </div>
-            </div>
-
-            {/* ── 검색 섹션 (image1: 흰배경, 둥근 검색창, 최근시청) ── */}
-            <div className="cp-search-section">
-                <div className="cp-search-inner">
-                    <div className="cp-search-wrap">
-                        <input
-                            className="cp-search-input"
-                            placeholder="게시글 제목, 내용, 태그를 검색해보세요..."
-                            value={searchInput}
-                            onChange={e => { setSearchInput(e.target.value); setSearchQuery(e.target.value) }}
-                            onKeyDown={e => { if (e.key === 'Enter') setSearchQuery(searchInput) }}
-                        />
-                        {searchInput && <button className="cp-search-clear" onClick={() => { setSearchInput(''); setSearchQuery('') }}>✕</button>}
-                        <svg className="cp-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
-                    </div>
-                    {/* 최근 시청 (Firebase 재생기록) */}
-                    <div className="cp-recent-row">
-                        <span className="cp-recent-label">{user?.name ? `${user.name}님의` : ''} 최근시청 바로가기</span>
-                        {recentWatched.length > 0
-                            ? recentWatched.map(w => (
-                                <button key={w.tag} className={`cp-recent-chip${effectiveTag === w.tag ? ' active' : ''}`}
-                                    onClick={() => { setCustomTag(w.tag); setActiveTag(null); setShowMyPosts(false); setSearchInput(''); setSearchQuery('') }}>
-                                    🎌 {w.tag}
-                                </button>
-                            ))
-                            : HOT_TAGS_BASE.slice(0, 5).map(({ tag }) => (
-                                <button key={tag} className={`cp-recent-chip${effectiveTag === tag ? ' active' : ''}`}
-                                    onClick={() => { setActiveTag(tag); setCustomTag(null); setShowMyPosts(false) }}>
-                                    {tagImgs[tag] && <img src={tagImgs[tag]} style={{ width: 13, height: 13, borderRadius: '50%', objectFit: 'cover' }} alt="" />}
-                                    {tag}
-                                </button>
-                            ))
+                <button className="cp-sidebar-toggle" onClick={() => setShowSidebar(true)}>
+                    <span style={{ position: 'relative', display: 'inline-flex' }}>
+                        {authLoading
+                            ? <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'block' }} />
+                            : user?.photoURL
+                                ? <img src={user.photoURL} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(196,181,253,0.7)', display: 'block' }} alt="" />
+                                : <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(124,58,237,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#e9d5ff', border: '2px solid rgba(196,181,253,0.5)' }}>{user?.name?.[0] || '👤'}</span>
                         }
-                    </div>
-                </div>
+                        <span style={{ position: 'absolute', bottom: -2, right: -4, width: 13, height: 13, borderRadius: '50%', background: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', lineHeight: 1 }}>+</span>
+                    </span>
+                </button>
             </div>
 
-            {/* ── 태그바 ── */}
+            {/* ── 1. 태그바 — 히어로와 동일 배경으로 연결 ── */}
             <div className="cp-tagbar">
                 <div className="cp-tagbar-inner">
                     {/* 애니 더 찾아보기 → 팝업 */}
@@ -658,13 +861,11 @@ export default function CommunityPage() {
                         애니 더 찾아보기
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6" /></svg>
                     </button>
-
                     {/* 전체 */}
                     <button className={`cp-tagbar-all${!effectiveTag && !showMyPosts ? ' active' : ''}`}
                         onClick={() => { setActiveTag(null); setCustomTag(null); setShowMyPosts(false); setSearchInput(''); setSearchQuery('') }}>
                         전체
                     </button>
-
                     {/* HOT 태그 */}
                     {HOT_TAGS_BASE.map(({ tag }) => (
                         <button key={tag} className={`cp-tagbar-item${effectiveTag === tag ? ' active' : ''}`}
@@ -673,18 +874,55 @@ export default function CommunityPage() {
                             {tag}
                         </button>
                     ))}
-
-                    {/* 커스텀 태그 (검색으로 들어온 경우) */}
+                    {/* 커스텀 태그 */}
                     {customTag && !HOT_TAGS_BASE.some(t => t.tag === customTag) && (
-                        <button className={`cp-tagbar-custom active`}>
+                        <button className="cp-tagbar-custom active">
                             🔍 {customTag}
                             <span style={{ marginLeft: 4, fontSize: 10, cursor: 'pointer', opacity: 0.7 }}
                                 onClick={e => { e.stopPropagation(); setCustomTag(null) }}>✕</span>
                         </button>
                     )}
-
                     <button className={`cp-tagbar-all${effectiveTag === '#기타' ? ' active' : ''}`}
                         onClick={() => { setActiveTag('#기타'); setCustomTag(null); setShowMyPosts(false) }}>#기타</button>
+                </div>
+            </div>
+
+            {/* ── 2. 검색 + 최근시청 — 태그바 바로 아래 한줄 바 ── */}
+            <div className="cp-search-section">
+                <div className="cp-search-inner">
+                    {/* 검색창 */}
+                    <div className="cp-search-wrap">
+                        <input
+                            className="cp-search-input"
+                            placeholder="게시글 검색..."
+                            value={searchInput}
+                            onChange={e => { setSearchInput(e.target.value); setSearchQuery(e.target.value) }}
+                            onKeyDown={e => { if (e.key === 'Enter') setSearchQuery(searchInput) }}
+                        />
+                        {searchInput && <button className="cp-search-clear" style={{ color: 'rgba(196,181,253,0.5)' }} onClick={() => { setSearchInput(''); setSearchQuery('') }}>✕</button>}
+                        <svg className="cp-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+                    </div>
+                    {/* 구분선 */}
+                    <div style={{ width: 1, height: 18, background: 'rgba(139,92,246,0.25)', flexShrink: 0 }} />
+                    {/* 최근시청 칩 */}
+                    <div className="cp-recent-row">
+                        <span className="cp-recent-label">{user?.name ? `${user.name}님의 최근시청` : '최근시청'}</span>
+                        {recentWatched.length > 0
+                            ? recentWatched.map(w => (
+                                <button key={w.tag} className={`cp-recent-chip${effectiveTag === w.tag ? ' active' : ''}`}
+                                    onClick={() => { setCustomTag(w.tag); setActiveTag(null); setShowMyPosts(false); setSearchInput(''); setSearchQuery('') }}>
+                                    {w.tag}
+                                </button>
+                            ))
+                            : HOT_TAGS_BASE.slice(0, 4).map(({ tag }) => (
+                                <button key={tag} className={`cp-recent-chip${effectiveTag === tag ? ' active' : ''}`}
+                                    onClick={() => { setActiveTag(tag); setCustomTag(null); setShowMyPosts(false) }}>
+                                    {tagImgs[tag] && <img src={tagImgs[tag]} style={{ width: 12, height: 12, borderRadius: '50%', objectFit: 'cover' }} alt="" />}
+                                    {tag}
+                                </button>
+                            ))
+                        }
+                    </div>
                 </div>
             </div>
 
@@ -745,7 +983,7 @@ export default function CommunityPage() {
                 </>
             )}
 
-            <div className="cp-outer">
+            <div className="cp-outer" style={{ paddingTop: 0 }}>
                 <div className="cp-layout">
 
                     {/* 왼쪽 레일 */}
@@ -771,8 +1009,10 @@ export default function CommunityPage() {
                     <div>
                         <div className="cp-feed-header">
                             <div className="cp-feed-tabs">
-                                <button className={`cp-feed-tab${!showMyPosts ? ' active' : ''}`} onClick={() => setShowMyPosts(false)}>전체 게시글</button>
-                                {user && <button className={`cp-feed-tab${showMyPosts ? ' active' : ''}`} onClick={() => setShowMyPosts(true)}>내 글 모아보기</button>}
+                                <button className={`cp-feed-tab${!showMyPosts && !showMyComments && !showBookmarks ? ' active' : ''}`} onClick={() => goTab('all')}>전체</button>
+                                {!authLoading && user && <button className={`cp-feed-tab${showMyPosts ? ' active' : ''}`} onClick={() => goTab('myPosts')}>내 게시글 <span style={{ marginLeft: 2, fontSize: 10, opacity: 0.8 }}>{myPostCount}</span></button>}
+                                {!authLoading && user && <button className={`cp-feed-tab${showMyComments ? ' active' : ''}`} onClick={() => goTab('myComments')}>내 댓글 <span style={{ marginLeft: 2, fontSize: 10, opacity: 0.8 }}>{myCommentCount}</span></button>}
+                                {!authLoading && user && <button className={`cp-feed-tab${showBookmarks ? ' active' : ''}`} onClick={() => goTab('bookmarks')}>보관글 <span style={{ marginLeft: 2, fontSize: 10, opacity: 0.8 }}>{bookmarkedPostIds.size}</span></button>}
                             </div>
                             <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{filtered.length.toLocaleString()}+개</span>
                         </div>
@@ -803,8 +1043,8 @@ export default function CommunityPage() {
 
                         {visiblePosts.length === 0 && (
                             <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-faint)', fontSize: 14 }}>
-                                <div style={{ fontSize: 36, marginBottom: 12 }}>{showMyPosts ? '✍️' : searchQuery ? '🔍' : '📭'}</div>
-                                {showMyPosts ? '작성한 게시글이 없어요' : searchQuery ? `"${searchQuery}"에 대한 게시글이 없어요` : '게시글이 없어요'}
+                                <div style={{ fontSize: 36, marginBottom: 12 }}>{showBookmarks ? '🔖' : showMyComments ? '💬' : showMyPosts ? '✍️' : searchQuery ? '🔍' : '📭'}</div>
+                                {showBookmarks ? '보관한 게시글이 없어요' : showMyComments ? '댓글을 단 게시글이 없어요' : showMyPosts ? '작성한 게시글이 없어요' : searchQuery ? `"${searchQuery}"에 대한 게시글이 없어요` : '게시글이 없어요'}
                             </div>
                         )}
 
@@ -883,6 +1123,17 @@ export default function CommunityPage() {
                                             댓글 {commentCount}
                                             {isExpanded ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m18 15-6-6-6 6" /></svg> : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6" /></svg>}
                                         </button>
+                                        {user && (
+                                            <button className={`cp-action-btn${bookmarkedPostIds.has(post.id) ? ' active' : ''}`}
+                                                onClick={e => handleBookmark(e, post.id)}
+                                                title={bookmarkedPostIds.has(post.id) ? '보관 취소' : '게시글 보관'}
+                                                style={{ marginLeft: 'auto' }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill={bookmarkedPostIds.has(post.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                                                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                                                </svg>
+                                                {bookmarkedPostIds.has(post.id) ? '보관됨' : '보관'}
+                                            </button>
+                                        )}
                                     </div>
                                     {isExpanded && (
                                         <div className="cp-comments">
@@ -911,7 +1162,11 @@ export default function CommunityPage() {
                                                     {user?.photoURL ? <img src={user.photoURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : user?.name?.[0] || '?'}
                                                 </div>
                                                 <input className="cp-comment-input" placeholder={user ? '댓글을 남겨보세요 (Enter로 등록)' : '로그인 후 댓글을 달 수 있어요'}
-                                                    value={commentInput[post.id] || ''} onChange={e => setCommentInput(p => ({ ...p, [post.id]: e.target.value }))}
+                                                    value={commentInput[post.id] || ''}
+                                                    onChange={e => {
+                                                        commentInputRef.current[post.id] = e.target.value
+                                                        setCommentInput(p => ({ ...p, [post.id]: e.target.value }))
+                                                    }}
                                                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComment(post.id, !!post.isMock) } }} disabled={!user} />
                                                 <button onClick={() => handleComment(post.id, !!post.isMock)} disabled={!commentInput[post.id]?.trim() || !user}
                                                     style={{ padding: '0 13px', height: 34, background: commentInput[post.id]?.trim() && user ? '#7c3aed' : 'var(--bg-hover)', border: 'none', borderRadius: 9, color: commentInput[post.id]?.trim() && user ? '#fff' : 'var(--text-faint)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s', whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -928,7 +1183,20 @@ export default function CommunityPage() {
 
                     {/* 오른쪽 사이드바 */}
                     <aside className="cp-right-sidebar">
-                        {user ? (
+                        {authLoading ? (
+                            <div className="cp-sidebar-card">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--bg-hover)', flexShrink: 0 }} />
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ height: 12, width: '60%', background: 'var(--bg-hover)', borderRadius: 6, marginBottom: 6 }} />
+                                        <div style={{ height: 10, width: '40%', background: 'var(--bg-hover)', borderRadius: 6 }} />
+                                    </div>
+                                </div>
+                                <div className="cp-user-stats" style={{ marginTop: 11 }}>
+                                    {[0, 1, 2].map(i => <div key={i} className="cp-stat-cell"><div style={{ height: 16, width: 24, background: 'var(--bg-hover)', borderRadius: 4, margin: '0 auto 4px' }} /><div style={{ height: 10, width: 32, background: 'var(--bg-hover)', borderRadius: 4, margin: '0 auto' }} /></div>)}
+                                </div>
+                            </div>
+                        ) : user ? (
                             <div className="cp-sidebar-card">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                                     <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-secondary)' }}>
@@ -943,16 +1211,16 @@ export default function CommunityPage() {
                                 </div>
                                 {/* 통계 → 클릭 시 내 글 탭 + 카테고리 */}
                                 <div className="cp-user-stats">
-                                    <div className="cp-stat-cell" title="작성한 글 보기" onClick={() => { setShowMyPosts(true); setMyActiveCategory(null) }}>
+                                    <div className={`cp-stat-cell${showMyPosts ? ' active' : ''}`} title="작성한 글 보기" onClick={() => goTab('myPosts')}>
                                         <span className="cp-stat-num">{myPostCount}</span>
                                         <span className="cp-stat-label">작성한 글</span>
                                     </div>
-                                    <div className="cp-stat-cell" title="댓글 보기" onClick={() => { setShowMyPosts(true); setMyActiveCategory('감상평') }}>
-                                        <span className="cp-stat-num">0</span>
+                                    <div className={`cp-stat-cell${showMyComments ? ' active' : ''}`} title="내가 댓글 단 게시글 보기" onClick={() => goTab('myComments')}>
+                                        <span className="cp-stat-num">{myCommentCount}</span>
                                         <span className="cp-stat-label">작성한 댓글</span>
                                     </div>
-                                    <div className="cp-stat-cell" title="보관글 보기" onClick={() => { setShowMyPosts(true); setMyActiveCategory(null) }}>
-                                        <span className="cp-stat-num">0</span>
+                                    <div className={`cp-stat-cell${showBookmarks ? ' active' : ''}`} title="보관글 보기" onClick={() => goTab('bookmarks')}>
+                                        <span className="cp-stat-num">{bookmarkedPostIds.size}</span>
                                         <span className="cp-stat-label">보관게시글</span>
                                     </div>
                                 </div>
@@ -995,10 +1263,6 @@ export default function CommunityPage() {
                 </div>
             </div>
 
-            {/* 햄버거 버튼 */}
-            <button className="cp-sidebar-toggle" onClick={() => setShowSidebar(true)}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-            </button>
 
             {/* 슬라이드 패널 */}
             {showSidebar && (
@@ -1009,7 +1273,21 @@ export default function CommunityPage() {
                             <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>메뉴</span>
                             <button onClick={() => setShowSidebar(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18 }}>✕</button>
                         </div>
-                        {user ? (
+                        {authLoading ? (
+                            <div className="cp-sidebar-card">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--bg-hover)', flexShrink: 0 }} />
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ height: 11, width: '55%', background: 'var(--bg-hover)', borderRadius: 6, marginBottom: 6 }} />
+                                        <div style={{ height: 9, width: '35%', background: 'var(--bg-hover)', borderRadius: 6 }} />
+                                    </div>
+                                </div>
+                                <div style={{ height: 32, background: 'var(--bg-hover)', borderRadius: 9, marginBottom: 10 }} />
+                                <div className="cp-user-stats">
+                                    {[0, 1, 2].map(i => <div key={i} className="cp-stat-cell"><div style={{ height: 14, width: 20, background: 'var(--bg-hover)', borderRadius: 4, margin: '0 auto 4px' }} /><div style={{ height: 9, width: 28, background: 'var(--bg-hover)', borderRadius: 4, margin: '0 auto' }} /></div>)}
+                                </div>
+                            </div>
+                        ) : user ? (
                             <div className="cp-sidebar-card">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                                     <div style={{ width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
@@ -1026,14 +1304,14 @@ export default function CommunityPage() {
                                     글쓰기
                                 </button>
                                 <div className="cp-user-stats" style={{ marginTop: 10 }}>
-                                    <div className="cp-stat-cell" onClick={() => { setShowMyPosts(true); setMyActiveCategory(null); setShowSidebar(false) }}>
+                                    <div className={`cp-stat-cell${showMyPosts ? ' active' : ''}`} onClick={() => goTab('myPosts')}>
                                         <span className="cp-stat-num">{myPostCount}</span><span className="cp-stat-label">작성한 글</span>
                                     </div>
-                                    <div className="cp-stat-cell" onClick={() => { setShowMyPosts(true); setShowSidebar(false) }}>
-                                        <span className="cp-stat-num">0</span><span className="cp-stat-label">댓글</span>
+                                    <div className={`cp-stat-cell${showMyComments ? ' active' : ''}`} onClick={() => goTab('myComments')}>
+                                        <span className="cp-stat-num">{myCommentCount}</span><span className="cp-stat-label">댓글</span>
                                     </div>
-                                    <div className="cp-stat-cell" onClick={() => { setShowMyPosts(true); setShowSidebar(false) }}>
-                                        <span className="cp-stat-num">0</span><span className="cp-stat-label">보관글</span>
+                                    <div className={`cp-stat-cell${showBookmarks ? ' active' : ''}`} onClick={() => goTab('bookmarks')}>
+                                        <span className="cp-stat-num">{bookmarkedPostIds.size}</span><span className="cp-stat-label">보관글</span>
                                     </div>
                                 </div>
                             </div>

@@ -1,8 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useAuthStore } from '@/store/useAuthStore'
-import { db } from '@/firebase/firebase'
-import { doc, getDoc } from 'firebase/firestore'
 import HeroSection from "@/components/HeroSection"
 import WatchHistory from "@/components/home/WatchHistory"
 import DayNewSection from "@/components/home/DayNewSection"
@@ -16,23 +13,9 @@ import SurveyBanner from "@/components/home/SurveyBanner"
 import LiveSection from "@/components/home/LiveSection"
 import EventSection from "@/components/home/EventSection"
 import PersonalRecommendSection from "@/components/home/PersonalRecommendSection"
-import OnboardingModal from '@/components/OnboardingModal'
 
 export default function Home() {
   const [cursor, setCursor] = useState({ x: -100, y: -100 })
-  const { user } = useAuthStore()
-  const [showOnboarding, setShowOnboarding] = useState(false)
-
-  useEffect(() => {
-    if (!user?.uid) return
-    const check = async () => {
-      const snap = await getDoc(doc(db, 'users', user.uid))
-      const data = snap.data()
-      const hasGenres = Array.isArray(data?.preferences?.genres) && data.preferences.genres.length > 0
-      if (!hasGenres) setShowOnboarding(true)
-    }
-    check()
-  }, [user?.uid])
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => setCursor({ x: e.clientX, y: e.clientY })
@@ -60,7 +43,9 @@ export default function Home() {
         <HeroSection />
         <DayNewSection />
         <WatchHistory />
+
         <PersonalRecommendSection />
+
         <LiveSection />
         <MoodSection />
         <MembershipBanner />
@@ -72,14 +57,6 @@ export default function Home() {
         <TagTop10Section />
         <SurveyBanner />
         <EventSection />
-
-        {showOnboarding && user?.uid && (
-          <OnboardingModal
-            uid={user.uid}
-            onComplete={() => setShowOnboarding(false)}
-            onClose={() => setShowOnboarding(false)}
-          />
-        )}
       </div>
     </>
   )
