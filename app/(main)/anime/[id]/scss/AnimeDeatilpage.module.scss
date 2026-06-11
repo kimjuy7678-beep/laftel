@@ -4,17 +4,19 @@
     min-height: 100vh;
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    padding-top: 180px;
+    padding-top: clamp(72px, 9vw, 180px);
 }
 
 /* ── 상단: 플레이어 + 사이드바 ── */
 .playerRow {
     display: flex;
-    height: calc(60vh - 40px);
+    height: clamp(420px, 58vh, 680px);
     background: #000;
     max-width: 90%;
     margin: 0 auto;
     width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
 }
 
 /* 비디오 영역 */
@@ -33,6 +35,11 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
 
     span {
         font-size: 13px;
@@ -45,7 +52,7 @@
     max-width: 90%;
     width: 100%;
     margin: 0 auto;
-    padding: 0 320px 80px 24px;
+    padding: 0 clamp(220px, 24vw, 320px) 80px 24px;
 }
 
 /* ── 스피너 ── */
@@ -102,13 +109,13 @@
 
 /* ── 뒤로가기 버튼 ── */
 .backBtn {
-    position: absolute;
-    top: 72px;
-    left: 24px;
-    z-index: 100;
-    display: flex;
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
+    width: fit-content;
+    margin: 0 0 12px 5%;
     padding: 8px 14px;
     background: var(--bg-secondary);
     backdrop-filter: blur(8px);
@@ -122,5 +129,78 @@
     &:hover {
         color: var(--text-primary);
         background: var(--bg-hover);
+    }
+}
+
+@media (max-width: 1200px) {
+    .playerRow {
+        max-width: 90%;
+        height: clamp(380px, 54vh, 600px);
+    }
+
+    .bottomRow {
+        max-width: 90%;
+        padding-right: 260px;
+    }
+}
+
+@media (max-width: 960px) {
+    .pageRoot {
+        padding-top: 72px;
+    }
+
+    .playerRow {
+        flex-direction: column;
+        height: auto;
+        max-width: 90%;
+        border-radius: 14px;
+    }
+
+    .playerArea {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        min-height: 260px;
+    }
+
+    .bottomRow {
+        max-width: 90%;
+        padding: 0 0 64px;
+    }
+}
+
+@media (max-width: 640px) {
+    .pageRoot {
+        padding-top: 96px;
+    }
+
+    .playerRow {
+        max-width: 90%;
+        border-radius: 12px;
+    }
+
+    .playerArea {
+        min-height: 210px;
+    }
+
+    .playerState {
+        gap: 10px;
+        padding: 18px;
+
+        span {
+            font-size: 12px;
+        }
+    }
+
+    .bottomRow {
+        max-width: 90%;
+        padding-bottom: 48px;
+    }
+
+    .backBtn {
+        gap: 4px;
+        margin-bottom: 10px;
+        padding: 7px 10px;
+        font-size: 12px;
+        border-radius: 999px;
     }
 }

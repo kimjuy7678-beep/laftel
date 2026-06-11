@@ -26,6 +26,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!user?.uid) return
+    const uid = user.uid
     const check = async () => {
       const snap = await getDoc(doc(db, 'users', user.uid!))
       const data = snap.data()
