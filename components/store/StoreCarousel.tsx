@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import Link from "next/link";
 
 type Banner = {
     url: string;
@@ -8,32 +9,33 @@ type Banner = {
     button: string;
     textAlign: "left" | "right";
     bg?: string;
+    link: string;
 }
 
 const BANNERS_BASE: Banner[] = [
     {
-        url: "./images/store/StoreBanner1.png",
+        url: "./images/store/StoreBanner1.png", link: "/store/series?series=하이큐",
         title: "하이큐 굿즈 컬렉션 OPEN",
         content: "코트의 열기를 그대로 ⚡\n최애 선수와 함께하는 공식 굿즈",
         button: "하이큐 굿즈 보러가기",
         textAlign: "left",
     },
     {
-        url: "./images/store/StoreBanner2.png",
+        url: "./images/store/StoreBanner2.png", link: "/store/series?series=주술회전",
         title: "주술회전 인기 굿즈 기획전",
         content: "품절 전에 챙겨야 할 필수 MD 🔥\n지금 가장 인기 있는 주술회전 굿즈",
         button: "주술회전 굿즈 보러가기",
         textAlign: "left",
     },
     {
-        url: "./images/store/StoreBanner4.png",
+        url: "./images/store/StoreBanner4.png", link: "/store/series?series=하츠네미쿠",
         title: "하츠네 미쿠 스페셜 컬렉션",
         content: "전 세계를 사로잡은 버추얼 디바 🎵\n한정판 미쿠 굿즈를 만나보세요",
         button: "미쿠 굿즈 보러가기",
         textAlign: "left",
     },
     {
-        url: "./images/store/StoreBanner3.png",
+        url: "./images/store/StoreBanner3.png", link: "/store/series?series=귀멸의 칼날",
         title: "귀멸의 칼날 BEST COLLECTION",
         content: "탄지로부터 무이치로까지 ⚔️\n인기 캐릭터 굿즈 총집합",
         button: "귀멸 굿즈 보러가기",
@@ -42,7 +44,7 @@ const BANNERS_BASE: Banner[] = [
     // 신규 추가
 
     {
-        url: "./images/store/storebanner8.png",
+        url: "./images/store/storebanner8.png", link: "/store/series?series=마루는 강쥐",
         title: "마루의 무해함으로 일상치유",
         content: "마루는 강쥐 공식 굿즈 대거 출시\n귀여운 마루와 함께라면 일주일은 두렵지 않아",
         button: "시리즈 페이지 가기",
@@ -51,10 +53,10 @@ const BANNERS_BASE: Banner[] = [
 
     },
     {
-        url: "./images/store/storebanner9.png",
+        url: "./images/store/storebanner9.png", link: "/store/best",
         title: "체인소맨 불변의 선호커플 1위",
         content: "2025년 액션애니메이션 최고 흥행작 체인소맨 -레제편-\n레제 x 덴지 x 빔 피규어 업데이트",
-        button: "시리즈 페이지 가기",
+        button: "인기상품 보러가기",
         textAlign: "right",
     }
 ];
@@ -163,9 +165,9 @@ export default function StoreCarousel() {
                                         <p className="whitespace-pre-line text-[12px] leading-relaxed text-white/90 drop-shadow sm:text-[14px]">
                                             {b.content}
                                         </p>
-                                        <button className="mt-3 w-fit rounded-full border border-white/70 px-5 py-2 text-[12px] font-medium text-white shadow-md transition-colors hover:bg-white/20 sm:px-6 sm:text-sm">
+                                        <Link href={b.link} className="mt-3 w-fit rounded-full border border-white/70 px-5 py-2 text-[12px] font-medium text-white shadow-md transition-colors hover:bg-white/20 sm:px-6 sm:text-sm">
                                             {b.button}
-                                        </button>
+                                        </Link>
                                     </div>
                                 </div>
                             </div>
