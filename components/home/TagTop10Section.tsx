@@ -6,6 +6,7 @@ import { Navigation } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 import { usePreviewStore } from '@/store/usePreviewStore'
+import { useFilteredAniList } from '@/hook/useFilteredAniList'
 
 const POSTER_W = 340
 const POSTER_H = 510
@@ -29,10 +30,11 @@ const GENRE_MAP: Record<number, string> = {
 }
 
 export default function TagTop10Section() {
-    const { aniList, onFetchAni } = useAniStore()
+    const { onFetchAni } = useAniStore()
     const prevRef = useRef<HTMLButtonElement>(null)
     const nextRef = useRef<HTMLButtonElement>(null)
     const [activeTag, setActiveTag] = useState(0)
+    const aniList = useFilteredAniList()
 
     const bindNavigation = (swiper: SwiperType) => {
         const navigation = swiper.params.navigation

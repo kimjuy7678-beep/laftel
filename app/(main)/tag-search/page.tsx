@@ -3,6 +3,7 @@
 import PageHeader from '@/components/PageHeader'
 import LoginAlert from '@/components/store/LoginAlert'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAniStore } from '@/store/useAniStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { useWatchlistStore } from '@/store/useWatchlistStore'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -494,6 +495,7 @@ function AniCard({ item }: { item: AniItem }) {
     const [isWishAdding, setIsWishAdding] = useState(false)
     const { setPreviewId } = usePreviewStore()
     const { user } = useAuthStore()
+    const { contentRatings, onFetchContentRatings } = useAniStore()
     const { addItem, hasItem, removeItem } = useWatchlistStore()
     const router = useRouter()
     const t = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -503,6 +505,32 @@ function AniCard({ item }: { item: AniItem }) {
     const year = item.first_air_date?.slice(0, 4) || ''
     const genres = item.genre_ids.map(g => GENRE_LABEL[g]).filter(Boolean).slice(0, 2)
     const isWished = hasItem(item.id, 'wishlist')
+
+    const AGE_PRIORITY: Record<string, number> = { 'ALL': 0, '7': 7, '12': 12, '15': 15, '19': 19 }
+
+    const getAgeClass = (id: number) => {
+        const rating = contentRatings[id]
+        if (!rating || rating === 'ALL') return null
+        const ageLimit = user?.ageLimit ?? '19'
+        const limitNum = AGE_PRIORITY[ageLimit] ?? 19
+        const ratingNum = AGE_PRIORITY[rating] ?? 0
+        if (ratingNum > limitNum) return rating  // 연령 초과
+        return null
+    }
+
+    const filterByAge = useCallback((items: AniItem[]) => {
+        const ageLimit = user?.ageLimit ?? '19'
+        const limitNum = AGE_PRIORITY[ageLimit] ?? 19
+        return items.map(ani => ({
+            ...ani,
+            _ageBlocked: (() => {
+                if ((ani as any).adult === true && ageLimit !== '19') return true
+                const rating = contentRatings[ani.id]
+                if (!rating) return false
+                return (AGE_PRIORITY[rating] ?? 0) > limitNum
+            })()
+        }))
+    }, [user, contentRatings])
 
     const handleWishClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
