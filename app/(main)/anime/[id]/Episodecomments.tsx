@@ -48,7 +48,7 @@ interface Comment {
     author: string
     avatar: string
     text: string
-    createdAt: any
+    createdAt: unknown
     likes: number
     liked: boolean
     episodeNumber: number
@@ -63,15 +63,23 @@ interface Props {
     animePoster?: string | null
 }
 
-function formatTime(ts: any) {
+function formatTime(ts: unknown) {
     if (!ts) return '방금'
-    const date = ts.toDate ? ts.toDate() : new Date(ts)
+    const date = toDateValue(ts)
     const diff = Math.floor((Date.now() - date.getTime()) / 1000)
     if (diff < 60) return '방금'
     if (diff < 3600) return `${Math.floor(diff / 60)}분 전`
     if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`
     if (diff < 86400 * 30) return `${Math.floor(diff / 86400)}일 전`
     return date.toLocaleDateString('ko-KR')
+}
+
+function toDateValue(value: unknown) {
+    const timestamp = value as { toDate?: () => Date } | string | number | Date | null | undefined
+    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate()
+    }
+    return new Date((timestamp ?? 0) as string | number | Date)
 }
 
 export default function EpisodeComments({ episodeId, animeId, animeTitle, animePoster }: Props) {
@@ -96,11 +104,11 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     const colName = 'anime_comments'
 
     useEffect(() => {
-        if (!animeId || !episodeId || isNaN(Number(animeId))) return
-        setLoading(true)
+        if (!user?.uid || !animeId || !episodeId || isNaN(Number(animeId))) return
+        queueMicrotask(() => setLoading(true))
         getDocs(
             query(
-                collection(db, 'users', user?.uid!, 'profiles', profileId, colName),
+                collection(db, 'users', user.uid, 'profiles', profileId, colName),
                 where('animeId', '==', Number(animeId))
             )
         ).then(snap => {
@@ -108,15 +116,15 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 .map(d => ({ id: d.id, ...d.data() } as Comment))
                 .filter(d => d.episodeNumber === Number(episodeId))
                 .sort((a, b) => {
-                    const aTime = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
-                    const bTime = b.createdAt?.toDate?.() ?? new Date(b.createdAt ?? 0)
+                    const aTime = toDateValue(a.createdAt)
+                    const bTime = toDateValue(b.createdAt)
                     return bTime.getTime() - aTime.getTime()
                 })
             setComments(docs)
         }).catch(e => {
             console.error('댓글 fetch error:', e)
         }).finally(() => setLoading(false))
-    }, [animeId, episodeId])
+    }, [animeId, episodeId, profileId, user?.uid])
 
     const handleSubmit = async () => {
         const trimmed = input.trim()
@@ -162,8 +170,9 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     }
 
     const handleDelete = async (id: string) => {
+        if (!user?.uid) return
         if (!confirm('댓글을 삭제할까요?')) return
-        await deleteDoc(doc(db, 'users', user?.uid!, 'profiles', profileId, colName, id))
+        await deleteDoc(doc(db, 'users', user.uid, 'profiles', profileId, colName, id))
         setComments(prev => prev.filter(c => c.id !== id))
         useActivityStore.setState(s => ({
             counts: { ...s.counts, comment: Math.max(0, s.counts.comment - 1) }
@@ -177,8 +186,8 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     }
 
     return (
-        <div className="px-6 py-5 border-t border-[var(--border-subtle)]">
-            <div className="flex items-center gap-2 mb-4">
+        <div className="border-t border-[var(--border-subtle)] px-3 py-4 sm:px-5 sm:py-5 md:px-6">
+            <div className="mb-3 flex items-center gap-2 sm:mb-4">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-subtle)" strokeWidth="2">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
@@ -188,9 +197,9 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
             </div>
 
             {/* 입력창 */}
-            <div className="flex gap-2.5 mb-5">
+            <div className="mb-4 flex gap-2.5 sm:mb-5">
                 <Avatar src={myAvatarSrc} name={user ? myName : '?'} size={32} />
-                <div className="flex-1 flex gap-2">
+                <div className="flex min-w-0 flex-1 gap-2">
                     <input
                         ref={inputRef}
                         value={input}
@@ -198,12 +207,12 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                         onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
                         placeholder={user ? `${episodeId}화에 대한 생각을 남겨보세요` : '로그인 후 댓글을 남길 수 있어요'}
                         disabled={!user}
-                        className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3.5 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-faint)] outline-none focus:border-[#6c63ff]/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-[12px] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-faint)] focus:border-[#6c63ff]/60 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3.5 sm:text-[13px]"
                     />
                     <button
                         onClick={user ? handleSubmit : () => router.push('/login')}
                         disabled={user ? (!input.trim() || submitting) : false}
-                        className="px-3.5 py-2 rounded-lg bg-[#6c63ff] text-white text-[12px] font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-opacity hover:bg-[#7c74ff] shrink-0"
+                        className="shrink-0 rounded-lg bg-[#6c63ff] px-3 py-2 text-[12px] font-semibold text-white transition-opacity hover:bg-[#7c74ff] disabled:cursor-not-allowed disabled:opacity-30 sm:px-3.5"
                     >
                         {submitting
                             ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -219,14 +228,14 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                     <div className="w-5 h-5 border-2 border-[var(--border)] border-t-[#6c63ff] rounded-full animate-spin" />
                 </div>
             ) : comments.length === 0 ? (
-                <p className="text-[13px] text-[var(--text-faint)] text-center py-6">첫 댓글을 남겨보세요!</p>
+                <p className="py-5 text-center text-[12px] text-[var(--text-faint)] sm:py-6 sm:text-[13px]">첫 댓글을 남겨보세요!</p>
             ) : (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3.5 sm:gap-4">
                     {comments.map(c => (
-                        <div key={c.id} className="flex gap-2.5 group">
+                        <div key={c.id} className="group flex gap-2.5">
                             <Avatar src={c.avatar} name={c.author} size={32} />
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
+                                <div className="mb-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
                                     <span className="text-[12px] font-semibold text-[var(--text-muted)]">{c.author}</span>
                                     <GradeBadge watched={c.watched ?? 0} size="sm" showName={true} />
                                     <span className="text-[11px] text-[var(--text-faint)]">{formatTime(c.createdAt)}</span>
@@ -237,7 +246,7 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                                         >삭제</button>
                                     )}
                                 </div>
-                                <p className="text-[13px] text-[var(--text-muted)] leading-[1.6] break-words">{c.text}</p>
+                                <p className="break-words text-[12px] leading-[1.6] text-[var(--text-muted)] sm:text-[13px]">{c.text}</p>
                                 <button
                                     onClick={() => toggleLike(c.id)}
                                     className={`flex items-center gap-1 mt-1.5 text-[11px] transition-colors ${c.liked ? 'text-[#6c63ff]' : 'text-[var(--text-faint)] hover:text-[var(--text-subtle)]'}`}

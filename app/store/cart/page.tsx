@@ -403,16 +403,35 @@ export default function CartPage() {
                         <strong className="text-[26px] font-extrabold text-[#826CFF] tabular-nums">{formatWon(animFinalTotal)}</strong>
                     </div>
 
-                    {/* 동의 체크박스 */}
                     <button
                         type="button"
                         onClick={() => { setAgreed(v => !v); setAgreeError(false); }}
-                        className={`mt-6 flex items-center gap-2 w-full rounded-[10px] px-3 py-2.5 transition-colors ${agreeError ? "bg-[#fff0f3] border border-[#ffb3c1]" : agreed ? "bg-[#f0eeff]" : "bg-[#fafafa] border border-transparent hover:bg-[#f5f3ff]"}`}
+                        className={`mt-6 flex items-center gap-2 w-full rounded-[10px] px-3 py-2.5 border transition-colors ${agreeError
+                                ? "bg-[#fff0f3] border-[#ffb3c1]"
+                                : agreed
+                                    ? "bg-[#f0eeff] border-transparent"
+                                    : "bg-[#fafafa] border-transparent hover:bg-[#f5f3ff]"
+                            }`}
                     >
-                        <span className={`w-5 h-5 rounded-[6px] flex-shrink-0 flex items-center justify-center border-2 transition-colors ${agreed ? "bg-[#826CFF] border-[#826CFF]" : agreeError ? "border-[#ff4d6d]" : "border-[#d0c9f0]"}`}>
-                            {agreed && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
+                        <span className={`w-5 h-5 rounded-[6px] flex-shrink-0 flex items-center justify-center border-2 transition-colors ${agreed
+                                ? "bg-[#826CFF] border-[#826CFF]"
+                                : agreeError
+                                    ? "border-[#ff4d6d]"
+                                    : "border-[#d0c9f0]"
+                            }`}>
+                            {agreed && (
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            )}
                         </span>
-                        <span className={`text-[12px] font-semibold ${agreed ? "text-[#826CFF]" : agreeError ? "text-[#ff4d6d]" : "text-[#9b94b2]"}`}>
+
+                        <span className={`text-[12px] font-semibold ${agreed
+                                ? "text-[#826CFF]"
+                                : agreeError
+                                    ? "text-[#ff4d6d]"
+                                    : "text-[#9b94b2]"
+                            }`}>
                             주문 내용을 확인했으며, 결제 진행에 동의합니다. (필수)
                         </span>
                     </button>
