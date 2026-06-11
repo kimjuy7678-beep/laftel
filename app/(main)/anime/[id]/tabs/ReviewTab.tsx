@@ -7,6 +7,8 @@ import {
 } from 'firebase/firestore'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useActivityStore } from '@/store/useActiveStore'
+import { toast } from 'sonner'
+
 
 // 닉네임 기반 일관된 색상 + 이니셜 아바타
 const AVATAR_COLORS = [
@@ -168,7 +170,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
     // 별점만 저장
     const handleSaveScoreOnly = async () => {
         if (myScore === 0) return
-        if (!user?.uid) { alert('로그인이 필요해요'); return }
+        if (!user?.uid) { toast.error('로그인이 필요해요'); return }
         await setDoc(doc(db, 'reviews', `${user.uid}_${previewId}`), {
             uid: user.uid, animeId: Number(previewId), animeTitle: animeTitle || '',
             animePoster: animePoster || null,
@@ -197,7 +199,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
     // 리뷰 포함 저장
     const handleSave = async () => {
         if (!myReview.trim() || myScore === 0) return
-        if (!user?.uid) { alert('로그인이 필요해요'); return }
+        if (!user?.uid) { toast.error('로그인이 필요해요'); return }
         await setDoc(doc(db, 'reviews', `${user.uid}_${previewId}`), {
             uid: user.uid, animeId: Number(previewId), animeTitle: animeTitle || '',
             animePoster: animePoster || null,
@@ -580,12 +582,12 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                                                 style={{ color: 'var(--text-muted)' }}
                                                                 onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)'}
                                                                 onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
-                                                                onClick={() => { alert('스포일러로 신고했어요.'); setOpenMenuId(null) }}>스포일러 신고</button>
+                                                                onClick={() => { toast.success('스포일러로 신고했어요.'); setOpenMenuId(null) }}>스포일러 신고</button>
                                                             <button className="w-full px-4 py-2.5 text-left text-xs transition-colors"
                                                                 style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-faint)' }}
                                                                 onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)'}
                                                                 onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
-                                                                onClick={() => { alert('부적절한 표현으로 신고했어요.'); setOpenMenuId(null) }}>부적절한 표현 신고</button>
+                                                                onClick={() => { toast.success('부적절한 표현으로 신고했어요.'); setOpenMenuId(null) }}>부적절한 표현 신고</button>
                                                         </>
                                                     )}
                                                 </div>
