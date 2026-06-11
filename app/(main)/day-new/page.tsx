@@ -26,6 +26,20 @@ const getThumb = (ani: any, size: 'w342' | 'w780' = 'w342') =>
             ? `https://image.tmdb.org/t/p/w780${ani.backdrop_path}`
             : null
 
+const EmptyState = ({ message = '연령에 맞는 애니메이션이 없습니다', sub = '연령 설정을 변경해보세요' }) => (
+    <div style={{
+        gridColumn: '1 / -1',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '80px 0', gap: 14,
+    }}>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" style={{ color: 'var(--text-faint)' }}>
+            <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
+        </svg>
+        <p style={{ fontSize: 18, fontWeight: 800, margin: 0, color: 'var(--text-muted)' }}>{message}</p>
+        <p style={{ fontSize: 14, margin: 0, color: 'var(--text-faint)' }}>{sub}</p>
+    </div>
+)
+
 export default function DayNewPage() {
     const { onFetchAni, contentRatings } = useAniStore()
     const [activeDay, setActiveDay] = useState(todayIdx)
@@ -239,16 +253,11 @@ export default function DayNewPage() {
     width: 100%; aspect-ratio: 3 / 4; flex: 1;
 }
 .restName {
-    font-size: 16px;
-    font-weight: 800;
-     color: var(--text-primary);
-
-    margin-top: 10px;
-    line-height: 1.3;
-    height: 46px;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
+    font-size: 16px; font-weight: 800;
+    color: var(--text-primary);
+    margin-top: 10px; line-height: 1.3;
+    height: 46px; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
 .restImg {
@@ -344,91 +353,37 @@ export default function DayNewPage() {
 /* ── 스켈레톤 ───────────────────────────── */
 @keyframes shimmer { 0%{opacity:1} 50%{opacity:.5} 100%{opacity:1} }
 
-/* ════════════════════════════════════════
-   반응형 — 데스크탑 스타일은 건드리지 않음
-   ════════════════════════════════════════ */
-
-/* 태블릿 (1024px 이하) */
 @media (max-width: 1024px) {
-    .todayLayout {
-        grid-template-columns: repeat(4, 1fr);
-    }
-    .featuredWrap {
-        grid-column: span 1;
-    }
-    .restGrid {
-        grid-column: span 3;
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: auto;
-    }
-    .restName {
-        font-size: 13px;
-        height: 38px;
-    }
-    .dayGrid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
+    .todayLayout { grid-template-columns: repeat(4, 1fr); }
+    .featuredWrap { grid-column: span 1; }
+    .restGrid { grid-column: span 3; grid-template-columns: repeat(3, 1fr); grid-template-rows: auto; }
+    .restName { font-size: 13px; height: 38px; }
+    .dayGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .dayTabLabel { font-size: 13px; }
     .popularText { font-size: 20px; }
 }
-
-/* 모바일 (768px 이하) */
 @media (max-width: 768px) {
-    .todayLayout {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-    .featuredWrap {
-        grid-column: 1;
-    }
-    .featuredCard {
-        aspect-ratio: 16 / 9;
-        width: 100%;
-    }
-    .featuredImg {
-        position: absolute;
-    }
-    /* 모바일에서 featured 오버레이 항상 표시 */
+    .todayLayout { grid-template-columns: 1fr; gap: 20px; }
+    .featuredWrap { grid-column: 1; }
+    .featuredCard { aspect-ratio: 16 / 9; width: 100%; }
+    .featuredImg { position: absolute; }
     .featuredBottom { opacity: 1; }
     .featuredGradient { opacity: 1; }
-
-    .restGrid {
-        grid-column: 1;
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: auto;
-        gap: 10px;
-    }
-    .restName {
-        font-size: 12px;
-        margin-top: 6px;
-        height: auto;
-        -webkit-line-clamp: 1;
-    }
-
-    .dayGrid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px 10px;
-    }
+    .restGrid { grid-column: 1; grid-template-columns: repeat(3, 1fr); grid-template-rows: auto; gap: 10px; }
+    .restName { font-size: 12px; margin-top: 6px; height: auto; -webkit-line-clamp: 1; }
+    .dayGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 10px; }
     .dayName { font-size: 13px; }
     .dayTabLabel { font-size: 11px; }
     .dayTab { padding: 12px 0; }
-
     .popularBanner { margin: 30px 0 60px; }
     .popularInner { height: 110px; }
     .popularChar { height: 75px; }
     .popularText { font-size: 16px; }
-
     .calBtn span { display: none; }
 }
-
-/* 소형 모바일 (480px 이하) */
 @media (max-width: 480px) {
-    .restGrid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .dayGrid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+    .restGrid { grid-template-columns: repeat(2, 1fr); }
+    .dayGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .dayTabLabel { font-size: 10px; }
     .dayTab { padding: 10px 2px; }
     .popularText { font-size: 14px; }
@@ -447,67 +402,73 @@ export default function DayNewPage() {
                         </div>
 
                         <div className="todayLayout">
-                            <div className="featuredWrap">
-                                {featured ? (
-                                    <div className="featuredCard" onClick={() => setPreviewId(featured.id)}>
-                                        {getThumb(featured, 'w780')
-                                            ? <img className="featuredImg" src={getThumb(featured, 'w780')!} alt={featured.name} />
-                                            : <div className="featuredFallback">{(featured.name || '?')[0]}</div>
-                                        }
-                                        <div className="featuredGradient" />
-                                        <span className="badgeSel">선독점</span>
-                                        <div className="featuredBottom">
-                                            <div className="featuredGenres">
-                                                {(featured.genre_ids ?? []).map((g: number) => GENRE_MAP[g]).filter(Boolean).slice(0, 3).map((g: string) => (
-                                                    <span key={g} className="genreTag">{g}</span>
-                                                ))}
-                                            </div>
-                                            <p className="featuredName">{featured.name}</p>
-                                            <p className="featuredDesc">{featured.overview || '줄거리 정보가 없습니다.'}</p>
-                                            <button className="watchBtn">
-                                                <svg width="11" height="11" viewBox="0 0 12 14"><path d="M1 1l10 6L1 13V1z" fill="currentColor" /></svg>
-                                                지금 보기
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="featuredSkeleton" />
-                                )}
-                                {featured && <p className="restName">{featured.name}</p>}
-                            </div>
-
-                            <div className="restGrid">
-                                {(restItems.slice(0, 10).length > 0 ? restItems.slice(0, 10) : Array(10).fill(null)).map((ani: any, idx: number) =>
-                                    ani ? (
-                                        <div key={ani.id} className="restCard" onClick={() => setPreviewId(ani.id)}>
-                                            <div className="restThumb">
-                                                {getThumb(ani)
-                                                    ? <img className="restImg" src={getThumb(ani)!} alt={ani.name} />
-                                                    : <div className="restFallback">{(ani.name || '?')[0]}</div>
+                            {aniList.length > 0 && todayItems.length === 0 ? (
+                                <EmptyState />
+                            ) : (
+                                <>
+                                    <div className="featuredWrap">
+                                        {featured ? (
+                                            <div className="featuredCard" onClick={() => setPreviewId(featured.id)}>
+                                                {getThumb(featured, 'w780')
+                                                    ? <img className="featuredImg" src={getThumb(featured, 'w780')!} alt={featured.name} />
+                                                    : <div className="featuredFallback">{(featured.name || '?')[0]}</div>
                                                 }
-                                                <div className="restOverlay">
-                                                    <div className="restOverlayGenres">
-                                                        {(ani.genre_ids ?? []).map((g: number) => GENRE_MAP[g]).filter(Boolean).slice(0, 2).map((g: string) => (
-                                                            <span key={g} className="restOverlayTag">{g}</span>
+                                                <div className="featuredGradient" />
+                                                <span className="badgeSel">선독점</span>
+                                                <div className="featuredBottom">
+                                                    <div className="featuredGenres">
+                                                        {(featured.genre_ids ?? []).map((g: number) => GENRE_MAP[g]).filter(Boolean).slice(0, 3).map((g: string) => (
+                                                            <span key={g} className="genreTag">{g}</span>
                                                         ))}
                                                     </div>
-                                                    <p className="restOverlayName">{ani.name}</p>
-                                                    <p className="restOverlayDesc">{ani.overview || '줄거리 정보가 없습니다.'}</p>
-                                                    <button className="restOverlayBtn">
-                                                        <svg width="9" height="9" viewBox="0 0 12 14"><path d="M1 1l10 6L1 13V1z" fill="currentColor" /></svg>
+                                                    <p className="featuredName">{featured.name}</p>
+                                                    <p className="featuredDesc">{featured.overview || '줄거리 정보가 없습니다.'}</p>
+                                                    <button className="watchBtn">
+                                                        <svg width="11" height="11" viewBox="0 0 12 14"><path d="M1 1l10 6L1 13V1z" fill="currentColor" /></svg>
                                                         지금 보기
                                                     </button>
                                                 </div>
-                                                {idx % 2 === 0 && <span className="badgeUp">UP</span>}
-                                                {idx % 3 === 0 && <span className="badgeSel">선독점</span>}
                                             </div>
-                                            <p className="restName">{ani.name}</p>
-                                        </div>
-                                    ) : (
-                                        <div key={idx} className="restSkeleton" />
-                                    )
-                                )}
-                            </div>
+                                        ) : (
+                                            <div className="featuredSkeleton" />
+                                        )}
+                                        {featured && <p className="restName">{featured.name}</p>}
+                                    </div>
+
+                                    <div className="restGrid">
+                                        {(restItems.slice(0, 10).length > 0 ? restItems.slice(0, 10) : Array(10).fill(null)).map((ani: any, idx: number) =>
+                                            ani ? (
+                                                <div key={ani.id} className="restCard" onClick={() => setPreviewId(ani.id)}>
+                                                    <div className="restThumb">
+                                                        {getThumb(ani)
+                                                            ? <img className="restImg" src={getThumb(ani)!} alt={ani.name} />
+                                                            : <div className="restFallback">{(ani.name || '?')[0]}</div>
+                                                        }
+                                                        <div className="restOverlay">
+                                                            <div className="restOverlayGenres">
+                                                                {(ani.genre_ids ?? []).map((g: number) => GENRE_MAP[g]).filter(Boolean).slice(0, 2).map((g: string) => (
+                                                                    <span key={g} className="restOverlayTag">{g}</span>
+                                                                ))}
+                                                            </div>
+                                                            <p className="restOverlayName">{ani.name}</p>
+                                                            <p className="restOverlayDesc">{ani.overview || '줄거리 정보가 없습니다.'}</p>
+                                                            <button className="restOverlayBtn">
+                                                                <svg width="9" height="9" viewBox="0 0 12 14"><path d="M1 1l10 6L1 13V1z" fill="currentColor" /></svg>
+                                                                지금 보기
+                                                            </button>
+                                                        </div>
+                                                        {idx % 2 === 0 && <span className="badgeUp">UP</span>}
+                                                        {idx % 3 === 0 && <span className="badgeSel">선독점</span>}
+                                                    </div>
+                                                    <p className="restName">{ani.name}</p>
+                                                </div>
+                                            ) : (
+                                                <div key={idx} className="restSkeleton" />
+                                            )
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -560,8 +521,14 @@ export default function DayNewPage() {
                         </div>
 
                         <div className="dayGrid">
-                            {(dayItems.length > 0 ? dayItems : Array(14).fill(null)).map((ani: any, idx: number) =>
-                                ani ? (
+                            {dayItems.length === 0 && aniList.length > 0 ? (
+                                <EmptyState sub="다른 요일을 선택하거나 연령 설정을 변경해보세요" />
+                            ) : dayItems.length === 0 ? (
+                                Array(14).fill(null).map((_: any, idx: number) => (
+                                    <div key={idx} className="daySkeleton" />
+                                ))
+                            ) : (
+                                dayItems.map((ani: any, idx: number) => (
                                     <div key={ani.id} className="dayCard" onClick={() => setPreviewId(ani.id)}>
                                         <div className="dayThumb">
                                             {getThumb(ani)
@@ -573,9 +540,7 @@ export default function DayNewPage() {
                                         </div>
                                         <p className="dayName">{ani.name}</p>
                                     </div>
-                                ) : (
-                                    <div key={idx} className="daySkeleton" />
-                                )
+                                ))
                             )}
                         </div>
 
