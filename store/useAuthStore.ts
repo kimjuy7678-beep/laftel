@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { signInWithPopup, signOut } from "firebase/auth";
 import { auth, googleProvider, db } from "@/firebase/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import { issueCoupon } from "@/lib/coupon";
 
 interface User {
     email: string | null
