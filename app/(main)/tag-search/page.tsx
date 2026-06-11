@@ -7,7 +7,7 @@ import { useAniStore } from '@/store/useAniStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { useWatchlistStore } from '@/store/useWatchlistStore'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react'
 
 // ─── 타입 ──────────────────────────────────────────────────────
 interface AniItem {
@@ -659,7 +659,7 @@ function Skeleton() {
 }
 
 // ─── 메인 ─────────────────────────────────────────────────────
-export default function TagSearch() {
+function TagSearchContent() {
     const searchParams = useSearchParams()
     const [filters, setFilters] = useState<Filters>(() => {
         const genreParam = searchParams.get('genre')
@@ -1512,5 +1512,13 @@ text-overflow: ellipsis;
                 />
             )}
         </>
+    )
+}
+
+export default function TagSearch() {
+    return (
+        <Suspense fallback={null}>
+            <TagSearchContent />
+        </Suspense>
     )
 }
