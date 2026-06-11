@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { db, auth } from '@/firebase/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { sendPasswordResetEmail } from 'firebase/auth'
+import { useActivityStore } from '@/store/useActiveStore'
 
 async function hashPin(pin: string): Promise<string> {
     const data = new TextEncoder().encode(pin + '_laftel_salt')
@@ -145,9 +146,17 @@ export default function ProfilePage() {
 
     const enterProfile = async (p: ProfileData) => {
         await setDoc(doc(db, 'users', user!.uid!), { lastProfileId: p.id }, { merge: true })
-        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit, profileId: p.id })
+        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit, profileId: p.id, currentProfileId: p.id })
 
-        // 프로필 선택 시점에 온보딩 여부 체크
+        const { resetCounts } = useActivityStore.getState()
+        resetCounts()
+
+        const { useWatchlistStore } = await import('@/store/useWatchlistStore')
+        useWatchlistStore.setState({ items: [], currentProfileId: p.id })
+
+        const { useWatchProgressStore } = await import('@/store/useWatchProgressStore')
+        useWatchProgressStore.setState({ items: [], currentProfileId: p.id })
+
         const snap = await getDoc(doc(db, 'users', user!.uid!))
         if (!snap.data()?.onboardingDone) {
             useAuthStore.setState({ isNewUser: true })
