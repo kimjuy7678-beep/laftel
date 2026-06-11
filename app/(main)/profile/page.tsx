@@ -559,15 +559,7 @@ export default function ProfilePage() {
                                         )}
                                     </div>
                                     <span className="pf-card-name">{p.nickname}</span>
-                                    {isMainProfile && memberInfo && (
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20,
-                                            background: `${memberInfo.color}20`, color: memberInfo.color,
-                                            border: `1px solid ${memberInfo.color}40`, marginTop: -4,
-                                        }}>
-                                            ✓ {memberInfo.label}
-                                        </span>
-                                    )}
+
                                     {isSelected && (
                                         <span style={{ fontSize: 12, color: '#9d97ff', fontWeight: 600, marginTop: -8 }}>
                                             {p.pinHash ? '🔒 한 번 더 클릭' : '한 번 더 클릭하여 입장 →'}

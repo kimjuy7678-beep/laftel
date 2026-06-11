@@ -8,6 +8,7 @@ import { usePreviewStore } from '@/store/usePreviewStore'
 import { useWatchlistStore } from '@/store/useWatchlistStore'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { Suspense } from 'react'
 
 interface AniItem {
     id: number
@@ -368,7 +369,8 @@ function Skeleton() {
     )
 }
 
-export default function TagSearch() {
+// ─── 메인 ─────────────────────────────────────────────────────
+function TagSearchInner() {
     const searchParams = useSearchParams()
     const { user } = useAuthStore()
     const { contentRatings, onFetchContentRatings, aniList, onFetchAni } = useAniStore()
@@ -790,5 +792,12 @@ export default function TagSearch() {
             {genreModal && <GenreModal selected={filters.genres} onToggle={toggleGenre} onReset={() => setFilters(f => ({ ...f, genres: [] }))} onClose={() => setGenreModal(false)} />}
             {tagModal && <TagModal selected={filters.tags} onToggle={toggleTag} onReset={() => setFilters(f => ({ ...f, tags: [] }))} onClose={() => setTagModal(false)} />}
         </>
+    )
+}
+export default function TagSearch() {
+    return (
+        <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }} />}>
+            <TagSearchInner />
+        </Suspense>
     )
 }

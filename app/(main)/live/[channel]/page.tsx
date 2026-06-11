@@ -10,6 +10,7 @@ import channels from '@/data/channels.json'
 import Link from 'next/link'
 import LoginModal from '@/components/LoginModal'
 import MembershipRequiredModal from '@/components/MembershipRequiredModal'
+import GradeBadge from '@/components/GradeBadge'
 
 export default function LiveChannelPage() {
     const { channel } = useParams()
@@ -26,15 +27,23 @@ export default function LiveChannelPage() {
     const [playerHeight, setPlayerHeight] = useState(0)
     const [nowMin, setNowMin] = useState(nowInMinutes)
     const [relatedAnime, setRelatedAnime] = useState<any[]>([])
-
     const [showLoginModal, setShowLoginModal] = useState(false)
     const [showMembershipModal, setShowMembershipModal] = useState(false)
+    const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null)
+    const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null)
     const canWatch = user && (user.membership === 'anime' || user.membership === 'allinone')
 
     const allChannels = useMemo(() => buildChannels(getTodaySeed()), [])
     const chSchedule = allChannels.find(c => c.id === ch?.id)
     const currentIdx = chSchedule ? getCurrentIdx(chSchedule.items, nowMin) : -1
     const currentProgram = chSchedule?.items[currentIdx]
+
+    const myWatched = (() => {
+        try {
+            const s = typeof window !== 'undefined' ? localStorage.getItem('watch-progress-storage') : null
+            return s ? (JSON.parse(s)?.state?.items?.length ?? 0) : 0
+        } catch { return 0 }
+    })()
 
     useEffect(() => {
         const timer = setInterval(() => setNowMin(nowInMinutes()), 60_000)
@@ -119,9 +128,12 @@ export default function LiveChannelPage() {
             text,
             name: user.name || '익명',
             photoURL: user.photoURL || null,
+            watched: myWatched,
             createdAt: serverTimestamp(),
         })
     }
+
+    const expandedMsg = messages.find(m => m.id === expandedMsgId)
 
     if (!ch) return (
         <div className="min-h-screen flex items-center justify-center text-[var(--text-subtle)]">
@@ -130,7 +142,18 @@ export default function LiveChannelPage() {
     )
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen" onClick={() => { setExpandedMsgId(null); setPopupPos(null) }}>
+            <style>{`
+                @keyframes popIn {
+                    from { opacity:0; transform: translateX(-50%) scale(0.4) translateY(8px); }
+                    to   { opacity:1; transform: translateX(-50%) scale(1) translateY(0); }
+                }
+                .avatar-popup {
+                    animation: popIn .2s cubic-bezier(.34,1.56,.64,1);
+                    transform-origin: bottom center;
+                }
+            `}</style>
+
             <LoginModal
                 isOpen={showLoginModal}
                 onClose={() => setShowLoginModal(false)}
@@ -146,6 +169,31 @@ export default function LiveChannelPage() {
                 onClose={() => setShowMembershipModal(false)}
                 type="anime"
             />
+
+            {/* fixed 팝업 - 채팅창 밖으로 튀어나옴 */}
+            {expandedMsgId && popupPos && expandedMsg && (
+                <div
+                    className="avatar-popup fixed z-[9999] pointer-events-none"
+                    style={{
+                        left: popupPos.x,
+                        top: popupPos.y - 124,
+                        transform: 'translateX(-50%)',
+                        filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.6))',
+                    }}
+                >
+                    <div className="w-28 h-28 rounded-full overflow-hidden border-[3px] border-white">
+                        {expandedMsg.photoURL
+                            ? <img src={expandedMsg.photoURL} alt={expandedMsg.name} className="w-full h-full object-cover" />
+                            : <div className="w-full h-full bg-[var(--main)] flex items-center justify-center text-white font-bold text-2xl">
+                                {expandedMsg.name?.[0]?.toUpperCase() || '?'}
+                            </div>
+                        }
+                    </div>
+                    <svg width="20" height="10" viewBox="0 0 20 10" className="absolute -bottom-[9px] left-1/2 -translate-x-1/2">
+                        <path d="M0 0 L10 10 L20 0 Z" fill="white" />
+                    </svg>
+                </div>
+            )}
 
             <div className="inner px-4 py-5 sm:px-6 sm:py-6">
                 {/* 상단 바 */}
@@ -346,15 +394,33 @@ export default function LiveChannelPage() {
                                     {messages.length === 0 && <p className="text-[var(--text-faint)] text-xs text-center mt-4">첫 채팅을 남겨보세요!</p>}
                                     {messages.map((msg) => (
                                         <div key={msg.id} className="flex items-start gap-2">
-                                            <div className="w-7 h-7 rounded-full bg-[var(--main)] flex items-center justify-center shrink-0 overflow-hidden">
-                                                {msg.photoURL
-                                                    ? <img src={msg.photoURL} alt={msg.name} className="w-full h-full object-cover" />
-                                                    : <span className="text-white text-xs font-bold">{msg.name?.[0]?.toUpperCase() || '?'}</span>
-                                                }
+                                            <div className="shrink-0">
+                                                <div
+                                                    className="w-7 h-7 rounded-full bg-[var(--main)] flex items-center justify-center overflow-hidden cursor-pointer transition-transform hover:scale-110"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        if (expandedMsgId === msg.id) {
+                                                            setExpandedMsgId(null)
+                                                            setPopupPos(null)
+                                                        } else {
+                                                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                                            setPopupPos({ x: rect.left + rect.width / 2, y: rect.top })
+                                                            setExpandedMsgId(msg.id)
+                                                        }
+                                                    }}
+                                                >
+                                                    {msg.photoURL
+                                                        ? <img src={msg.photoURL} alt={msg.name} className="w-full h-full object-cover" />
+                                                        : <span className="text-white text-xs font-bold">{msg.name?.[0]?.toUpperCase() || '?'}</span>
+                                                    }
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="text-[var(--main)] text-xs font-medium">{msg.name}</span>
-                                                <span className="text-[var(--text-muted)] text-sm">{msg.text}</span>
+                                            <div className="flex flex-col gap-0.5 min-w-0">
+                                                <div className="flex items-center gap-1 flex-wrap">
+                                                    <span className="text-[var(--main)] text-xs font-medium">{msg.name}</span>
+                                                    <GradeBadge watched={msg.watched ?? 0} size="sm" showName={true} />
+                                                </div>
+                                                <span className="text-[var(--text-muted)] text-sm break-words">{msg.text}</span>
                                             </div>
                                         </div>
                                     ))}
