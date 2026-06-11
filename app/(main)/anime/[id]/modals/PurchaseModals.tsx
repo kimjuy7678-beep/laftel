@@ -23,12 +23,57 @@ interface PurchaseModalProps {
 }
 
 export function PurchaseModal({ episodes, detail, onClose }: PurchaseModalProps) {
+    const { user } = useAuthStore()
+    const { items } = useWatchlistStore()
+
     const [selectedEpisodes, setSelectedEpisodes] = useState<Set<number>>(new Set())
     const [showRentPeriod, setShowRentPeriod] = useState(false)
     const [showPayment, setShowPayment] = useState(false)
     const [showPayComplete, setShowPayComplete] = useState(false)
     const [purchaseType, setPurchaseType] = useState<'rent' | 'own' | null>(null)
     const [rentDays, setRentDays] = useState(7)
+
+    // 이미 소장 중인 에피소드 번호 Set
+    const ownedEpisodes = new Set(
+        items
+            .filter(i => i.tab === 'purchased' && i.id === detail?.id && i.purchaseType === 'own')
+            .map(i => i.episodeNumber!)
+    )
+
+    // 대여 중 (만료 안 된) 에피소드
+    const rentedEpisodes = new Set(
+        items
+            .filter(i =>
+                i.tab === 'purchased' &&
+                i.id === detail?.id &&
+                i.purchaseType === 'rent' &&
+                i.rentExpiry != null &&
+                i.rentExpiry > Date.now()
+            )
+            .map(i => i.episodeNumber!)
+    )
+
+    // 선택 토글 — 소장 중이면 선택 불가
+    const toggleEpisode = (epNum: number) => {
+        if (ownedEpisodes.has(epNum)) return
+        setSelectedEpisodes(prev => {
+            const next = new Set(prev)
+            next.has(epNum) ? next.delete(epNum) : next.add(epNum)
+            return next
+        })
+    }
+
+    // 전체 선택 — 소장 중 제외
+    const toggleAll = () => {
+        const selectableEps = episodes.map(ep => ep.episode_number).filter(n => !ownedEpisodes.has(n))
+        if (selectedEpisodes.size === selectableEps.length) {
+            setSelectedEpisodes(new Set())
+        } else {
+            setSelectedEpisodes(new Set(selectableEps))
+        }
+    }
+
+    const selectableCount = episodes.filter(ep => !ownedEpisodes.has(ep.episode_number)).length
 
     if (showPayComplete) return (
         <PayCompleteModal
@@ -72,53 +117,111 @@ export function PurchaseModal({ episodes, detail, onClose }: PurchaseModalProps)
                 </div>
 
                 {/* 전체선택 */}
-                <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-subtle)]">
-                    <div onClick={() => {
-                        if (selectedEpisodes.size === episodes.length) setSelectedEpisodes(new Set())
-                        else setSelectedEpisodes(new Set(episodes.map(ep => ep.episode_number)))
-                    }} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${selectedEpisodes.size === episodes.length ? 'bg-[var(--main)] border-[var(--main)]' : 'border-[var(--border)]'}`}>
-                        {selectedEpisodes.size === episodes.length && (
+                <div className="flex items-center gap-3 px-6 py-3 border-b border-[var(--border-subtle)]">
+                    <div
+                        onClick={toggleAll}
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${selectedEpisodes.size === selectableCount && selectableCount > 0 ? 'bg-[var(--main)] border-[var(--main)]' : 'border-[var(--border)]'}`}
+                    >
+                        {selectedEpisodes.size === selectableCount && selectableCount > 0 && (
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>
                         )}
                     </div>
-                    <span className="text-[var(--text-muted)] text-sm">전체선택 ({selectedEpisodes.size})</span>
+                    <span className="text-[var(--text-muted)] text-sm flex-1">
+                        전체선택 ({selectedEpisodes.size}/{selectableCount})
+                    </span>
+                    {ownedEpisodes.size > 0 && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: 'rgba(108,99,255,.12)', color: '#9d97ff' }}>
+                            소장 {ownedEpisodes.size}화 제외
+                        </span>
+                    )}
                 </div>
 
                 {/* 에피소드 목록 */}
                 <div className="overflow-y-auto flex-1">
-                    {episodes.map(ep => (
-                        <div key={ep.episode_number}
-                            className="flex items-center gap-3 px-6 py-3 hover:bg-[var(--bg-hover)] cursor-pointer transition-colors"
-                            onClick={() => setSelectedEpisodes(prev => {
-                                const next = new Set(prev)
-                                next.has(ep.episode_number) ? next.delete(ep.episode_number) : next.add(ep.episode_number)
-                                return next
-                            })}>
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${selectedEpisodes.has(ep.episode_number) ? 'bg-[var(--main)] border-[var(--main)]' : 'border-[var(--border)]'}`}>
-                                {selectedEpisodes.has(ep.episode_number) && (
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>
+                    {episodes.map(ep => {
+                        const isOwned = ownedEpisodes.has(ep.episode_number)
+                        const isRented = rentedEpisodes.has(ep.episode_number)
+                        const isSelected = selectedEpisodes.has(ep.episode_number)
+                        const isDisabled = isOwned
+
+                        return (
+                            <div
+                                key={ep.episode_number}
+                                className="flex items-center gap-3 px-6 py-3 transition-colors"
+                                style={{
+                                    cursor: isDisabled ? 'default' : 'pointer',
+                                    opacity: isDisabled ? 0.6 : 1,
+                                    background: isOwned ? 'rgba(108,99,255,.04)' : 'transparent',
+                                }}
+                                onMouseEnter={e => { if (!isDisabled) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)' }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = isOwned ? 'rgba(108,99,255,.04)' : 'transparent' }}
+                                onClick={() => toggleEpisode(ep.episode_number)}
+                            >
+                                {/* 체크박스 or 소장 아이콘 */}
+                                {isOwned ? (
+                                    <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                                        style={{ background: 'rgba(108,99,255,.15)', border: '2px solid rgba(108,99,255,.3)' }}>
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9d97ff" strokeWidth="3">
+                                            <polyline points="20,6 9,17 4,12" />
+                                        </svg>
+                                    </div>
+                                ) : (
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${isSelected ? 'bg-[var(--main)] border-[var(--main)]' : 'border-[var(--border)]'}`}>
+                                        {isSelected && (
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>
+                                        )}
+                                    </div>
                                 )}
+
+                                {/* 썸네일 */}
+                                <div className="w-[100px] min-w-[100px] aspect-video rounded-lg overflow-hidden bg-[var(--bg-secondary)]">
+                                    {ep.still_path
+                                        ? <img src={`${IMG}/w300${ep.still_path}`} className="w-full h-full object-cover" alt={ep.name} />
+                                        : <div className="w-full h-full flex items-center justify-center text-[var(--text-faint)] font-black">{ep.episode_number}</div>
+                                    }
+                                </div>
+
+                                {/* 정보 */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[var(--text-primary)] text-sm font-semibold truncate">
+                                        {ep.episode_number}화 {ep.name}
+                                    </p>
+                                    {isOwned ? (
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <span className="text-[11px] font-bold" style={{ color: '#9d97ff' }}>소장 중</span>
+                                            <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>· 추가 구매 불가</span>
+                                        </div>
+                                    ) : isRented ? (
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <span className="text-[11px] font-bold" style={{ color: '#34d399' }}>대여 중</span>
+                                            <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>· 소장으로 업그레이드 가능</span>
+                                        </div>
+                                    ) : (
+                                        <p className="text-[var(--text-subtle)] text-xs mt-0.5">대여 700원 · 소장 1,500원</p>
+                                    )}
+                                </div>
                             </div>
-                            <div className="w-[100px] min-w-[100px] aspect-video rounded-lg overflow-hidden bg-[var(--bg-secondary)]">
-                                {ep.still_path
-                                    ? <img src={`${IMG}/w300${ep.still_path}`} className="w-full h-full object-cover" alt={ep.name} />
-                                    : <div className="w-full h-full flex items-center justify-center text-[var(--text-faint)] font-black">{ep.episode_number}</div>
-                                }
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[var(--text-primary)] text-sm font-semibold truncate">{ep.episode_number}화 {ep.name}</p>
-                                <p className="text-[var(--text-subtle)] text-xs mt-0.5">대여 700원 · 소장 1,500원</p>
-                            </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </div>
 
                 {/* 하단 버튼 */}
                 <div className="flex border-t border-[var(--border)]">
-                    <button onClick={() => { setPurchaseType('rent'); setShowRentPeriod(true) }} disabled={selectedEpisodes.size === 0}
-                        className="flex-1 py-4 text-[var(--text-muted)] font-bold text-base hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-30">대여</button>
-                    <button onClick={() => { setPurchaseType('own'); setShowPayment(true) }} disabled={selectedEpisodes.size === 0}
-                        className="flex-1 py-4 bg-[var(--main)] text-white font-bold text-base hover:opacity-90 transition-opacity disabled:opacity-30">소장</button>
+                    <button
+                        onClick={() => { setPurchaseType('rent'); setShowRentPeriod(true) }}
+                        disabled={selectedEpisodes.size === 0}
+                        className="flex-1 py-4 text-[var(--text-muted)] font-bold text-base hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        대여
+                    </button>
+                    <button
+                        onClick={() => { setPurchaseType('own'); setShowPayment(true) }}
+                        disabled={selectedEpisodes.size === 0}
+                        className="flex-1 py-4 bg-[var(--main)] text-white font-bold text-base hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        소장
+                    </button>
                 </div>
             </div>
         </div>
@@ -171,7 +274,7 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
             setCards(savedCards)
             const defaultCard = savedCards.find(c => c.isDefault) ?? savedCards[0]
             if (defaultCard) { setSelectedCardId(defaultCard.id); setShowAddCard(false) }
-        }).catch(() => {})
+        }).catch(() => { })
     }, [user?.uid])
 
     const [cardNumber, setCardNumber] = useState('')
@@ -185,6 +288,7 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
 
     const pricePerEp = purchaseType === 'rent' ? (RENT_OPTIONS.find(o => o.days === rentDays)?.price ?? 700) : 1500
     const totalPrice = selectedEpisodes.size * pricePerEp
+    const profileId = user?.currentProfileId || 'main'
 
     const detectBrand = (num: string) => {
         const n = num.replace(/\s/g, '')
@@ -217,7 +321,6 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => { if (!paying) onClose() }}>
             <div className="bg-[var(--bg-card)] rounded-2xl w-[380px] border border-[var(--border)] overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                {/* 헤더 */}
                 <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border)]">
                     <h2 className="text-[var(--text-primary)] font-bold text-lg">라프텔 페이</h2>
                     {!paying && (
@@ -228,7 +331,6 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
                 </div>
 
                 <div className="px-6 py-5 flex flex-col gap-4">
-                    {/* 결제 요약 */}
                     <div className="flex justify-between text-sm">
                         <span className="text-[var(--text-muted)]">구매 유형</span>
                         <span className="text-[var(--text-primary)] font-semibold">{purchaseType === 'rent' ? `${rentDays}일 대여` : '소장'}</span>
@@ -242,7 +344,6 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
                         <span className="text-[var(--main)] font-bold text-base">{totalPrice.toLocaleString()}원</span>
                     </div>
 
-                    {/* 카드 목록 */}
                     <div className="flex flex-col gap-2">
                         <p className="text-[var(--text-muted)] text-xs">등록된 결제수단</p>
                         {cards.length === 0
@@ -289,7 +390,6 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
                         )}
                     </div>
 
-                    {/* PIN 입력 */}
                     <div className="flex flex-col gap-2">
                         <p className="text-[var(--text-muted)] text-sm">결제 비밀번호 6자리</p>
                         <div className="flex gap-2 justify-center">
@@ -314,7 +414,6 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
                     </div>
                 </div>
 
-                {/* 결제 버튼 */}
                 <div className="px-6 pb-6">
                     <button
                         disabled={(password.length < 6 || !selectedCardId) || paying}
@@ -323,7 +422,15 @@ function PaymentModal({ episodes, detail, selectedEpisodes, purchaseType, rentDa
                             await new Promise(res => setTimeout(res, 1500))
                             if (user?.uid) {
                                 for (const epNum of selectedEpisodes) {
-                                    await addItem(user.uid, { id: 0, title: detail?.name || '', poster: detail?.poster_path || '', tab: 'purchased' })
+                                    await addItem(user.uid, profileId, {
+                                        id: detail?.id || 0,
+                                        title: detail?.name || '',
+                                        poster: detail?.poster_path || '',
+                                        tab: 'purchased',
+                                        episodeNumber: epNum,
+                                        purchaseType,
+                                        rentExpiry: purchaseType === 'rent' ? Date.now() + rentDays * 86400000 : null,
+                                    })
                                 }
                                 try {
                                     await addDoc(collection(db, 'users', user.uid, 'purchaseHistory'), {

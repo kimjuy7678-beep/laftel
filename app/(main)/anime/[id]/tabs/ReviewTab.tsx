@@ -3,12 +3,12 @@ import { useState, useEffect, useRef } from 'react'
 import { db } from '@/firebase/firebase'
 import {
     doc, setDoc, getDoc, deleteDoc, arrayUnion, arrayRemove,
-    collection, addDoc, getDocs, serverTimestamp, orderBy, query, where
+    collection, addDoc, getDocs, serverTimestamp, orderBy, query, where, collectionGroup
 } from 'firebase/firestore'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useActivityStore } from '@/store/useActiveStore'
+import GradeBadge from '@/components/GradeBadge'
 
-// 닉네임 기반 일관된 색상 + 이니셜 아바타
 const AVATAR_COLORS = [
     { bg: 'rgba(108,99,255,0.2)', text: '#9d97ff' },
     { bg: 'rgba(236,72,153,0.2)', text: '#f472b6' },
@@ -43,14 +43,6 @@ function Avatar({ src, name, size = 40 }: { src?: string | null, name: string, s
     )
 }
 
-const MOCK_REVIEWS = [
-    { id: 'r1', user: 'pot**********', nickname: '파동', profileImg: '', score: 5.0, text: '이런 흔한 러브코미디에 볼게 뭐가 있다고...', date: '2026-04-01T00:00:00.000Z', edited: false, likes: 169, liked: false, spoiler: false, spoilerVisible: false },
-    { id: 'r2', user: 'itt****', nickname: '뭉', profileImg: '', score: 5.0, text: '둘이 사귀면 될 일.', date: '2026-02-08T00:00:00.000Z', edited: false, likes: 101, liked: false, spoiler: true, spoilerVisible: false },
-    { id: 'r3', user: 'lar******', nickname: '엘라라', profileImg: '', score: 5.0, text: '그냥 둘이 결혼해π', date: '2025-04-15T00:00:00.000Z', edited: false, likes: 80, liked: false, spoiler: true, spoilerVisible: false },
-    { id: 'r4', user: 'hto***', nickname: '치키차', profileImg: '', score: 5.0, text: '럽코보단 사실 액션, 배틀이 더 중심인 작품', date: '2025-04-20T00:00:00.000Z', edited: false, likes: 57, liked: false, spoiler: false, spoilerVisible: false },
-    { id: 'r5', user: 'star***', nickname: '새벽별', profileImg: '', score: 4.0, text: '작화 미쳤다 진짜 본즈 제대로 힘줬네요 ㅠㅠ', date: '2025-03-01T00:00:00.000Z', edited: false, likes: 45, liked: false, spoiler: false, spoilerVisible: false },
-]
-
 interface Reply {
     id: string
     uid: string
@@ -73,9 +65,17 @@ interface Review {
     liked: boolean
     spoiler: boolean
     spoilerVisible: boolean
+    watched?: number
 }
 
-// 별점 통계 계산
+const MOCK_REVIEWS: Review[] = [
+    { id: 'r1', user: 'pot**********', nickname: '파동', profileImg: '', score: 5.0, text: '이런 흔한 러브코미디에 볼게 뭐가 있다고...', date: '2026-04-01T00:00:00.000Z', edited: false, likes: 169, liked: false, spoiler: false, spoilerVisible: false },
+    { id: 'r2', user: 'itt****', nickname: '뭉', profileImg: '', score: 5.0, text: '둘이 사귀면 될 일.', date: '2026-02-08T00:00:00.000Z', edited: false, likes: 101, liked: false, spoiler: true, spoilerVisible: false },
+    { id: 'r3', user: 'lar******', nickname: '엘라라', profileImg: '', score: 5.0, text: '그냥 둘이 결혼해π', date: '2025-04-15T00:00:00.000Z', edited: false, likes: 80, liked: false, spoiler: true, spoilerVisible: false },
+    { id: 'r4', user: 'hto***', nickname: '치키차', profileImg: '', score: 5.0, text: '럽코보단 사실 액션, 배틀이 더 중심인 작품', date: '2025-04-20T00:00:00.000Z', edited: false, likes: 57, liked: false, spoiler: false, spoilerVisible: false },
+    { id: 'r5', user: 'star***', nickname: '새벽별', profileImg: '', score: 4.0, text: '작화 미쳤다 진짜 본즈 제대로 힘줬네요 ㅠㅠ', date: '2025-03-01T00:00:00.000Z', edited: false, likes: 45, liked: false, spoiler: false, spoilerVisible: false },
+]
+
 function calcStats(scores: number[]) {
     if (scores.length === 0) return { avg: 0, total: 0, dist: [0, 0, 0, 0, 0] }
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length
@@ -86,10 +86,17 @@ function calcStats(scores: number[]) {
     return { avg: Math.round(avg * 10) / 10, total: scores.length, dist }
 }
 
-export default function ReviewTab({ previewId, user, animeTitle, animePoster }: { previewId: number | string | null, user: any, animeTitle?: string, animePoster?: string | null }) {
+export default function ReviewTab({ previewId, user, animeTitle, animePoster }: {
+    previewId: number | string | null
+    user: any
+    animeTitle?: string
+    animePoster?: string | null
+}) {
     const { avatarConfig } = useAuthStore()
+    const profileId = user?.currentProfileId || 'main'
     const myAvatarSrc = avatarConfig?.svgDataUrl || user?.photoURL || null
     const myName = user?.name || user?.email?.split('@')[0] || '나'
+
     const [myScore, setMyScore] = useState(0)
     const [myReview, setMyReview] = useState('')
     const [hoverScore, setHoverScore] = useState(0)
@@ -99,11 +106,8 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editText, setEditText] = useState('')
-
-    // 전체 별점 목록 (평균 계산용)
     const [allScores, setAllScores] = useState<number[]>([])
 
-    // 답글 관련 state
     const [repliesMap, setRepliesMap] = useState<Record<string, Reply[]>>({})
     const [openRepliesId, setOpenRepliesId] = useState<string | null>(null)
     const [replyingToId, setReplyingToId] = useState<string | null>(null)
@@ -112,10 +116,17 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
 
     const menuRef = useRef<HTMLDivElement>(null)
 
+    const myWatched = (() => {
+        try {
+            const s = typeof window !== 'undefined' ? localStorage.getItem('watch-progress-storage') : null
+            return s ? (JSON.parse(s)?.state?.items?.length ?? 0) : 0
+        } catch { return 0 }
+    })()
+
     // 전체 별점 fetch
     useEffect(() => {
         if (!previewId) return
-        getDocs(query(collection(db, 'reviews'), where('animeId', '==', Number(previewId))))
+        getDocs(query(collectionGroup(db, 'reviews'), where('animeId', '==', Number(previewId))))
             .then(snap => {
                 const scores = snap.docs.map(d => d.data().score as number).filter(Boolean)
                 setAllScores(scores)
@@ -123,9 +134,10 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
             .catch(console.error)
     }, [previewId])
 
+    // 내 리뷰 불러오기
     useEffect(() => {
         if (!user?.uid || !previewId) return
-        getDoc(doc(db, 'reviews', `${user.uid}_${previewId}`)).then(snap => {
+        getDoc(doc(db, 'users', user.uid, 'profiles', profileId, 'reviews', `${previewId}`)).then(snap => {
             if (snap.exists()) {
                 const data = snap.data()
                 setMyScore(data.score || 0)
@@ -156,53 +168,60 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
         return () => window.removeEventListener('mousedown', handler)
     }, [])
 
-    // allScores에 내 점수 반영 헬퍼
-    const updateMyScoreInAll = (newScore: number | null) => {
-        setAllScores(prev => {
-            // 기존 내 점수 제거 후 새 점수 추가
-            const withoutMine = prev.slice(0, Math.max(0, prev.length - (myScore > 0 ? 1 : 0)))
-            return newScore !== null ? [...withoutMine, newScore] : withoutMine
-        })
-    }
-
-    // 별점만 저장
+    // ── 별점만 저장 ──────────────────────────────────────────
     const handleSaveScoreOnly = async () => {
-        if (myScore === 0) return
-        if (!user?.uid) { alert('로그인이 필요해요'); return }
-        await setDoc(doc(db, 'reviews', `${user.uid}_${previewId}`), {
+        if (myScore === 0 || !user?.uid) return
+
+        // 프로필 컬렉션에 저장 (fetchCounts와 동일한 경로)
+        await setDoc(doc(db, 'users', user.uid, 'profiles', profileId, 'reviews', `${previewId}`), {
             uid: user.uid, animeId: Number(previewId), animeTitle: animeTitle || '',
             animePoster: animePoster || null,
             score: myScore, text: '', spoiler: false, createdAt: new Date().toISOString(),
         })
+
         const newReview: Review = {
             id: `my_${user.uid}`, user: user.uid,
             nickname: user?.name || '나', profileImg: user.photoURL || '',
             score: myScore, date: new Date().toISOString(),
             edited: false, text: '', likes: 0, liked: false, spoiler: false, spoilerVisible: false,
         }
+
         setReviews(prev => {
             const hadMine = prev.some(r => r.id === `my_${user.uid}`)
             if (!hadMine) {
-                updateMyScoreInAll(myScore)
-                // 헤더 카운트 +1
+                setAllScores(s => [...s, myScore])
                 useActivityStore.setState(s => ({
                     counts: { ...s.counts, rating: s.counts.rating + 1, review: s.counts.review + 1 }
                 }))
+            } else {
+                // 기존 점수 교체
+                const old = prev.find(r => r.id === `my_${user.uid}`)
+                if (old) {
+                    setAllScores(s => {
+                        const idx = s.indexOf(old.score)
+                        return idx !== -1 ? [...s.slice(0, idx), myScore, ...s.slice(idx + 1)] : [...s, myScore]
+                    })
+                }
             }
             return [newReview, ...prev.filter(r => r.id !== `my_${user.uid}`)]
         })
         setScoreOnly(true)
     }
 
-    // 리뷰 포함 저장
+    // ── 리뷰 포함 저장 ───────────────────────────────────────
     const handleSave = async () => {
-        if (!myReview.trim() || myScore === 0) return
-        if (!user?.uid) { alert('로그인이 필요해요'); return }
-        await setDoc(doc(db, 'reviews', `${user.uid}_${previewId}`), {
+        if (!myReview.trim() || myScore === 0 || !user?.uid) return
+
+        const hadMine = reviews.some(r => r.id === `my_${user.uid}`)
+
+        // 프로필 컬렉션에 저장 (fetchCounts와 동일한 경로)
+        await setDoc(doc(db, 'users', user.uid, 'profiles', profileId, 'reviews', `${previewId}`), {
             uid: user.uid, animeId: Number(previewId), animeTitle: animeTitle || '',
             animePoster: animePoster || null,
-            score: myScore, text: myReview.trim(), spoiler: isSpoiler, createdAt: new Date().toISOString(),
+            score: myScore, text: myReview.trim(), spoiler: isSpoiler,
+            createdAt: new Date().toISOString(),
         })
+
         const newReview: Review = {
             id: `my_${user.uid}`, user: user.uid,
             nickname: user?.name || '나', profileImg: user.photoURL || '',
@@ -210,20 +229,35 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
             edited: false, text: myReview.trim(),
             likes: 0, liked: false, spoiler: isSpoiler, spoilerVisible: false,
         }
+
         setReviews(prev => {
-            const hadMine = prev.some(r => r.id === `my_${user.uid}`)
+            const old = prev.find(r => r.id === `my_${user.uid}`)
             if (!hadMine) {
+                // 완전히 새 리뷰 → 카운트 +1
                 setAllScores(s => [...s, myScore])
-                // 헤더 카운트 +1
                 useActivityStore.setState(s => ({
                     counts: { ...s.counts, rating: s.counts.rating + 1, review: s.counts.review + 1 }
                 }))
-            } else {
-                setAllScores(s => [...s.filter((_, i) => i !== s.indexOf(myScore)), myScore])
+            } else if (old && scoreOnly) {
+                // 별점만 있던 상태에서 리뷰 추가 → 점수는 이미 카운트됨, 리뷰 텍스트만 추가
+                // 카운트 변경 없음 (review 수는 동일)
+                setAllScores(s => {
+                    const idx = s.indexOf(old.score)
+                    return idx !== -1 ? [...s.slice(0, idx), myScore, ...s.slice(idx + 1)] : [...s, myScore]
+                })
+            } else if (old) {
+                // 기존 리뷰 수정 → 점수만 업데이트
+                setAllScores(s => {
+                    const idx = s.indexOf(old.score)
+                    return idx !== -1 ? [...s.slice(0, idx), myScore, ...s.slice(idx + 1)] : [...s, myScore]
+                })
             }
             return [newReview, ...prev.filter(r => r.id !== `my_${user.uid}`)]
         })
-        setMyReview(''); setIsSpoiler(false); setScoreOnly(false)
+
+        setMyReview('')
+        setIsSpoiler(false)
+        setScoreOnly(false)
     }
 
     const handleLike = async (id: string) => {
@@ -241,7 +275,6 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
         )
     }
 
-    // 답글 불러오기
     const handleLoadReplies = async (reviewId: string) => {
         if (openRepliesId === reviewId) { setOpenRepliesId(null); return }
         setOpenRepliesId(reviewId)
@@ -255,7 +288,6 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
         } catch (e) { console.error(e) }
     }
 
-    // 답글 등록
     const handlePostReply = async (reviewId: string) => {
         if (!replyText.trim() || !user?.uid) return
         setReplyLoading(true)
@@ -280,7 +312,6 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
         finally { setReplyLoading(false) }
     }
 
-    // 답글 삭제
     const handleDeleteReply = async (reviewId: string, replyId: string) => {
         if (!confirm('답글을 삭제할까요?')) return
         await deleteDoc(doc(db, 'reviews', reviewId, 'replies', replyId))
@@ -288,6 +319,43 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
             ...prev,
             [reviewId]: (prev[reviewId] || []).filter(r => r.id !== replyId),
         }))
+    }
+
+    const handleEditSave = async (id: string) => {
+        setReviews(prev => prev.map(r => r.id === id ? { ...r, text: editText, edited: true } : r))
+        if (user?.uid && previewId) {
+            await setDoc(
+                doc(db, 'users', user.uid, 'profiles', profileId, 'reviews', `${previewId}`),
+                { text: editText, edited: true },
+                { merge: true }
+            )
+        }
+        setEditingId(null)
+        setEditText('')
+    }
+
+    const handleDelete = async (id: string) => {
+        const mine = reviews.find(r => r.id === id)
+        if (mine) {
+            setAllScores(prev => {
+                const idx = prev.indexOf(mine.score)
+                return idx !== -1 ? [...prev.slice(0, idx), ...prev.slice(idx + 1)] : prev
+            })
+        }
+        setReviews(prev => prev.filter(r => r.id !== id))
+        setOpenMenuId(null)
+        if (user?.uid && previewId) {
+            await deleteDoc(doc(db, 'users', user.uid, 'profiles', profileId, 'reviews', `${previewId}`))
+        }
+        useActivityStore.setState(s => ({
+            counts: {
+                ...s.counts,
+                rating: Math.max(0, s.counts.rating - 1),
+                review: Math.max(0, s.counts.review - 1),
+            }
+        }))
+        setMyScore(0)
+        setScoreOnly(false)
     }
 
     function formatDate(dateStr: string) {
@@ -302,45 +370,8 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
         return `${year}년 전`
     }
 
-    const handleEditSave = async (id: string) => {
-        setReviews(prev => prev.map(r => r.id === id ? { ...r, text: editText, edited: true } : r))
-        if (user?.uid && previewId) {
-            await setDoc(doc(db, 'reviews', `${user.uid}_${previewId}`),
-                { text: editText, edited: true }, { merge: true }
-            )
-        }
-        setEditingId(null); setEditText('')
-    }
-
-    const handleDelete = async (id: string) => {
-        // 내 점수 allScores에서 제거
-        const mine = reviews.find(r => r.id === id)
-        if (mine) {
-            setAllScores(prev => {
-                const idx = prev.indexOf(mine.score)
-                if (idx === -1) return prev
-                return [...prev.slice(0, idx), ...prev.slice(idx + 1)]
-            })
-        }
-        setReviews(prev => prev.filter(r => r.id !== id))
-        setOpenMenuId(null)
-        if (user?.uid && previewId) {
-            await deleteDoc(doc(db, 'reviews', `${user.uid}_${previewId}`))
-        }
-        // 헤더 카운트 -1
-        useActivityStore.setState(s => ({
-            counts: {
-                ...s.counts,
-                rating: Math.max(0, s.counts.rating - 1),
-                review: Math.max(0, s.counts.review - 1),
-            }
-        }))
-        setMyScore(0); setScoreOnly(false)
-    }
-
     const isMyReviewExists = reviews.some(r => r.id === `my_${user?.uid}`)
     const stats = calcStats(allScores)
-    // 리뷰 텍스트 있는 것만 카운트
     const reviewCount = reviews.filter(r => r.text.trim() !== '').length
 
     return (
@@ -360,17 +391,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                     <p className="text-[var(--text-faint)] text-xs">
                         {myScore > 0 ? (scoreOnly ? '별점을 남겼어요' : '리뷰를 남겼어요') : '별점을 남겨주세요'}
                     </p>
-                    {/* 0.5점 단위 별점 — 마우스 왼쪽 절반: 0.5, 오른쪽: 1.0 */}
                     <div className="flex gap-1 items-center">
-                        <svg width="0" height="0" style={{ position: 'absolute' }}>
-                            <defs>
-                                {[1, 2, 3, 4, 5].map(s => (
-                                    <clipPath key={s} id={`half-${s}`}>
-                                        <rect x="0" y="0" width="16" height="32" />
-                                    </clipPath>
-                                ))}
-                            </defs>
-                        </svg>
                         {[1, 2, 3, 4, 5].map(s => {
                             const active = hoverScore || myScore
                             const full = active >= s
@@ -392,11 +413,9 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                         setMyScore(x < rect.width / 2 ? s - 0.5 : s)
                                     }}
                                 >
-                                    {/* 빈 별 (배경) */}
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--border)" stroke="none" style={{ position: 'absolute', top: 0, left: 0 }}>
                                         <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
                                     </svg>
-                                    {/* 반쪽 또는 전체 채운 별 */}
                                     {(full || half) && (
                                         <svg width="32" height="32" viewBox="0 0 24 24" fill="#6c63ff" stroke="none"
                                             style={{ position: 'absolute', top: 0, left: 0, clipPath: half ? 'inset(0 50% 0 0)' : 'none' }}>
@@ -466,7 +485,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                     )}
                 </div>
 
-                {/* 평균 별점 — 실시간 계산 */}
+                {/* 평균 별점 */}
                 <div className="flex-1 flex flex-col items-center gap-3 p-5 rounded-2xl border"
                     style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
                     <p className="text-[var(--text-subtle)] text-sm font-semibold">평균 별점</p>
@@ -544,6 +563,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                         <div className="flex items-center gap-1.5">
                                             <Avatar src={r.profileImg} name={r.nickname} size={40} />
                                             <span className="text-[var(--text-muted)] text-xs font-bold">{r.nickname}</span>
+                                            <GradeBadge watched={r.watched ?? 0} size="sm" showName={true} />
                                             <span className="text-[var(--text-faint)] text-[10px]">({r.user})</span>
                                         </div>
                                         <div className="relative">
@@ -664,7 +684,6 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                 </div>
                             </div>
 
-                            {/* 답글 영역 */}
                             {openRepliesId === r.id && (
                                 <div className="pb-4 pl-4" style={{ borderTop: '1px solid var(--border-faint)' }}>
                                     {(repliesMap[r.id] || []).map(reply => (
