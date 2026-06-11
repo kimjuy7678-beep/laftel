@@ -75,28 +75,6 @@ export const useAuthStore = create<AuthStore>()(
                         createdAt: new Date().toISOString(),
                     })
 
-                    const expiresAt = new Date()
-                    expiresAt.setMonth(expiresAt.getMonth() + 3)
-
-                    await Promise.all([
-                        issueCoupon({
-                            uid,
-                            label: "신규 가입 쿠폰",
-                            discount: 0.1,
-                            type: "rate",
-                            minOrderAmount: 0,
-                            expiresAt,
-                        }),
-                        issueCoupon({
-                            uid,
-                            label: "여름 한정 30% 할인 쿠폰",
-                            discount: 0.3,
-                            type: "rate",
-                            minOrderAmount: 0,
-                            maxDiscountAmount: 15000,
-                            expiresAt: new Date("2025-08-31"),
-                        }),
-                    ])
                 }
 
                 set({
