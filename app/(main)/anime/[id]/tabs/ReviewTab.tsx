@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from '@/store/useAuthStore'
 import { useActivityStore } from '@/store/useActiveStore'
 import GradeBadge from '@/components/GradeBadge'
+import { toast } from 'sonner'
 
 const AVATAR_COLORS = [
     { bg: 'rgba(108,99,255,0.2)', text: '#9d97ff' },
