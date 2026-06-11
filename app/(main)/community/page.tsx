@@ -231,7 +231,7 @@ const PAGE_SIZE = 20
 
 export default function CommunityPage() {
     const router = useRouter()
-    const { user, isLoading: _authLoading } = useAuthStore()
+    const { user } = useAuthStore()
     // useAuthStore에 isLoading 없는 경우 대비 — 로컬 authReady로 깜빡임 방지
     const [authReady, setAuthReady] = useState(false)
     useEffect(() => {
@@ -239,7 +239,7 @@ export default function CommunityPage() {
         const timer = setTimeout(() => setAuthReady(true), 50)
         return () => clearTimeout(timer)
     }, [user])
-    const authLoading = _authLoading ?? !authReady
+    const authLoading = !authReady
 
     const [realPosts, setRealPosts] = useState<Post[]>([])
     const [randomMockPosts] = useState<Post[]>(() => generateRandomPosts())
