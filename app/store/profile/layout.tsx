@@ -56,20 +56,20 @@ function BenefitModal({ membership, onClose }: { membership: string; onClose: ()
     const current = MEMBERSHIP_BENEFITS.find((b) => b.key === membership) ?? MEMBERSHIP_BENEFITS[0];
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30" onClick={onClose}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30 px-4" onClick={onClose}>
             <div onClick={e => e.stopPropagation()}
-                className="w-[500px] max-h-[90vh] overflow-y-auto rounded-[24px] bg-white shadow-[0_20px_60px_rgba(120,101,255,0.2)]">
+                className="w-full max-w-[500px] max-h-[90vh] overflow-y-auto rounded-[20px] bg-white shadow-[0_20px_60px_rgba(120,101,255,0.2)] sm:rounded-[24px]">
                 <div className="flex justify-end px-6 pt-5">
                     <button onClick={onClose}
                         className="rounded-full border border-[#e2ddf5] px-4 py-1.5 text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:text-[#7865ff]">
                         닫기
                     </button>
                 </div>
-                <div className="mx-6 mb-5 rounded-[16px] bg-[#7865ff] px-6 py-7 text-center">
-                    <p className="text-[22px] font-extrabold text-white tracking-wide">LAFTEL MEMBERSHIP</p>
+                <div className="mx-4 mb-5 rounded-[16px] bg-[#7865ff] px-4 py-6 text-center sm:mx-6 sm:px-6 sm:py-7">
+                    <p className="text-[19px] font-extrabold tracking-wide text-white sm:text-[22px]">LAFTEL MEMBERSHIP</p>
                     <p className="mt-1 text-[14px] text-white/80">월간 혜택 안내</p>
                 </div>
-                <div className="mx-6 mb-4 rounded-[12px] px-5 py-4 flex items-center gap-3"
+                <div className="mx-4 mb-4 flex items-center gap-3 rounded-[12px] px-4 py-4 sm:mx-6 sm:px-5"
                     style={{ backgroundColor: current.bg }}>
                     <span className="rounded-full px-3 py-1 text-[12px] font-extrabold text-white"
                         style={{ backgroundColor: current.color }}>
@@ -77,11 +77,11 @@ function BenefitModal({ membership, onClose }: { membership: string; onClose: ()
                     </span>
                     <p className="text-[13px] font-semibold text-[#16121f]">현재 내 등급</p>
                 </div>
-                <div className="mx-6 mb-6 flex flex-col gap-4">
+                <div className="mx-4 mb-6 flex flex-col gap-3 sm:mx-6 sm:gap-4">
                     {MEMBERSHIP_BENEFITS.map((b) => (
                         <div
                             key={b.key}
-                            className={`rounded-[12px] border px-5 py-4 transition ${b.key === membership ? "border-[#7865ff] shadow-[0_0_0_1px_#7865ff]" : "border-[#ebe8ff]"}`}
+                            className={`rounded-[12px] border px-4 py-4 transition sm:px-5 ${b.key === membership ? "border-[#7865ff] shadow-[0_0_0_1px_#7865ff]" : "border-[#ebe8ff]"}`}
                             style={{ backgroundColor: b.bg }}
                         >
                             <div className="mb-3 flex items-center gap-2">
@@ -146,45 +146,45 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                 />
             )}
 
-            <div className="mx-auto max-w-[1480px] px-8 py-10">
+            <div className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
                 {/* 인사말 */}
-                <div className="mb-6">
-                    <h1 className="text-[28px] font-bold text-[#16121f]">
+                <div className="mb-5 sm:mb-6">
+                    <h1 className="text-[21px] font-bold text-[#16121f] sm:text-[24px] lg:text-[28px]">
                         <span className="text-[#7865ff]">{user?.name ?? "회원"}</span>님, 반가워요!
                     </h1>
-                    <p className="mt-1 text-[14px] text-[#9b94b2]">오늘도 라프텔과 함께 덕질 라이프를 즐겨보세요💜</p>
+                    <p className="mt-1 text-[12px] text-[#9b94b2] sm:text-[14px]">오늘도 라프텔과 함께 덕질 라이프를 즐겨보세요💜</p>
                 </div>
 
                 {/* 프로필 카드 */}
-                <div className="mb-6 rounded-[16px] bg-[#ede9ff] px-10 py-8">
-                    <div className="flex items-center gap-8">
-                        <div className="h-[104px] w-[104px] overflow-hidden rounded-full bg-[#c8c0f0] shrink-0">
+                <div className="mb-5 rounded-[16px] bg-[#ede9ff] px-4 py-5 sm:mb-6 sm:px-6 sm:py-6 lg:px-10 lg:py-8">
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6 lg:gap-8">
+                        <div className="h-[78px] w-[78px] shrink-0 overflow-hidden rounded-full bg-[#c8c0f0] sm:h-[88px] sm:w-[88px] lg:h-[104px] lg:w-[104px]">
                             {user?.photoURL
                                 ? <img src={user.photoURL} alt="프로필" className="h-full w-full object-cover" />
-                                : <div className="flex h-full w-full items-center justify-center text-[36px] font-bold text-[#7865ff]">{user?.name?.[0] ?? "?"}</div>
+                                : <div className="flex h-full w-full items-center justify-center text-[28px] font-bold text-[#7865ff] sm:text-[32px] lg:text-[36px]">{user?.name?.[0] ?? "?"}</div>
                             }
                         </div>
-                        <div>
-                            <div className="flex items-center gap-3">
-                                <span className="text-[22px] font-bold text-[#16121f]">{user?.name}</span>
-                                <span className="rounded-full bg-[#ffcc00] px-3 py-1 text-[13px] font-bold text-[#16121f]">
+                        <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                <span className="truncate text-[19px] font-bold text-[#16121f] sm:text-[21px] lg:text-[22px]">{user?.name}</span>
+                                <span className="rounded-full bg-[#ffcc00] px-2.5 py-1 text-[12px] font-bold text-[#16121f] sm:px-3 sm:text-[13px]">
                                     {MEMBERSHIP_LABEL[user?.membership ?? "none"]}
                                 </span>
                             </div>
-                            <div className="mt-5 flex items-center gap-10">
-                                <div>
-                                    <p className="text-[14px] text-[#9b94b2]">포인트</p>
-                                    <p className="text-[20px] font-bold text-[#7865ff]">{livePoints.toLocaleString()}P</p>
+                            <div className="mt-4 grid grid-cols-3 gap-2 sm:mt-5 sm:flex sm:items-center sm:gap-8 lg:gap-10">
+                                <div className="min-w-0">
+                                    <p className="text-[12px] text-[#9b94b2] sm:text-[14px]">포인트</p>
+                                    <p className="truncate text-[16px] font-bold text-[#7865ff] sm:text-[18px] lg:text-[20px]">{livePoints.toLocaleString()}P</p>
                                 </div>
-                                <div className="h-9 w-px bg-[#d0caee]" />
-                                <div>
-                                    <p className="text-[14px] text-[#9b94b2]">쿠폰</p>
-                                    <p className="text-[20px] font-bold text-[#7865ff]">{liveCoupons}장</p>
+                                <div className="hidden h-9 w-px bg-[#d0caee] sm:block" />
+                                <div className="min-w-0">
+                                    <p className="text-[12px] text-[#9b94b2] sm:text-[14px]">쿠폰</p>
+                                    <p className="truncate text-[16px] font-bold text-[#7865ff] sm:text-[18px] lg:text-[20px]">{liveCoupons}장</p>
                                 </div>
-                                <div className="h-9 w-px bg-[#d0caee]" />
-                                <div>
-                                    <p className="text-[14px] text-[#9b94b2]">위시리스트</p>
-                                    <p className="text-[20px] font-bold text-[#7865ff]">{liveWishCount}개</p>
+                                <div className="hidden h-9 w-px bg-[#d0caee] sm:block" />
+                                <div className="min-w-0">
+                                    <p className="text-[12px] text-[#9b94b2] sm:text-[14px]">위시리스트</p>
+                                    <p className="truncate text-[16px] font-bold text-[#7865ff] sm:text-[18px] lg:text-[20px]">{liveWishCount}개</p>
                                 </div>
                             </div>
                         </div>
@@ -192,22 +192,25 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                 </div>
 
                 {/* 본문 */}
-                <div className="flex gap-7">
+                <div className="flex flex-col gap-4 lg:flex-row lg:gap-7">
                     {/* 사이드바 */}
-                    <div className="w-[260px] shrink-0">
-                        <div className="rounded-[16px] border border-[#ebe8ff] bg-white p-4">
+                    <div className="w-full shrink-0 lg:w-[260px]">
+                        <div className="rounded-[16px] border border-[#ebe8ff] bg-white p-3 sm:p-4">
+                            <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-2 [scrollbar-width:none] lg:mx-0 lg:block lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
                             {MENU_TOP.map((m) => (
                                 <Link key={m.path} href={m.path}
-                                    className={`flex items-center gap-3 rounded-[10px] px-4 py-3 text-[15px] transition ${isActive(m.path) ? "bg-[#7865ff] text-white font-semibold" : "text-[#3d3755] hover:bg-[#f0eeff]"}`}>
+                                    className={`flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-2.5 text-[13px] transition sm:text-[14px] lg:gap-3 lg:px-4 lg:py-3 lg:text-[15px] ${isActive(m.path) ? "bg-[#7865ff] text-white font-semibold" : "text-[#3d3755] hover:bg-[#f0eeff]"}`}>
                                     {m.icon}{m.label}
                                 </Link>
                             ))}
+                            </div>
                             <div className="my-3 border-t border-[#f0edf8]" />
+                            <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-2 [scrollbar-width:none] lg:mx-0 lg:block lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
                             {MENU_BOTTOM.map((m) => (
                                 "external" in m && m.external
                                     ? (
                                         <a key={m.path} href={m.path}
-                                            className="flex items-center gap-3 rounded-[10px] px-4 py-3 text-[15px] transition text-[#3d3755] hover:bg-[#f0eeff]">
+                                            className="flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-2.5 text-[13px] text-[#3d3755] transition hover:bg-[#f0eeff] sm:text-[14px] lg:gap-3 lg:px-4 lg:py-3 lg:text-[15px]">
                                             {m.icon}
                                             {m.label}
                                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-auto opacity-30">
@@ -218,14 +221,15 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                                     )
                                     : (
                                         <Link key={m.path} href={m.path}
-                                            className={`flex items-center gap-3 rounded-[10px] px-4 py-3 text-[15px] transition ${isActive(m.path) ? "bg-[#7865ff] text-white font-semibold" : "text-[#3d3755] hover:bg-[#f0eeff]"}`}>
+                                            className={`flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-2.5 text-[13px] transition sm:text-[14px] lg:gap-3 lg:px-4 lg:py-3 lg:text-[15px] ${isActive(m.path) ? "bg-[#7865ff] text-white font-semibold" : "text-[#3d3755] hover:bg-[#f0eeff]"}`}>
                                             {m.icon}{m.label}
                                         </Link>
                                     )
                             ))}
+                            </div>
                             <div className="my-3 border-t border-[#f0edf8]" />
                             <button onClick={() => setBenefitOpen(true)}
-                                className="w-full rounded-[12px] bg-[#f0eeff] p-4 text-left transition hover:bg-[#e4dfff]">
+                                className="w-full rounded-[12px] bg-[#f0eeff] p-3 text-left transition hover:bg-[#e4dfff] sm:p-4">
                                 <div className="flex items-center gap-3">
                                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7865ff]">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
@@ -240,7 +244,7 @@ export default function ProfileStoreLayout({ children }: { children: React.React
                     </div>
 
                     {/* 콘텐츠 */}
-                    <div className="flex-1 min-w-0 rounded-[16px] border border-[#ebe8ff] bg-white p-8">
+                    <div className="min-w-0 flex-1 rounded-[16px] border border-[#ebe8ff] bg-white p-4 sm:p-6 lg:p-8">
                         {children}
                     </div>
                 </div>

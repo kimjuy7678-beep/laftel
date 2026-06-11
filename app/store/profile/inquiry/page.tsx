@@ -53,8 +53,8 @@ function WriteModal({ onClose, onSubmit }: {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4" onClick={onClose}>
-            <div className="w-full md:max-w-[520px] rounded-t-[24px] md:rounded-[20px] bg-white shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4">
+            <div className="w-full md:max-w-[520px] rounded-t-[24px] md:rounded-[20px] bg-white shadow-2xl overflow-hidden">
                 {/* 모바일 핸들 */}
                 <div className="flex justify-center pt-3 pb-1 md:hidden">
                     <div className="w-10 h-1 rounded-full bg-[#e2ddf5]" />
@@ -136,7 +136,6 @@ function InquiryCard({ inquiry, onDelete }: {
 
     return (
         <div className="rounded-[12px] border border-[#ebe8ff] overflow-hidden transition hover:border-[#c4baff]">
-            {/* 헤더 행 */}
             <button onClick={() => setOpen(v => !v)}
                 className="w-full flex items-center gap-2 md:gap-3 px-3 md:px-5 py-3 md:py-4 text-left bg-white hover:bg-[#faf9ff] transition">
                 <span className="shrink-0 rounded-[6px] bg-[#f0eeff] px-2 md:px-2.5 py-1 text-[11px] font-bold text-[#7865ff]">
@@ -168,14 +167,12 @@ function InquiryCard({ inquiry, onDelete }: {
                 </svg>
             </button>
 
-            {/* 모바일 날짜 표시 */}
             {open && (
                 <div className="px-3 py-1 bg-white border-t border-[#f5f3ff] md:hidden">
                     <p className="text-[11px] text-[#c0bcd0]">{inquiry.date}</p>
                 </div>
             )}
 
-            {/* 펼침 내용 */}
             {open && (
                 <div className="border-t border-[#f0edf8]">
                     <div className="px-3 md:px-5 py-4 bg-[#faf9ff]">
@@ -278,7 +275,7 @@ export default function InquiryPage() {
                 <p className="text-[12px] md:text-[13px] text-[#9b94b2]">상품, 배송, 교환/환불 관련 문의를 남겨주세요.</p>
             </div>
 
-            {/* 통계 카드 — 모바일: 세로 중앙 정렬 / PC: 아이콘+텍스트 가로 배치 */}
+            {/* 통계 카드 */}
             <div className="mb-5 grid grid-cols-3 gap-2 md:gap-3">
                 {[
                     { label: "전체 문의", labelMobile: "전체", value: inquiries.length, unit: "건", color: "#7865ff", bg: "#f0eeff" },
@@ -286,13 +283,11 @@ export default function InquiryPage() {
                     { label: "답변완료", labelMobile: "완료", value: doneCount, unit: "건", color: "#16a34a", bg: "#f0fdf4" },
                 ].map(s => (
                     <div key={s.label} className="rounded-[12px] border border-[#ebe8ff] bg-white px-2.5 md:px-4 py-3 flex flex-col items-center justify-center gap-1 md:flex-row md:items-center md:gap-3">
-                        {/* 아이콘 — PC만 표시 */}
                         <div className="hidden md:flex h-9 w-9 shrink-0 rounded-full items-center justify-center" style={{ background: s.bg }}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                             </svg>
                         </div>
-                        {/* 텍스트 */}
                         <div className="flex flex-col items-center md:items-start">
                             <p className="text-[10px] md:text-[11px] text-[#9b94b2]">
                                 <span className="md:hidden">{s.labelMobile}</span>
@@ -302,7 +297,6 @@ export default function InquiryPage() {
                                 {s.value}
                                 <span className="text-[10px] md:text-[11px] font-medium ml-0.5 hidden md:inline">{s.unit}</span>
                             </p>
-                            {/* 건 — 모바일만 표시 */}
                             <p className="text-[10px] text-[#9b94b2] md:hidden">건</p>
                         </div>
                     </div>

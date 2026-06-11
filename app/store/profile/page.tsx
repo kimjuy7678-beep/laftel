@@ -585,29 +585,37 @@ function DateRangeFilter({ dateFrom, dateTo, activeRange, onDateFromChange, onDa
     const openToPicker = () => { try { toRef.current?.showPicker(); } catch { toRef.current?.focus(); } };
 
     return (
-        <div className="mb-5 flex items-center gap-2 flex-wrap">
-            {DATE_RANGE_BUTTONS.map((range) => (
-                <button key={range.label} type="button"
-                    onClick={() => onRangeClick(range.label, range.months)}
-                    className={`h-[36px] rounded-[8px] px-3 text-[12px] font-semibold transition ${activeRange === range.label ? "bg-[#7865ff] text-white" : "border border-[#ddd8f4] hover:border-[#7865ff]"}`}
-                    style={{ color: activeRange === range.label ? "#fff" : "#111" }}>
-                    {range.label}
+        <div className="mb-5 flex flex-col gap-2.5">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                {DATE_RANGE_BUTTONS.map((range) => (
+                    <button key={range.label} type="button"
+                        onClick={() => onRangeClick(range.label, range.months)}
+                        className={`h-[32px] rounded-[7px] px-2.5 text-[11px] font-semibold transition sm:h-[34px] sm:px-3 sm:text-[12px] ${activeRange === range.label ? "bg-[#7865ff] text-white" : "border border-[#ddd8f4] hover:border-[#7865ff]"}`}
+                        style={{ color: activeRange === range.label ? "#fff" : "#111" }}>
+                        {range.label}
+                    </button>
+                ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <div className="relative cursor-pointer" onClick={openFromPicker}>
+                    <input ref={fromRef} type="date" value={dateFrom} onChange={e => onDateFromChange(e.target.value)}
+                        className="h-[32px] w-[118px] cursor-pointer rounded-[7px] border border-[#ddd8f4] px-2.5 text-[11px] outline-none focus:border-[#7865ff] sm:h-[34px] sm:w-[126px] sm:px-3 sm:text-[12px]" style={{ color: "#111" }} />
+                </div>
+                <span className="text-[12px] text-[#9b94b2]">~</span>
+                <div className="relative cursor-pointer" onClick={openToPicker}>
+                    <input ref={toRef} type="date" value={dateTo} onChange={e => onDateToChange(e.target.value)}
+                        className="h-[32px] w-[118px] cursor-pointer rounded-[7px] border border-[#ddd8f4] px-2.5 text-[11px] outline-none focus:border-[#7865ff] sm:h-[34px] sm:w-[126px] sm:px-3 sm:text-[12px]" style={{ color: "#111" }} />
+                </div>
+            </div>
+
+            <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2">
+                <button onClick={onSearch} className="h-[32px] flex-1 rounded-[7px] bg-[#7865ff] px-3 text-[11px] font-semibold text-white transition hover:bg-[#6b55f0] sm:h-[34px] sm:flex-none sm:px-4 sm:text-[12px]">기간 검색</button>
+                <button onClick={onReset} className="flex h-[32px] flex-1 items-center justify-center gap-1 rounded-[7px] border border-[#ddd8f4] px-2.5 text-[11px] font-semibold transition hover:border-[#7865ff] sm:h-[34px] sm:flex-none sm:px-3 sm:text-[12px]" style={{ color: "#111" }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+                    초기화
                 </button>
-            ))}
-            <div className="relative cursor-pointer" onClick={openFromPicker}>
-                <input ref={fromRef} type="date" value={dateFrom} onChange={e => onDateFromChange(e.target.value)}
-                    className="h-[36px] w-[130px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff] cursor-pointer" style={{ color: "#111" }} />
             </div>
-            <span className="text-[#9b94b2]">~</span>
-            <div className="relative cursor-pointer" onClick={openToPicker}>
-                <input ref={toRef} type="date" value={dateTo} onChange={e => onDateToChange(e.target.value)}
-                    className="h-[36px] w-[130px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] outline-none focus:border-[#7865ff] cursor-pointer" style={{ color: "#111" }} />
-            </div>
-            <button onClick={onSearch} className="h-[36px] rounded-[8px] bg-[#7865ff] px-4 text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">기간 검색</button>
-            <button onClick={onReset} className="h-[36px] rounded-[8px] border border-[#ddd8f4] px-3 text-[12px] font-semibold hover:border-[#7865ff] transition flex items-center gap-1" style={{ color: "#111" }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
-                초기화
-            </button>
         </div>
     );
 }
@@ -837,7 +845,7 @@ function ProfileContent() {
                 <>
                     <div className="flex flex-col gap-4">
                         {paginated.map(({ order, visibleItems }) => (
-                            <div key={`${order.id}-${tab}`} className="rounded-[12px] border border-[#ebe8ff] p-4 sm:p-5">
+                            <div key={`${order.id}-${tab}`} className="rounded-[12px] border border-[#ebe8ff] p-3 sm:p-5">
                                 {/* 주문일자 */}
                                 <p className="mb-3 text-[12px] text-[#9b94b2]">{order.date}</p>
                                 {/* 아이템 목록 */}
@@ -848,7 +856,7 @@ function ProfileContent() {
                                         return (
                                             <Link key={i} href={item.productId}>
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[8px] bg-[#f0eeff]">
+                                                    <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[8px] bg-[#f0eeff] sm:h-[56px] sm:w-[56px]">
                                                         {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />}
                                                     </div>
                                                     <div className="min-w-0 flex-1">
@@ -858,7 +866,7 @@ function ProfileContent() {
                                                         <p className="text-[11px] text-[#9b94b2]">총 수량 : {item.qty}</p>
                                                     </div>
                                                     {/* 아이템별 상태 — 우측 고정 */}
-                                                    <span className={`shrink-0 text-[11px] font-bold w-[52px] text-right ${sl?.color ?? "text-[#7865ff]"}`}>
+                                                    <span className={`w-[48px] shrink-0 text-right text-[10px] font-bold sm:w-[52px] sm:text-[11px] ${sl?.color ?? "text-[#7865ff]"}`}>
                                                         {sl?.text ?? s}
                                                     </span>
                                                 </div>
@@ -867,7 +875,7 @@ function ProfileContent() {
                                     })}
                                 </div>
                                 {/* 하단: 금액 + 버튼 — 항상 같은 행에 정렬 */}
-                                <div className="flex items-center justify-between border-t border-[#f0edf8] pt-3 gap-3">
+                                <div className="flex flex-col gap-3 border-t border-[#f0edf8] pt-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
                                         <p className="text-[16px] font-bold text-[#16121f]">
                                             {visibleItems.reduce((s, i) => s + i.price * i.qty, 0).toLocaleString()}원
@@ -876,7 +884,7 @@ function ProfileContent() {
                                             <p className="text-[11px] text-[#9b94b2]">🪙 {order.usedPoints.toLocaleString()}원</p>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                    <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
                                         <button onClick={() => setDetailTarget(order)}
                                             className="rounded-[8px] border border-[#e2ddf5] px-3 py-1.5 text-[11px] text-[#6b647a] hover:border-[#7865ff] hover:text-[#7865ff] transition">
                                             상세 보기
@@ -906,9 +914,9 @@ function ProfileContent() {
                     </div>
 
                     {totalPages > 1 && (
-                        <div className="mt-8 flex items-center justify-center gap-2">
+                        <div className="mt-8 flex items-center justify-center gap-1.5 sm:gap-2">
                             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-10">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
                             </button>
                             {(() => {
@@ -919,19 +927,19 @@ function ProfileContent() {
                                 const pages = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
                                 return (
                                     <>
-                                        {groupStart > 1 && <button onClick={() => setPage(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+                                        {groupStart > 1 && <button onClick={() => setPage(groupStart - 1)} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]">···</button>}
                                         {pages.map(n => (
                                             <button key={n} onClick={() => setPage(n)}
-                                                className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${page === n ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]" : "border border-[#d8d4ee] bg-white text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
+                                                className={`flex h-9 w-9 items-center justify-center rounded-[10px] text-[13px] font-medium transition sm:h-10 sm:w-10 sm:text-[14px] ${page === n ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]" : "border border-[#d8d4ee] bg-white text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
                                                 {n}
                                             </button>
                                         ))}
-                                        {groupEnd < totalPages && <button onClick={() => setPage(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+                                        {groupEnd < totalPages && <button onClick={() => setPage(groupEnd + 1)} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]">···</button>}
                                     </>
                                 );
                             })()}
                             <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:cursor-not-allowed disabled:opacity-30 sm:h-10 sm:w-10">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
                             </button>
                         </div>

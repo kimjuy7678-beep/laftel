@@ -16,6 +16,8 @@ interface Props {
     onNext?: () => void
     onClose?: () => void
     fallbackImage?: string | null
+    onImmersiveChange?: (v: boolean) => void
+    immersive?: boolean
 }
 
 export default function VideoPlayer({ id, mode, className, title, episodeTitle, episodeNumber, backdrop, poster, onNext, onClose, immersive: immersiveProp, onImmersiveChange }: Props) {
