@@ -35,7 +35,6 @@ const MOODS = [
 ]
 
 const WATCH_STYLES = [
-    { id: 'binge', label: '한 번에 몰아보기', emoji: '📺' },
     { id: 'weekly', label: '정주행파', emoji: '📅' },
     { id: 'casual', label: '가볍게 틈틈이', emoji: '🎲' },
     { id: 'ost', label: 'OST 먼저 찾아듣기', emoji: '🎧' },
@@ -145,15 +144,15 @@ export default function OnboardingModal({ uid, onComplete, onClose }: Props) {
                                 }}
                                 onMouseEnter={e => {
                                     (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.12)'
-                                    ;(e.currentTarget as HTMLButtonElement).style.color = '#fff'
+                                        ; (e.currentTarget as HTMLButtonElement).style.color = '#fff'
                                 }}
                                 onMouseLeave={e => {
                                     (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
-                                    ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)'
+                                        ; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)'
                                 }}
                             >
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                                    <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                                 </svg>
                             </button>
                         </div>
