@@ -1,8 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useAuthStore } from '@/store/useAuthStore'
-import { db } from '@/firebase/firebase'
-import { doc, getDoc } from 'firebase/firestore'
 import HeroSection from "@/components/HeroSection"
 import WatchHistory from "@/components/home/WatchHistory"
 import DayNewSection from "@/components/home/DayNewSection"
@@ -16,6 +13,9 @@ import SurveyBanner from "@/components/home/SurveyBanner"
 import LiveSection from "@/components/home/LiveSection"
 import EventSection from "@/components/home/EventSection"
 import PersonalRecommendSection from "@/components/home/PersonalRecommendSection"
+import { useAuthStore } from '@/store/useAuthStore'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/firebase/firebase'
 import OnboardingModal from '@/components/OnboardingModal'
 
 export default function Home() {
