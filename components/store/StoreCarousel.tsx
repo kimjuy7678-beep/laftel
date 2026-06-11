@@ -47,6 +47,15 @@ const BANNERS_BASE: Banner[] = [
         content: "마루는 강쥐 공식 굿즈 대거 출시\n귀여운 마루와 함께라면 일주일은 두렵지 않아",
         button: "시리즈 페이지 가기",
         textAlign: "right",
+
+
+    },
+    {
+        url: "./images/store/storebanner9.png",
+        title: "체인소맨 불변의 선호커플 1위",
+        content: "2025년 액션애니메이션 최고 흥행작 체인소맨 -레제편-\n레제 x 덴지 x 빔 피규어 업데이트",
+        button: "시리즈 페이지 가기",
+        textAlign: "right",
     }
 ];
 

@@ -1,12 +1,17 @@
-export const LIMITED_PRODUCT_IDS = [
-    "3190", "974", "907", "37", "55",
-    "337", "812", "547", "2614", "597",
-    "2798", "229", "142", "2912", "461",
-    "1083", "1092", "705", "854", "3041",
-    "120", "986", "1077", "1078", "2671",
+export const LIMITED_PRODUCT_IDS: string[] = [
+    "3190", "974", "1935", "37", "55",
+    "1008", "786", "547", "2614", "3274",
+    "3273", "1119", "3208", "461", "3140",
+    "705", "1931", "2829", "2723", "2615",
+    "120", "1927", "1150", "1078", "2671",
 ];
 
 const LIMITED_PRODUCT_ID_SET = new Set(LIMITED_PRODUCT_IDS);
+export const LIMITED_STOCK_COLLECTION = "storeLimitedStocks";
+
+function normalizeProductId(productId: string | number) {
+    return String(productId).trim();
+}
 
 function hashString(value: string) {
     let hash = 2166136261;
@@ -17,11 +22,16 @@ function hashString(value: string) {
     return hash >>> 0;
 }
 
-export function isLimitedStoreProduct(productId: string) {
-    return LIMITED_PRODUCT_ID_SET.has(productId);
+export function isLimitedStoreProduct(productId: string | number) {
+    return LIMITED_PRODUCT_ID_SET.has(normalizeProductId(productId));
 }
 
-export function getLimitedRemainingQuantity(productId: string) {
+export function getLimitedInitialQuantity(productId: string | number) {
     if (!isLimitedStoreProduct(productId)) return null;
-    return (hashString(productId) % 18) + 3;
+    return (hashString(normalizeProductId(productId)) % 18) + 3;
 }
+
+export function getLimitedRemainingQuantity(productId: string | number) {
+    return getLimitedInitialQuantity(productId);
+}
+//2912  1092 1083
