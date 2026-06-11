@@ -986,7 +986,7 @@ function OrderContent() {
             <main className="mx-auto w-full max-w-[1770px] px-[75px] py-10">
                 <div className="text-center mb-10">
                     <p className="text-[12px] font-semibold tracking-[0.2em] text-[#826CFF] uppercase mb-1">Laftel Store</p>
-                    <h1 className="text-[34px] font-extrabold text-[#111018] tracking-tight">ORDER & PAY</h1>
+                    <h1 className="text-[34px] font-extrabold text-[#826CFF] tracking-tight">ORDER & PAY</h1>
                     <p className="text-[16px] text-[#aaa] mt-1">최종 주문하기</p>
                 </div>
 
@@ -1280,13 +1280,22 @@ function OrderContent() {
                             id="agree-checkbox"
                             type="button"
                             onClick={() => { setAgreed(v => !v); setAgreeError(false); }}
-                            className={`mt-3 w-full flex items-center gap-2 rounded-[10px] px-3 py-2.5 transition-colors ${agreeError ? "bg-[#fff0f3] border border-[#ffb3c1]" : agreed ? "bg-[#f0eeff]" : "bg-[#fafafa] border border-transparent hover:bg-[#f5f3ff]"}`}>
-                            <span className={`w-5 h-5 rounded-[6px] flex-shrink-0 flex items-center justify-center border-2 transition-colors ${agreed ? "bg-[#826CFF] border-[#826CFF]" : agreeError ? "border-[#ff4d6d]" : "border-[#d0c9f0]"}`}>
+                            className={`mt-3 w-full flex items-center gap-2 rounded-[10px] px-3 py-2.5 transition-colors border ${agreeError
+                                ? "bg-[#fff0f3] border-[#ffb3c1]"
+                                : agreed
+                                    ? "bg-[#f0eeff] border-[#d4ccff]"
+                                    : "bg-[#fafafa] border-transparent hover:bg-[#f5f3ff]"
+                                }`}>
+                            <span className={`w-5 h-5 rounded-[6px] flex-shrink-0 flex items-center justify-center border-2 transition-colors ${agreed ? "bg-[#826CFF] border-[#826CFF]" : agreeError ? "border-[#ff4d6d]" : "border-[#d0c9f0]"
+                                }`}>
                                 {agreed && (
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
                                 )}
                             </span>
-                            <span className={`text-[11px] font-semibold leading-relaxed ${agreed ? "text-[#826CFF]" : agreeError ? "text-[#ff4d6d]" : "text-[#aaa]"}`}>
+                            <span className={`text-[11px] font-semibold leading-relaxed ${agreed ? "text-[#826CFF]" : agreeError ? "text-[#ff4d6d]" : "text-[#aaa]"
+                                }`}>
                                 주문 내용을 확인하였으며, 정보 제공 등에 동의합니다. (필수)
                             </span>
                         </button>

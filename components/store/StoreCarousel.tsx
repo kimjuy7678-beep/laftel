@@ -41,16 +41,12 @@ const BANNERS_BASE: Banner[] = [
         button: "귀멸 굿즈 보러가기",
         textAlign: "left",
     },
-    // 신규 추가
-
     {
         url: "./images/store/storebanner8.png", link: "/store/series?series=마루는 강쥐",
         title: "마루의 무해함으로 일상치유",
         content: "마루는 강쥐 공식 굿즈 대거 출시\n귀여운 마루와 함께라면 일주일은 두렵지 않아",
         button: "시리즈 페이지 가기",
         textAlign: "right",
-
-
     },
     {
         url: "./images/store/storebanner9.png", link: "/store/best",
@@ -106,15 +102,12 @@ export default function StoreCarousel() {
         else if (diff > 50) goTo((current - 1 + banners.length) % banners.length);
     };
 
-    const banner = banners[current];
-    const isLeft = banner.textAlign === "left";
-
     return (
         <div className="w-full pt-4 sm:pt-8 lg:pt-[80px]">
             <div className="mx-auto max-w-[1770px] px-4 sm:px-6 lg:px-4">
                 <div className="relative flex items-center gap-2 sm:gap-4">
 
-                    {/* 커스텀 prev 버튼 */}
+                    {/* prev 버튼 */}
                     <button
                         onClick={() => goTo((current - 1 + banners.length) % banners.length)}
                         className="store-swiper-prev absolute bottom-3 right-14 z-20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:bg-gray-400 sm:hover:bg-gray-500">
@@ -123,7 +116,7 @@ export default function StoreCarousel() {
                         </svg>
                     </button>
 
-                    {/* 슬라이더 */}
+                    {/* 슬라이더 — 1400×590 비율 강제 고정, 이미지 크기 무관 */}
                     <div
                         className="relative min-w-0 flex-1 cursor-grab select-none overflow-hidden rounded-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.2)] active:cursor-grabbing sm:rounded-xl"
                         onMouseDown={onMouseDown}
@@ -133,15 +126,24 @@ export default function StoreCarousel() {
                         onTouchStart={onTouchStart}
                         onTouchEnd={onTouchEnd}
                     >
-                        {/* 이미지 슬라이드들 */}
-                        {banners.map((b, i) => (
-                            <div
-                                key={i}
-                                className="absolute inset-0 transition-opacity duration-700"
-                                style={{ opacity: i === current ? 1 : 0, zIndex: i === current ? 1 : 0 }}
-                            >
-                                <div className="relative h-[240px] w-full sm:h-[320px] lg:h-auto">
-                                    <img src={b.url} alt={b.title} className="h-full w-full object-cover" />
+                        {/* 1400:590 비율 유지 spacer — 이미지 로딩·크기와 완전히 무관 */}
+                        <div style={{ paddingBottom: `${(590 / 1400) * 100}%` }} />
+
+                        {/* 실제 콘텐츠 레이어 */}
+                        <div className="absolute inset-0">
+                            {banners.map((b, i) => (
+                                <div
+                                    key={i}
+                                    className="absolute inset-0 transition-opacity duration-700"
+                                    style={{ opacity: i === current ? 1 : 0, zIndex: i === current ? 1 : 0 }}
+                                >
+                                    {/* 이미지: 컨테이너 꽉 채우기 */}
+                                    <img
+                                        src={b.url}
+                                        alt={b.title}
+                                        className="absolute inset-0 h-full w-full object-cover"
+                                        draggable={false}
+                                    />
                                     {/* 그라디언트 오버레이 */}
                                     <div
                                         className="absolute inset-0"
@@ -157,6 +159,7 @@ export default function StoreCarousel() {
                                         style={{
                                             alignItems: b.textAlign === "left" ? "flex-start" : "flex-end",
                                             textAlign: b.textAlign,
+                                            zIndex: 2,
                                         }}
                                     >
                                         <h1 className="text-[22px] font-bold leading-tight text-white drop-shadow-lg sm:text-[28px] lg:text-[34px]">
@@ -170,27 +173,22 @@ export default function StoreCarousel() {
                                         </Link>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-
-                        {/* 현재 슬라이드 높이 유지용 (보이지 않는 현재 이미지) */}
-                        <div className="invisible h-[240px] w-full sm:h-[320px] lg:h-auto">
-                            <img src={banner.url} alt="" className="h-full w-full object-cover" />
-                        </div>
-
-                        {/* 도트 인디케이터 */}
-                        <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-2">
-                            {banners.map((_, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => goTo(i)}
-                                    className={`rounded-full transition-all duration-300 ${i === current ? "w-6 h-2.5 bg-[#7865ff]" : "w-2.5 h-2.5 bg-white/50"}`}
-                                />
                             ))}
+
+                            {/* 도트 인디케이터 */}
+                            <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+                                {banners.map((_, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => goTo(i)}
+                                        className={`rounded-full transition-all duration-300 ${i === current ? "w-6 h-2.5 bg-[#7865ff]" : "w-2.5 h-2.5 bg-white/50"}`}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
 
-                    {/* 커스텀 next 버튼 */}
+                    {/* next 버튼 */}
                     <button
                         onClick={() => goTo((current + 1) % banners.length)}
                         className="store-swiper-next absolute bottom-3 right-3 z-20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:bg-gray-400 sm:hover:bg-gray-500">
