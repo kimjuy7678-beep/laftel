@@ -48,3 +48,42 @@
 
     &:hover { color: var(--text-primary); }
 }
+
+@media (max-width: 960px) {
+    .wrapper {
+        padding: 18px 0 8px;
+    }
+
+    .epTitle {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+
+    .overview {
+        font-size: 13px;
+        line-height: 1.6;
+    }
+}
+
+@media (max-width: 640px) {
+    .wrapper {
+        padding: 14px 0 6px;
+    }
+
+    .seriesLabel {
+        font-size: 11px;
+        margin-bottom: 5px;
+    }
+
+    .epTitle {
+        font-size: 15px;
+    }
+
+    .overview {
+        font-size: 12px;
+    }
+
+    .expandBtn {
+        font-size: 12px;
+    }
+}

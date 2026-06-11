@@ -81,7 +81,6 @@ function AniCard({ ani }: { ani: AniItem }) {
                         <VideoPlayer
                             id={ani.id}
                             mode="background"
-                            fallbackImage={poster}
                             className="absolute inset-0"
                         />
                     </div>

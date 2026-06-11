@@ -21,6 +21,11 @@ const VALID_COUPONS: Record<string, { type: 'point' | 'basic' | 'premium', value
     'LAFTEL-SPECIAL-99': { type: 'point', value: 9900, label: '스페셜 포인트 쿠폰' },
 }
 
+const MEMBERSHIP_BY_COUPON = {
+    basic: 'anime',
+    premium: 'allinone',
+} as const
+
 const notices = [
     '쿠폰번호는 영문자와 숫자 혼합이며 대소문자 구분없이 입력할 수 있습니다.',
     '쿠폰마다 등록 가능한 기간이 다를 수 있습니다.',
@@ -48,7 +53,8 @@ export default function CouponPage() {
     }, [user])
 
     const handleRegister = async () => {
-        if (!code.trim() || !user) return
+        if (!code.trim() || !user?.uid) return
+        const uid = user.uid
         setError(''); setSuccess('')
         setLoading(true)
         try {
