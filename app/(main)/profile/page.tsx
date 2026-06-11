@@ -6,6 +6,7 @@ import { db, auth } from '@/firebase/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import OnboardingModal from '@/components/OnboardingModal'
+import { useActivityStore } from '@/store/useActiveStore'
 
 async function hashPin(pin: string): Promise<string> {
     const data = new TextEncoder().encode(pin + '_laftel_salt')

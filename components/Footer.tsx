@@ -32,8 +32,15 @@ export default function Footer({ variant = "default" }: FooterProps) {
                     <div className="flex flex-col gap-2">
                         <span className={`${isStore ? "text-[#343840]" : "text-[var(--text-primary)]"}`}>
                             <img
-                                src={isStore ? "/images/logo-dark.png" : "/images/logo-white.svg"}
+                                src="/images/logo-white.svg"
                                 alt="logo"
+                                className="dark:block hidden"
+                                style={{ width: '120px' }}
+                            />
+                            <img
+                                src="/images/logo-dark.png"
+                                alt="logo"
+                                className="dark:hidden block"
                                 style={{ width: '120px' }}
                             />
                         </span>

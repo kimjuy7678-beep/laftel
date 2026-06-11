@@ -189,7 +189,7 @@ export default function Header() {
         if (user?.uid) {
             fetchPoints(user.uid)
             subscribeNotifications(user.uid)
-            fetchCounts(user.uid)
+            fetchCounts(user.uid, user.currentProfileId || 'main')
             fetchProgress(user.uid, profileId)
         }
     }, [user?.uid, profileId])
@@ -367,18 +367,18 @@ export default function Header() {
                     <div className="px-5 pb-6">
                         <div className="flex items-center gap-4">
                             <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="shrink-0">
-                            <div
-                                className="flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-[var(--border)]"
-                                style={{ background: memberInfo.color || '#6c63ff' }}
-                            >
-                                {avatarConfig?.svgDataUrl ? (
-                                    <img src={avatarConfig.svgDataUrl} alt="프로필" className="h-full w-full object-cover" />
-                                ) : user.photoURL ? (
-                                    <img src={user.photoURL} alt="프로필" className="h-full w-full object-cover" />
-                                ) : (
-                                    <span className="text-2xl font-black text-white">{user.name?.[0]?.toUpperCase() || '?'}</span>
-                                )}
-                            </div>
+                                <div
+                                    className="flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-[var(--border)]"
+                                    style={{ background: memberInfo.color || '#6c63ff' }}
+                                >
+                                    {avatarConfig?.svgDataUrl ? (
+                                        <img src={avatarConfig.svgDataUrl} alt="프로필" className="h-full w-full object-cover" />
+                                    ) : user.photoURL ? (
+                                        <img src={user.photoURL} alt="프로필" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <span className="text-2xl font-black text-white">{user.name?.[0]?.toUpperCase() || '?'}</span>
+                                    )}
+                                </div>
                             </Link>
                             <div className="min-w-0">
                                 <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-1">
