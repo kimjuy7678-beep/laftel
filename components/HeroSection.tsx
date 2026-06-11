@@ -21,8 +21,8 @@ const heroDataDefault = [
 const heroDataKids = [
     { id: 60572, image: '/images/hero/hero06.png', video: '/videos/hero6.mp4',  text: '피카츄와 함께 떠나는 끝없는 모험, \n세대를 초월한 추억과 설렘의 원조!' },
     { id: 3570,  image: '/images/hero/hero07.png', video: '/videos/hero7.mp4',  text: '화려한 변신과 감동적인 우정, \n마법소녀 장르의 역사를 만든 전설!' },
-    { id: 57911, image: '/images/hero/hero08.png', video: '/videos/hero8.mp4',  text: '신기한 미래도구보다 더 특별한, \n웃음과 따뜻함이 가득한 국민 애니!' },
-    { id: 31654, image: '/images/hero/hero09.png', video: '/videos/hero9.mp4',  text: '모험과 성장, \n그리고 진한 우정까지 담아낸 소년들의 레전드 서사!' },
+    { id: 57911, image: '/images/hero/hero08.png', video: '/videos/hero9.mp4',  text: '신기한 미래도구보다 더 특별한, \n웃음과 따뜻함이 가득한 국민 애니!' },
+    { id: 31654, image: '/images/hero/hero09.png', video: '/videos/hero8.mp4',  text: '모험과 성장, \n그리고 진한 우정까지 담아낸 소년들의 레전드 서사!' },
     { id: 35790, image: '/images/hero/hero10.png', video: '/videos/hero10.mp4', text: '사랑스러운 작화와 몽환적인 감성, \n지금 봐도 설레는 마법 같은 이야기!' },
 ]
 

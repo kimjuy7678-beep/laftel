@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { db, auth } from '@/firebase/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { sendPasswordResetEmail } from 'firebase/auth'
+import OnboardingModal from '@/components/OnboardingModal'
 
 async function hashPin(pin: string): Promise<string> {
     const data = new TextEncoder().encode(pin + '_laftel_salt')
@@ -69,6 +70,7 @@ export default function ProfilePage() {
     const [agePw, setAgePw] = useState('')
     const [agePwError, setAgePwError] = useState('')
     const [selectedAge, setSelectedAge] = useState('19')
+    const [showOnboarding, setShowOnboarding] = useState(false)
 
     const [pinInput, setPinInput] = useState('')
     const [pinError, setPinError] = useState('')
@@ -146,12 +148,6 @@ export default function ProfilePage() {
     const enterProfile = async (p: ProfileData) => {
         await setDoc(doc(db, 'users', user!.uid!), { lastProfileId: p.id }, { merge: true })
         onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit, profileId: p.id })
-
-        // 프로필 선택 시점에 온보딩 여부 체크
-        const snap = await getDoc(doc(db, 'users', user!.uid!))
-        if (!snap.data()?.onboardingDone) {
-            useAuthStore.setState({ isNewUser: true })
-        }
         router.push('/')
     }
 
@@ -311,7 +307,6 @@ export default function ProfilePage() {
         if (v.length === 4) {
             const profile = profiles.find(p => p.id === editingId)
             if (!profile?.pinHash) {
-                // PIN 없는 프로필은 바로 통과
                 setStep('age_select')
                 return
             }
@@ -380,7 +375,14 @@ export default function ProfilePage() {
                 @keyframes pin-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
             `}</style>
 
-            {/* 프리미엄 모달 */}
+            {showOnboarding && user?.uid && (
+                <OnboardingModal
+                    uid={user.uid}
+                    onComplete={() => router.push('/')}
+                    onClose={() => router.push('/')}
+                />
+            )}
+
             {showPremiumModal && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
                     <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: '28px 24px', maxWidth: 380, width: '100%', border: '1px solid var(--border)' }}>
@@ -396,7 +398,6 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* PIN 입력 */}
             {step === 'pin_enter' && pendingProfile && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -470,7 +471,6 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* PIN 설정 */}
             {(step === 'pin_setup' || step === 'pin_setup_confirm') && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -535,7 +535,6 @@ export default function ProfilePage() {
                 <img src="/images/logo-white.svg" alt="" style={{ display: 'block', marginBottom: '30px' }} />
             )}
 
-            {/* 프로필 선택 */}
             {step === 'select' && (
                 <div className="pf-page">
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -544,7 +543,7 @@ export default function ProfilePage() {
                     <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 40, marginBottom: 64 }}>
                         {profiles.map(p => {
                             const isSelected = selectedProfileId === p.id
-                            const isMainProfile = p.id === profiles[0].id  // 첫 번째 프로필
+                            const isMainProfile = p.id === profiles[0].id
                             return (
                                 <div key={p.id} className={`pf-card${isSelected ? ' selected' : ''}`} onClick={() => handleProfileClick(p)}>
                                     <div className="pf-avatar-wrap" style={{ position: 'relative' }}>
@@ -559,8 +558,6 @@ export default function ProfilePage() {
                                         )}
                                     </div>
                                     <span className="pf-card-name">{p.nickname}</span>
-
-                                    {/* 멤버십 뱃지 — 주 계정에만 표시 */}
                                     {isMainProfile && memberInfo && (
                                         <span style={{
                                             fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20,
@@ -570,7 +567,6 @@ export default function ProfilePage() {
                                             ✓ {memberInfo.label}
                                         </span>
                                     )}
-
                                     {isSelected && (
                                         <span style={{ fontSize: 12, color: '#9d97ff', fontWeight: 600, marginTop: -8 }}>
                                             {p.pinHash ? '🔒 한 번 더 클릭' : '한 번 더 클릭하여 입장 →'}
@@ -612,7 +608,6 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* 프로필 편집 */}
             {step === 'edit' && (
                 <div className="pf-page">
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -690,7 +685,6 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* 이미지 선택 */}
             {step === 'image' && (
                 <div style={{ width: '100%', maxWidth: 560, animation: 'fade-up .3s ease' }}>
                     <div style={{ background: 'var(--bg-card)', borderRadius: 20, padding: '28px 24px', border: '1px solid var(--border-subtle)' }}>
@@ -759,15 +753,12 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* 연령제한 PIN 입력 */}
             {step === 'age_pw' && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
                         <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.02em' }}>연령 제한 변경</h1>
                         <p style={{ color: 'var(--text-subtle)', fontSize: 18, margin: 0 }}>
-                            {editingProfile?.pinHash
-                                ? '프로필 PIN을 입력해주세요'
-                                : 'PIN이 설정되지 않아 바로 변경할 수 있어요'}
+                            {editingProfile?.pinHash ? '프로필 PIN을 입력해주세요' : 'PIN이 설정되지 않아 바로 변경할 수 있어요'}
                         </p>
                     </div>
                     {editingProfile?.pinHash ? (
@@ -809,7 +800,6 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* 연령 선택 */}
             {step === 'age_select' && (
                 <div className="pf-box">
                     <div style={{ padding: '28px 24px 0' }}>
