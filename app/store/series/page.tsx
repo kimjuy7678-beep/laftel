@@ -6,6 +6,7 @@ import Link from "next/link";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 import StoreSidebar from "@/components/store/StoreSliaebar";
+import StoreCategoryToggle from "@/components/store/StoreCategoryToggle";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 import FilterDropdown from "@/components/store/FilterDropdown";
 
@@ -211,19 +212,10 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
 
     return (
         <div className="min-h-screen bg-white pb-20">
-            <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
             <div className="border-b border-[#ebe8ff] bg-white py-3">
                 <Inner>
-                    <button onClick={() => setSidebarOpen(true)}
-                        className="flex items-center gap-2 text-[14px] text-[#3d3755] transition hover:text-[#7865ff]">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                            <line x1="3" y1="12" x2="21" y2="12" />
-                            <line x1="3" y1="18" x2="21" y2="18" />
-                        </svg>
-                        전체 카테고리
-                    </button>
+                    <StoreCategoryToggle open={sidebarOpen} onClick={() => setSidebarOpen((open) => !open)} />
+                    <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
                 </Inner>
             </div>
 

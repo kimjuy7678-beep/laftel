@@ -536,16 +536,16 @@ export default function ReservePageClient({ products }: { products: Product[] })
                 <ReleaseCalendar today={today} events={events} onOpenModal={() => setCalendarOpen(true)} />
 
                 <section id="reserve-products" className="mt-10">
-                    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                        <p className="text-[14px] text-[#6b647a]">
+                    <div className="mb-6 flex items-center justify-between gap-3">
+                        <p className="shrink-0 text-[14px] text-[#6b647a]">
                             총 <span className="font-semibold text-[#16121f]">{sortedProducts.length}</span>개의 상품
                         </p>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
                             <div className="relative">
                                 <select
                                     value={kind}
                                     onChange={(event) => handleKindChange(event.target.value as ReserveKind)}
-                                    className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer"
+                                    className="h-[38px] max-w-[122px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer sm:max-w-none"
                                 >
                                     {RESERVE_KIND_OPTIONS.map((option) => (
                                         <option key={option}>{option}</option>
@@ -559,7 +559,7 @@ export default function ReservePageClient({ products }: { products: Product[] })
                                 <select
                                     value={sort}
                                     onChange={(event) => handleSortChange(event.target.value as ReserveSort)}
-                                    className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer"
+                                    className="h-[38px] max-w-[122px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer sm:max-w-none"
                                 >
                                     {RESERVE_SORT_OPTIONS.map((option) => (
                                         <option key={option}>{option}</option>
