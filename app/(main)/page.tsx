@@ -26,7 +26,7 @@ export default function Home() {
   useEffect(() => {
     if (!user?.uid) return
     const check = async () => {
-      const snap = await getDoc(doc(db, 'users', user.uid))
+      const snap = await getDoc(doc(db, 'users', user.uid!))
       const data = snap.data()
       const hasGenres = Array.isArray(data?.preferences?.genres) && data.preferences.genres.length > 0
       if (!hasGenres) setShowOnboarding(true)
