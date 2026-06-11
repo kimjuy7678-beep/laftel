@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { doc, setDoc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
+import Router from 'next/router'
 
 type PlanId = 'anime' | 'ost' | 'allinone'
 

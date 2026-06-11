@@ -22,6 +22,7 @@ export default function Home() {
   const [cursor, setCursor] = useState({ x: -100, y: -100 })
   const { user } = useAuthStore()
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [noResultMode, setNoResultMode] = useState(false)
 
   useEffect(() => {
     if (!user?.uid) return
@@ -40,16 +41,17 @@ export default function Home() {
     return () => window.removeEventListener('mousemove', onMove)
   }, [])
 
+  // ✅ PersonalRecommendSection에서 결과 없을 때 호출
+  const handleNoResult = () => {
+    setNoResultMode(true)
+    setShowOnboarding(true)
+  }
+
   return (
     <>
       <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: 40,
-        height: 40,
-        pointerEvents: 'none',
-        zIndex: 99999,
+        position: 'fixed', top: 0, left: 0, width: 40, height: 40,
+        pointerEvents: 'none', zIndex: 99999,
         transform: `translate(${cursor.x + 10}px, ${cursor.y + 10}px)`,
         transition: 'transform .12s cubic-bezier(.25,.46,.45,.94)',
       }}>
@@ -60,7 +62,8 @@ export default function Home() {
         <HeroSection />
         <DayNewSection />
         <WatchHistory />
-        <PersonalRecommendSection />
+        {/* ✅ onNoResult prop 추가 */}
+        <PersonalRecommendSection onNoResult={handleNoResult} />
         <LiveSection />
         <MoodSection />
         <MembershipBanner />
@@ -76,8 +79,15 @@ export default function Home() {
         {showOnboarding && user?.uid && (
           <OnboardingModal
             uid={user.uid}
-            onComplete={() => setShowOnboarding(false)}
-            onClose={() => setShowOnboarding(false)}
+            noResultMode={noResultMode}
+            onComplete={() => {
+              setShowOnboarding(false)
+              setNoResultMode(false)
+            }}
+            onClose={() => {
+              setShowOnboarding(false)
+              setNoResultMode(false)
+            }}
           />
         )}
       </div>
