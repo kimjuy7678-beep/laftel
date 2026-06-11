@@ -6,8 +6,10 @@ import Link from "next/link";
 import products from "@/data/store.json";
 import { useAuthStore } from "@/store/useAuthStore";
 import StoreSidebar from "@/components/store/StoreSliaebar";
+import StoreCategoryToggle from "@/components/store/StoreCategoryToggle";
 import StoreProductCard, { StoreProduct } from "@/components/store/StoreProductCard";
 import FilterDropdown from "@/components/store/FilterDropdown";
+import SortDropdown, { sortProducts } from "@/components/store/SortDropdown";
 
 const ALL_PRODUCTS = products as StoreProduct[];
 const ITEMS_PER_PAGE = 20;
@@ -22,13 +24,11 @@ function normalizeSearch(value: string) {
 function matchesSearch(product: StoreProduct, search: string) {
     const query = normalizeSearch(search);
     if (!query) return true;
-
     const text = normalizeSearch([
         product.title,
         product.category,
         ...(product.productdetail ?? []),
     ].join(" "));
-
     return text.includes(query);
 }
 
@@ -99,23 +99,23 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
     };
 
     return (
-        <div className="mt-16 flex items-center justify-center gap-2">
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-1.5 sm:mt-16 sm:gap-2">
             <button onClick={() => handleChange(Math.max(1, current - 1))} disabled={current === 1}
-                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed sm:h-10 sm:w-10">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            {hasPrevGroup && <button onClick={() => handleChange(groupStart - 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            {hasPrevGroup && <button onClick={() => handleChange(groupStart - 1)} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]">···</button>}
             {pages.map((p) => (
                 <button key={p} onClick={() => handleChange(p)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-[14px] font-medium transition ${p === current
+                    className={`flex h-9 w-9 items-center justify-center rounded-[10px] text-[13px] font-medium transition sm:h-10 sm:w-10 sm:text-[14px] ${p === current
                         ? "bg-[#7865ff] text-white shadow-[0_2px_10px_rgba(120,101,255,0.35)]"
                         : "bg-white border border-[#d8d4ee] text-[#6b647a] hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]"}`}>
                     {p}
                 </button>
             ))}
-            {hasNextGroup && <button onClick={() => handleChange(groupEnd + 1)} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[14px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff]">···</button>}
+            {hasNextGroup && <button onClick={() => handleChange(groupEnd + 1)} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[13px] text-[#6b647a] transition hover:border-[#7865ff] hover:bg-[#f0eeff] hover:text-[#7865ff] sm:h-10 sm:w-10 sm:text-[14px]">···</button>}
             <button onClick={() => handleChange(Math.min(total, current + 1))} disabled={current === total}
-                className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed">
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#d8d4ee] bg-white text-[#7865ff] transition hover:border-[#7865ff] hover:bg-[#f0eeff] disabled:opacity-30 disabled:cursor-not-allowed sm:h-10 sm:w-10">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
         </div>
@@ -134,24 +134,21 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [priceRange, setPriceRange] = useState<[number, number]>(PRICE_INITIAL);
     const [onlyInStock, setOnlyInStock] = useState(false);
-    const [onlyReserve, setOnlyReserve] = useState(false); // 추가
+    const [onlyReserve, setOnlyReserve] = useState(false);
 
-    const filtered = ALL_PRODUCTS.filter((p) => { // ALL_PRODUCTS로 변경 (예약 포함)
+    const filtered = ALL_PRODUCTS.filter((p) => {
         const price = parsePrice(p.price);
-        const isReserve = p.title.includes("[예약]"); // 추가
+        const isReserve = p.title.includes("[예약]");
         const matchSeries = selectedSeries === "전체" || p.category === selectedSeries;
         const matchSearch = matchesSearch(p, search);
         const matchPrice = price >= priceRange[0] && price <= priceRange[1];
         const matchStock = !onlyInStock || !p.soldout;
-        const matchReserve = !onlyReserve || isReserve; // 추가
+        const matchReserve = !onlyReserve || isReserve;
         return matchSeries && matchSearch && matchPrice && matchStock && matchReserve;
     });
 
-    const sorted = [...filtered].sort((a, b) => {
-        if (sort === "낮은 가격순") return parsePrice(a.price) - parsePrice(b.price);
-        if (sort === "높은 가격순") return parsePrice(b.price) - parsePrice(a.price);
-        return 0;
-    });
+    // ✅ sortProducts 컴포넌트 사용
+    const sorted = sortProducts(filtered, sort);
 
     const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
     const paginated = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -166,11 +163,12 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
         setOnlyInStock(false);
         setOnlyReserve(false);
         setPage(1);
-    }; // 추가
+    };
+
     const activeFilterCount = [
         priceRange[0] > PRICE_INITIAL[0] || priceRange[1] < PRICE_INITIAL[1],
         onlyInStock,
-        onlyReserve, // 추가
+        onlyReserve,
     ].filter(Boolean).length;
 
     const handleSeriesSelect = (s: string) => {
@@ -179,51 +177,15 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
         document.getElementById("series-tab")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
 
-    const handleSearchChange = (value: string) => {
-        setSearch(value);
-        setPage(1);
-    };
-
-    const handleSortChange = (value: string) => {
-        setSort(value);
-        setPage(1);
-    };
-
-    const handlePriceRange = (value: [number, number]) => {
-        setPriceRange(value);
-        setPage(1);
-    };
-
-    const handleOnlyInStock = (value: boolean) => {
-        setOnlyInStock(value);
-        setPage(1);
-    };
-
-    const handleOnlyReserve = (value: boolean) => {
-        setOnlyReserve(value);
-        setPage(1);
-    };
-
-    const handleClearSearch = () => {
-        setSearch("");
-        setPage(1);
-    };
+    const handleSearchChange = (value: string) => { setSearch(value); setPage(1); };
+    const handleClearSearch = () => { setSearch(""); setPage(1); };
 
     return (
         <div className="min-h-screen bg-white pb-20">
-            <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
             <div className="border-b border-[#ebe8ff] bg-white py-3">
                 <Inner>
-                    <button onClick={() => setSidebarOpen(true)}
-                        className="flex items-center gap-2 text-[14px] text-[#3d3755] transition hover:text-[#7865ff]">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                            <line x1="3" y1="12" x2="21" y2="12" />
-                            <line x1="3" y1="18" x2="21" y2="18" />
-                        </svg>
-                        전체 카테고리
-                    </button>
+                    <StoreCategoryToggle open={sidebarOpen} onClick={() => setSidebarOpen((open) => !open)} />
+                    <StoreSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
                 </Inner>
             </div>
 
@@ -246,7 +208,7 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
                             </svg>
                             <input
                                 value={search}
-                                onChange={(event) => handleSearchChange(event.target.value)}
+                                onChange={(e) => handleSearchChange(e.target.value)}
                                 className="h-full min-w-0 flex-1 bg-transparent px-3 text-[13px] text-[#242130] outline-none placeholder:text-[#b0aabb]"
                                 placeholder="찾으시는 상품을 검색하세요"
                             />
@@ -276,13 +238,8 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
                         {search && <span className="ml-2 font-semibold text-[#7865ff]">· {search}</span>}
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
-                        <div className="relative">
-                            <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
-                                className="h-[38px] appearance-none rounded-[8px] border border-[#ddd8f4] bg-white pl-3 pr-8 text-[13px] text-[#3d3755] outline-none focus:border-[#7865ff] cursor-pointer">
-                                <option>인기순</option><option>신상품순</option><option>낮은 가격순</option><option>높은 가격순</option>
-                            </select>
-                            <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9b94b2]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
-                        </div>
+                        {/* ✅ SortDropdown 컴포넌트 연결 */}
+                        <SortDropdown value={sort} onChange={(v) => { setSort(v); setPage(1); }} />
                         <div className="relative">
                             <button onClick={() => setFilterOpen((v) => !v)}
                                 className={`relative flex h-[38px] items-center gap-1.5 rounded-[8px] border px-3 text-[13px] font-medium transition ${activeFilterCount > 0 || filterOpen ? "border-[#7865ff] bg-[#f0eeff] text-[#7865ff]" : "border-[#ddd8f4] bg-white text-[#3d3755] hover:border-[#7865ff] hover:text-[#7865ff]"}`}>
@@ -295,11 +252,11 @@ function SeriesPageInner({ initialSeries, initialSearch }: { initialSeries: stri
                                 onClose={() => setFilterOpen(false)}
                                 open={filterOpen}
                                 priceRange={priceRange}
-                                onPriceRange={handlePriceRange}
+                                onPriceRange={(v) => { setPriceRange(v); setPage(1); }}
                                 onlyInStock={onlyInStock}
-                                onOnlyInStock={handleOnlyInStock}
+                                onOnlyInStock={(v) => { setOnlyInStock(v); setPage(1); }}
                                 onlyReserve={onlyReserve}
-                                onOnlyReserve={handleOnlyReserve}
+                                onOnlyReserve={(v) => { setOnlyReserve(v); setPage(1); }}
                                 onReset={handleReset}
                             />
                         </div>

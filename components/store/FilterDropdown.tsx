@@ -30,12 +30,19 @@ export default function FilterDropdown({
 }: FilterDropdownProps) {
     const pct = (v: number) => ((v - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100;
 
-    const [localRange, setLocalRange] = useState<[number, number]>(priceRange);
-    const [onlyReserve, setOnlyReserve] = useState(onlyReserveProp ?? false);
+    const [rangeDraft, setRangeDraft] = useState<{ source: [number, number]; value: [number, number] }>({
+        source: priceRange,
+        value: priceRange,
+    });
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const localRange = rangeDraft.source[0] === priceRange[0] && rangeDraft.source[1] === priceRange[1]
+        ? rangeDraft.value
+        : priceRange;
+    const onlyReserve = onlyReserveProp ?? false;
 
-    useEffect(() => { setLocalRange(priceRange); }, [priceRange]);
-    useEffect(() => { setOnlyReserve(onlyReserveProp ?? false); }, [onlyReserveProp]);
+    const setLocalRange = (value: [number, number]) => {
+        setRangeDraft({ source: priceRange, value });
+    };
 
     // 외부 클릭 감지
     useEffect(() => {
@@ -60,14 +67,12 @@ export default function FilterDropdown({
 
     const handleReset = () => {
         setLocalRange([PRICE_MIN, PRICE_MAX]);
-        setOnlyReserve(false);
         onOnlyReserve?.(false);
         onReset();
     };
 
     const handleToggleReserve = () => {
         const next = !onlyReserve;
-        setOnlyReserve(next);
         onOnlyReserve?.(next);
     };
 
@@ -76,21 +81,33 @@ export default function FilterDropdown({
     if (!open) return null;
 
     return (
-        <div
-            ref={dropdownRef}
-            className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-[16px] border border-[#e2ddf5] bg-white p-5 shadow-[0_8px_32px_rgba(30,24,70,0.14)]"
-        >
-            {/* 헤더 + X 버튼 */}
-            <div className="flex items-center justify-end mb-2">
-                <button
-                    onClick={onClose}
-                    className="flex h-[24px] w-[24px] items-center justify-center rounded-full text-[#9e98b0] transition hover:bg-[#f0edf8] hover:text-[#3d3755]"
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+        <>
+            <button
+                type="button"
+                aria-label="필터 닫기"
+                onClick={onClose}
+                className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[1px] md:hidden"
+            />
+            <div
+                ref={dropdownRef}
+                className="fixed left-0 top-0 z-50 h-full w-[min(86vw,340px)] overflow-y-auto border-r border-[#e2ddf5] bg-white p-5 shadow-[18px_0_50px_rgba(30,24,70,0.18)] md:absolute md:right-0 md:left-auto md:top-[calc(100%+8px)] md:h-auto md:w-[360px] md:overflow-visible md:rounded-[18px] md:border md:p-6 md:shadow-[0_18px_48px_rgba(30,24,70,0.16)]"
+            >
+                {/* 헤더 + X 버튼 */}
+                <div className="mb-5 flex items-center justify-between">
+                    <div>
+                        <p className="text-[15px] font-extrabold text-[#16121f]">필터</p>
+                        <p className="mt-0.5 text-[11px] text-[#9b94b2]">가격과 재고 조건을 조절하세요</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        aria-label="필터 닫기"
+                        className="flex h-[32px] w-[32px] items-center justify-center rounded-full bg-[#f5f3ff] text-[#9e98b0] transition hover:bg-[#f0edf8] hover:text-[#3d3755]"
+                    >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <path d="M18 6 6 18M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
 
             {/* 가격 */}
             <p className="text-[13px] font-semibold text-[#16121f]">가격별로 보기</p>
@@ -176,6 +193,7 @@ export default function FilterDropdown({
                 </svg>
                 초기화
             </button>
-        </div>
+            </div>
+        </>
     );
 }
