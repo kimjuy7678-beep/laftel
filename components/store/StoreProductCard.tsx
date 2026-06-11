@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import { doc, setDoc, getDoc, arrayUnion, arrayRemove } from "firebase/firestore";
@@ -19,6 +20,10 @@ export type StoreProduct = {
     thumbnail: string;
     soldout: boolean;
     productdetail?: string[];
+    detailImages?: string[];
+    options?: unknown[];
+    optionValues?: unknown[];
+    variants?: unknown[];
 };
 
 type DateParts = {
@@ -163,24 +168,147 @@ export function WishButton({
     );
 }
 
+function cleanOptionValue(value: unknown) {
+    const stringValue = typeof value === "string" ? value.trim() : "";
+    let parsedValue: unknown = value;
+
+    if (stringValue.startsWith("{") || stringValue.startsWith("[")) {
+        try {
+            parsedValue = JSON.parse(stringValue) as unknown;
+        } catch {
+            parsedValue = value;
+        }
+    }
+
+    const raw = typeof parsedValue === "string"
+        ? parsedValue
+        : parsedValue && typeof parsedValue === "object"
+            ? String(
+                (parsedValue as { optionValue?: unknown; optionName?: unknown; name?: unknown; value?: unknown; label?: unknown; title?: unknown }).optionValue ??
+                (parsedValue as { optionName?: unknown }).optionName ??
+                (parsedValue as { name?: unknown }).name ??
+                (parsedValue as { value?: unknown }).value ??
+                (parsedValue as { label?: unknown }).label ??
+                (parsedValue as { title?: unknown }).title ??
+                "",
+            )
+            : "";
+
+    return raw
+        .replace(/[,{\s]*["']?add(?:i)?tional\w*["']?\s*:\s*["']?[-+]?\d[\d,]*(?:원)?["']?\s*[,}]*/gi, " ")
+        .replace(/["{,]\s*add(?:i)?tionalAmou?n?t?\s*["]?\s*:\s*[-+]?\d[\d,]*(?:원)?\s*[,}]?/gi, "")
+        .replace(/add(?:i)?tionalAmou?n?t?\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
+        .replace(/add(?:i)?tional[A-Za-z]*\s*[:=]\s*[-+]?\d[\d,]*(?:원)?/gi, "")
+        .replace(/[{}"]/g, "")
+        .replace(/,\s*$/g, "")
+        .replace(/\(\s*[-+]?\d[\d,]*원\s*\)/g, "")
+        .replace(/\s*[-+]\s*\d[\d,]*원/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+}
+
+function cleanOptionLine(value: string) {
+    return cleanOptionValue(value)
+        .replace(/^[A-Z]\.\s*/, "")
+        .replace(/^옵션\s*[A-Z0-9가-힣]?\.?\s*/, "")
+        .trim();
+}
+
+function isReadableOption(option: string) {
+    if (!option || option.includes("\uFFFD") || option.includes("�")) return false;
+    if (/^[0-9a-f]{8,}$/i.test(option)) return false;
+    if (!/[가-힣A-Za-z0-9]/.test(option)) return false;
+    return true;
+}
+
+function uniqueOptions(options: unknown[]) {
+    return Array.from(new Set(
+        options
+            .map(cleanOptionValue)
+            .filter((option) => isReadableOption(option) && !/^add(?:i)?tional/i.test(option)),
+    ));
+}
+
+function decodeHexUtf8(value: string) {
+    const hex = value.replace(/[^0-9a-f]/gi, "");
+    if (hex.length < 6 || hex.length % 2 !== 0) return "";
+
+    try {
+        const bytes = Uint8Array.from(hex.match(/../g)?.map((part) => parseInt(part, 16)) ?? []);
+        const decoded = new TextDecoder().decode(bytes).normalize("NFC");
+        return decoded.includes("\uFFFD") ? "" : decoded;
+    } catch {
+        return "";
+    }
+}
+
+function getImageNameOptionValues(product: StoreProduct) {
+    if (!product.title.includes("선택")) return [];
+
+    return (product.detailImages ?? [])
+        .flatMap((image) => {
+            const filename = decodeURIComponent(image.split("/").pop() ?? "").replace(/\.[^.]+$/, "");
+            return [filename, ...(filename.match(/[0-9a-f]{6,}/gi) ?? []).map(decodeHexUtf8)];
+        })
+        .map((value) => cleanOptionLine(value.replace(/^copy-\d+-/i, "")))
+        .filter((value) => isReadableOption(value) && /[가-힣]/.test(value) && value.length >= 2 && value.length <= 30)
+        .filter((value) => !/(상품|상세|이미지|선택|랜덤|옵션|주의|안내|유의|예약|발매|배송|특전|원본)/.test(value));
+}
+
+function getLineOptionValues(line: string) {
+    const cleaned = cleanOptionLine(line);
+    if (!cleaned || /옵션을 선택|옵션 선택|캐릭터 선택|선택하여 구매|선택 후 구매/.test(cleaned)) return [];
+
+    return cleaned
+        .split(/[,，、/]/)
+        .map(cleanOptionLine)
+        .filter((value) => value.length > 0 && value.length <= 40);
+}
+
 function getCardOptionValues(product: StoreProduct): string[] {
+    const direct = product.options ?? product.optionValues ?? product.variants ?? [];
+    if (direct.length > 0) return uniqueOptions(direct);
+
     const lines = (product.productdetail ?? []).map((line) => line.trim()).filter(Boolean);
     const optionLines = lines
         .filter((line) => /^옵션\s*[A-Z0-9가-힣]?\.?\s*/.test(line))
-        .map((line) => line.replace(/^옵션\s*[A-Z0-9가-힣]?\.?\s*/, "").trim())
-        .filter(Boolean);
-    if (optionLines.length > 0) return optionLines;
+        .flatMap(getLineOptionValues);
+    if (optionLines.length > 0) return uniqueOptions(optionLines);
 
-    const selectIdx = lines.findIndex((line) => /선택(하여|후)\s*구매/.test(line));
+    const selectIdx = lines.findIndex((line) => /선택(하여|후)?\s*구매|중\s*선택/.test(line));
     if (selectIdx > 0) {
         const values = lines[selectIdx - 1]
-            .split(/[,，、]/)
-            .map((value) => value.trim())
+            .split(/[,，、/]/)
+            .map(cleanOptionLine)
             .filter((value) => value.length > 0 && value.length <= 30);
-        if (values.length > 1) return values;
+        if (values.length > 1) return uniqueOptions(values);
     }
 
+    const sizeOptions = lines
+        .map((line) => line.match(/^([SMLX]{1,3})\s*[:|]\s*/i)?.[1]?.toUpperCase())
+        .filter((option): option is string => Boolean(option));
+    if (product.title.includes("사이즈 선택") && sizeOptions.length > 0) return uniqueOptions(sizeOptions);
+
+    const numberedLines = lines
+        .filter((line) => /^[①-⑳]|^\([0-9]+\)\s/.test(line))
+        .map((line) => cleanOptionLine(line.replace(/^[①-⑳]\s*|^\([0-9]+\)\s*/, "")))
+        .filter((line) => line.length > 0 && line.length <= 40);
+    if (numberedLines.length > 1) return uniqueOptions(numberedLines);
+
+    const imageNameOptions = getImageNameOptionValues(product);
+    if (imageNameOptions.length > 1) return uniqueOptions(imageNameOptions);
+
     return [];
+}
+
+function isCartItemForProduct(item: unknown, productId: string) {
+    if (typeof item === "string") return item === productId;
+    return Boolean(
+        item &&
+        typeof item === "object" &&
+        "productId" in item &&
+        (item as { productId?: unknown }).productId === productId,
+    );
 }
 
 export function CartButton({
@@ -188,19 +316,28 @@ export function CartButton({
     title,
     thumbnail,
     requiresOption = false,
+    optionValues = [],
     disabled = false,
 }: {
     productId: string;
     title: string;
     thumbnail: string;
     requiresOption?: boolean;
+    optionValues?: string[];
     disabled?: boolean;
 }) {
     const { user } = useAuthStore();
     const [inCart, setInCart] = useState(false);
     const [showLogin, setShowLogin] = useState(false);
     const [showCart, setShowCart] = useState(false);
+    const [showOptionModal, setShowOptionModal] = useState(false);
+    const [selectedOption, setSelectedOption] = useState("");
+    const [modalOptions, setModalOptions] = useState<string[]>([]);
+    const [optionLoading, setOptionLoading] = useState(false);
+    const [cartRawItems, setCartRawItems] = useState<unknown[]>([]);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // ✅ 추가
+
+    const normalizedOptions = Array.from(new Set(optionValues.map((option) => option.trim()).filter(Boolean)));
 
     useEffect(() => {
         return () => {
@@ -214,48 +351,114 @@ export function CartButton({
             const snap = await getDoc(doc(db, "users", user.uid!));
             const cart = snap.data()?.cart as unknown;
             const cartItems = Array.isArray(cart) ? cart : [];
-            setInCart(cartItems.some((item) => {
-                if (typeof item === "string") return item === productId;
-                return Boolean(
-                    item &&
-                    typeof item === "object" &&
-                    "productId" in item &&
-                    (item as { productId?: unknown }).productId === productId,
-                );
-            }));
+            setCartRawItems(cartItems);
+            setInCart(cartItems.some((item) => isCartItemForProduct(item, productId)));
         })();
     }, [user?.uid, productId]);
 
     const activeInCart = Boolean(user?.uid && inCart);
 
+    const removeCurrentProductFromCart = async () => {
+        if (!user?.uid) return;
+
+        const ref = doc(db, "users", user.uid);
+        const removeItems = cartRawItems.filter((item) => isCartItemForProduct(item, productId));
+
+        if (removeItems.length > 0) {
+            await setDoc(ref, { cart: arrayRemove(...removeItems) }, { merge: true });
+            setCartRawItems((items) => items.filter((item) => !isCartItemForProduct(item, productId)));
+        } else {
+            await setDoc(ref, { cart: arrayRemove(productId) }, { merge: true });
+            setCartRawItems((items) => items.filter((item) => item !== productId));
+        }
+
+        setInCart(false);
+        setShowCart(false);
+        setShowOptionModal(false);
+        setSelectedOption("");
+        if (timerRef.current) clearTimeout(timerRef.current);
+    };
+
     const addToCart = async (e: React.MouseEvent) => {
         e.preventDefault(); e.stopPropagation();
         if (disabled) return;
-        void requiresOption;
 
         if (!user?.uid) {
             setShowLogin(true);
             return;
         }
 
+        if (inCart) {
+            try {
+                await removeCurrentProductFromCart();
+            } catch (err) {
+                console.error("🔥 [Cart Remove ERROR]", err);
+            }
+            return;
+        }
+
+        if (requiresOption) {
+            setModalOptions(normalizedOptions);
+            setSelectedOption((option) => option || normalizedOptions[0] || "");
+            setShowOptionModal(true);
+            if (normalizedOptions.length === 0) {
+                setOptionLoading(true);
+                try {
+                    const response = await fetch(`/api/store/products/${productId}/options`);
+                    const data = await response.json() as { options?: unknown[] };
+                    const fetchedOptions = uniqueOptions(data.options ?? []);
+                    setModalOptions(fetchedOptions);
+                    setSelectedOption(fetchedOptions[0] ?? "");
+                } catch (err) {
+                    console.error("🔥 [Cart Option Load ERROR]", err);
+                    setModalOptions([]);
+                } finally {
+                    setOptionLoading(false);
+                }
+            }
+            return;
+        }
+
         try {
             const ref = doc(db, "users", user.uid!);
-            if (inCart) {
-                // 이미 담긴 경우 → 취소
-                await setDoc(ref, { cart: arrayRemove(productId) }, { merge: true });
-                setInCart(false);
+            await setDoc(ref, { cart: arrayUnion(productId) }, { merge: true });
+            setCartRawItems((items) => [...items, productId]);
+            setInCart(true);
+            setShowCart(true);
+            timerRef.current = setTimeout(() => {
                 setShowCart(false);
-                if (timerRef.current) clearTimeout(timerRef.current);
-            } else {
-                // 새로 담기
-                await setDoc(ref, { cart: arrayUnion(productId) }, { merge: true });
-                setInCart(true);
-                setShowCart(true);
-                timerRef.current = setTimeout(() => {
-                    setShowCart(false);
-                }, 4000);
-            }
+            }, 4000);
         } catch (err) { console.error("🔥 [Cart ERROR]", err); }
+    };
+
+    const addSelectedOptionToCart = async () => {
+        if (!user?.uid || !selectedOption.trim()) return;
+
+        try {
+            const ref = doc(db, "users", user.uid);
+            const nextItem = {
+                productId,
+                option: selectedOption.trim(),
+                quantity: 1,
+            };
+            await setDoc(
+                ref,
+                {
+                    cart: arrayUnion(nextItem),
+                },
+                { merge: true },
+            );
+            setCartRawItems((items) => [...items, nextItem]);
+            setInCart(true);
+            setShowOptionModal(false);
+            setShowCart(true);
+            if (timerRef.current) clearTimeout(timerRef.current);
+            timerRef.current = setTimeout(() => {
+                setShowCart(false);
+            }, 4000);
+        } catch (err) {
+            console.error("🔥 [Cart Option ERROR]", err);
+        }
     };
 
     if (disabled) {
@@ -282,7 +485,80 @@ export function CartButton({
                 </svg>
             </button>
             {showLogin && <LoginAlert onClose={() => setShowLogin(false)} />}
-            {showCart && <CartAlert title={title} thumbnail={thumbnail} onClose={() => setShowCart(false)} />}
+            {showCart && <CartAlert title={title} thumbnail={thumbnail} option={selectedOption || undefined} onClose={() => setShowCart(false)} />}
+            {showOptionModal && typeof document !== "undefined" && createPortal((
+                <div
+                    className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/10 px-4 backdrop-blur-[3px]"
+                    onClick={() => setShowOptionModal(false)}
+                >
+                    <div
+                        className="w-full max-w-[480px] overflow-hidden rounded-[20px] bg-white shadow-[0_12px_48px_rgba(0,0,0,0.25)]"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="relative flex flex-col items-center gap-3 px-8 pb-5 pt-7 text-center">
+                            <button
+                                type="button"
+                                onClick={() => setShowOptionModal(false)}
+                                aria-label="닫기"
+                                className="absolute right-5 top-5 text-[#c0bcd0] transition hover:text-[#7865ff]"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                    <path d="M18 6 6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <span className="rounded-full bg-[#826CFF] px-3 py-1 text-[12px] font-bold text-white">옵션 선택</span>
+                            <div
+                                className="h-[64px] w-[64px] rounded-[12px] bg-[#f3f1ff] bg-cover bg-center"
+                                style={{ backgroundImage: `url(${thumbnail})` }}
+                                aria-label={title}
+                            />
+                            <p className="text-[22px] font-bold text-[#16121f]">옵션을 선택해주세요</p>
+                            <p className="line-clamp-1 text-[13px] text-[#9b94b2]">{title}</p>
+                        </div>
+
+                        <div className="px-8 pb-6">
+                            <label htmlFor={`card-option-${productId}`} className="mb-2 block text-[12px] font-bold text-[#6b647a]">
+                                옵션
+                            </label>
+                            <select
+                                id={`card-option-${productId}`}
+                                value={selectedOption}
+                                onChange={(event) => setSelectedOption(event.target.value)}
+                                disabled={optionLoading || modalOptions.length === 0}
+                                className="h-12 w-full rounded-[12px] border border-[#e3dff0] bg-white px-4 text-[14px] font-semibold text-[#16121f] outline-none transition focus:border-[#826CFF] disabled:bg-[#f8f6ff] disabled:text-[#b0aabb]"
+                            >
+                                {modalOptions.map((option) => (
+                                    <option key={option} value={option}>{option}</option>
+                                ))}
+                            </select>
+                            {optionLoading && (
+                                <p className="mt-2 text-[12px] font-semibold text-[#9b94b2]">옵션을 불러오는 중이에요.</p>
+                            )}
+                            {!optionLoading && modalOptions.length === 0 && (
+                                <p className="mt-2 text-[12px] font-semibold text-[#ff5f7c]">옵션 정보를 찾지 못했어요. 상품 상세에서 옵션을 확인해주세요.</p>
+                            )}
+                        </div>
+
+                        <div className="flex border-t border-[#f0edf8]">
+                            <button
+                                type="button"
+                                onClick={() => setShowOptionModal(false)}
+                                className="h-[56px] flex-1 border-r border-[#f0edf8] text-[15px] font-semibold text-[#6b647a] transition hover:bg-[#f8f6ff]"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                onClick={addSelectedOptionToCart}
+                                disabled={!selectedOption.trim() || optionLoading || modalOptions.length === 0}
+                                className="h-[56px] flex-1 bg-[#826CFF] text-[15px] font-bold text-white transition hover:bg-[#6552ee] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                담기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ), document.body)}
         </>
     );
 }
@@ -294,7 +570,8 @@ export default function StoreProductCard({ product, badgeLabel }: { product: Sto
     const isUnavailable = isSoldout || reserveClosed;
     const displayPrice = reserveClosed ? "예약 마감" : isSoldout ? "품절" : product.price;
     const displayTitle = product.title.replace("[예약]", "").replace("[품절]", "").trim();
-    const requiresOption = getCardOptionValues(product).length > 0 || product.title.includes("선택");
+    const optionValues = getCardOptionValues(product);
+    const requiresOption = optionValues.length > 0 || product.title.includes("선택");
 
     return (
         <div className="group block min-w-0">
@@ -326,7 +603,7 @@ export default function StoreProductCard({ product, badgeLabel }: { product: Sto
                     {reserveClosed ? (
                         <RestockAlertButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} />
                     ) : (
-                        <CartButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} requiresOption={requiresOption} disabled={isUnavailable} />
+                        <CartButton productId={product.productId} title={displayTitle} thumbnail={product.thumbnail} requiresOption={requiresOption} optionValues={optionValues} disabled={isUnavailable} />
                     )}
                 </div>
             </div>
