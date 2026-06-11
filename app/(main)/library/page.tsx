@@ -126,7 +126,6 @@ export default function LibraryPage() {
             const snap = await getDocs(
                 collection(db, 'users', uid, 'profiles', profileId, 'anime_comments')
             )
-            // 중복 없이 한 번만 fetch해서 set
             animeCommentDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
                 .sort((a: any, b: any) => {
                     const at = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
@@ -163,7 +162,6 @@ export default function LibraryPage() {
             }
             grouped.get(item.id)!.episodes.push(item)
         })
-        // 에피소드 번호 순 정렬
         grouped.forEach(g => g.episodes.sort((a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)))
         return Array.from(grouped.values())
     })()
@@ -221,8 +219,33 @@ export default function LibraryPage() {
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 56 }}>
             <style>{`
-                .lib-wrap { max-width: 1820px; margin: 0 auto; padding: 32px 48px 60px; display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start; min-height: calc(100vh - 56px); }
-                .lib-profile-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 28px 20px; display: flex; flex-direction: column; align-items: center; gap: 0; height: fit-content; }
+                /* ── BASE (Desktop 1024px+) ── */
+                .lib-wrap {
+                    max-width: 1820px;
+                    margin: 0 auto;
+                    padding: 32px 48px 60px;
+                    display: grid;
+                    grid-template-columns: 280px 1fr;
+                    gap: 24px;
+                    align-items: start;
+                    align-content: start;
+                    grid-auto-rows: max-content;
+                    min-height: calc(100vh - 56px);
+                }
+                .lib-profile-card {
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-subtle);
+                    border-radius: 16px;
+                    padding: 28px 20px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0;
+                    height: fit-content;
+                }
+                /* 태블릿/모바일에서 사이드바 숨김 */
+                .lib-sidebar { display: contents; }
+
                 .lib-avatar { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin-bottom: 12px; background: var(--bg-secondary); }
                 .lib-avatar img { width: 100%; height: 100%; object-fit: cover; }
                 .lib-username { font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px; }
@@ -234,6 +257,12 @@ export default function LibraryPage() {
                 .lib-stat-label { font-size: 11px; color: var(--text-subtle); }
                 .lib-action-btn { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--border); background: var(--border-faint); color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all .2s; }
                 .lib-action-btn:hover { background: var(--border-subtle); color: var(--text-primary); }
+
+                /* ── 모바일 프로필 상단 바 (기본 숨김) ── */
+                .lib-mobile-profile {
+                    display: none;
+                }
+
                 .lib-main { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; min-height: calc(100vh - 140px); display: flex; flex-direction: column; }
                 .lib-main-header { padding: 20px 24px 0; border-bottom: 1px solid var(--border-subtle); }
                 .lib-main-title { font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 16px; }
@@ -243,7 +272,7 @@ export default function LibraryPage() {
                 .lib-tab.active { color: var(--text-primary); }
                 .lib-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--main); border-radius: 1px; }
                 .lib-tab-action { margin-left: auto; display: flex; align-items: center; }
-                .lib-delete-btn { display: flex; align-items: center; gap: 5px; background: none; border: none; color: var(--text-subtle); font-size: 13px; cursor: pointer; padding: 8px 0; transition: color .2s; }
+                .lib-delete-btn { display: flex; align-items: center; gap: 5px; background: none; border: none; color: var(--text-subtle); font-size: 13px; cursor: pointer; padding: 8px 0; transition: color .2s; white-space: nowrap; flex-shrink: 0; }
                 .lib-delete-btn:hover { color: #f87171; }
                 .lib-grid { padding: 20px 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; align-content: start; }
                 .lib-item { position: relative; cursor: pointer; }
@@ -256,7 +285,7 @@ export default function LibraryPage() {
                 .lib-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 12px; flex: 1; }
                 .lib-empty img { width: 80px; height: 80px; object-fit: contain; opacity: .5; filter: grayscale(1); flex-shrink: 0; }
                 .lib-empty p { font-size: 14px; color: var(--text-subtle); margin: 0; }
-                .lib-count { font-size: 13px; color: var(--text-faint); padding: 0 24px 12px; }
+                .lib-count { font-size: 13px; color: var(--text-faint); padding: 10px 24px 12px; }
                 .lib-recent-card { display: flex; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--border-faint); cursor: pointer; transition: background .15s; }
                 .lib-recent-card:hover { background: var(--bg-hover); }
                 .lib-recent-thumb { width: 80px; height: 52px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--bg-secondary); }
@@ -279,11 +308,153 @@ export default function LibraryPage() {
                 .lib-activity-del:hover { color: #f87171; }
                 .lib-spoiler-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(239,68,68,.12); color: #ef4444; margin-left: 6px; }
                 @keyframes spin { to { transform: rotate(360deg) } }
+
+                /* ── TABLET (768px ~ 1023px) ── */
+                @media (max-width: 1023px) {
+                    .lib-wrap {
+                        grid-template-columns: 1fr;
+                        padding: 20px 24px 48px;
+                        gap: 16px;
+                        align-content: start;
+                        grid-auto-rows: max-content;
+                    }
+                    /* 사이드 프로필 카드 숨기고 */
+                    .lib-sidebar {
+                        display: none;
+                    }
+                    /* 인라인 프로필 바 표시 */
+                    .lib-mobile-profile {
+                        display: flex;
+                        align-items: center;
+                        gap: 14px;
+                        background: var(--bg-card);
+                        border: 1px solid var(--border-subtle);
+                        border-radius: 14px;
+                        padding: 14px 18px;
+                    }
+                    .lib-mobile-avatar {
+                        width: 48px;
+                        height: 48px;
+                        border-radius: 50%;
+                        overflow: hidden;
+                        flex-shrink: 0;
+                        background: var(--bg-secondary);
+                    }
+                    .lib-mobile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+                    .lib-mobile-info { flex: 1; min-width: 0; }
+                    .lib-mobile-name { font-size: 14px; font-weight: 800; color: var(--text-primary); margin: 0 0 2px; }
+                    .lib-mobile-level { font-size: 11px; color: var(--text-subtle); margin: 0; }
+                    .lib-mobile-stats {
+                        display: flex;
+                        gap: 16px;
+                        flex-shrink: 0;
+                    }
+                    .lib-mobile-stat { text-align: center; cursor: pointer; padding: 4px 6px; border-radius: 8px; transition: background .15s; }
+                    .lib-mobile-stat:hover { background: var(--border-faint); }
+                    .lib-mobile-stat-num { font-size: 15px; font-weight: 900; color: var(--text-primary); }
+                    .lib-mobile-stat-label { font-size: 10px; color: var(--text-subtle); }
+                    .lib-mobile-profile-link {
+                        flex-shrink: 0;
+                        width: 34px; height: 34px;
+                        border-radius: 8px;
+                        border: 1px solid var(--border);
+                        background: var(--border-faint);
+                        display: flex; align-items: center; justify-content: center;
+                        color: var(--text-muted);
+                        text-decoration: none;
+                        transition: all .2s;
+                    }
+                    .lib-mobile-profile-link:hover { background: var(--border-subtle); color: var(--text-primary); }
+
+                    .lib-main {
+                        min-height: 60vh;
+                    }
+                    .lib-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                        gap: 12px;
+                        padding: 16px 20px;
+                    }
+                    .lib-main-header { padding: 16px 20px 0; }
+                    .lib-count { padding: 0 20px 10px; }
+                    .lib-activity-list { padding: 12px 20px; }
+                    .lib-recent-card { padding: 10px 20px; }
+                }
+
+                /* ── MOBILE (~ 767px) ── */
+                @media (max-width: 767px) {
+                    .lib-wrap {
+                        padding: 12px 12px 60px;
+                        gap: 12px;
+                        align-content: start;
+                        grid-auto-rows: max-content;
+                    }
+                    .lib-mobile-profile {
+                        padding: 12px 14px;
+                        gap: 10px;
+                        border-radius: 12px;
+                    }
+                    .lib-mobile-avatar { width: 40px; height: 40px; }
+                    .lib-mobile-name { font-size: 13px; }
+                    .lib-mobile-stats { gap: 10px; }
+                    .lib-mobile-stat-num { font-size: 14px; }
+
+                    .lib-main { border-radius: 12px; min-height: 50vh; }
+                    .lib-main-header { padding: 14px 14px 0; }
+                    .lib-main-title { font-size: 15px; margin-bottom: 12px; }
+
+                    /* 탭 가로 스크롤 */
+                    .lib-tabs {
+                        overflow-x: auto;
+                        -webkit-overflow-scrolling: touch;
+                        scrollbar-width: none;
+                        -ms-overflow-style: none;
+                    }
+                    .lib-tabs::-webkit-scrollbar { display: none; }
+                    .lib-tab { padding: 8px 12px; font-size: 13px; }
+
+                    .lib-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                        gap: 10px;
+                        padding: 12px 14px;
+                    }
+                    .lib-item-title { font-size: 11px; }
+
+                    .lib-recent-card { padding: 10px 14px; gap: 10px; }
+                    .lib-recent-thumb { width: 68px; height: 44px; }
+                    .lib-recent-title { font-size: 12px; }
+                    .lib-recent-ep { font-size: 11px; }
+
+                    .lib-activity-list { padding: 10px 14px; gap: 8px; }
+                    .lib-activity-item { padding: 12px 12px; gap: 10px; }
+                    .lib-activity-poster { width: 40px; height: 56px; border-radius: 6px; }
+                    .lib-activity-poster-placeholder { width: 40px; height: 56px; font-size: 18px; }
+                    .lib-activity-anime { font-size: 12px; }
+                    .lib-activity-text { font-size: 12px; }
+
+                    .lib-count { padding: 0 14px 8px; font-size: 12px; }
+                    .lib-empty { padding: 40px 16px; }
+
+                    .lib-delete-btn { font-size: 12px; }
+
+                    /* 구매 탭 모바일 */
+                    .lib-purchased-wrap { padding: 12px 14px; }
+                }
+
+                /* ── SMALL MOBILE (~ 480px) ── */
+                @media (max-width: 480px) {
+                    .lib-wrap { padding: 8px 8px 60px; gap: 8px; }
+                    .lib-mobile-profile { padding: 10px; gap: 8px; }
+                    .lib-mobile-info { max-width: 92px; }
+                    .lib-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px 10px; }
+                    .lib-mobile-stats { gap: 8px; }
+                    .lib-mobile-stat { padding: 3px 4px; }
+                }
             `}</style>
 
             <div className="lib-wrap">
-                {/* 왼쪽 프로필 */}
-                <div>
+
+                {/* ── 사이드바 (데스크탑만) ── */}
+                <div className="lib-sidebar">
                     <div className="lib-profile-card">
                         <div className="lib-avatar">
                             {avatarConfig?.svgDataUrl
@@ -324,41 +495,47 @@ export default function LibraryPage() {
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
                                     {memberInfo.label} 관리
                                 </button>
-                                {showMembershipMgmt && (
-                                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60" onClick={() => setShowMembershipMgmt(false)}>
-                                        <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-                                            <div>
-                                                <p className="text-[var(--text-primary)] font-bold text-base mb-1">멤버십 관리</p>
-                                                <p className="text-[var(--text-subtle)] text-xs">현재 <span style={{ color: memberInfo.color, fontWeight: 700 }}>{memberInfo.label}</span> 이용 중이에요</p>
-                                            </div>
-                                            <div className="flex flex-col gap-2">
-                                                <button onClick={() => { setShowMembershipMgmt(false); router.push('/membership') }} className="w-full py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90" style={{ background: memberInfo.color }}>요금제 변경하기</button>
-                                                <button onClick={() => { setShowMembershipMgmt(false); setShowCancelConfirm(true) }} className="w-full py-3 rounded-xl font-bold text-sm border border-[var(--border)] text-[var(--text-subtle)] hover:text-red-400 hover:border-red-400/40 transition-colors">멤버십 취소</button>
-                                                <button onClick={() => setShowMembershipMgmt(false)} className="w-full py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-subtle)] transition-colors">닫기</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                {showCancelConfirm && (
-                                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60" onClick={() => setShowCancelConfirm(false)}>
-                                        <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-                                            <div>
-                                                <p className="text-[var(--text-primary)] font-bold text-base mb-1">멤버십을 취소할까요?</p>
-                                                <p className="text-[var(--text-subtle)] text-sm leading-relaxed">취소하면 이번 달 종료 후 멤버십 혜택이 사라져요. 정말 취소하시겠어요?</p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => setShowCancelConfirm(false)} className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] text-sm font-bold hover:text-[var(--text-primary)] transition-colors">유지하기</button>
-                                                <button onClick={handleCancelMembership} disabled={cancelling} className="flex-1 py-3 rounded-xl bg-red-500/80 text-white text-sm font-bold hover:bg-red-500 transition-colors disabled:opacity-50">{cancelling ? '처리 중...' : '취소하기'}</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* 오른쪽 보관함 */}
+                {/* ── 태블릿/모바일 인라인 프로필 바 ── */}
+                <div className="lib-mobile-profile">
+                    <div className="lib-mobile-avatar">
+                        {avatarConfig?.svgDataUrl
+                            ? <img src={avatarConfig.svgDataUrl} alt="프로필" />
+                            : user?.photoURL
+                                ? <img src={user.photoURL} alt="프로필" />
+                                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--main)', borderRadius: '50%' }}>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                </div>
+                        }
+                    </div>
+                    <div className="lib-mobile-info">
+                        <p className="lib-mobile-name">{user?.name || user?.email?.split('@')[0]}</p>
+                        <p className="lib-mobile-level">😊 Lv.0 베이비</p>
+                    </div>
+                    <div className="lib-mobile-stats">
+                        <div className="lib-mobile-stat" onClick={() => switchTab('reviews')}>
+                            <p className="lib-mobile-stat-num">{activityCount.rating}</p>
+                            <p className="lib-mobile-stat-label">별점</p>
+                        </div>
+                        <div className="lib-mobile-stat" onClick={() => switchTab('reviews')}>
+                            <p className="lib-mobile-stat-num">{activityCount.review}</p>
+                            <p className="lib-mobile-stat-label">리뷰</p>
+                        </div>
+                        <div className="lib-mobile-stat" onClick={() => switchTab('comments')}>
+                            <p className="lib-mobile-stat-num">{activityCount.comment}</p>
+                            <p className="lib-mobile-stat-label">댓글</p>
+                        </div>
+                    </div>
+                    <Link href="/profile" className="lib-mobile-profile-link" title="프로필 선택">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                    </Link>
+                </div>
+
+                {/* ── 오른쪽 보관함 ── */}
                 <div className="lib-main">
                     <div className="lib-main-header">
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -429,28 +606,22 @@ export default function LibraryPage() {
                                                 overflow: 'hidden',
                                             }}
                                         >
-                                            {/* 애니 헤더 행 */}
                                             <div
                                                 style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer' }}
                                                 onClick={() => setExpandedAnimeId(isExpanded ? null : group.animeId)}
                                             >
-                                                {/* 포스터 */}
                                                 <div style={{ width: 48, height: 68, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: 'var(--bg-card)' }}>
                                                     {group.poster
                                                         ? <img src={group.poster.startsWith('http') ? group.poster : `${TMDB_IMG}${group.poster}`} alt={group.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎌</div>
                                                     }
                                                 </div>
-
-                                                {/* 제목 + 요약 */}
                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                     <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                                                         {group.title}
                                                     </p>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                                        <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>
-                                                            총 {group.episodes.length}화 구매
-                                                        </span>
+                                                        <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>총 {group.episodes.length}화 구매</span>
                                                         {activeEps.length > 0 && (
                                                             <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: 'rgba(108,99,255,.12)', color: '#9d97ff' }}>
                                                                 시청 가능 {activeEps.length}화
@@ -463,8 +634,6 @@ export default function LibraryPage() {
                                                         )}
                                                     </div>
                                                 </div>
-
-                                                {/* 재생 + 펼치기 버튼 */}
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                                                     {activeEps.length > 0 && (
                                                         <button
@@ -494,7 +663,6 @@ export default function LibraryPage() {
                                                 </div>
                                             </div>
 
-                                            {/* 에피소드 목록 (펼쳐진 경우) */}
                                             {isExpanded && (
                                                 <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
                                                     {group.episodes.map(ep => {
@@ -515,12 +683,8 @@ export default function LibraryPage() {
                                                                 }}
                                                                 onMouseEnter={e => { if (isActive) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)' }}
                                                                 onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
-                                                                onClick={() => {
-                                                                    if (!isActive) return
-                                                                    router.push(`/anime/${group.animeId}?ep=${ep.episodeNumber}`)
-                                                                }}
+                                                                onClick={() => { if (!isActive) return; router.push(`/anime/${group.animeId}?ep=${ep.episodeNumber}`) }}
                                                             >
-                                                                {/* 화수 뱃지 */}
                                                                 <div style={{
                                                                     width: 36, height: 36, borderRadius: 8, flexShrink: 0,
                                                                     background: isActive ? 'rgba(108,99,255,.12)' : 'var(--border-faint)',
@@ -530,33 +694,21 @@ export default function LibraryPage() {
                                                                 }}>
                                                                     {ep.episodeNumber}
                                                                 </div>
-
-                                                                {/* 정보 */}
                                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                                     <p style={{ fontSize: 13, fontWeight: 600, color: isActive ? 'var(--text-primary)' : 'var(--text-subtle)', margin: 0 }}>
                                                                         {ep.episodeNumber}화
                                                                     </p>
                                                                     <p style={{ fontSize: 11, color: isActive ? (isOwn ? '#9d97ff' : '#34d399') : '#f87171', margin: '2px 0 0', fontWeight: 600 }}>
-                                                                        {isOwn
-                                                                            ? '소장'
-                                                                            : isActive
-                                                                                ? expiryText
-                                                                                : '대여 만료'
-                                                                        }
+                                                                        {isOwn ? '소장' : isActive ? expiryText : '대여 만료'}
                                                                     </p>
                                                                 </div>
-
-                                                                {/* 구매 유형 뱃지 */}
                                                                 <span style={{
                                                                     fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5,
                                                                     background: isOwn ? 'rgba(108,99,255,.12)' : 'rgba(52,211,153,.1)',
-                                                                    color: isOwn ? '#9d97ff' : '#34d399',
-                                                                    flexShrink: 0,
+                                                                    color: isOwn ? '#9d97ff' : '#34d399', flexShrink: 0,
                                                                 }}>
                                                                     {isOwn ? '소장' : '대여'}
                                                                 </span>
-
-                                                                {/* 재생 아이콘 */}
                                                                 {isActive && (
                                                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2" style={{ flexShrink: 0 }}>
                                                                         <polygon points="5,3 19,12 5,21" fill="var(--text-faint)" stroke="none" />
@@ -692,6 +844,37 @@ export default function LibraryPage() {
                         </>
                     )}
                 </div>
+
+                {/* ── 멤버십 모달 (전체 공용) ── */}
+                {memberInfo && showMembershipMgmt && (
+                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60" onClick={() => setShowMembershipMgmt(false)}>
+                        <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+                            <div>
+                                <p className="text-[var(--text-primary)] font-bold text-base mb-1">멤버십 관리</p>
+                                <p className="text-[var(--text-subtle)] text-xs">현재 <span style={{ color: memberInfo.color, fontWeight: 700 }}>{memberInfo.label}</span> 이용 중이에요</p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <button onClick={() => { setShowMembershipMgmt(false); router.push('/membership') }} className="w-full py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90" style={{ background: memberInfo.color }}>요금제 변경하기</button>
+                                <button onClick={() => { setShowMembershipMgmt(false); setShowCancelConfirm(true) }} className="w-full py-3 rounded-xl font-bold text-sm border border-[var(--border)] text-[var(--text-subtle)] hover:text-red-400 hover:border-red-400/40 transition-colors">멤버십 취소</button>
+                                <button onClick={() => setShowMembershipMgmt(false)} className="w-full py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-subtle)] transition-colors">닫기</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {memberInfo && showCancelConfirm && (
+                    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60" onClick={() => setShowCancelConfirm(false)}>
+                        <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+                            <div>
+                                <p className="text-[var(--text-primary)] font-bold text-base mb-1">멤버십을 취소할까요?</p>
+                                <p className="text-[var(--text-subtle)] text-sm leading-relaxed">취소하면 이번 달 종료 후 멤버십 혜택이 사라져요. 정말 취소하시겠어요?</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowCancelConfirm(false)} className="flex-1 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] text-sm font-bold hover:text-[var(--text-primary)] transition-colors">유지하기</button>
+                                <button onClick={handleCancelMembership} disabled={cancelling} className="flex-1 py-3 rounded-xl bg-red-500/80 text-white text-sm font-bold hover:bg-red-500 transition-colors disabled:opacity-50">{cancelling ? '처리 중...' : '취소하기'}</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

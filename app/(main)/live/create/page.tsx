@@ -335,7 +335,7 @@ export default function CreatePartyPage() {
                         <label className="text-sm font-medium text-[var(--text-muted)]">시작 시간</label>
                         <DatePicker
                             selected={scheduledDate}
-                            onChange={(date) => setScheduledDate(date)}
+                            onChange={(date: Date | null) => setScheduledDate(date)}
                             showTimeSelect
                             timeFormat="HH:mm"
                             timeIntervals={30}

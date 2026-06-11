@@ -62,12 +62,12 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
             <div className="tr-wrap">
                 <div className="tr-head">
                     <h2 className="tr-title">{title}</h2>
-                    <button className="tr-more" onClick={() => router.push(`/genre/${genre}`)}>
+                    {/* <button className="tr-more" onClick={() => router.push(`/genre/${genre}`)}>
                         더보기
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                             <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                    </button>
+                    </button> */}
                 </div>
                 <div className="tr-grid">
                     {items.map((ani: any, idx: number) => {

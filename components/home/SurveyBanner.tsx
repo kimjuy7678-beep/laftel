@@ -52,10 +52,10 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
     const handleRating = (val: number) => setAnswers(prev => ({ ...prev, [q.id]: val }))
     const handleSingle = (val: string) => setAnswers(prev => ({ ...prev, [q.id]: val }))
     const handleMulti = (val: string) => {
-        const cur = Array.isArray(answers[q.id]) ? answers[q.id] : []
+        const cur = Array.isArray(answers[q.id]) ? answers[q.id] as string[] : []
         setAnswers(prev => ({
             ...prev,
-            [q.id]: cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val]
+            [q.id]: Array.isArray(cur) ? (cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val]) : [val]
         }))
     }
     const handleText = (val: string) => setAnswers(prev => ({ ...prev, [q.id]: val }))
@@ -183,7 +183,7 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                                 {q.type === 'multi' && (
                                     <div className="sv-options">
                                         {q.options!.map(opt => {
-                                            const selected = (answers[q.id] || []).includes(opt)
+                                            const selected = Array.isArray(answers[q.id]) && (answers[q.id] as string[]).includes(opt)
                                             return (
                                                 <button key={opt} className={`sv-option${selected ? ' selected' : ''}`}
                                                     onClick={() => handleMulti(opt)}>
@@ -203,7 +203,7 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                                     <textarea
                                         className="sv-textarea"
                                         placeholder="자유롭게 작성해주세요"
-                                        value={answers[q.id] || ''}
+                                        value={typeof answers[q.id] === 'string' ? answers[q.id] : ''}
                                         onChange={e => handleText(e.target.value)}
                                     />
                                 )}

@@ -18,6 +18,30 @@ import { PurchaseModal } from './modals/PurchaseModals'
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const IMG = 'https://image.tmdb.org/t/p'
 
+type PreviewSeason = { season_number: number; episode_count: number }
+type PreviewDetail = {
+    name?: string
+    backdrop_path?: string | null
+    poster_path?: string | null
+    vote_average?: number
+    status?: string
+    seasons?: PreviewSeason[]
+}
+type PreviewEpisode = {
+    episode_number: number
+    name?: string
+    still_path?: string | null
+    runtime?: number
+    overview?: string
+}
+type SimilarItem = {
+    id: number
+    name?: string
+    poster_path?: string | null
+    backdrop_path?: string | null
+    vote_average?: number
+}
+
 export default function AnimePreviewModal() {
     const { previewId, setPreviewId } = usePreviewStore()
     const router = useRouter()
@@ -26,9 +50,9 @@ export default function AnimePreviewModal() {
     const profileId = user?.profileId || 'main'
     const { addItem, hasItem, removeItem } = useWatchlistStore()
 
-    const [detail, setDetail] = useState<any>(null)
-    const [episodes, setEpisodes] = useState<any[]>([])
-    const [similar, setSimilar] = useState<any[]>([])
+    const [detail, setDetail] = useState<PreviewDetail | null>(null)
+    const [episodes, setEpisodes] = useState<PreviewEpisode[]>([])
+    const [similar, setSimilar] = useState<SimilarItem[]>([])
     const [modalTab, setModalTab] = useState<'episodes' | 'similar' | 'review' | 'store'>('episodes')
     const [selectedSeason, setSelectedSeason] = useState(1)
     const [showMenu, setShowMenu] = useState(false)
@@ -41,11 +65,14 @@ export default function AnimePreviewModal() {
     const prevPathnameRef = useRef(pathname)
 
     useEffect(() => {
-        if (!previewId) { setDetail(null); setEpisodes([]); setSimilar([]); return }
+        if (!previewId) {
+            queueMicrotask(() => { setDetail(null); setEpisodes([]); setSimilar([]) })
+            return
+        }
         fetch(`https://api.themoviedb.org/3/tv/${previewId}?api_key=${TMDB_KEY}&language=ko-KR`)
-            .then(r => r.json()).then(data => { setDetail(data); setSelectedSeason(1) })
+            .then(r => r.json()).then((data: PreviewDetail) => { setDetail(data); setSelectedSeason(1) })
         fetch(`https://api.themoviedb.org/3/tv/${previewId}/similar?api_key=${TMDB_KEY}&language=ko-KR`)
-            .then(r => r.json()).then(data => setSimilar((data.results || []).slice(0, 12)))
+            .then(r => r.json()).then((data: { results?: SimilarItem[] }) => setSimilar((data.results || []).slice(0, 12)))
     }, [previewId])
 
     useEffect(() => {
@@ -61,9 +88,9 @@ export default function AnimePreviewModal() {
 
     useEffect(() => {
         if (!previewId) return
-        setEpisodes([])
+        queueMicrotask(() => setEpisodes([]))
         fetch(`https://api.themoviedb.org/3/tv/${previewId}/season/${selectedSeason}?api_key=${TMDB_KEY}&language=ko-KR`)
-            .then(r => r.json()).then(s => setEpisodes(s.episodes || []))
+            .then(r => r.json()).then((s: { episodes?: PreviewEpisode[] }) => setEpisodes(s.episodes || []))
     }, [previewId, selectedSeason])
 
     useEffect(() => {
@@ -82,11 +109,11 @@ export default function AnimePreviewModal() {
     const status = detail?.status === 'Returning Series' ? '방영중' : '완결'
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setPreviewId(null)}>
-            <div className="relative bg-[var(--bg-card)] rounded-2xl overflow-hidden w-full max-w-[1200px] h-[90vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4 lg:p-6" onClick={() => setPreviewId(null)}>
+            <div className="relative flex h-[96dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-xl bg-[var(--bg-card)] shadow-2xl sm:h-[92vh] sm:rounded-2xl md:max-w-[820px] lg:max-w-[1080px] xl:max-w-[1200px]" onClick={e => e.stopPropagation()}>
 
                 {/* 상단 backdrop */}
-                <div className="relative h-[450px] shrink-0 overflow-hidden">
+                <div className="relative h-[300px] shrink-0 overflow-hidden sm:h-[340px] md:h-[380px] lg:h-[420px] xl:h-[450px]">
                     {backdrop
                         ? <img src={backdrop} className="w-full h-full object-cover" alt={detail?.name} />
                         : <div className="w-full h-full bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg-card)]" />
@@ -96,16 +123,16 @@ export default function AnimePreviewModal() {
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, transparent 70%)' }} />
 
                     {/* 우측 상단 버튼들 */}
-                    <div className="absolute top-4 right-4 flex items-center gap-2">
+                    <div className="absolute right-3 top-3 flex items-center gap-2 sm:right-4 sm:top-4">
                         <div className="relative">
                             <button onClick={e => { e.stopPropagation(); setShowMenu(v => !v) }}
-                                className="w-9 h-9 flex items-center justify-center rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-black/80 transition-all">
+                                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white/60 transition-all hover:bg-black/80 hover:text-white sm:h-9 sm:w-9">
                                 <svg width="4" height="16" viewBox="0 0 4 16" fill="currentColor">
                                     <circle cx="2" cy="2" r="2" /><circle cx="2" cy="8" r="2" /><circle cx="2" cy="14" r="2" />
                                 </svg>
                             </button>
                             {showMenu && (
-                                <div className="absolute top-11 right-0 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl overflow-hidden shadow-2xl w-[160px] z-10" onClick={e => e.stopPropagation()}>
+                                <div className="absolute right-0 top-10 z-10 w-[150px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl sm:top-11 sm:w-[160px]" onClick={e => e.stopPropagation()}>
                                     <button className="w-full px-4 py-3.5 text-left text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
                                         onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/anime/${previewId}`); toast('링크가 복사됐어요!'); setShowMenu(false) }}>공유하기</button>
                                     <button className="w-full px-4 py-3.5 text-left text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors border-t border-[var(--border-faint)]"
@@ -116,36 +143,36 @@ export default function AnimePreviewModal() {
                             )}
                         </div>
                         <button onClick={() => setPreviewId(null)}
-                            className="w-9 h-9 flex items-center justify-center rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-black/80 transition-all">
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white/60 transition-all hover:bg-black/80 hover:text-white sm:h-9 sm:w-9">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
                         </button>
                     </div>
 
                     {poster && (
-                        <div className="absolute bottom-10 right-10 w-[200px] aspect-[2/3] rounded-lg overflow-hidden shadow-xl border border-[var(--border)]">
+                        <div className="absolute bottom-8 right-6 hidden aspect-[2/3] w-[130px] overflow-hidden rounded-lg border border-[var(--border)] shadow-xl md:block lg:bottom-10 lg:right-8 lg:w-[170px] xl:right-10 xl:w-[200px]">
                             <img src={poster} className="w-full h-full object-cover" alt={detail?.name} />
                         </div>
                     )}
 
                     {/* 이미지 위 텍스트 — 항상 흰색 */}
-                    <div className="absolute bottom-10 left-10 right-[120px]">
-                        <div className="flex items-center gap-2 mb-2">
-                            {score > 0 && <span className="text-sm text-amber-400 font-semibold">★ {score}</span>}
+                    <div className="absolute bottom-5 left-4 right-4 sm:bottom-7 sm:left-6 sm:right-6 md:right-[180px] lg:bottom-9 lg:left-8 lg:right-[220px] xl:bottom-10 xl:left-10 xl:right-[250px]">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                            {score > 0 && <span className="text-xs font-semibold text-amber-400 sm:text-sm">★ {score}</span>}
                             {status && <span className={`text-[11px] font-semibold px-2 py-0.5 text-white rounded border ${status === '방영중' ? 'bg-green-500 border-green-500/25' : 'bg-white/10 text-white/60 border-white/15'}`}>{status}</span>}
                         </div>
-                        <h2 className="text-2xl font-bold text-white mb-3">{detail?.name}</h2>
-                        <div className="flex gap-2">
-                            <button className="flex items-center gap-2 px-5 py-3 text-white rounded-full text-sm border border-white hover:bg-[var(--main)] hover:border-[var(--main)] transition-all"
+                        <h2 className="mb-3 line-clamp-2 text-xl font-bold leading-tight text-white sm:text-2xl lg:text-[28px]">{detail?.name}</h2>
+                        <div className="flex flex-wrap gap-2">
+                            <button className="flex h-10 items-center gap-2 rounded-full border border-white px-4 text-xs text-white transition-all hover:border-[var(--main)] hover:bg-[var(--main)] sm:h-11 sm:px-5 sm:text-sm"
                                 onClick={() => { router.push(`/anime/${previewId}?ep=1`); setPreviewId(null) }}>
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
                                 1화 재생하기
                             </button>
                             <button onClick={() => { if (!user) { setShowLoginAlert(true); return }; setIsWishAdding(!hasItem(previewId, 'wishlist')); setShowWishConfirm(true) }}
-                                className={`w-12 h-12 flex items-center justify-center rounded-full border transition-all ${hasItem(previewId, 'wishlist') ? 'bg-[var(--main)] border-[var(--main)] text-white' : 'border-white/30 text-white/60 hover:text-white hover:border-white'}`}>
+                                className={`flex h-10 w-10 items-center justify-center rounded-full border transition-all sm:h-11 sm:w-11 lg:h-12 lg:w-12 ${hasItem(previewId, 'wishlist') ? 'bg-[var(--main)] border-[var(--main)] text-white' : 'border-white/30 text-white/60 hover:text-white hover:border-white'}`}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 5v14M5 12h14" /></svg>
                             </button>
                             <button onClick={() => setShowPurchase(true)}
-                                className="w-12 h-12 flex items-center justify-center rounded-full border border-white/30 text-white/60 hover:text-white hover:border-white transition-all">
+                                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 text-white/60 transition-all hover:border-white hover:text-white sm:h-11 sm:w-11 lg:h-12 lg:w-12">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                                     <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                                     <line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
@@ -156,10 +183,10 @@ export default function AnimePreviewModal() {
                 </div>
 
                 {/* 탭 */}
-                <div className="flex border-b border-[var(--border-subtle)] px-6 shrink-0 bg-[var(--bg-card)]">
+                <div className="flex shrink-0 overflow-x-auto border-b border-[var(--border-subtle)] bg-[var(--bg-card)] px-2 [scrollbar-width:none] sm:px-4 md:px-6 [&::-webkit-scrollbar]:hidden">
                     {(['episodes', 'similar', 'review', 'store'] as const).map(tab => (
                         <button key={tab} onClick={() => setModalTab(tab)}
-                            className={`relative px-4 py-3 text-sm font-semibold bg-transparent border-none cursor-pointer transition-colors ${modalTab === tab ? 'text-[var(--text-primary)]' : 'text-[var(--text-faint)]'}`}>
+                            className={`relative shrink-0 cursor-pointer border-none bg-transparent px-3 py-3 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${modalTab === tab ? 'text-[var(--text-primary)]' : 'text-[var(--text-faint)]'}`}>
                             {tab === 'episodes' ? '에피소드' : tab === 'similar' ? '비슷한 작품' : tab === 'review' ? '사용자 평' : '스토어'}
                             {modalTab === tab && <span className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-[#6c63ff] rounded-sm" />}
                         </button>
@@ -167,7 +194,7 @@ export default function AnimePreviewModal() {
                 </div>
 
                 {/* 탭 콘텐츠 */}
-                <div className="overflow-y-auto flex-1 px-6 py-4 bg-[var(--bg-card)]">
+                <div className="flex-1 overflow-y-auto bg-[var(--bg-card)] px-3 py-3 sm:px-5 sm:py-4 md:px-6">
                     {modalTab === 'episodes' && <EpisodesTab detail={detail} episodes={episodes} selectedSeason={selectedSeason} setSelectedSeason={setSelectedSeason} />}
                     {modalTab === 'similar' && <SimilarTab similar={similar} />}
                     {modalTab === 'review' && detail && (
