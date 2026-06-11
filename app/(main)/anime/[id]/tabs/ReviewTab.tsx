@@ -600,12 +600,12 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                                                 style={{ color: 'var(--text-muted)' }}
                                                                 onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)'}
                                                                 onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
-                                                                onClick={() => { alert('스포일러로 신고했어요.'); setOpenMenuId(null) }}>스포일러 신고</button>
+                                                                onClick={() => { toast.success('스포일러로 신고했어요.'); setOpenMenuId(null) }}>스포일러 신고</button>
                                                             <button className="w-full px-4 py-2.5 text-left text-xs transition-colors"
                                                                 style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-faint)' }}
                                                                 onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)'}
                                                                 onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
-                                                                onClick={() => { alert('부적절한 표현으로 신고했어요.'); setOpenMenuId(null) }}>부적절한 표현 신고</button>
+                                                                onClick={() => { toast.success('부적절한 표현으로 신고했어요.'); setOpenMenuId(null) }}>부적절한 표현 신고</button>
                                                         </>
                                                     )}
                                                 </div>
