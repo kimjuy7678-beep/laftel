@@ -76,7 +76,7 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                 userEmail: user?.email || null,
                 createdAt: serverTimestamp(),
             }, { merge: true })
-            if (user?.uid) await addPoints(100)
+            if (user?.uid) await addPoints(700)
             setDone(true)
         } catch (e) {
             console.error(e)

@@ -334,13 +334,25 @@ export default function StoreHeader() {
 
                     <button
                         type="button"
+                        aria-label="검색"
+                        onClick={() => setSearchOpen(true)}
+                        className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center   text-white transition-colors duration-200 hover:bg-white/25 rounded-full md:hidden"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.35-4.35" />
+                        </svg>
+                    </button>
+
+                    <button
+                        type="button"
                         aria-label={mobileMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
                         aria-expanded={mobileMenuOpen}
                         onClick={() => {
                             setMobileMenuOpen((open) => !open);
                             setDropdownOpen(false);
                         }}
-                        className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-colors duration-200 hover:bg-white/25 md:hidden"
+                        className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center text-white transition-colors duration-200 hover:bg-white/25 rounded-full md:hidden"
                     >
                         {mobileMenuOpen ? (
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">

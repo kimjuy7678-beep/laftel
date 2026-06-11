@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { arrayRemove, arrayUnion, doc, getDoc, setDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
 import CartAlert from "@/components/store/CartAlert";
@@ -22,6 +22,7 @@ const TABS = ["교환/반품 안내", "유의사항", "판매자 정보"];
 const THUMBNAIL_VISIBLE = 5;
 const SKIP_LINES = new Set(["상품정보 제공고시", "교환/반품 안내", "판매자 정보", "유의사항"]);
 const RECENT_STORE_PRODUCTS_UPDATED_EVENT = "laftel:store:recent-products-updated";
+const STORE_LIMITED_STOCK_COLLECTION = "storeLimitedStocks";
 
 const RETURN_POLICY = [
     {
@@ -361,13 +362,15 @@ function Lightbox({
                     <>
                         <button
                             onClick={() => setCurrent((i) => (i - 1 + images.length) % images.length)}
-                            className="absolute left-[-56px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+                            className="fixed left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 sm:left-5"
+                            aria-label="이전 이미지"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                         </button>
                         <button
                             onClick={() => setCurrent((i) => (i + 1) % images.length)}
-                            className="absolute right-[-56px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+                            className="fixed right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 sm:right-5"
+                            aria-label="다음 이미지"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m9 18 6-6-6-6" /></svg>
                         </button>
@@ -394,7 +397,7 @@ function RelatedCard({ product }: { product: StoreProduct }) {
     const displayPrice = isReserveClosed ? "예약 마감" : isSoldout ? "품절" : product.price;
 
     return (
-        <Link href={`/store/${product.productId}`} className="group block flex-shrink-0" style={{ width: 180 }}>
+        <Link href={`/store/${product.productId}`} className="group block w-[150px] flex-shrink-0 sm:w-[170px] lg:w-[180px]">
             <div className="relative overflow-hidden rounded-[14px] bg-[#f5f3ff] aspect-square border border-[#ebe8ff]">
                 <img
                     src={product.thumbnail}
@@ -415,8 +418,8 @@ function RelatedCard({ product }: { product: StoreProduct }) {
                 )}
             </div>
             <p className="mt-2 text-[11px] text-[#aaa]">{product.category}</p>
-            <p className="mt-0.5 text-[13px] font-semibold text-[#111] line-clamp-2 leading-snug">{displayTitle}</p>
-            <p className={`mt-1 text-[13px] font-bold ${isUnavailable ? "text-[#aaa]" : "text-[#111]"}`}>{displayPrice}</p>
+            <p className="mt-0.5 line-clamp-2 text-[12px] font-semibold leading-snug text-[#111] sm:text-[13px]">{displayTitle}</p>
+            <p className={`mt-1 text-[12px] font-bold sm:text-[13px] ${isUnavailable ? "text-[#aaa]" : "text-[#111]"}`}>{displayPrice}</p>
         </Link>
     );
 }
@@ -445,16 +448,40 @@ export function ProductDetail({
     const [cartLoading, setCartLoading] = useState(false);
     const [restockEnabled, setRestockEnabled] = useState(false);
     const [restockModalOpen, setRestockModalOpen] = useState(false);
+    const [limitedStockOverride, setLimitedStockOverride] = useState<{ productId: string; remainingQuantity: number } | null>(null);
     const swiperRef = useRef<HTMLDivElement>(null);
     const { user } = useAuthStore();
     const router = useRouter();
     const detailLines = normalizeStringArray(product.productdetail);
     const displayImages = images.length > 0 ? images : [product.thumbnail].filter(Boolean);
+    const { specs, noticelines, isReservation, size, material } = parseDetail(detailLines, product.title);
+    const today = getTodayParts();
+    const reserveDeadline = parseReserveDeadline(detailLines, today.year);
+    const isReserveClosed = Boolean(reserveDeadline && toSerial(reserveDeadline) < toSerial(today));
+    const visibleSpecs = specs.filter((row) => row.label !== "사이즈" && row.label !== "소재");
+    const optionValues = getOptionValues(product);
+    const showOptionSelect = optionValues.length > 0 || product.title.includes("선택");
+    const showSwiper = related.length > 5;
+    const displayTitle = product.title.replace("[예약]", "").trim();
+    const cartOption = selectedOption || "기본";
+    const isLimitedProduct = isLimitedStoreProduct(product.productId);
+    const fallbackLimitedRemainingQuantity = getLimitedRemainingQuantity(product.productId);
+    const limitedRemainingQuantity = limitedStockOverride?.productId === product.productId
+        ? limitedStockOverride.remainingQuantity
+        : fallbackLimitedRemainingQuantity;
+    const isLimitedSoldOut = isLimitedProduct && limitedRemainingQuantity !== null && limitedRemainingQuantity <= 0;
+    const isUnavailable = product.soldout || isReserveClosed || isLimitedSoldOut;
+    const exceedsLimitedStock = isLimitedProduct && limitedRemainingQuantity !== null && qty > limitedRemainingQuantity;
+    const activeWished = Boolean(user?.uid && wished);
 
     const handleBuy = async () => {
-        if (isReserveClosed) return;
+        if (isUnavailable) return;
         if (!user?.uid) {
             setShowLogin(true);
+            return;
+        }
+        if (exceedsLimitedStock) {
+            window.alert("한정판 남은 수량보다 많이 구매할 수 없어요.");
             return;
         }
         if (showOptionSelect && !selectedOption) {
@@ -513,20 +540,24 @@ export function ProductDetail({
         }
     };
 
-    const { specs, noticelines, isReservation, size, material } = parseDetail(detailLines, product.title);
-    const today = getTodayParts();
-    const reserveDeadline = parseReserveDeadline(detailLines, today.year);
-    const isReserveClosed = Boolean(reserveDeadline && toSerial(reserveDeadline) < toSerial(today));
-    const isUnavailable = product.soldout || isReserveClosed;
-    const visibleSpecs = specs.filter((row) => row.label !== "사이즈" && row.label !== "소재");
-    const optionValues = getOptionValues(product);
-    const showOptionSelect = optionValues.length > 0 || product.title.includes("선택");
-    const showSwiper = related.length > 5;
-    const displayTitle = product.title.replace("[예약]", "").trim();
-    const cartOption = selectedOption || "기본";
-    const isLimitedProduct = isLimitedStoreProduct(product.productId);
-    const limitedRemainingQuantity = getLimitedRemainingQuantity(product.productId);
-    const activeWished = Boolean(user?.uid && wished);
+    useEffect(() => {
+        if (!isLimitedProduct) return;
+
+        const unsubscribe = onSnapshot(
+            doc(db, STORE_LIMITED_STOCK_COLLECTION, product.productId),
+            (snap) => {
+                const rawQuantity = snap.data()?.remainingQuantity;
+                setLimitedStockOverride({
+                    productId: product.productId,
+                    remainingQuantity: typeof rawQuantity === "number"
+                        ? Math.max(0, rawQuantity)
+                        : fallbackLimitedRemainingQuantity ?? 0,
+                });
+            },
+        );
+
+        return () => unsubscribe();
+    }, [fallbackLimitedRemainingQuantity, isLimitedProduct, product.productId]);
 
     useEffect(() => {
         if (!product.productId) return;
@@ -578,9 +609,13 @@ export function ProductDetail({
     };
 
     const addToCart = async () => {
-        if (isReserveClosed) return;
+        if (isUnavailable) return;
         if (!user?.uid) {
             setShowLogin(true);
+            return;
+        }
+        if (exceedsLimitedStock) {
+            window.alert("한정판 남은 수량보다 많이 담을 수 없어요.");
             return;
         }
 
@@ -614,6 +649,10 @@ export function ProductDetail({
                 : matchedItem
                     ? 1
                     : 0;
+            if (isLimitedProduct && limitedRemainingQuantity !== null && matchedQuantity + qty > limitedRemainingQuantity) {
+                window.alert("장바구니에 담긴 수량까지 합치면 한정판 남은 수량을 넘어요.");
+                return;
+            }
             const nextItem = {
                 productId: product.productId,
                 option: nextOption,
@@ -692,13 +731,16 @@ export function ProductDetail({
                 />
             )}
 
-            <main className="mx-auto max-w-[1600px] px-6 pt-[88px] pb-24">
+            <main className="mx-auto max-w-[1600px] px-4 pb-16 pt-5 sm:px-6 sm:pb-20 md:px-8 md:pt-7 lg:px-10 lg:pt-10 xl:px-12">
+                <Link href={seriesHref(product.category)} className="mb-3 inline-block text-[12px] font-semibold text-[#6B5CE7] hover:underline lg:hidden">
+                    {product.category}
+                </Link>
 
                 {/* 상단: 이미지 + 정보 */}
-                <div className="flex flex-col justify-center md:flex-row md:gap-24 xl:gap-36">
+                <div className="grid grid-cols-1 items-start justify-center gap-6 md:gap-8 lg:grid-cols-[minmax(0,580px)_minmax(340px,500px)] lg:gap-10 xl:grid-cols-[minmax(0,600px)_minmax(380px,520px)] xl:gap-16 2xl:gap-24">
 
                     {/* 왼쪽: 이미지 */}
-                    <div className="flex-shrink-0 md:w-[600px]">
+                    <div className="min-w-0">
                         <div
                             className="relative overflow-hidden rounded-[20px] bg-[#f5f3ff] border border-[#ebe8ff] cursor-zoom-in group"
                             onClick={() => setLightboxOpen(true)}
@@ -738,14 +780,14 @@ export function ProductDetail({
                                 >
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6B5CE7" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                                 </button>
-                                <div className="flex gap-2 flex-1 overflow-hidden">
+                                <div className="flex flex-1 gap-2 overflow-hidden">
                                     {displayImages.slice(thumbOffset, thumbOffset + THUMBNAIL_VISIBLE).map((img, relIdx) => {
                                         const absIdx = thumbOffset + relIdx;
                                         return (
                                             <button
                                                 key={absIdx}
                                                 onClick={() => handleThumbClick(absIdx)}
-                                                className={`flex-1 aspect-square rounded-[10px] overflow-hidden border-2 transition-all ${activeImg === absIdx ? "border-[#6B5CE7]" : "border-transparent hover:border-[#c4bbff]"}`}
+                                                className={`aspect-square flex-1 overflow-hidden rounded-[10px] border-2 transition-all ${activeImg === absIdx ? "border-[#6B5CE7]" : "border-transparent hover:border-[#c4bbff]"}`}
                                             >
                                                 <img src={img} alt="" className="w-full h-full object-cover" />
                                             </button>
@@ -761,12 +803,12 @@ export function ProductDetail({
                                 </button>
                             </div>
                         ) : (
-                            <div className="mt-3 flex gap-2 flex-wrap">
+                            <div className="mt-3 flex flex-wrap gap-2">
                                 {displayImages.map((img, i) => (
                                     <button
                                         key={i}
                                         onClick={() => handleThumbClick(i)}
-                                        className={`w-[68px] h-[68px] rounded-[10px] overflow-hidden border-2 transition-all flex-shrink-0 ${activeImg === i ? "border-[#6B5CE7]" : "border-transparent hover:border-[#c4bbff]"}`}
+                                        className={`h-[56px] w-[56px] flex-shrink-0 overflow-hidden rounded-[10px] border-2 transition-all sm:h-[64px] sm:w-[64px] lg:h-[68px] lg:w-[68px] ${activeImg === i ? "border-[#6B5CE7]" : "border-transparent hover:border-[#c4bbff]"}`}
                                     >
                                         <img src={img} alt="" className="w-full h-full object-cover" />
                                     </button>
@@ -776,37 +818,37 @@ export function ProductDetail({
                     </div>
 
                     {/* 오른쪽: 상품 정보 */}
-                    <div className="flex-1 min-w-0 max-w-[460px]">
-                        <Link href={seriesHref(product.category)} className="inline-block text-[13px] text-[#6B5CE7] hover:underline mb-2">
+                    <div className="min-w-0 lg:max-w-[520px]">
+                        <Link href={seriesHref(product.category)} className="mb-2 hidden text-[13px] text-[#6B5CE7] hover:underline lg:inline-block">
                             {product.category}
                         </Link>
 
-                        <h1 className="text-[22px] font-bold text-[#111018] leading-snug">{product.title}</h1>
+                        <h1 className="text-[19px] font-bold leading-snug text-[#111018] sm:text-[21px] lg:text-[22px]">{product.title}</h1>
 
-                        <p className="mt-4 text-[30px] font-extrabold text-[#111018]">
-                            {isReserveClosed ? "예약 마감" : product.soldout ? "품절" : product.price}
+                        <p className="mt-3 text-[24px] font-extrabold text-[#111018] sm:text-[28px] lg:mt-4 lg:text-[30px]">
+                            {isReserveClosed ? "예약 마감" : product.soldout || isLimitedSoldOut ? "품절" : product.price}
                         </p>
 
                         {isLimitedProduct && limitedRemainingQuantity !== null && (
-                            <div className="mt-4 rounded-[14px] border border-[#ffd06e] bg-[#fffcf0] px-4 py-3 text-white shadow-[0_8px_22px_rgba(17,16,24,0.14)]">
+                            <div className="mt-3 rounded-[14px] border border-[#ffd06e] bg-[#fffcf0] px-3 py-2.5 text-white shadow-[0_8px_22px_rgba(17,16,24,0.14)] sm:mt-4 sm:px-4 sm:py-3">
                                 <div className="flex items-center justify-between gap-3">
-                                    <span className="inline-flex items-center gap-2 border border-[#ffd06e] rounded-full bg-white px-3 py-1 text-[12px] font-extrabold text-[#a06000]">
+                                    <span className="inline-flex items-center gap-2 rounded-full border border-[#ffd06e] bg-white px-2.5 py-1 text-[11px] font-extrabold text-[#a06000] sm:px-3 sm:text-[12px]">
 
                                         한정판
                                     </span>
-                                    <span className="text-[13px] font-bold text-[#a06000]">
+                                    <span className="text-[12px] font-bold text-[#a06000] sm:text-[13px]">
                                         남은 수량 <b className="text-[#C14822]">{limitedRemainingQuantity}</b>개
                                     </span>
                                 </div>
                             </div>
                         )}
 
-                        <div className="my-5 border-t border-[#f0eeff]" />
+                        <div className="my-4 border-t border-[#f0eeff] lg:my-5" />
 
                         {(size || material) && (
-                            <div className="mb-5 rounded-[14px] border border-[#ebe8ff] bg-[#fbfaff] px-4 py-3.5">
-                                <p className="mb-2.5 text-[13px] font-bold text-[#111018]">상품정보</p>
-                                <dl className="space-y-2 text-[13px]">
+                            <div className="mb-4 rounded-[14px] border border-[#ebe8ff] bg-[#fbfaff] px-3.5 py-3 lg:mb-5 lg:px-4 lg:py-3.5">
+                                <p className="mb-2 text-[12px] font-bold text-[#111018] lg:mb-2.5 lg:text-[13px]">상품정보</p>
+                                <dl className="space-y-2 text-[12px] lg:text-[13px]">
                                     {size && (
                                         <div className="flex gap-4">
                                             <dt className="w-[62px] shrink-0 text-[#999]">사이즈</dt>
@@ -824,11 +866,11 @@ export function ProductDetail({
                         )}
 
                         {visibleSpecs.length > 0 && (
-                            <table className="w-full text-[13px] mb-5">
+                            <table className="mb-4 w-full text-[12px] lg:mb-5 lg:text-[13px]">
                                 <tbody>
                                     {visibleSpecs.map((row, i) => (
                                         <tr key={i} className="border-b border-[#f5f3ff] last:border-0">
-                                            <td className="py-2.5 pr-4 text-[#aaa] whitespace-nowrap w-[90px] align-top leading-snug">{row.label}</td>
+                                            <td className="w-[78px] whitespace-nowrap py-2 pr-3 align-top leading-snug text-[#aaa] lg:w-[90px] lg:py-2.5 lg:pr-4">{row.label}</td>
                                             <td className={`py-2.5 font-semibold leading-snug ${row.highlight ? "text-[#6B5CE7]" : row.warn ? "text-[#c05c00]" : "text-[#222]"}`}>
                                                 {row.value}
                                             </td>
@@ -839,8 +881,8 @@ export function ProductDetail({
                         )}
 
                         {showOptionSelect && (
-                            <div className="mb-5">
-                                <label htmlFor="product-option" className="mb-2 block text-[13px] font-semibold text-[#666]">
+                            <div className="mb-4 lg:mb-5">
+                                <label htmlFor="product-option" className="mb-2 block text-[12px] font-semibold text-[#666] lg:text-[13px]">
                                     옵션 선택
                                 </label>
                                 <div className="relative">
@@ -852,7 +894,7 @@ export function ProductDetail({
                                             setOptionError(false);
                                         }}
                                         disabled={isUnavailable}
-                                        className={`h-[46px] w-full appearance-none rounded-[12px] border bg-white px-4 pr-10 text-[13px] font-semibold text-[#222] outline-none transition-colors hover:border-[#c4bbff] focus:border-[#6B5CE7] disabled:cursor-not-allowed disabled:bg-[#f5f3ff] disabled:text-[#aaa] ${optionError ? "border-[#ff5c7a]" : "border-[#e0daf7]"}`}
+                                        className={`h-[44px] w-full appearance-none rounded-[12px] border bg-white px-4 pr-10 text-[12px] font-semibold text-[#222] outline-none transition-colors hover:border-[#c4bbff] focus:border-[#6B5CE7] disabled:cursor-not-allowed disabled:bg-[#f5f3ff] disabled:text-[#aaa] lg:h-[46px] lg:text-[13px] ${optionError ? "border-[#ff5c7a]" : "border-[#e0daf7]"}`}
                                     >
                                         <option value="">옵션을 선택해주세요</option>
                                         {optionValues.map((option) => (
@@ -882,14 +924,18 @@ export function ProductDetail({
                         )}
 
                         {!isUnavailable && (
-                            <div className="flex items-center gap-4 mb-6">
-                                <span className="text-[13px] text-[#aaa] w-[90px]">수량</span>
+                            <div className="mb-5 flex items-center gap-3 lg:mb-6 lg:gap-4">
+                                <span className="w-[60px] text-[12px] text-[#aaa] lg:w-[90px] lg:text-[13px]">수량</span>
                                 <div className="flex items-center border border-[#e0daf7] rounded-full overflow-hidden">
-                                    <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-[#f5f3ff] transition-colors text-[#555]">
+                                    <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="flex h-9 w-9 items-center justify-center text-[#555] transition-colors hover:bg-[#f5f3ff] lg:h-10 lg:w-10">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /></svg>
                                     </button>
-                                    <span className="w-10 text-center text-[15px] font-bold text-[#111]">{qty}</span>
-                                    <button onClick={() => setQty((q) => q + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-[#f5f3ff] transition-colors text-[#555]">
+                                    <span className="w-9 text-center text-[14px] font-bold text-[#111] lg:w-10 lg:text-[15px]">{qty}</span>
+                                    <button
+                                        onClick={() => setQty((q) => limitedRemainingQuantity === null ? q + 1 : Math.min(limitedRemainingQuantity, q + 1))}
+                                        disabled={limitedRemainingQuantity !== null && qty >= limitedRemainingQuantity}
+                                        className="flex h-9 w-9 items-center justify-center text-[#555] transition-colors hover:bg-[#f5f3ff] disabled:cursor-not-allowed disabled:opacity-30 lg:h-10 lg:w-10"
+                                    >
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
                                     </button>
                                 </div>
@@ -898,12 +944,12 @@ export function ProductDetail({
 
                         {/* 예약 경고 배너 — 예약 상품에 안내 문구가 있을 때만 */}
                         {isReservation && noticelines.length > 0 && (
-                            <div className="mb-4 rounded-[12px] border border-[#ffd06e] bg-[#fffcf0] px-4 py-3.5 flex gap-3 items-start">
+                            <div className="mb-4 flex items-start gap-3 rounded-[12px] border border-[#ffd06e] bg-[#fffcf0] px-3.5 py-3 lg:px-4 lg:py-3.5">
                                 <svg className="flex-shrink-0 mt-[2px]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c08000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                                     <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
                                 </svg>
-                                <div className="text-[12px] text-[#7a5500] leading-relaxed space-y-0.5">
+                                <div className="space-y-0.5 text-[11px] leading-relaxed text-[#7a5500] lg:text-[12px]">
                                     <p className="font-bold text-[#a06000] mb-1">예약 상품 안내</p>
                                     {noticelines.map((line, i) => <p key={i}>{line}</p>)}
                                 </div>
@@ -911,12 +957,12 @@ export function ProductDetail({
                         )}
 
                         {isReserveClosed ? (
-                            <div className="flex gap-3">
+                            <div className="flex flex-wrap gap-3 sm:flex-nowrap">
                                 <button
                                     type="button"
                                     onClick={openRestockAlert}
                                     disabled={restockEnabled}
-                                    className={`flex h-[52px] flex-1 items-center justify-center gap-2 rounded-full text-[15px] font-bold text-white transition-colors ${restockEnabled
+                                    className={`flex h-[48px] min-w-[180px] flex-1 items-center justify-center gap-2 rounded-full text-[13px] font-bold text-white transition-colors lg:h-[52px] lg:text-[15px] ${restockEnabled
                                         ? "cursor-not-allowed bg-[#7865ff] shadow-[0_4px_14px_rgba(120,101,255,0.28)]"
                                         : "bg-[#826CFF] hover:bg-[#5a4dd6]"
                                         }`}
@@ -931,7 +977,7 @@ export function ProductDetail({
                                     type="button"
                                     onClick={toggleWish}
                                     aria-label="위시리스트"
-                                    className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border-2 transition-all ${activeWished
+                                    className={`flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-full border-2 transition-all lg:h-[52px] lg:w-[52px] ${activeWished
                                         ? "border-[#ff4d6d] bg-[#ff4d6d] text-white shadow-[0_4px_14px_rgba(255,77,109,0.28)]"
                                         : "border-[#f0d8df] bg-white text-[#b0aabb] hover:border-[#ff4d6d] hover:text-[#ff4d6d]"
                                         }`}
@@ -942,15 +988,15 @@ export function ProductDetail({
                                 </button>
                             </div>
                         ) : (
-                            <div className="flex gap-3">
-                                <button onClick={handleBuy} disabled={product.soldout} className="flex-1 h-[52px] rounded-full bg-[#826CFF] text-white text-[15px] font-bold hover:bg-[#5a4dd6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                                    {product.soldout ? "품절" : "구매하기"}
+                            <div className="flex flex-wrap gap-3 sm:flex-nowrap">
+                                <button onClick={handleBuy} disabled={isUnavailable || exceedsLimitedStock} className="h-[48px] min-w-[120px] flex-1 rounded-full bg-[#826CFF] text-[13px] font-bold text-white transition-colors hover:bg-[#5a4dd6] disabled:cursor-not-allowed disabled:opacity-40 lg:h-[52px] lg:text-[15px]">
+                                    {product.soldout || isLimitedSoldOut ? "품절" : "구매하기"}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={addToCart}
-                                    disabled={product.soldout || cartLoading}
-                                    className="h-[52px] px-5 rounded-full border-2 border-[#826CFF] text-[#6B5CE7] text-[14px] font-bold hover:bg-[#f5f3ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                                    disabled={isUnavailable || exceedsLimitedStock || cartLoading}
+                                    className="flex h-[48px] items-center gap-1.5 rounded-full border-2 border-[#826CFF] px-3 text-[12px] font-bold text-[#6B5CE7] transition-colors hover:bg-[#f5f3ff] disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 lg:h-[52px] lg:gap-2 lg:px-5 lg:text-[14px]"
                                 >
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
@@ -962,7 +1008,7 @@ export function ProductDetail({
                                     type="button"
                                     onClick={toggleWish}
                                     aria-label="위시리스트"
-                                    className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border-2 transition-all ${activeWished
+                                    className={`flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-full border-2 transition-all lg:h-[52px] lg:w-[52px] ${activeWished
                                         ? "border-[#ff4d6d] bg-[#ff4d6d] text-white shadow-[0_4px_14px_rgba(255,77,109,0.28)]"
                                         : "border-[#ff4d6d] bg-white text-[#ff4d6d] hover:border-[#ff4d6d] hover:text-[#ff4d6d]"
                                         }`}
@@ -977,45 +1023,45 @@ export function ProductDetail({
                 </div>
 
                 {/* 탭 */}
-                <div className="mt-16">
-                    <div className="flex border-b border-[#ebe8ff]">
+                <div className="mt-10 lg:mt-16">
+                    <div className="flex overflow-x-auto border-b border-[#ebe8ff] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {TABS.map((tab, i) => (
                             <button
                                 key={i}
                                 onClick={() => setActiveTab(i)}
-                                className={`px-7 py-3.5 text-[14px] font-semibold transition-colors relative ${activeTab === i ? "text-[#6B5CE7]" : "text-[#bbb] hover:text-[#888]"}`}
+                                className={`relative shrink-0 px-4 py-3 text-[12px] font-semibold transition-colors sm:px-5 lg:px-7 lg:py-3.5 lg:text-[14px] ${activeTab === i ? "text-[#6B5CE7]" : "text-[#bbb] hover:text-[#888]"}`}
                             >
                                 {tab}
                                 {activeTab === i && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#6B5CE7] rounded-t-full" />}
                             </button>
                         ))}
                     </div>
-                    <div className="mt-6 rounded-[20px] border border-[#ebe8ff] bg-[#faf9ff] p-10">
+                    <div className="mt-4 rounded-[16px] border border-[#ebe8ff] bg-[#faf9ff] p-5 lg:mt-6 lg:rounded-[20px] lg:p-10">
                         {activeTab === 0 && (
-                            <div className="space-y-7">
+                            <div className="space-y-5 lg:space-y-7">
                                 {RETURN_POLICY.map((s, i) => (
                                     <div key={i}>
-                                        <h3 className="text-[14px] font-bold text-[#222] flex items-center gap-2 mb-2.5">
+                                        <h3 className="mb-2 flex items-center gap-2 text-[13px] font-bold text-[#222] lg:mb-2.5 lg:text-[14px]">
                                             <span className="w-1 h-[18px] rounded-full bg-[#6B5CE7] inline-block flex-shrink-0" />{s.title}
                                         </h3>
-                                        <p className="text-[13px] text-[#666] leading-relaxed whitespace-pre-line pl-4">{s.body}</p>
+                                        <p className="whitespace-pre-line pl-4 text-[12px] leading-relaxed text-[#666] lg:text-[13px]">{s.body}</p>
                                     </div>
                                 ))}
                             </div>
                         )}
                         {activeTab === 1 && (
-                            <div className="space-y-7">
+                            <div className="space-y-5 lg:space-y-7">
                                 {NOTICES.map((s, i) => (
                                     <div key={i}>
-                                        <h3 className="text-[14px] font-bold text-[#222] flex items-center gap-2 mb-2.5">
+                                        <h3 className="mb-2 flex items-center gap-2 text-[13px] font-bold text-[#222] lg:mb-2.5 lg:text-[14px]">
                                             <span className="w-1 h-[18px] rounded-full bg-[#6B5CE7] inline-block flex-shrink-0" />{s.title}
                                         </h3>
-                                        <p className="text-[13px] text-[#666] leading-relaxed pl-4">{s.body}</p>
+                                        <p className="pl-4 text-[12px] leading-relaxed text-[#666] lg:text-[13px]">{s.body}</p>
                                     </div>
                                 ))}
                             </div>
                         )}
-                        {activeTab === 2 && <p className="text-[13px] text-[#999]">공급사 | Laftel Store</p>}
+                        {activeTab === 2 && <p className="text-[12px] text-[#999] lg:text-[13px]">공급사 | Laftel Store</p>}
                     </div>
                 </div>
 

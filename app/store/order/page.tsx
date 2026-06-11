@@ -11,12 +11,26 @@ import { useCouponStore } from "@/store/useCouponStore";
 import { db } from "@/firebase/firebase";
 import {
     collection, addDoc, serverTimestamp, arrayRemove,
-    doc, setDoc, onSnapshot, getDoc, getDocs,
+    doc, setDoc, onSnapshot, getDoc, getDocs, runTransaction,
 } from "firebase/firestore";
 import type { Coupon } from "@/lib/coupon";
-import { calcCouponDiscount, useCoupon as useCouponLib } from "@/lib/coupon";
+import { calcCouponDiscount, useCoupon as markCouponUsed } from "@/lib/coupon";
+import { getLimitedInitialQuantity, isLimitedStoreProduct, LIMITED_STOCK_COLLECTION } from "@/lib/storeLimitedProducts";
 
-declare global { interface Window { daum: any; } }
+type DaumPostcodeData = {
+    roadAddress?: string;
+    jibunAddress?: string;
+    zonecode: string;
+};
+
+type DaumPostcodeConstructor = new (options: {
+    oncomplete: (data: DaumPostcodeData) => void;
+    theme?: Record<string, string>;
+}) => { open: () => void };
+
+type DaumPostcodeApi = {
+    Postcode?: DaumPostcodeConstructor;
+};
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 type SavedAddress = {
@@ -38,6 +52,13 @@ type SavedCard = {
     expiry?: string;
     isDefault?: boolean;
 };
+
+const PAYMENT_PROVIDER_METHODS = [
+    { id: "kakaopay", label: "카카오페이", img: "/images/pay/kakao.png" },
+    { id: "naverpay", label: "네이버페이", img: "/images/pay/naver.png" },
+    { id: "tosspay", label: "토스페이", img: "/images/pay/toss.png" },
+    { id: "applepay", label: "Apple Pay", img: "/images/pay/apple.png", tall: true },
+];
 
 // ─── 애니메이션 숫자 훅 ──────────────────────────────────────────────────────
 function useAnimatedNumber(target: number, duration = 350) {
@@ -218,13 +239,14 @@ function EditShippingModal({ info, savedAddresses, onSave, onClose, uid }: {
     );
 
     const handleAddressSearch = () => {
-        if (!window.daum?.Postcode) {
+        const daumPostcode = window.daum as DaumPostcodeApi | undefined;
+        if (!daumPostcode?.Postcode) {
             alert("주소 검색 서비스를 불러오는 중이에요. 잠시 후 다시 시도해주세요.");
             return;
         }
-        new window.daum.Postcode({
-            oncomplete: (data: any) => {
-                const address = data.roadAddress || data.jibunAddress;
+        new daumPostcode.Postcode({
+            oncomplete: (data) => {
+                const address = data.roadAddress || data.jibunAddress || "";
                 setForm((f) => ({ ...f, zip: data.zonecode, address }));
             },
             theme: { bgColor: "#826CFF", searchBgColor: "#6B5CE7", contentBgColor: "#faf9ff", pageBgColor: "#f5f3ff", textColor: "#111018", queryTextColor: "#ffffff" },
@@ -342,9 +364,9 @@ function EditShippingModal({ info, savedAddresses, onSave, onClose, uid }: {
             </div>
             <p className="mt-3 text-center text-[11px] text-[#bbb]">
                 주소 관리는{" "}
-                <a href="/store/profile/address" className="text-[#826CFF] underline underline-offset-2">
+                <Link href="/store/profile/address" className="text-[#826CFF] underline underline-offset-2">
                     마이페이지 &gt; 배송지 관리
-                </a>에서 할 수 있어요
+                </Link>에서 할 수 있어요
             </p>
         </ModalWrap>
     );
@@ -654,6 +676,11 @@ function OrderContent() {
     // ── 저장된 카드 목록 (Firebase) ──
     const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
     const [selectedCardId, setSelectedCardId] = useState<string>("");
+    const [selectedPayment, setSelectedPayment] = useState("laftel_pay");
+    const [showCardModal, setShowCardModal] = useState(false);
+    const [agreed, setAgreed] = useState(false);
+    const [agreeError, setAgreeError] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     // ── Firebase 주소 + 카드 로드 ──
     useEffect(() => {
@@ -685,14 +712,12 @@ function OrderContent() {
     // ── 쿠폰 ──
     const { activeCoupons, fetchActiveCoupons, selectCoupon, selectedCoupon } = useCouponStore();
     const [showCouponModal, setShowCouponModal] = useState(false);
-    const [couponLoading, setCouponLoading] = useState(false);
 
     useEffect(() => {
         if (user?.uid) {
-            setCouponLoading(true);
-            fetchActiveCoupons(user.uid).finally(() => setCouponLoading(false));
+            fetchActiveCoupons(user.uid);
         }
-    }, [user?.uid]);
+    }, [fetchActiveCoupons, user?.uid]);
 
     const couponDiscount = selectedCoupon ? calcCouponDiscount(selectedCoupon, totalItemsPrice) : 0;
 
@@ -715,13 +740,6 @@ function OrderContent() {
     // ── 금액 계산 ──
     const totalDiscount = couponDiscount + appliedPoint;
     const totalPrice = Math.max(0, totalItemsPrice + shippingFee - totalDiscount);
-
-    // ── 결제 수단 ──
-    const [selectedPayment, setSelectedPayment] = useState("laftel_pay");
-    const [showCardModal, setShowCardModal] = useState(false);
-    const [agreed, setAgreed] = useState(false);
-    const [agreeError, setAgreeError] = useState(false);
-    const [loading, setLoading] = useState(false);
 
     // ── 금액 애니메이션 ──
     const animTotal = useAnimatedNumber(totalPrice);
@@ -762,33 +780,83 @@ function OrderContent() {
         if (!user?.uid) return;
         setLoading(true);
         try {
-            const orderRef = await addDoc(
-                collection(db, "users", user.uid, "orders"),
-                {
-                    status: "결제완료",
-                    total: totalPrice,
-                    usedPoints: appliedPoint,
-                    usedCouponId: selectedCoupon?.id ?? null,
-                    usedCouponLabel: selectedCoupon?.label ?? null,
-                    usedCouponDiscount: couponDiscount > 0 ? couponDiscount : null,
-                    createdAt: serverTimestamp(),
-                    notified: false,
-                    buyer: { name: buyer.name, phone: buyer.phone, email: buyer.email },
-                    shipping: {
-                        name: shipping.name, phone: shipping.phone,
-                        address: shipping.address, detail: shipping.detail,
-                        zip: shipping.zip, memo: shipping.memo,
-                    },
-                    items: items.map(item => ({
-                        productId: item.productId, title: item.title,
-                        thumbnail: item.thumbnail, option: item.option,
-                        price: item.price, qty: item.qty,
-                    })),
-                }
-            );
+            const orderRef = doc(collection(db, "users", user.uid, "orders"));
+            const orderItems = items.map(item => ({
+                productId: item.productId, title: item.title,
+                thumbnail: item.thumbnail, option: item.option,
+                price: item.price, qty: item.qty,
+            }));
+            const orderPayload = {
+                status: "결제완료",
+                total: totalPrice,
+                usedPoints: appliedPoint,
+                usedCouponId: selectedCoupon?.id ?? null,
+                usedCouponLabel: selectedCoupon?.label ?? null,
+                usedCouponDiscount: couponDiscount > 0 ? couponDiscount : null,
+                createdAt: serverTimestamp(),
+                notified: false,
+                buyer: { name: buyer.name, phone: buyer.phone, email: buyer.email },
+                shipping: {
+                    name: shipping.name, phone: shipping.phone,
+                    address: shipping.address, detail: shipping.detail,
+                    zip: shipping.zip, memo: shipping.memo,
+                },
+                items: orderItems,
+            };
+            const limitedItems = Array.from(
+                orderItems.reduce((map, item) => {
+                    if (!isLimitedStoreProduct(item.productId)) return map;
+
+                    const previous = map.get(item.productId);
+                    map.set(item.productId, {
+                        productId: item.productId,
+                        title: previous?.title ?? item.title,
+                        qty: (previous?.qty ?? 0) + item.qty,
+                    });
+                    return map;
+                }, new Map<string, { productId: string; title: string; qty: number }>()),
+            ).map(([, item]) => item);
+
+            await runTransaction(db, async (transaction) => {
+                const limitedStockSnapshots = await Promise.all(
+                    limitedItems.map(async (item) => {
+                        const ref = doc(db, LIMITED_STOCK_COLLECTION, item.productId);
+                        return {
+                            item,
+                            ref,
+                            snap: await transaction.get(ref),
+                        };
+                    }),
+                );
+
+                limitedStockSnapshots.forEach(({ item, ref, snap }) => {
+                    const initialQuantity = getLimitedInitialQuantity(item.productId);
+                    if (initialQuantity === null) return;
+
+                    const rawRemaining = snap.data()?.remainingQuantity;
+                    const currentRemaining = typeof rawRemaining === "number" ? rawRemaining : initialQuantity;
+                    if (currentRemaining < item.qty) {
+                        throw new Error(`LIMITED_STOCK_SHORTAGE:${item.title}`);
+                    }
+
+                    transaction.set(
+                        ref,
+                        {
+                            productId: item.productId,
+                            initialQuantity,
+                            remainingQuantity: currentRemaining - item.qty,
+                            updatedAt: serverTimestamp(),
+                            ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
+                        },
+                        { merge: true },
+                    );
+                });
+
+                transaction.set(orderRef, orderPayload);
+            });
 
             if (selectedCoupon) {
-                await useCouponLib(user.uid, selectedCoupon.id, orderRef.id);
+                await markCouponUsed(user.uid, selectedCoupon.id, orderRef.id);
             }
 
             if (appliedPoint > 0) {
@@ -822,6 +890,12 @@ function OrderContent() {
             );
         } catch (err) {
             console.error("[Order] Firestore 저장 실패:", err);
+            if (err instanceof Error && err.message.startsWith("LIMITED_STOCK_SHORTAGE:")) {
+                const shortageTitle = err.message.replace("LIMITED_STOCK_SHORTAGE:", "");
+                alert(`${shortageTitle}의 남은 수량이 부족해요.`);
+                setLoading(false);
+                return;
+            }
             alert("주문 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
             setLoading(false);
         }
@@ -1034,10 +1108,9 @@ function OrderContent() {
                                     </label>
                                     <button
                                         onClick={() => setShowCouponModal(true)}
-                                        disabled={couponLoading}
-                                        className="w-full h-11 rounded-[12px] border border-[#e0daf7] px-4 text-left text-[13px] flex items-center justify-between hover:border-[#826CFF] transition-colors disabled:opacity-50">
+                                        className="w-full h-11 rounded-[12px] border border-[#e0daf7] px-4 text-left text-[13px] flex items-center justify-between hover:border-[#826CFF] transition-colors">
                                         <span className={selectedCoupon ? "text-[#826CFF] font-semibold" : "text-[#aaa]"}>
-                                            {couponLoading ? "불러오는 중..." : selectedCoupon ? selectedCoupon.label : "쿠폰을 선택해주세요"}
+                                            {selectedCoupon ? selectedCoupon.label : "쿠폰을 선택해주세요"}
                                         </span>
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#826CFF" strokeWidth="2.4"><path d="m6 9 6 6 6-6" /></svg>
                                     </button>
@@ -1179,15 +1252,10 @@ function OrderContent() {
                                 </button>
 
                                 <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        { id: "kakaopay", label: "카카오페이", img: "/images/pay/kakao.png" },
-                                        { id: "naverpay", label: "네이버페이", img: "/images/pay/naver.png" },
-                                        { id: "tosspay", label: "토스페이", img: "/images/pay/toss.png" },
-                                        { id: "applepay", label: "Apple Pay", img: "/images/pay/apple.png", tall: true },
-                                    ].map((pm) => (
+                                    {PAYMENT_PROVIDER_METHODS.map((pm) => (
                                         <button key={pm.id} onClick={() => setSelectedPayment(pm.id)}
                                             className={`h-11 rounded-[12px] transition-all border-2 flex items-center justify-center ${selectedPayment === pm.id ? "border-[#826CFF] bg-[#f5f3ff]" : "border-[#e0daf7] bg-white hover:border-[#c4bbff]"}`}>
-                                            <img src={pm.img} alt={pm.label} className={`object-contain ${(pm as any).tall ? "h-8" : "h-5"}`} />
+                                            <img src={pm.img} alt={pm.label} className={`object-contain ${pm.tall ? "h-8" : "h-5"}`} />
                                         </button>
                                     ))}
                                 </div>
@@ -1203,7 +1271,7 @@ function OrderContent() {
 
                                 <p className="text-center text-[11px] text-[#bbb] pt-1">
                                     카드 관리는{" "}
-                                    <a href="/store/profile/payment" className="text-[#826CFF] underline underline-offset-2">마이페이지 &gt; 결제수단 관리</a>
+                                    <Link href="/store/profile/payment" className="text-[#826CFF] underline underline-offset-2">마이페이지 &gt; 결제수단 관리</Link>
                                 </p>
                             </div>
                         </section>
