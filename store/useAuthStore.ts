@@ -16,6 +16,7 @@ interface User {
     points?: number
     ageLimit?: string
     onboardingDone?: boolean
+    preferences?: { genres: string[]; moods: string[]; watchStyle: string }
 }
 
 export interface AvatarConfig {

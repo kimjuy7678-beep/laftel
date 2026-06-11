@@ -13,6 +13,10 @@ import SurveyBanner from "@/components/home/SurveyBanner"
 import LiveSection from "@/components/home/LiveSection"
 import EventSection from "@/components/home/EventSection"
 import PersonalRecommendSection from "@/components/home/PersonalRecommendSection"
+import { useAuthStore } from '@/store/useAuthStore'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/firebase/firebase'
+import OnboardingModal from '@/components/OnboardingModal'
 
 export default function Home() {
   const [cursor, setCursor] = useState({ x: -100, y: -100 })
