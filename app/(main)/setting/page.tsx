@@ -4,14 +4,15 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useRouter } from 'next/navigation'
 import { auth, db } from '@/firebase/firebase'
 import { signOut } from 'firebase/auth'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { toast } from 'sonner'
 import PageHeader from '@/components/PageHeader'
+import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore'
 
 const SECTIONS = [
     { id: 'notification', label: '알림' },
     { id: 'account', label: '계정 관리' },
 ]
+
 
 export default function Setting() {
     const { user, onLogout } = useAuthStore()
@@ -50,13 +51,16 @@ export default function Setting() {
         await onLogout()
         router.push('/')
     }
-
     const handleWithdraw = async () => {
         if (!confirm('정말 라프텔을 탈퇴하시겠어요?\n모든 데이터가 삭제되며 복구할 수 없어요.')) return
         if (!confirm('정말로요? 포인트, 이용내역 모두 사라져요.')) return
         try {
-            await auth.currentUser?.delete()
+            const uid = user?.uid
+            if (!uid) return
+            await deleteDoc(doc(db, 'users', uid))
             await onLogout()
+            await auth.currentUser?.delete()
+            toast.success('탈퇴가 완료됐어요.')
             router.push('/')
         } catch (err: any) {
             if (err.code === 'auth/requires-recent-login') toast.error('재로그인 필요 🔐', {

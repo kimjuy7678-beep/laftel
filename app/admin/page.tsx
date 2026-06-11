@@ -14,6 +14,10 @@ const ADMIN_ID = "laftel";
 const ADMIN_PW = "000";
 const PAGE_SIZE = 20;
 
+type ItemStatus =
+    | "결제완료" | "배송시작" | "배송중" | "배송완료"
+    | "취소신청" | "취소완료" | "환불신청" | "환불완료";
+
 type InquiryStatus = "답변대기" | "답변완료";
 type AdminTab = "문의관리" | "배송관리" | "주문취소" | "환불관리";
 
@@ -22,16 +26,61 @@ interface Inquiry {
     status: InquiryStatus; answer?: string; answeredAt?: any; createdAt: any;
     date: string; userEmail: string; userNickname: string;
 }
+
+interface OrderItem {
+    productId: string;
+    title: string;
+    thumbnail?: string;
+    option: string;
+    qty: number;
+    price: number;
+    status?: ItemStatus;
+}
+
 interface Order {
     id: string; uid: string; status: string;
-    items: { title: string; thumbnail?: string; option: string; qty: number; price: number }[];
+    items: OrderItem[];
     total: number; createdAt: any; date: string;
     cancelReason?: string; refundReason?: string;
+    refundType?: string;
     userEmail: string; userNickname: string;
-    // ✅ 쿠폰/포인트 복원에 필요한 필드
     usedPoints?: number;
     usedCouponId?: string;
     couponId?: string;
+    couponDiscount?: number; // 쿠폰으로 할인된 총액
+    // 낱개 처리용: 어떤 productId가 대기 중인지
+    pendingCancelItems?: string[];
+    pendingRefundItems?: string[];
+}
+
+// ─── 아이템 상태 유틸 ────────────────────────────────────────────────────────
+function resolveItemStatus(item: OrderItem, orderStatus: string): ItemStatus {
+    if (item.status) return item.status;
+    if (orderStatus === "주문취소") return "취소완료";
+    if (orderStatus === "환불완료") return "환불완료";
+    if (orderStatus === "교환환불신청") return "환불신청";
+    if (orderStatus === "처리중") return "취소신청";
+    return orderStatus as ItemStatus;
+}
+
+/**
+ * 특정 아이템들에 대한 쿠폰 할인 비례 계산
+ * 쿠폰 할인율(%) = couponDiscount / 전체 소계
+ * 아이템별 쿠폰 할인 = 아이템 금액 × 할인율
+ * → 부분 취소 시 환불액 = 아이템 금액 합계 - 해당 아이템 쿠폰 할인액
+ */
+function calcCouponDiscountForItems(
+    targetItems: OrderItem[],
+    allItems: OrderItem[],
+    couponDiscount: number
+): number {
+    if (!couponDiscount || couponDiscount <= 0) return 0;
+    const subtotal = allItems.reduce((s, i) => s + i.price * i.qty, 0);
+    if (subtotal <= 0) return 0;
+    const couponRate = couponDiscount / subtotal; // 할인율
+    return Math.round(
+        targetItems.reduce((s, i) => s + i.price * i.qty * couponRate, 0)
+    );
 }
 
 // ─── 쿠폰 복원 헬퍼 ──────────────────────────────────────────────────────────
@@ -43,9 +92,7 @@ async function restoreCouponIfUsed(uid: string, couponId?: string | null) {
         if (snap.exists() && snap.data().status === "used") {
             await updateDoc(couponRef, { status: "active", usedAt: null, usedOrderId: null });
         }
-    } catch (err) {
-        console.error("[CouponRestore]", err);
-    }
+    } catch (err) { console.error("[CouponRestore]", err); }
 }
 
 // ─── 포인트 환불 헬퍼 ────────────────────────────────────────────────────────
@@ -53,15 +100,11 @@ async function refundPoints(uid: string, points: number, label: string) {
     if (!points || points <= 0) return;
     await setDoc(doc(db, "users", uid), { points: increment(points) }, { merge: true });
     await addDoc(collection(db, "users", uid, "pointHistory"), {
-        amount: points,
-        type: "earn",
-        description: label,
-        label,
-        createdAt: new Date(),
+        amount: points, type: "earn", description: label, label, createdAt: new Date(),
     });
 }
 
-// ─── 로그인 화면 ─────────────────────────────────────────────────────────────
+// ─── 로그인 화면 ──────────────────────────────────────────────────────────────
 function LoginView({ onLogin }: { onLogin: () => void }) {
     const [id, setId] = useState("");
     const [pw, setPw] = useState("");
@@ -69,9 +112,7 @@ function LoginView({ onLogin }: { onLogin: () => void }) {
 
     const handleLogin = () => {
         if (!id || !pw) { setError("아이디와 비밀번호를 입력해주세요."); return; }
-        if (id === ADMIN_ID && pw === ADMIN_PW) {
-            onLogin();
-        }
+        if (id === ADMIN_ID && pw === ADMIN_PW) { onLogin(); }
         else { setError("아이디 또는 비밀번호가 올바르지 않습니다."); }
     };
 
@@ -234,14 +275,30 @@ function ShippingRow({ order, onAction }: {
 }) {
     const [open, setOpen] = useState(false);
 
+    const CANCEL_REFUND_S = ["취소신청", "취소완료", "환불신청", "환불완료"];
+    // 배송 가능한 아이템만
+    const shippableItems = order.items.filter(item => {
+        const s = resolveItemStatus(item, order.status);
+        return !CANCEL_REFUND_S.includes(s);
+    });
+    // 버튼 조건: 배송 가능 아이템 기준
+    const hasReadyToShip = shippableItems.some(i => resolveItemStatus(i, order.status) === "결제완료");
+    const hasInProgress = shippableItems.some(i => ["배송시작", "배송중"].includes(resolveItemStatus(i, order.status)));
+    const allShipDone = shippableItems.length > 0 && shippableItems.every(i => resolveItemStatus(i, order.status) === "배송완료");
+
     const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
         "결제완료": { label: "결제완료", color: "#7865ff", bg: "#f0eeff" },
         "배송시작": { label: "배송시작", color: "#3b82f6", bg: "#eff6ff" },
         "배송중": { label: "배송중", color: "#3b82f6", bg: "#eff6ff" },
         "배송완료": { label: "배송완료", color: "#16a34a", bg: "#f0fdf4" },
     };
-    const s = STATUS_LABEL[order.status] ?? { label: order.status, color: "#888", bg: "#f5f5f5" };
-    const isDone = order.status === "배송완료";
+    // 대표 상태: 배송 가능 아이템 중 가장 앞선 상태
+    const repStatus = hasReadyToShip ? "결제완료" : hasInProgress ? "배송시작" : allShipDone ? "배송완료" : order.status;
+    const s = STATUS_LABEL[repStatus] ?? { label: repStatus, color: "#888", bg: "#f5f5f5" };
+    const isDone = allShipDone;
+
+    // 헤더 상품명: 배송 가능 아이템 기준
+    const firstShippable = shippableItems[0];
 
     return (
         <div className={`rounded-[12px] border overflow-hidden ${isDone ? "border-[#f0f0f0]" : "border-[#ebe8ff]"}`}>
@@ -249,8 +306,8 @@ function ShippingRow({ order, onAction }: {
                 className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${isDone ? "bg-[#fafafa] hover:bg-[#f5f5f5]" : "bg-white hover:bg-[#faf9ff]"}`}>
                 <div className="flex-1 min-w-0">
                     <p className={`truncate text-[13px] font-semibold ${isDone ? "text-[#888]" : "text-[#16121f]"}`}>
-                        {order.items?.[0]?.title ?? "상품명 없음"}
-                        {order.items?.length > 1 && <span className="ml-1 text-[11px] text-[#9b94b2]">외 {order.items.length - 1}건</span>}
+                        {firstShippable?.title ?? order.items?.[0]?.title ?? "상품명 없음"}
+                        {shippableItems.length > 1 && <span className="ml-1 text-[11px] text-[#9b94b2]">외 {shippableItems.length - 1}건</span>}
                     </p>
                 </div>
                 <UserBadge email={order.userEmail} nickname={order.userNickname} />
@@ -268,16 +325,23 @@ function ShippingRow({ order, onAction }: {
                     </div>
                     <div>
                         <p className="text-[11px] font-bold text-[#9b94b2] mb-1.5">주문 상품</p>
-                        <div className="flex flex-col gap-1">
-                            {order.items?.map((item, i) => (
-                                <div key={i} className="flex items-center gap-2 text-[13px] text-[#3d3755]">
-                                    <span className="text-[#c0bcd0]">·</span>
-                                    <span>{item.title}</span>
-                                    {item.option && item.option !== "기본" && <span className="text-[#9b94b2]">({item.option})</span>}
-                                    <span className="text-[#9b94b2]">{item.qty}개</span>
-                                    <span className="ml-auto font-semibold text-[#7865ff]">{item.price?.toLocaleString()}원</span>
-                                </div>
-                            ))}
+                        <div className="flex flex-col gap-1.5">
+                            {order.items?.map((item, i) => {
+                                const itemStatus = resolveItemStatus(item, order.status);
+                                const isCancelledOrRefunded = CANCEL_REFUND_S.includes(itemStatus);
+                                return (
+                                    <div key={i} className={`flex items-center gap-2 text-[13px] ${isCancelledOrRefunded ? "text-[#bbb]" : "text-[#3d3755]"}`}>
+                                        <span className={isCancelledOrRefunded ? "text-[#ddd]" : "text-[#c0bcd0]"}>·</span>
+                                        <span className={isCancelledOrRefunded ? "line-through" : ""}>{item.title}</span>
+                                        {item.option && item.option !== "기본" && <span className="text-[#c0bcd0]">({item.option})</span>}
+                                        <span className="text-[#c0bcd0]">{item.qty}개</span>
+                                        <span className={`ml-auto font-semibold ${isCancelledOrRefunded ? "text-[#bbb] line-through" : "text-[#7865ff]"}`}>{item.price?.toLocaleString()}원</span>
+                                        {isCancelledOrRefunded && (
+                                            <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold bg-[#f5f5f5] text-[#888]">환불처리</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                     <div className="flex items-center justify-between text-[13px] border-t border-[#ebe8ff] pt-3">
@@ -285,21 +349,21 @@ function ShippingRow({ order, onAction }: {
                         <span className="font-bold text-[#16121f]">{order.total?.toLocaleString()}원</span>
                     </div>
                     <div className="flex gap-2 pt-1">
-                        {order.status === "결제완료" && (
+                        {hasReadyToShip && (
                             <button onClick={() => onAction(order, "shipping_start")}
                                 className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#3b82f6] text-[12px] font-semibold text-white hover:bg-[#2563eb] transition">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3" /><rect x="9" y="11" width="14" height="10" rx="1" /><circle cx="12" cy="21" r="1" /><circle cx="20" cy="21" r="1" /></svg>
                                 배송 시작
                             </button>
                         )}
-                        {(order.status === "배송시작" || order.status === "배송중") && (
+                        {hasInProgress && (
                             <button onClick={() => onAction(order, "shipping_complete")}
                                 className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#16a34a] text-[12px] font-semibold text-white hover:bg-[#15803d] transition">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                                 배송 완료 처리
                             </button>
                         )}
-                        {isDone && (
+                        {isDone && !hasReadyToShip && !hasInProgress && (
                             <span className="text-[12px] text-[#16a34a] flex items-center gap-1">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                                 배송 완료
@@ -312,35 +376,88 @@ function ShippingRow({ order, onAction }: {
     );
 }
 
-// ─── 주문 카드 (취소/환불) ───────────────────────────────────────────────────
-function OrderRow({ order, onAction }: {
+// ─── ITEM_STATUS_BADGE ───────────────────────────────────────────────────────
+const ITEM_STATUS_BADGE: Record<string, { text: string; color: string; bg: string }> = {
+    "결제완료": { text: "결제완료", color: "#7865ff", bg: "#f0eeff" },
+    "배송시작": { text: "배송시작", color: "#3b82f6", bg: "#eff6ff" },
+    "배송중": { text: "배송중", color: "#3b82f6", bg: "#eff6ff" },
+    "배송완료": { text: "배송완료", color: "#16a34a", bg: "#f0fdf4" },
+    "취소신청": { text: "취소신청", color: "#f59e0b", bg: "#fff8e6" },
+    "취소완료": { text: "취소완료", color: "#888", bg: "#f5f5f5" },
+    "환불신청": { text: "환불신청", color: "#d97706", bg: "#fff8e6" },
+    "환불완료": { text: "환불완료", color: "#16a34a", bg: "#f0fdf4" },
+};
+
+// ─── 주문 카드 (취소/환불) ────────────────────────────────────────────────────
+function OrderRow({ order, onAction, filterItemStatus }: {
     order: Order;
-    onAction: (order: Order, type: "cancel_confirm" | "refund_complete") => void;
+    onAction: (order: Order, type: "cancel_confirm" | "refund_complete", targetProductIds?: string[]) => void;
+    filterItemStatus?: ItemStatus; // 이 상태 아이템만 표시 (환불완료 탭용)
 }) {
     const [open, setOpen] = useState(false);
-    const isProcessing = order.status === "처리중";
-    const isCancelled = order.status === "주문취소";
-    const isRefundPending = order.status === "교환환불신청";
-    const isRefundDone = order.status === "환불완료";
 
-    const statusStyle = isProcessing ? "bg-[#fff8e6] text-[#f59e0b]"
-        : isCancelled ? "bg-[#f5f5f5] text-[#888]"
-            : isRefundPending ? "bg-[#fff8e6] text-[#d97706]"
-                : "bg-[#f0fdf4] text-[#16a34a]";
+    // 낱개 단위 pending 아이템 목록
+    const pendingCancelItems = order.items.filter(item =>
+        resolveItemStatus(item, order.status) === "취소신청"
+    );
+    const pendingRefundItems = order.items.filter(item =>
+        resolveItemStatus(item, order.status) === "환불신청"
+    );
+    const hasPendingCancel = pendingCancelItems.length > 0;
+    const hasPendingRefund = pendingRefundItems.length > 0;
+    const isAllDone = !hasPendingCancel && !hasPendingRefund;
+
+    // 카드 테두리/배경
+    const cardBorder = isAllDone ? "border-[#f0f0f0]" : "border-[#ebe8ff]";
+    const cardBg = isAllDone ? "bg-[#fafafa] hover:bg-[#f5f5f5]" : "bg-white hover:bg-[#faf9ff]";
+
+    // 대표 상태 텍스트 (헤더용)
+    const repStatus = hasPendingCancel && hasPendingRefund ? "취소·환불 혼재"
+        : hasPendingCancel ? `취소신청 ${pendingCancelItems.length}건`
+            : hasPendingRefund ? `환불신청 ${pendingRefundItems.length}건`
+                : "처리완료";
+    const repColor = isAllDone ? "#888" : hasPendingCancel ? "#f59e0b" : "#d97706";
+    const repBg = isAllDone ? "#f5f5f5" : "#fff8e6";
+
+    // pending 아이템 목록
+    const pendingProductIds = [
+        ...pendingCancelItems.map(i => i.productId),
+        ...pendingRefundItems.map(i => i.productId),
+    ];
+    const pendingItemObjs = order.items.filter(i => pendingProductIds.includes(i.productId));
+    const pendingTotal = pendingItemObjs.reduce((s, i) => s + i.price * i.qty, 0);
+    const orderTotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+
+    // 포인트: 비례 계산
+    const pointRatio = orderTotal > 0 ? pendingTotal / orderTotal : 0;
+    const restorePoints = Math.round((order.usedPoints ?? 0) * pointRatio);
+
+    // 쿠폰: 전체 아이템이 모두 취소/환불 pending이면 전체 복원, 아니면 비례 할인 반영
+    const allPending = order.items.every(item => {
+        const s = resolveItemStatus(item, order.status);
+        return ["취소신청", "취소완료", "환불신청", "환불완료"].includes(s);
+    });
+    const couponDiscount = order.couponDiscount ?? 0;
+    // 부분 취소 시 쿠폰 할인 비례 적용 → 환불 예상액에서 차감
+    const couponDiscountForPending = allPending
+        ? 0 // 전체 취소면 쿠폰 복원이므로 차감 없음
+        : calcCouponDiscountForItems(pendingItemObjs, order.items, couponDiscount);
+    // 실제 환불 예상액 = 아이템 합계 - 쿠폰 할인 차감분 + 포인트 복원
+    const estimatedRefund = Math.max(0, pendingTotal - couponDiscountForPending);
 
     return (
-        <div className={`rounded-[12px] border overflow-hidden ${isRefundDone || isCancelled ? "border-[#f0f0f0]" : "border-[#ebe8ff]"}`}>
+        <div className={`rounded-[12px] border overflow-hidden ${cardBorder}`}>
             <button onClick={() => setOpen(v => !v)}
-                className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${isRefundDone || isCancelled ? "bg-[#fafafa] hover:bg-[#f5f5f5]" : "bg-white hover:bg-[#faf9ff]"}`}>
+                className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${cardBg}`}>
                 <div className="flex-1 min-w-0">
-                    <p className={`truncate text-[13px] font-semibold ${isRefundDone || isCancelled ? "text-[#888]" : "text-[#16121f]"}`}>
+                    <p className={`truncate text-[13px] font-semibold ${isAllDone ? "text-[#888]" : "text-[#16121f]"}`}>
                         {order.items?.[0]?.title ?? "상품명 없음"}
                         {order.items?.length > 1 && <span className="ml-1 text-[11px] text-[#9b94b2]">외 {order.items.length - 1}건</span>}
                     </p>
                 </div>
                 <UserBadge email={order.userEmail} nickname={order.userNickname} />
                 <span className="shrink-0 text-[13px] font-bold text-[#7865ff]">{order.total?.toLocaleString()}원</span>
-                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusStyle}`}>{order.status}</span>
+                <span className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{ background: repBg, color: repColor }}>{repStatus}</span>
                 <span className="shrink-0 text-[11px] text-[#9b94b2] hidden sm:block">{order.date}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b94b2" strokeWidth="2" className="shrink-0 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
@@ -352,67 +469,92 @@ function OrderRow({ order, onAction }: {
                         <span className="font-semibold">{order.userNickname || "-"}</span>
                         <span className="text-[#c0bcd0]">{order.userEmail}</span>
                     </div>
-                    <div>
-                        <p className="text-[11px] font-bold text-[#9b94b2] mb-1">
-                            {isRefundPending || isRefundDone ? "환불/교환 사유" : "취소 사유"}
-                        </p>
-                        <p className="text-[13px] text-[#3d3755]">{order.cancelReason || order.refundReason || "-"}</p>
-                    </div>
-                    <div>
-                        <p className="text-[11px] font-bold text-[#9b94b2] mb-1.5">주문 상품</p>
-                        <div className="flex flex-col gap-1">
-                            {order.items?.map((item, i) => (
-                                <div key={i} className="flex items-center gap-2 text-[13px] text-[#3d3755]">
-                                    <span className="text-[#c0bcd0]">·</span>
-                                    <span>{item.title}</span>
-                                    {item.option && item.option !== "기본" && <span className="text-[#9b94b2]">({item.option})</span>}
-                                    <span className="text-[#9b94b2]">{item.qty}개</span>
-                                    <span className="ml-auto font-semibold text-[#7865ff]">{item.price?.toLocaleString()}원</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    {/* ✅ 복원 예정 내역 표시 */}
-                    {(isProcessing || isRefundPending) && (order.usedPoints || order.usedCouponId || order.couponId) && (
-                        <div className="rounded-[10px] bg-[#f0eeff] border border-[#e0d8ff] px-4 py-3 flex flex-col gap-1">
-                            <p className="text-[11px] font-bold text-[#7865ff] mb-0.5">승인 시 자동 복원 예정</p>
-                            {(order.usedCouponId || order.couponId) && (
-                                <p className="text-[12px] text-[#6b647a]">🎟 쿠폰 복원</p>
-                            )}
-                            {(order.usedPoints ?? 0) > 0 && (
-                                <p className="text-[12px] text-[#6b647a]">🪙 포인트 {order.usedPoints?.toLocaleString()}P 환불</p>
-                            )}
+
+                    {/* 사유 */}
+                    {(order.cancelReason || order.refundReason) && (
+                        <div>
+                            <p className="text-[11px] font-bold text-[#9b94b2] mb-1">
+                                {order.refundReason ? "환불/교환 사유" : "취소 사유"}
+                                {order.refundType && ` (${order.refundType})`}
+                            </p>
+                            <p className="text-[13px] text-[#3d3755]">{order.cancelReason || order.refundReason || "-"}</p>
                         </div>
                     )}
+
+                    {/* 아이템별 상태 표시 */}
+                    <div>
+                        <p className="text-[11px] font-bold text-[#9b94b2] mb-1.5">
+                            {filterItemStatus ? `${ITEM_STATUS_BADGE[filterItemStatus]?.text ?? filterItemStatus} 상품` : "주문 상품 (낱개 상태)"}
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            {order.items
+                                ?.filter(item => filterItemStatus ? resolveItemStatus(item, order.status) === filterItemStatus : true)
+                                .map((item, i) => {
+                                    const s = resolveItemStatus(item, order.status);
+                                    const badge = ITEM_STATUS_BADGE[s] ?? { text: s, color: "#888", bg: "#f5f5f5" };
+                                    return (
+                                        <div key={i} className="flex items-center gap-2 text-[13px] text-[#3d3755]">
+                                            <span className="text-[#c0bcd0]">·</span>
+                                            <span className="flex-1">{item.title}</span>
+                                            {item.option && item.option !== "기본" && <span className="text-[#9b94b2]">({item.option})</span>}
+                                            <span className="text-[#9b94b2]">{item.qty}개</span>
+                                            <span className="font-semibold text-[#7865ff]">{item.price?.toLocaleString()}원</span>
+                                            {!filterItemStatus && (
+                                                <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                                                    style={{ background: badge.bg, color: badge.color }}>{badge.text}</span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                        </div>
+                    </div>
+
+                    {/* 복원 예정 내역 */}
+                    {(hasPendingCancel || hasPendingRefund) && (
+                        <div className="rounded-[10px] bg-[#f0eeff] border border-[#e0d8ff] px-4 py-3 flex flex-col gap-1">
+                            <p className="text-[11px] font-bold text-[#7865ff] mb-0.5">승인 시 처리 예정</p>
+                            {allPending && couponDiscount > 0 && (
+                                <p className="text-[12px] text-[#6b647a]">🎟 쿠폰 복원 (전체 취소/환불)</p>
+                            )}
+                            {!allPending && couponDiscount > 0 && (
+                                <p className="text-[12px] text-[#6b647a]">🎟 쿠폰 할인 {couponDiscountForPending.toLocaleString()}원 차감 (부분 취소)</p>
+                            )}
+                            {restorePoints > 0 && (
+                                <p className="text-[12px] text-[#6b647a]">🪙 포인트 {restorePoints.toLocaleString()}P 환불 (비례)</p>
+                            )}
+                            <p className="text-[12px] font-bold text-[#7865ff] mt-0.5 pt-1 border-t border-[#d8d0ff]">
+                                💰 환불 예상액 {estimatedRefund.toLocaleString()}원 + 포인트 {restorePoints.toLocaleString()}P
+                            </p>
+                        </div>
+                    )}
+
                     <div className="flex items-center justify-between text-[13px] border-t border-[#ebe8ff] pt-3">
                         <span className="text-[#9b94b2]">총 결제금액</span>
                         <span className="font-bold text-[#16121f]">{order.total?.toLocaleString()}원</span>
                     </div>
-                    <div className="flex gap-2 pt-1">
-                        {(isProcessing) && (
-                            <button onClick={() => onAction(order, "cancel_confirm")}
+
+                    {/* 낱개 취소 승인 버튼 */}
+                    <div className="flex flex-col gap-2 pt-1">
+                        {hasPendingCancel && (
+                            <button
+                                onClick={() => onAction(order, "cancel_confirm", pendingCancelItems.map(i => i.productId))}
                                 className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#7865ff] text-[12px] font-semibold text-white hover:bg-[#6b55f0] transition">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                                취소 승인 + 복원 처리
+                                취소 승인 ({pendingCancelItems.length}개) + 복원 처리
                             </button>
                         )}
-                        {isCancelled && (
-                            <span className="text-[12px] text-[#888] flex items-center gap-1">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                                취소 처리 완료
-                            </span>
-                        )}
-                        {isRefundPending && (
-                            <button onClick={() => onAction(order, "refund_complete")}
+                        {hasPendingRefund && (
+                            <button
+                                onClick={() => onAction(order, "refund_complete", pendingRefundItems.map(i => i.productId))}
                                 className="flex items-center gap-1.5 h-[34px] px-4 rounded-[8px] bg-[#16a34a] text-[12px] font-semibold text-white hover:bg-[#15803d] transition">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                                환불 완료 + 복원 처리
+                                환불 완료 ({pendingRefundItems.length}개) + 복원 처리
                             </button>
                         )}
-                        {isRefundDone && (
-                            <span className="text-[12px] text-[#16a34a] flex items-center gap-1">
+                        {isAllDone && (
+                            <span className="text-[12px] text-[#888] flex items-center gap-1">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                                환불 처리 완료
+                                모든 처리 완료
                             </span>
                         )}
                     </div>
@@ -422,7 +564,7 @@ function OrderRow({ order, onAction }: {
     );
 }
 
-// ─── 페이지네이션 ────────────────────────────────────────────────────────────
+// ─── 페이지네이션 ─────────────────────────────────────────────────────────────
 function Pagination({ total, page, onPage }: { total: number; page: number; onPage: (p: number) => void }) {
     const totalPages = Math.ceil(total / PAGE_SIZE);
     if (totalPages <= 1) return null;
@@ -455,6 +597,7 @@ export default function AdminPage() {
         if (sessionStorage.getItem("admin_auth") === "1") setIsAdmin(true);
         setAuthChecked(true);
     }, []);
+
     const [adminTab, setAdminTab] = useState<AdminTab>("문의관리");
     const [inquiries, setInquiries] = useState<Inquiry[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
@@ -469,7 +612,6 @@ export default function AdminPage() {
     const [cancelPage, setCancelPage] = useState(1);
     const [target, setTarget] = useState<Inquiry | null>(null);
 
-    // ── 전체 유저 순회 데이터 로드 ────────────────────────────────────────────
     const fetchAllData = async () => {
         setLoading(true);
         try {
@@ -516,7 +658,6 @@ export default function AdminPage() {
 
     useEffect(() => { if (isAdmin) fetchAllData(); }, [isAdmin]);
 
-    // ── 답변 저장 ──────────────────────────────────────────────────────────────
     const handleSaveAnswer = async (answer: string) => {
         if (!target) return;
         await updateDoc(doc(db, "users", target.uid, "inquiries", target.id), {
@@ -531,72 +672,175 @@ export default function AdminPage() {
         ));
     };
 
-    // ── 주문 액션 처리 ─────────────────────────────────────────────────────────
+    // ── 주문 액션 (낱개 취소/환불 승인) ────────────────────────────────────────
     const handleOrderAction = async (
         order: Order,
-        type: "cancel_confirm" | "refund_complete" | "shipping_start" | "shipping_complete"
+        type: "cancel_confirm" | "refund_complete" | "shipping_start" | "shipping_complete",
+        targetProductIds?: string[]
     ) => {
         const confirmMsg =
-            type === "cancel_confirm" ? `취소 승인하고 쿠폰·포인트를 복원할까요?\n${order.userNickname || order.userEmail}`
-                : type === "refund_complete" ? `환불 완료 처리하고 쿠폰·포인트를 복원할까요?\n${order.items?.[0]?.title} · ${order.total?.toLocaleString()}원`
-                    : type === "shipping_start" ? `배송을 시작할까요?\n${order.items?.[0]?.title}`
+            type === "cancel_confirm"
+                ? `${targetProductIds?.length ?? 0}개 상품 취소 승인하고 포인트를 복원할까요?\n${order.userNickname || order.userEmail}`
+                : type === "refund_complete"
+                    ? `${targetProductIds?.length ?? 0}개 상품 환불 완료 처리하고 포인트를 복원할까요?\n${order.items?.[0]?.title} · ${order.total?.toLocaleString()}원`
+                    : type === "shipping_start"
+                        ? `배송을 시작할까요?\n${order.items?.[0]?.title}`
                         : `배송 완료 처리할까요?\n${order.items?.[0]?.title}`;
 
         if (!confirm(confirmMsg)) return;
 
-        if (type === "cancel_confirm") {
-            // ✅ 주문취소 승인 — 상태변경 + 쿠폰복원 + 포인트환불
+        if (type === "cancel_confirm" && targetProductIds) {
+            // 해당 아이템만 취소완료로 변경
+            const updatedItems = order.items.map(item => ({
+                ...item,
+                status: targetProductIds.includes(item.productId)
+                    ? "취소완료" as ItemStatus
+                    : resolveItemStatus(item, order.status),
+            }));
+
+            const allCancelDone = updatedItems.every(i =>
+                i.status && ["취소완료", "환불완료"].includes(i.status)
+            );
+            const hasAnyRefundPending = updatedItems.some(i => i.status === "환불신청");
+            const newStatus = allCancelDone
+                ? "주문취소"
+                : hasAnyRefundPending
+                    ? "교환환불신청"
+                    : order.status;
+
             await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
-                status: "주문취소",
+                items: updatedItems,
+                status: newStatus,
                 cancelConfirmedAt: serverTimestamp(),
+                pendingCancelItems: [],
             });
-            await restoreCouponIfUsed(order.uid, order.usedCouponId ?? order.couponId);
-            await refundPoints(order.uid, order.usedPoints ?? 0, "주문 취소 포인트 환불");
+
+            // 포인트: 취소 아이템 비율로 비례 복원
+            const subtotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+            const cancelItems = order.items.filter(i => targetProductIds.includes(i.productId));
+            const cancelTotal = cancelItems.reduce((s, i) => s + i.price * i.qty, 0);
+            const pointRatio = subtotal > 0 ? cancelTotal / subtotal : 0;
+            const restorePoints = Math.round((order.usedPoints ?? 0) * pointRatio);
+            await refundPoints(order.uid, restorePoints, "주문 취소 포인트 환불");
+
+            // 쿠폰: 전체 취소이면 복원, 부분 취소이면 쿠폰 할인 비례 차감 (복원 X)
+            if (allCancelDone) {
+                await restoreCouponIfUsed(order.uid, order.usedCouponId ?? order.couponId);
+            }
+            // 부분 취소 시: 쿠폰 할인 차감액은 환불 예상액에 이미 반영됨 (복원 없음)
+
+            const couponDiscountForCancel = allCancelDone
+                ? 0
+                : calcCouponDiscountForItems(cancelItems, order.items, order.couponDiscount ?? 0);
+            const estimatedRefund = Math.max(0, cancelTotal - couponDiscountForCancel);
+
             await saveStoreNotification(order.uid, {
                 type: "cancel",
                 title: "주문 취소가 처리됐어요",
-                body: `취소가 승인됐어요. 쿠폰·포인트가 복원됐고, 결제금액은 3~5일 내 환불돼요.`,
+                body: `${targetProductIds.length}개 상품 취소 승인됐어요. 환불 예상 ${estimatedRefund.toLocaleString()}원 + 포인트 ${restorePoints.toLocaleString()}P · 3~5일 내 처리돼요.`,
                 link: "/store/profile?tab=교환환불/취소",
             });
+
             setOrders(prev => prev.map(o =>
-                o.id === order.id && o.uid === order.uid ? { ...o, status: "주문취소" } : o
+                o.id === order.id && o.uid === order.uid
+                    ? { ...o, items: updatedItems, status: newStatus }
+                    : o
             ));
 
-        } else if (type === "refund_complete") {
-            // ✅ 환불완료 승인 — 상태변경 + 쿠폰복원 + 포인트환불
+        } else if (type === "refund_complete" && targetProductIds) {
+            const updatedItems = order.items.map(item => ({
+                ...item,
+                status: targetProductIds.includes(item.productId)
+                    ? "환불완료" as ItemStatus
+                    : resolveItemStatus(item, order.status),
+            }));
+
+            const allDone = updatedItems.every(i =>
+                i.status && ["취소완료", "환불완료"].includes(i.status)
+            );
+            const hasAnyCancelPending = updatedItems.some(i => i.status === "취소신청");
+            const newStatus = allDone
+                ? "환불완료"
+                : hasAnyCancelPending
+                    ? "처리중"
+                    : order.status;
+
             await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
-                status: "환불완료",
+                items: updatedItems,
+                status: newStatus,
                 refundCompletedAt: serverTimestamp(),
+                pendingRefundItems: [],
             });
-            await restoreCouponIfUsed(order.uid, order.usedCouponId ?? order.couponId);
-            await refundPoints(order.uid, order.usedPoints ?? 0, "교환/환불 포인트 환불");
+
+            // 포인트: 환불 아이템 비율로 비례 복원
+            const subtotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+            const refundItems = order.items.filter(i => targetProductIds.includes(i.productId));
+            const refundTotal = refundItems.reduce((s, i) => s + i.price * i.qty, 0);
+            const pointRatio = subtotal > 0 ? refundTotal / subtotal : 0;
+            const restorePoints = Math.round((order.usedPoints ?? 0) * pointRatio);
+            await refundPoints(order.uid, restorePoints, "교환/환불 포인트 환불");
+
+            // 쿠폰: 전체 환불이면 복원, 부분 환불이면 쿠폰 할인 비례 차감 (복원 X)
+            if (allDone) {
+                await restoreCouponIfUsed(order.uid, order.usedCouponId ?? order.couponId);
+            }
+
+            const couponDiscountForRefund = allDone
+                ? 0
+                : calcCouponDiscountForItems(refundItems, order.items, order.couponDiscount ?? 0);
+            const estimatedRefund = Math.max(0, refundTotal - couponDiscountForRefund);
+
             await saveStoreNotification(order.uid, {
                 type: "cancel",
                 title: "환불이 완료됐어요",
-                body: `쿠폰·포인트가 복원됐고, 환불금액은 3~5일 내 입금돼요.`,
+                body: `${targetProductIds.length}개 상품 환불 예상 ${estimatedRefund.toLocaleString()}원 + 포인트 ${restorePoints.toLocaleString()}P · 3~5일 내 입금돼요.`,
                 link: "/store/profile?tab=교환환불/취소",
             });
+
             setOrders(prev => prev.map(o =>
-                o.id === order.id && o.uid === order.uid ? { ...o, status: "환불완료" } : o
+                o.id === order.id && o.uid === order.uid
+                    ? { ...o, items: updatedItems, status: newStatus }
+                    : o
             ));
 
         } else if (type === "shipping_start") {
+            // 배송 시작: 취소신청/환불신청 중인 아이템은 상태 유지, 나머지만 배송시작
+            const CANCEL_REFUND_STATUSES: ItemStatus[] = ["취소신청", "취소완료", "환불신청", "환불완료"];
+            const updatedItems = order.items.map(item => {
+                const cur = resolveItemStatus(item, order.status);
+                if (CANCEL_REFUND_STATUSES.includes(cur)) return { ...item, status: cur };
+                return { ...item, status: "배송시작" as ItemStatus };
+            });
+            const shippingItems = updatedItems.filter(i => !CANCEL_REFUND_STATUSES.includes(i.status!));
             await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
-                status: "배송시작", shippingStartedAt: serverTimestamp(),
+                items: updatedItems,
+                status: "배송시작",
+                shippingStartedAt: serverTimestamp(),
             });
             await saveStoreNotification(order.uid, {
                 type: "order",
                 title: "상품이 출발했어요 🚚",
-                body: `${order.items?.[0]?.title} 배송이 시작됐어요.`,
+                body: `${shippingItems[0]?.title ?? order.items?.[0]?.title} 배송이 시작됐어요.`,
                 link: "/store/profile?tab=배송중",
             });
             setOrders(prev => prev.map(o =>
-                o.id === order.id && o.uid === order.uid ? { ...o, status: "배송시작" } : o
+                o.id === order.id && o.uid === order.uid
+                    ? { ...o, items: updatedItems, status: "배송시작" }
+                    : o
             ));
 
         } else if (type === "shipping_complete") {
+            // 배송 완료: 취소신청/환불신청 중인 아이템은 상태 유지, 나머지만 배송완료
+            const CANCEL_REFUND_STATUSES: ItemStatus[] = ["취소신청", "취소완료", "환불신청", "환불완료"];
+            const updatedItems = order.items.map(item => {
+                const cur = resolveItemStatus(item, order.status);
+                if (CANCEL_REFUND_STATUSES.includes(cur)) return { ...item, status: cur };
+                return { ...item, status: "배송완료" as ItemStatus };
+            });
             await updateDoc(doc(db, "users", order.uid, "orders", order.id), {
-                status: "배송완료", deliveredAt: serverTimestamp(),
+                items: updatedItems,
+                status: "배송완료",
+                deliveredAt: serverTimestamp(),
             });
             await saveStoreNotification(order.uid, {
                 type: "order",
@@ -605,7 +849,9 @@ export default function AdminPage() {
                 link: "/store/profile?tab=배송완료",
             });
             setOrders(prev => prev.map(o =>
-                o.id === order.id && o.uid === order.uid ? { ...o, status: "배송완료" } : o
+                o.id === order.id && o.uid === order.uid
+                    ? { ...o, items: updatedItems, status: "배송완료" }
+                    : o
             ));
         }
     };
@@ -620,8 +866,17 @@ export default function AdminPage() {
         [filteredInquiries, inquiryPage]
     );
 
+    // 취소관리: 취소신청 아이템이 있는 주문
     const cancelOrders = useMemo(() =>
-        orders.filter(o => o.status === "처리중" || o.status === "주문취소"),
+        orders.filter(o => o.items.some(item => resolveItemStatus(item, o.status) === "취소신청")),
+        [orders]
+    );
+    // 취소완료: 모든 아이템이 취소완료/환불완료이거나 order.status가 주문취소
+    const cancelDoneOrders = useMemo(() =>
+        orders.filter(o =>
+            o.status === "주문취소" ||
+            o.items.every(item => ["취소완료", "환불완료"].includes(resolveItemStatus(item, o.status)))
+        ),
         [orders]
     );
     const pagedCancelOrders = useMemo(() =>
@@ -629,14 +884,30 @@ export default function AdminPage() {
         [cancelOrders, cancelPage]
     );
 
+    const SHIPPING_STATUSES = ["결제완료", "배송시작", "배송중", "배송완료"] as const;
+    const CANCEL_REFUND_STATUSES_LIST = ["취소신청", "취소완료", "환불신청", "환불완료"];
+
     const shippingOrders = useMemo(() =>
-        orders.filter(o => ["결제완료", "배송시작", "배송중", "배송완료"].includes(o.status)),
+        // 배송 가능(결제완료/배송시작/배송중/배송완료) 아이템이 하나라도 있는 주문
+        orders.filter(o =>
+            o.items.some(item => {
+                const s = resolveItemStatus(item, o.status);
+                return (SHIPPING_STATUSES as readonly string[]).includes(s);
+            })
+        ),
         [orders]
     );
     const filteredShipping = useMemo(() =>
         shippingTab === "진행중"
-            ? shippingOrders.filter(o => ["결제완료", "배송시작", "배송중"].includes(o.status))
-            : shippingOrders.filter(o => o.status === "배송완료"),
+            ? shippingOrders.filter(o =>
+                o.items.some(item => {
+                    const s = resolveItemStatus(item, o.status);
+                    return ["결제완료", "배송시작", "배송중"].includes(s);
+                })
+            )
+            : shippingOrders.filter(o =>
+                o.items.some(item => resolveItemStatus(item, o.status) === "배송완료")
+            ),
         [shippingOrders, shippingTab]
     );
     const pagedShipping = useMemo(() =>
@@ -644,11 +915,18 @@ export default function AdminPage() {
         [filteredShipping, shippingPage]
     );
 
+    // 환불관리: 환불신청 아이템이 있는 주문
+    const refundPendingOrders = useMemo(() =>
+        orders.filter(o => o.items.some(item => resolveItemStatus(item, o.status) === "환불신청")),
+        [orders]
+    );
+    const refundDoneOrders = useMemo(() =>
+        orders.filter(o => o.items.some(item => resolveItemStatus(item, o.status) === "환불완료")),
+        [orders]
+    );
     const filteredOrders = useMemo(() =>
-        orderTab === "환불신청"
-            ? orders.filter(o => o.status === "교환환불신청")
-            : orders.filter(o => o.status === "환불완료"),
-        [orders, orderTab]
+        orderTab === "환불신청" ? refundPendingOrders : refundDoneOrders,
+        [orderTab, refundPendingOrders, refundDoneOrders]
     );
     const pagedOrders = useMemo(() =>
         filteredOrders.slice((orderPage - 1) * PAGE_SIZE, orderPage * PAGE_SIZE),
@@ -656,11 +934,11 @@ export default function AdminPage() {
     );
 
     const waitCount = inquiries.filter(i => i.status === "답변대기").length;
-    const shippingPendingCount = shippingOrders.filter(o => ["결제완료", "배송시작", "배송중"].includes(o.status)).length;
-    const cancelPendingCount = orders.filter(o => o.status === "처리중").length;
-    const cancelCount = cancelOrders.length;
-    const refundPendingCount = orders.filter(o => o.status === "교환환불신청").length;
-    const refundDoneCount = orders.filter(o => o.status === "환불완료").length;
+    const shippingPendingCount = shippingOrders.filter(o =>
+        o.items.some(item => ["결제완료", "배송시작", "배송중"].includes(resolveItemStatus(item, o.status)))
+    ).length;
+    const cancelPendingCount = cancelOrders.length;
+    const refundPendingCount = refundPendingOrders.length;
 
     if (!authChecked) return null;
     if (!isAdmin) return <LoginView onLogin={() => { sessionStorage.setItem("admin_auth", "1"); setIsAdmin(true); }} />;
@@ -773,7 +1051,7 @@ export default function AdminPage() {
                         <div className="mb-6 grid grid-cols-2 gap-3">
                             {[
                                 { label: "승인 대기", value: cancelPendingCount, color: "#f59e0b" },
-                                { label: "취소 완료", value: orders.filter(o => o.status === "주문취소").length, color: "#888" },
+                                { label: "취소 완료 주문", value: cancelDoneOrders.length, color: "#888" },
                             ].map(s => (
                                 <div key={s.label} className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4">
                                     <p className="text-[12px] text-[#9b94b2]">{s.label}</p>
@@ -781,11 +1059,11 @@ export default function AdminPage() {
                                 </div>
                             ))}
                         </div>
-                        <p className="mb-4 text-[12px] text-[#9b94b2]">승인 버튼을 누르면 쿠폰·포인트가 자동 복원되고 고객에게 알림이 발송돼요.</p>
+                        <p className="mb-4 text-[12px] text-[#9b94b2]">승인 버튼을 누르면 해당 상품의 포인트가 비례 복원되고 고객에게 알림이 발송돼요. 쿠폰은 전체 취소 시에만 복원돼요.</p>
                         {loading ? <div className="flex h-[200px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e2ddf5] border-t-[#7865ff]" /></div>
-                            : pagedCancelOrders.length === 0 ? <div className="flex h-[200px] items-center justify-center"><p className="text-[13px] text-[#9b94b2]">주문취소 내역이 없어요.</p></div>
+                            : pagedCancelOrders.length === 0 ? <div className="flex h-[200px] items-center justify-center"><p className="text-[13px] text-[#9b94b2]">취소 신청 내역이 없어요.</p></div>
                                 : <div className="flex flex-col gap-2.5">{pagedCancelOrders.map(o => <OrderRow key={`${o.uid}-${o.id}`} order={o} onAction={handleOrderAction} />)}</div>}
-                        <Pagination total={cancelCount} page={cancelPage} onPage={setCancelPage} />
+                        <Pagination total={cancelOrders.length} page={cancelPage} onPage={setCancelPage} />
                     </>
                 )}
 
@@ -795,7 +1073,7 @@ export default function AdminPage() {
                         <div className="mb-6 grid grid-cols-2 gap-3">
                             {[
                                 { label: "환불신청", value: refundPendingCount, color: "#d97706" },
-                                { label: "환불완료", value: refundDoneCount, color: "#16a34a" },
+                                { label: "환불완료 주문", value: refundDoneOrders.length, color: "#16a34a" },
                             ].map(s => (
                                 <div key={s.label} className="rounded-[14px] border border-[#ebe8ff] bg-white px-5 py-4">
                                     <p className="text-[12px] text-[#9b94b2]">{s.label}</p>
@@ -813,10 +1091,17 @@ export default function AdminPage() {
                             ))}
                             <span className="ml-auto text-[12px] text-[#c0bcd0]">{filteredOrders.length}건</span>
                         </div>
-                        <p className="mb-4 text-[12px] text-[#9b94b2]">환불 완료 버튼을 누르면 쿠폰·포인트가 자동 복원되고 고객에게 알림이 발송돼요.</p>
+                        <p className="mb-4 text-[12px] text-[#9b94b2]">환불 완료 버튼을 누르면 해당 상품의 포인트가 비례 복원되고 고객에게 알림이 발송돼요. 쿠폰은 전체 환불 시에만 복원돼요.</p>
                         {loading ? <div className="flex h-[200px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e2ddf5] border-t-[#7865ff]" /></div>
                             : pagedOrders.length === 0 ? <div className="flex h-[200px] items-center justify-center"><p className="text-[13px] text-[#9b94b2]">내역이 없어요.</p></div>
-                                : <div className="flex flex-col gap-2.5">{pagedOrders.map(o => <OrderRow key={`${o.uid}-${o.id}`} order={o} onAction={handleOrderAction} />)}</div>}
+                                : <div className="flex flex-col gap-2.5">{pagedOrders.map(o => (
+                                    <OrderRow
+                                        key={`${o.uid}-${o.id}`}
+                                        order={o}
+                                        onAction={handleOrderAction}
+                                        filterItemStatus={orderTab === "환불완료" ? "환불완료" : undefined}
+                                    />
+                                ))}</div>}
                         <Pagination total={filteredOrders.length} page={orderPage} onPage={setOrderPage} />
                     </>
                 )}

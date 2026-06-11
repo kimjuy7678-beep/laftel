@@ -76,6 +76,7 @@ function formatTime(ts: any) {
 
 export default function EpisodeComments({ episodeId, animeId, animeTitle, animePoster }: Props) {
     const { user, avatarConfig } = useAuthStore()
+    const profileId = user?.currentProfileId || 'main'
     const myAvatarSrc = avatarConfig?.svgDataUrl || user?.photoURL || null
     const myName = user?.name || user?.email?.split('@')[0] || '나'
     const router = useRouter()
@@ -99,7 +100,7 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         setLoading(true)
         getDocs(
             query(
-                collection(db, colName),
+                collection(db, 'users', user?.uid!, 'profiles', profileId, colName),
                 where('animeId', '==', Number(animeId))
             )
         ).then(snap => {
@@ -142,7 +143,10 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 animePoster: animePoster || null,
                 watched: myWatched,  // 등급 뱃지용
             }
-            const ref = await addDoc(collection(db, colName), payload)
+            const ref = await addDoc(
+                collection(db, 'users', user.uid!, 'profiles', profileId, colName),
+                payload
+            )
             setComments(prev => [{
                 id: ref.id,
                 ...payload,
@@ -159,7 +163,7 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
 
     const handleDelete = async (id: string) => {
         if (!confirm('댓글을 삭제할까요?')) return
-        await deleteDoc(doc(db, colName, id))
+        await deleteDoc(doc(db, 'users', user?.uid!, 'profiles', profileId, colName, id))
         setComments(prev => prev.filter(c => c.id !== id))
         useActivityStore.setState(s => ({
             counts: { ...s.counts, comment: Math.max(0, s.counts.comment - 1) }

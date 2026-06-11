@@ -6,6 +6,8 @@ import { db } from '@/firebase/firebase'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAniStore } from '@/store/useAniStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
+import { useFilteredAniList } from '@/hook/useFilteredAniList'
+import OnboardingModal from '@/components/OnboardingModal'
 
 const GENRE_TO_TMDB: Record<string, number> = {
     action: 10759,
@@ -32,33 +34,36 @@ interface Preferences { genres: string[]; moods: string[]; watchStyle: string }
 
 export default function PersonalRecommendSection() {
     const { user } = useAuthStore()
-    const { aniList, onFetchAni } = useAniStore()
+    const { onFetchAni } = useAniStore()
     const { setPreviewId } = usePreviewStore()
     const router = useRouter()
     const [prefs, setPrefs] = useState<Preferences | null>(null)
     const [ready, setReady] = useState(false)
+    const [editOpen, setEditOpen] = useState(false)
+    const aniList = useFilteredAniList();
 
-    // 1. preferences 로드
-    useEffect(() => {
-        if (!user?.uid) return
-        getDoc(doc(db, 'users', user.uid)).then(snap => {
+    const loadPrefs = (uid: string) => {
+        getDoc(doc(db, 'users', uid)).then(snap => {
             const data = snap.data()
             if (data?.preferences && data?.onboardingDone) {
                 setPrefs(data.preferences as Preferences)
             }
         })
+    }
+
+    // 1. preferences 로드
+    useEffect(() => {
+        if (!user?.uid) return
+        loadPrefs(user.uid)
     }, [user?.uid])
 
     // 2. aniList 로드 — 완료됐을 때 ready 플래그
     useEffect(() => {
-        if (aniList.length > 0) {
-            setReady(true)
-            return
+        if (aniList.length === 0) {
+            onFetchAni()
         }
-        onFetchAni().then(() => setReady(true))
     }, [])
 
-    // aniList가 나중에 채워져도 반응하도록
     useEffect(() => {
         if (aniList.length > 0) setReady(true)
     }, [aniList.length])
@@ -82,9 +87,10 @@ export default function PersonalRecommendSection() {
             <style>{`
                 .pr-wrap { width: 90%; margin: 0 auto; }
                 .pr-header { margin-bottom: 32px; }
-                .pr-eyebrow { font-size: 12px; font-weight: 700; color: #6c63ff; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 6px; }
                 .pr-title { font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0; line-height: 1.3; }
-                .pr-sub { font-size: 14px; color: var(--text-muted); margin-top: 6px; }
+                .pr-sub { font-size: 14px; color: var(--text-muted); margin-top: 8px; }
+                .pr-edit-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-muted); background: none; border: 1px dashed var(--border-subtle); border-radius: 99px; padding: 3px 10px; cursor: pointer; transition: color .18s, border-color .18s; white-space: nowrap; opacity: 0.7; }
+                .pr-edit-btn:hover { color: #a78bfa; border-color: rgba(108,99,255,0.5); opacity: 1; }
                 .pr-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
                 .pr-tag { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 99px; background: rgba(108,99,255,0.12); color: #a78bfa; border: 1px solid rgba(108,99,255,0.25); }
                 .pr-section { margin-bottom: 48px; }
@@ -118,7 +124,6 @@ export default function PersonalRecommendSection() {
                     .pr-grid::-webkit-scrollbar { display: none; }
                     .pr-card { flex: 0 0 min(78vw, 320px); scroll-snap-align: start; }
                 }
-  
             `}</style>
 
             <div className="pr-wrap">
@@ -131,10 +136,14 @@ export default function PersonalRecommendSection() {
                         {prefs.genres.map(g => (
                             <span key={g} className="pr-tag">#{GENRE_LABEL[g]}</span>
                         ))}
+                        <button className="pr-edit-btn" onClick={() => setEditOpen(true)}>
+                            <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
+                                <path d="M9.5 1.5a1.414 1.414 0 0 1 2 2L4 11H1.5V8.5L9.5 1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            수정
+                        </button>
                     </div>
                 </div>
-
-
 
                 {sections.map((sec: any) => (
                     <div key={sec.genreKey} className="pr-section">
@@ -166,6 +175,16 @@ export default function PersonalRecommendSection() {
                     </div>
                 ))}
             </div>
+        {editOpen && user?.uid && (
+            <OnboardingModal
+                uid={user.uid}
+                onComplete={() => {
+                    setEditOpen(false)
+                    if (user?.uid) loadPrefs(user.uid)
+                }}
+                onClose={() => setEditOpen(false)}
+            />
+        )}
         </section>
     )
 }
