@@ -70,9 +70,9 @@ export default function CouponPage() {
             })
 
             if (coupon.type === 'point') {
-                await chargePoints(user.uid, coupon.value, coupon.label)
-                await fetchPoints(user.uid)
-                await saveNotification(user.uid, {
+                await chargePoints(user.uid!, coupon.value, coupon.label)
+                await fetchPoints(user.uid!)
+                await saveNotification(user.uid!, {
                     type: 'coupon',
                     title: '쿠폰 등록 완료',
                     body: `${coupon.label}이 등록되어 ${coupon.value.toLocaleString()}P가 충전되었어요.`,
