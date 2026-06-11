@@ -97,7 +97,7 @@ export default function CouponPage() {
                     body: `${coupon.label}이 시작되었어요!`,
                     link: '/membership',
                 })
-                setMembership(coupon.type)
+                setMembership(coupon.type as any)
                 setSuccess(`🎉 ${coupon.label} 등록 완료! 멤버십 혜택을 이용해보세요.`)
             }
             setCode('')

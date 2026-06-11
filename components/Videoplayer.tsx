@@ -14,6 +14,7 @@ interface Props {
     backdrop?: string
     onNext?: () => void
     onClose?: () => void
+    fallbackImage?: string | null
 }
 
 export default function VideoPlayer({ id, mode, className, title, episodeTitle, episodeNumber, backdrop, onNext, onClose }: Props) {
