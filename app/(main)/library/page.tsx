@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useWatchlistStore, WatchlistTab } from '@/store/useWatchlistStore'
+import { useWatchlistStore, WatchlistTab, WatchlistItem } from '@/store/useWatchlistStore'
 import { useWatchProgressStore } from '@/store/useWatchProgressStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { syncActivityCounts } from '@/store/useActiveStore'
-import { doc, setDoc, collection, query, where, getDocs, orderBy, deleteDoc, collectionGroup } from 'firebase/firestore'
+import { doc, setDoc, collection, getDocs, orderBy, query, deleteDoc } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 
 const membershipConfig: Record<string, { label: string; color: string }> = {
@@ -27,11 +27,11 @@ const TABS: { id: WatchlistTab; label: string }[] = [
 ]
 
 const EMPTY_MSG: Record<string, { icon: string; text: string }> = {
-    recent:   { icon: '/images/laftel-icon/cry.png', text: '최근 본 작품이 아직 없어요.' },
-    wishlist:  { icon: '/images/laftel-icon/cry.png', text: '보고싶은 작품을 추가해보세요.' },
-    purchased: { icon: '/images/laftel-icon/cry.png', text: '구매한 작품이 없어요.' },
-    reviews:   { icon: '/images/laftel-icon/cry.png', text: '작성한 리뷰가 아직 없어요.' },
-    comments:  { icon: '/images/laftel-icon/cry.png', text: '작성한 댓글이 아직 없어요.' },
+    recent: { icon: '/images/laftel-icon/cry.png', text: '최근 본 작품이 아직 없어요.' },
+    wishlist: { icon: '/images/laftel-icon/cry.png', text: '보고싶은 작품을 추가해보세요.' },
+    purchased: { icon: '/images/laftel-icon/cry.png', text: '구매한 에피소드가 없어요.' },
+    reviews: { icon: '/images/laftel-icon/cry.png', text: '작성한 리뷰가 아직 없어요.' },
+    comments: { icon: '/images/laftel-icon/cry.png', text: '작성한 댓글이 아직 없어요.' },
 }
 
 interface ReviewItem {
@@ -46,6 +46,14 @@ interface CommentItem {
 interface AnimeCommentItem {
     id: string; uid: string; animeId: number; animeTitle?: string; animePoster?: string | null
     episodeNumber: number; author: string; avatar: string; text: string; createdAt: any; likes: number
+}
+
+// 구매 탭용: 애니별로 그룹핑된 타입
+interface PurchasedAnimeGroup {
+    animeId: number
+    title: string
+    poster: string
+    episodes: WatchlistItem[]
 }
 
 export default function LibraryPage() {
@@ -63,10 +71,12 @@ export default function LibraryPage() {
     const [cancelling, setCancelling] = useState(false)
 
     const [reviews, setReviews] = useState<ReviewItem[]>([])
-    const [comments, setComments] = useState<CommentItem[]>([])
     const [animeComments, setAnimeComments] = useState<AnimeCommentItem[]>([])
     const [activityLoading, setActivityLoading] = useState(false)
     const [activityCount, setActivityCount] = useState({ rating: 0, review: 0, comment: 0 })
+
+    // 구매 탭: 펼쳐진 애니 id
+    const [expandedAnimeId, setExpandedAnimeId] = useState<number | null>(null)
 
     const membership = user?.membership
     const memberInfo = membership && membership !== 'none' ? membershipConfig[membership] : null
@@ -79,7 +89,7 @@ export default function LibraryPage() {
         if (!user) { router.push('/login'); return }
         fetchWatchlist(user.uid, profileId)
         fetchProgress(user.uid, profileId)
-        fetchActivity(user.uid)
+        fetchActivity(user.uid, profileId)
     }, [user?.uid, profileId, hydrated])
 
     useEffect(() => {
@@ -87,11 +97,14 @@ export default function LibraryPage() {
         if (tab && TABS.some(t => t.id === tab)) setActiveTab(tab as WatchlistTab)
     }, [])
 
-    const fetchActivity = async (uid: string) => {
+    const fetchActivity = async (uid: string, profileId: string) => {
         setActivityLoading(true)
         let reviewDocs: ReviewItem[] = []
         try {
-            const snap = await getDocs(query(collection(db, 'reviews'), where('uid', '==', uid), orderBy('createdAt', 'desc')))
+            const snap = await getDocs(query(
+                collection(db, 'users', uid, 'profiles', profileId, 'reviews'),
+                orderBy('createdAt', 'desc')
+            ))
             reviewDocs = snap.docs.map(d => ({ id: d.id, ...d.data() })) as ReviewItem[]
             const missing = reviewDocs.filter(r => (!r.animeTitle || !r.animePoster) && r.animeId)
             if (missing.length > 0) {
@@ -108,23 +121,12 @@ export default function LibraryPage() {
             setReviews(reviewDocs)
         } catch (e) { console.error('reviews fetch error:', e) }
 
-        let commentDocs: CommentItem[] = []
-        try {
-            const snap = await getDocs(query(collectionGroup(db, 'event_comments'), where('authorId', '==', uid)))
-            commentDocs = snap.docs.map(d => {
-                const eventId = parseInt(d.ref.parent.id.replace('event_comments_', '')) || 0
-                return { id: d.id, eventId, ...d.data() }
-            }).sort((a: any, b: any) => {
-                const at = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
-                const bt = b.createdAt?.toDate?.() ?? new Date(b.createdAt ?? 0)
-                return bt.getTime() - at.getTime()
-            }) as CommentItem[]
-            setComments(commentDocs)
-        } catch (e) { console.error('event_comments fetch error:', e) }
-
         let animeCommentDocs: AnimeCommentItem[] = []
         try {
-            const snap = await getDocs(query(collection(db, 'anime_comments'), where('uid', '==', uid)))
+            const snap = await getDocs(
+                collection(db, 'users', uid, 'profiles', profileId, 'anime_comments')
+            )
+            // 중복 없이 한 번만 fetch해서 set
             animeCommentDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
                 .sort((a: any, b: any) => {
                     const at = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
@@ -135,12 +137,10 @@ export default function LibraryPage() {
         } catch (e) { console.error('anime_comments fetch error:', e) }
 
         const { useActivityStore } = await import('@/store/useActiveStore')
-        const existing = useActivityStore.getState().counts
         const counts = {
             rating: reviewDocs.filter(r => r.score > 0).length,
             review: reviewDocs.length,
-            comment: (commentDocs.length + animeCommentDocs.length) > 0
-                ? commentDocs.length + animeCommentDocs.length : existing.comment,
+            comment: animeCommentDocs.length,
         }
         setActivityCount(counts)
         syncActivityCounts(counts)
@@ -150,10 +150,23 @@ export default function LibraryPage() {
     const isActivityTab = activeTab === 'reviews' || activeTab === 'comments'
     const loading = wlLoading || wpLoading
 
-    // recent 탭 → watchProgress, 나머지 → watchlist
     const tabItems = activeTab === 'recent'
         ? progressItems.map(p => ({ id: p.tmdbId, title: p.title, poster: p.poster || p.backdrop, addedAt: p.updatedAt, tab: 'recent' as const, episode: p.episode, episodeTitle: p.episodeTitle, progress: p.progress }))
         : items.filter(i => i.tab === activeTab)
+
+    // 구매 탭: 애니별 그룹핑
+    const purchasedGroups: PurchasedAnimeGroup[] = (() => {
+        const grouped = new Map<number, PurchasedAnimeGroup>()
+        items.filter(i => i.tab === 'purchased').forEach(item => {
+            if (!grouped.has(item.id)) {
+                grouped.set(item.id, { animeId: item.id, title: item.title, poster: item.poster, episodes: [] })
+            }
+            grouped.get(item.id)!.episodes.push(item)
+        })
+        // 에피소드 번호 순 정렬
+        grouped.forEach(g => g.episodes.sort((a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)))
+        return Array.from(grouped.values())
+    })()
 
     const handleDelete = async () => {
         if (!user?.uid || selected.size === 0) return
@@ -163,17 +176,17 @@ export default function LibraryPage() {
         setSelected(new Set()); setSelectMode(false)
     }
 
-    const handleDeleteActivity = async (item: ReviewItem | CommentItem, e: React.MouseEvent) => {
+    const handleDeleteActivity = async (item: ReviewItem | AnimeCommentItem, e: React.MouseEvent) => {
         e.stopPropagation()
         if (!confirm('삭제할까요?')) return
         try {
             if (activeTab === 'reviews') {
-                await deleteDoc(doc(db, 'reviews', item.id))
+                await deleteDoc(doc(db, 'users', user!.uid!, 'profiles', profileId, 'reviews', item.id))
                 setReviews(prev => prev.filter(r => r.id !== item.id))
                 setActivityCount(prev => ({ ...prev, review: prev.review - 1, rating: (item as ReviewItem).score > 0 ? prev.rating - 1 : prev.rating }))
             } else {
-                await deleteDoc(doc(db, `event_comments_${(item as CommentItem).eventId}`, item.id))
-                setComments(prev => prev.filter(c => c.id !== item.id))
+                await deleteDoc(doc(db, 'users', user!.uid!, 'profiles', profileId, 'anime_comments', item.id))
+                setAnimeComments(prev => prev.filter(c => c.id !== item.id))
                 setActivityCount(prev => ({ ...prev, comment: prev.comment - 1 }))
             }
         } catch (e) { console.error(e) }
@@ -194,6 +207,16 @@ export default function LibraryPage() {
     }
 
     const switchTab = (tab: WatchlistTab) => { setActiveTab(tab); setSelectMode(false); setSelected(new Set()) }
+
+    const formatExpiry = (ts: number | null | undefined) => {
+        if (!ts) return null
+        const diff = ts - Date.now()
+        if (diff <= 0) return '만료됨'
+        const days = Math.floor(diff / 86400000)
+        const hours = Math.floor((diff % 86400000) / 3600000)
+        if (days > 0) return `${days}일 후 만료`
+        return `${hours}시간 후 만료`
+    }
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingTop: 56 }}>
@@ -234,7 +257,6 @@ export default function LibraryPage() {
                 .lib-empty img { width: 80px; height: 80px; object-fit: contain; opacity: .5; filter: grayscale(1); flex-shrink: 0; }
                 .lib-empty p { font-size: 14px; color: var(--text-subtle); margin: 0; }
                 .lib-count { font-size: 13px; color: var(--text-faint); padding: 0 24px 12px; }
-                /* 최근 본 카드 */
                 .lib-recent-card { display: flex; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--border-faint); cursor: pointer; transition: background .15s; }
                 .lib-recent-card:hover { background: var(--bg-hover); }
                 .lib-recent-thumb { width: 80px; height: 52px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--bg-secondary); }
@@ -244,7 +266,6 @@ export default function LibraryPage() {
                 .lib-recent-ep { font-size: 12px; color: var(--text-subtle); }
                 .lib-recent-bar { height: 3px; background: var(--border-faint); border-radius: 2px; margin-top: 4px; overflow: hidden; }
                 .lib-recent-bar-fill { height: 100%; background: var(--main); border-radius: 2px; }
-                /* 리뷰/댓글 */
                 .lib-activity-list { padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; }
                 .lib-activity-item { display: flex; gap: 14px; padding: 14px 16px; background: var(--bg-secondary); border-radius: 12px; cursor: pointer; border: 1px solid var(--border-subtle); transition: background .15s; position: relative; }
                 .lib-activity-item:hover { background: var(--bg-hover); }
@@ -355,7 +376,7 @@ export default function LibraryPage() {
                                     <button key={t.id} className={`lib-tab${activeTab === t.id ? ' active' : ''}`} onClick={() => switchTab(t.id)}>{t.label}</button>
                                 ))}
                             </div>
-                            {!isActivityTab && activeTab !== 'recent' && (
+                            {!isActivityTab && activeTab !== 'recent' && activeTab !== 'purchased' && (
                                 <div className="lib-tab-action">
                                     {selectMode ? (
                                         <div style={{ display: 'flex', gap: 8 }}>
@@ -373,18 +394,197 @@ export default function LibraryPage() {
                         </div>
                     </div>
 
-                    {/* 리뷰/댓글 탭 */}
-                    {isActivityTab ? (
+                    {/* ── 구매한 탭 ── */}
+                    {activeTab === 'purchased' ? (
+                        loading ? (
+                            <div className="lib-empty">
+                                <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--main)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+                            </div>
+                        ) : purchasedGroups.length === 0 ? (
+                            <div className="lib-empty">
+                                <img src={EMPTY_MSG.purchased.icon} alt="" onError={e => (e.currentTarget.style.display = 'none')} />
+                                <p>{EMPTY_MSG.purchased.text}</p>
+                            </div>
+                        ) : (
+                            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <p className="lib-count" style={{ padding: 0, marginBottom: 4 }}>
+                                    작품 {purchasedGroups.length}개 · 총 {items.filter(i => i.tab === 'purchased').length}화
+                                </p>
+                                {purchasedGroups.map(group => {
+                                    const isExpanded = expandedAnimeId === group.animeId
+                                    const now = Date.now()
+                                    const activeEps = group.episodes.filter(ep =>
+                                        ep.purchaseType === 'own' || (ep.rentExpiry ? ep.rentExpiry > now : false)
+                                    )
+                                    const expiredEps = group.episodes.filter(ep =>
+                                        ep.purchaseType === 'rent' && ep.rentExpiry && ep.rentExpiry <= now
+                                    )
+
+                                    return (
+                                        <div key={group.animeId}
+                                            style={{
+                                                background: 'var(--bg-secondary)',
+                                                border: '1px solid var(--border-subtle)',
+                                                borderRadius: 14,
+                                                overflow: 'hidden',
+                                            }}
+                                        >
+                                            {/* 애니 헤더 행 */}
+                                            <div
+                                                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: 'pointer' }}
+                                                onClick={() => setExpandedAnimeId(isExpanded ? null : group.animeId)}
+                                            >
+                                                {/* 포스터 */}
+                                                <div style={{ width: 48, height: 68, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: 'var(--bg-card)' }}>
+                                                    {group.poster
+                                                        ? <img src={group.poster.startsWith('http') ? group.poster : `${TMDB_IMG}${group.poster}`} alt={group.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎌</div>
+                                                    }
+                                                </div>
+
+                                                {/* 제목 + 요약 */}
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                                                        {group.title}
+                                                    </p>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                                        <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>
+                                                            총 {group.episodes.length}화 구매
+                                                        </span>
+                                                        {activeEps.length > 0 && (
+                                                            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: 'rgba(108,99,255,.12)', color: '#9d97ff' }}>
+                                                                시청 가능 {activeEps.length}화
+                                                            </span>
+                                                        )}
+                                                        {expiredEps.length > 0 && (
+                                                            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: 'rgba(239,68,68,.1)', color: '#f87171' }}>
+                                                                만료 {expiredEps.length}화
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* 재생 + 펼치기 버튼 */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                                    {activeEps.length > 0 && (
+                                                        <button
+                                                            onClick={e => {
+                                                                e.stopPropagation()
+                                                                const firstEp = activeEps[0].episodeNumber
+                                                                router.push(`/anime/${group.animeId}?ep=${firstEp}`)
+                                                            }}
+                                                            style={{
+                                                                display: 'flex', alignItems: 'center', gap: 5,
+                                                                padding: '6px 12px', borderRadius: 8, border: 'none',
+                                                                background: 'var(--main)', color: 'white',
+                                                                fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
+                                                            재생
+                                                        </button>
+                                                    )}
+                                                    <svg
+                                                        width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                        stroke="var(--text-faint)" strokeWidth="2"
+                                                        style={{ transition: 'transform .2s', transform: isExpanded ? 'rotate(180deg)' : 'none' }}
+                                                    >
+                                                        <path d="m6 9 6 6 6-6" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+
+                                            {/* 에피소드 목록 (펼쳐진 경우) */}
+                                            {isExpanded && (
+                                                <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                                                    {group.episodes.map(ep => {
+                                                        const isOwn = ep.purchaseType === 'own'
+                                                        const isActive = isOwn || (ep.rentExpiry ? ep.rentExpiry > now : false)
+                                                        const expiryText = isOwn ? '소장' : formatExpiry(ep.rentExpiry)
+
+                                                        return (
+                                                            <div
+                                                                key={`${ep.id}_${ep.episodeNumber}`}
+                                                                style={{
+                                                                    display: 'flex', alignItems: 'center', gap: 12,
+                                                                    padding: '10px 16px 10px 24px',
+                                                                    borderBottom: '1px solid var(--border-faint)',
+                                                                    cursor: isActive ? 'pointer' : 'default',
+                                                                    opacity: isActive ? 1 : 0.5,
+                                                                    transition: 'background .15s',
+                                                                }}
+                                                                onMouseEnter={e => { if (isActive) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)' }}
+                                                                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
+                                                                onClick={() => {
+                                                                    if (!isActive) return
+                                                                    router.push(`/anime/${group.animeId}?ep=${ep.episodeNumber}`)
+                                                                }}
+                                                            >
+                                                                {/* 화수 뱃지 */}
+                                                                <div style={{
+                                                                    width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                                                                    background: isActive ? 'rgba(108,99,255,.12)' : 'var(--border-faint)',
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                    fontSize: 13, fontWeight: 800,
+                                                                    color: isActive ? '#9d97ff' : 'var(--text-faint)',
+                                                                }}>
+                                                                    {ep.episodeNumber}
+                                                                </div>
+
+                                                                {/* 정보 */}
+                                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                                    <p style={{ fontSize: 13, fontWeight: 600, color: isActive ? 'var(--text-primary)' : 'var(--text-subtle)', margin: 0 }}>
+                                                                        {ep.episodeNumber}화
+                                                                    </p>
+                                                                    <p style={{ fontSize: 11, color: isActive ? (isOwn ? '#9d97ff' : '#34d399') : '#f87171', margin: '2px 0 0', fontWeight: 600 }}>
+                                                                        {isOwn
+                                                                            ? '소장'
+                                                                            : isActive
+                                                                                ? expiryText
+                                                                                : '대여 만료'
+                                                                        }
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* 구매 유형 뱃지 */}
+                                                                <span style={{
+                                                                    fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 5,
+                                                                    background: isOwn ? 'rgba(108,99,255,.12)' : 'rgba(52,211,153,.1)',
+                                                                    color: isOwn ? '#9d97ff' : '#34d399',
+                                                                    flexShrink: 0,
+                                                                }}>
+                                                                    {isOwn ? '소장' : '대여'}
+                                                                </span>
+
+                                                                {/* 재생 아이콘 */}
+                                                                {isActive && (
+                                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2" style={{ flexShrink: 0 }}>
+                                                                        <polygon points="5,3 19,12 5,21" fill="var(--text-faint)" stroke="none" />
+                                                                    </svg>
+                                                                )}
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )
+
+                        /* ── 리뷰/댓글 탭 ── */
+                    ) : isActivityTab ? (
                         activityLoading ? (
                             <div className="lib-empty"><div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--main)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} /></div>
-                        ) : (activeTab === 'reviews' ? reviews.length : comments.length + animeComments.length) === 0 ? (
+                        ) : (activeTab === 'reviews' ? reviews.length : animeComments.length) === 0 ? (
                             <div className="lib-empty">
                                 <img src={EMPTY_MSG[activeTab].icon} alt="" onError={e => (e.currentTarget.style.display = 'none')} />
                                 <p>{EMPTY_MSG[activeTab].text}</p>
                             </div>
                         ) : (
                             <>
-                                <p className="lib-count">{activeTab === 'reviews' ? `리뷰 (${reviews.length})` : `댓글 (${comments.length + animeComments.length})`}</p>
+                                <p className="lib-count">{activeTab === 'reviews' ? `리뷰 (${reviews.length})` : `댓글 (${animeComments.length})`}</p>
                                 <div className="lib-activity-list">
                                     {activeTab === 'reviews' && reviews.map(item => (
                                         <div key={item.id} className="lib-activity-item" onClick={() => setPreviewId(item.animeId)}>
@@ -393,7 +593,7 @@ export default function LibraryPage() {
                                                 <p className="lib-activity-anime">{item.animeTitle || `애니 #${item.animeId}`}{item.spoiler && <span className="lib-spoiler-badge">스포</span>}</p>
                                                 {item.score > 0 && (
                                                     <p style={{ display: 'flex', alignItems: 'center', gap: 1, margin: 0 }}>
-                                                        {[1,2,3,4,5].map(s => {
+                                                        {[1, 2, 3, 4, 5].map(s => {
                                                             const full = item.score >= s, half = !full && item.score >= s - 0.5
                                                             return (
                                                                 <span key={s} style={{ position: 'relative', display: 'inline-block', width: 14, height: 14 }}>
@@ -413,55 +613,36 @@ export default function LibraryPage() {
                                             </button>
                                         </div>
                                     ))}
-                                    {activeTab === 'comments' && (
-                                        <>
-                                            {animeComments.map(item => (
-                                                <div key={item.id} className="lib-activity-item" onClick={() => router.push(`/anime/${item.animeId}?ep=${item.episodeNumber}`)}>
-                                                    {item.animePoster ? <img src={`${TMDB_IMG}${item.animePoster}`} alt={item.animeTitle} className="lib-activity-poster" /> : <div className="lib-activity-poster-placeholder">🎌</div>}
-                                                    <div className="lib-activity-body">
-                                                        <p className="lib-activity-anime">
-                                                            {item.animeTitle || `애니 #${item.animeId}`}
-                                                            <span style={{ fontSize: 11, fontWeight: 600, color: '#6c63ff', marginLeft: 6, background: 'rgba(108,99,255,.12)', padding: '1px 6px', borderRadius: 4 }}>{item.episodeNumber}화</span>
-                                                        </p>
-                                                        <p className="lib-activity-text">{item.text}</p>
-                                                        <p className="lib-activity-meta">
-                                                            {item.likes > 0 && `좋아요 ${item.likes} · `}
-                                                            {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString('ko-KR') : item.createdAt ? new Date(item.createdAt).toLocaleDateString('ko-KR') : ''}
-                                                        </p>
-                                                    </div>
-                                                    <button className="lib-activity-del" title="삭제"
-                                                        onClick={async e => {
-                                                            e.stopPropagation(); if (!confirm('삭제할까요?')) return
-                                                            await deleteDoc(doc(db, 'anime_comments', item.id))
-                                                            setAnimeComments(prev => prev.filter(c => c.id !== item.id))
-                                                            setActivityCount(prev => ({ ...prev, comment: prev.comment - 1 }))
-                                                        }}>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" /></svg>
-                                                    </button>
-                                                </div>
-                                            ))}
-                                            {comments.map(item => (
-                                                <div key={item.id} className="lib-activity-item" onClick={() => router.push(`/event/${item.eventId}`)}>
-                                                    {item.eventImg ? <img src={item.eventImg} alt={item.eventName} className="lib-activity-poster" /> : <div className="lib-activity-poster-placeholder">🎪</div>}
-                                                    <div className="lib-activity-body">
-                                                        <p className="lib-activity-anime">{item.eventName || `이벤트 #${item.eventId}`}</p>
-                                                        <p className="lib-activity-text">{item.content}</p>
-                                                        <p className="lib-activity-meta">
-                                                            {item.likeCount > 0 && `좋아요 ${item.likeCount} · `}
-                                                            {item.replyCount > 0 && `답글 ${item.replyCount} · `}
-                                                            {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString('ko-KR') : item.createdAt ? new Date(item.createdAt).toLocaleDateString('ko-KR') : ''}
-                                                        </p>
-                                                    </div>
-                                                    <button className="lib-activity-del" onClick={e => handleDeleteActivity(item, e)} title="삭제">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" /></svg>
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </>
-                                    )}
+                                    {activeTab === 'comments' && animeComments.map(item => (
+                                        <div key={item.id} className="lib-activity-item" onClick={() => router.push(`/anime/${item.animeId}?ep=${item.episodeNumber}`)}>
+                                            {item.animePoster ? <img src={`${TMDB_IMG}${item.animePoster}`} alt={item.animeTitle} className="lib-activity-poster" /> : <div className="lib-activity-poster-placeholder">🎌</div>}
+                                            <div className="lib-activity-body">
+                                                <p className="lib-activity-anime">
+                                                    {item.animeTitle || `애니 #${item.animeId}`}
+                                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#6c63ff', marginLeft: 6, background: 'rgba(108,99,255,.12)', padding: '1px 6px', borderRadius: 4 }}>{item.episodeNumber}화</span>
+                                                </p>
+                                                <p className="lib-activity-text">{item.text}</p>
+                                                <p className="lib-activity-meta">
+                                                    {item.likes > 0 && `좋아요 ${item.likes} · `}
+                                                    {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString('ko-KR') : item.createdAt ? new Date(item.createdAt).toLocaleDateString('ko-KR') : ''}
+                                                </p>
+                                            </div>
+                                            <button className="lib-activity-del" title="삭제"
+                                                onClick={async e => {
+                                                    e.stopPropagation(); if (!confirm('삭제할까요?')) return
+                                                    await deleteDoc(doc(db, 'users', user!.uid!, 'profiles', profileId, 'anime_comments', item.id))
+                                                    setAnimeComments(prev => prev.filter(c => c.id !== item.id))
+                                                    setActivityCount(prev => ({ ...prev, comment: prev.comment - 1 }))
+                                                }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6" /><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2" /></svg>
+                                            </button>
+                                        </div>
+                                    ))}
                                 </div>
                             </>
                         )
+
+                        /* ── 최근 본 / 보고싶다 탭 ── */
                     ) : loading ? (
                         <div className="lib-empty"><div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--main)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} /></div>
                     ) : tabItems.length === 0 ? (

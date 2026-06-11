@@ -29,8 +29,6 @@ const RECENT_SERIES = [
 export default function StoreSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
     const pathname = usePathname();
 
-    if (!open) return null;
-
     const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
 
     // 액티브: 보라 배경 + 흰글씨 / 비액티브 호버: 채도낮은 보라 배경 + 흰글씨
@@ -39,79 +37,74 @@ export default function StoreSidebar({ open, onClose }: { open: boolean; onClose
             ? "bg-[#7865ff] text-white [&_img]:brightness-0 [&_img]:invert"
             : "hover:bg-[#7865ff]/15";
 
-    return (
-        <>
-            {/* 딤 */}
-            <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]" onClick={onClose} />
+    const quickLinks = [
+        STORE_MENU[0],
+        STORE_MENU[1],
+        { label: "시리즈별", path: "/store/series", icon: "/store/ham/seri.png" },
+        ...CATEGORY_MENU.slice(0, 3),
+    ];
 
-            {/* 패널 */}
-            <div className="fixed left-0 top-0 z-50 h-full w-[420px] bg-white shadow-[4px_0_32px_rgba(20,16,44,0.13)]">
-                <div className="h-full overflow-y-auto px-5 pb-8 pt-6"
-                    style={{ scrollbarWidth: "thin", scrollbarColor: "#7865ff transparent" }}>
+    const linkText = (path: string, activeColor = "text-[#3d3755]") =>
+        isActive(path) ? "font-semibold text-white" : activeColor;
 
-                    <div className="mb-6 flex items-center justify-between">
-                        <p className="text-[20px] font-extrabold tracking-wider text-[#7865ff]">STORE</p>
-                        <button onClick={onClose} className="text-[#9b94b2] hover:text-[#3d3755]">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    {/* 전체 굿즈 */}
+    const menuContent = (
+        <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]">
+            <div>
+                <p className="mb-3 text-[11px] font-extrabold tracking-[0.12em] text-[#7865ff]">STORE</p>
+                <div className="grid gap-1 sm:grid-cols-2">
                     <Link href="/store/all" onClick={onClose}
-                        className={`mb-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition group ${isActive("/store/all") ? "bg-[#7865ff] [&_img]:brightness-0 [&_img]:invert" : "hover:bg-[#7865ff]/15"}`}>
+                        className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition ${linkCls("/store/all")}`}>
                         <span className="flex h-7 w-7 items-center justify-center">
                             <img src="/store/ham/all.png" alt="" className="h-5 w-5 object-contain" />
                         </span>
-                        <span className={`text-[14px] font-semibold ${isActive("/store/all") ? "text-white" : "text-[#7865ff]"}`}>전체 굿즈</span>
+                        <span className={`text-[14px] ${linkText("/store/all", "font-semibold text-[#7865ff]")}`}>전체 굿즈</span>
                     </Link>
-
-                    {/* 시리즈별 */}
                     <Link href="/store/series" onClick={onClose}
-                        className={`mb-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition ${linkCls("/store/series")}`}>
+                        className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition ${linkCls("/store/series")}`}>
                         <span className="flex h-7 w-7 items-center justify-center">
                             <img src="/store/ham/seri.png" alt="" className="h-5 w-5 object-contain" />
                         </span>
-                        <span className={`text-[14px] ${isActive("/store/series") ? "text-white font-semibold" : "text-[#7865ff]"}`}>시리즈별</span>
+                        <span className={`text-[14px] ${linkText("/store/series", "text-[#7865ff]")}`}>시리즈별</span>
                         {!isActive("/store/series") && (
                             <span className="ml-auto rounded-full bg-[#7865ff] px-2 py-0.5 text-[10px] font-bold text-white">NEW</span>
                         )}
                     </Link>
-
-                    {/* 한정 굿즈, 인기 상품 */}
                     {STORE_MENU.slice(1).map((m) => (
                         <Link key={m.label} href={m.path} onClick={onClose}
                             className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition ${linkCls(m.path)}`}>
                             <span className="flex h-7 w-7 items-center justify-center">
                                 <img src={m.icon} alt="" className="h-5 w-5 object-contain" />
                             </span>
-                            <span className={`text-[14px] ${isActive(m.path) ? "text-white font-semibold" : "text-[#7865ff]"}`}>{m.label}</span>
+                            <span className={`text-[14px] ${linkText(m.path, "text-[#7865ff]")}`}>{m.label}</span>
                         </Link>
                     ))}
+                </div>
 
-                    <div className="my-5 border-t border-[#f0edf8]" />
+                <div className="my-5 border-t border-[#f0edf8]" />
 
-                    <p className="mb-3 text-[11px] font-extrabold tracking-[0.12em] text-[#7865ff]">CATEGORY</p>
+                <p className="mb-3 text-[11px] font-extrabold tracking-[0.12em] text-[#7865ff]">CATEGORY</p>
+                <div className="grid gap-1 sm:grid-cols-2">
                     {CATEGORY_MENU.map((c) => (
                         <Link key={c.label} href={c.path} onClick={onClose}
                             className={`flex items-center gap-3 rounded-[10px] px-3 py-2 transition ${linkCls(c.path)}`}>
                             <span className={`flex h-8 w-8 items-center justify-center rounded-full ${isActive(c.path) ? "bg-white/20" : "bg-[#f0eeff]"}`}>
                                 <img src={c.icon} alt="" className="h-4 w-4 object-contain" />
                             </span>
-                            <span className={`text-[13px] ${isActive(c.path) ? "text-white font-semibold" : "text-[#3d3755]"}`}>{c.label}</span>
+                            <span className={`text-[13px] ${linkText(c.path)}`}>{c.label}</span>
                         </Link>
                     ))}
+                </div>
+            </div>
 
-                    <div className="my-5 border-t border-[#f0edf8]" />
-
-                    <div className="mb-3 flex items-center justify-between">
-                        <p className="text-[13px] font-bold text-[#16121f]">최신업데이트</p>
-                        <Link href="/store/series" onClick={onClose} className="flex items-center gap-1">
-                            <span className="rounded-full bg-[#7865ff] px-2 py-0.5 text-[9px] font-bold text-white">NEW</span>
-                            <span className="text-[12px] text-[#9b94b2]">›</span>
-                        </Link>
-                    </div>
+            <div className="border-t border-[#f0edf8] pt-5 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+                <div className="mb-3 flex items-center justify-between">
+                    <p className="text-[13px] font-bold text-[#16121f]">최신업데이트</p>
+                    <Link href="/store/series" onClick={onClose} className="flex items-center gap-1">
+                        <span className="rounded-full bg-[#7865ff] px-2 py-0.5 text-[9px] font-bold text-white">NEW</span>
+                        <span className="text-[12px] text-[#9b94b2]">›</span>
+                    </Link>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
                     {RECENT_SERIES.map((s) => (
                         <Link key={s.label} href={`/store/series?series=${encodeURIComponent(s.series)}`} onClick={onClose}
                             className="flex items-center gap-2.5 rounded-[10px] px-2 py-2 transition hover:bg-[#7865ff]/15">
@@ -125,39 +118,67 @@ export default function StoreSidebar({ open, onClose }: { open: boolean; onClose
                             <span className="text-[11px] text-[#c0bcd0]">›</span>
                         </Link>
                     ))}
-
-                    <div className="my-5 border-t border-[#f0edf8]" />
-
-                    <Link href="/store/series" onClick={onClose}
-                        className="flex items-center gap-3 rounded-[14px] bg-[#ede9ff] px-4 py-3 transition hover:bg-[#e0daff]">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#7865ff]">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-[12px] font-bold text-[#3d2fa0]">전체 시리즈 보러가기</p>
-                            <p className="text-[10px] text-[#7865ff]">236개 시리즈의 모든 굿즈를 확인해보세요.</p>
-                        </div>
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#7865ff] text-[12px] text-white">›</span>
-                    </Link>
-                    <Link href="/event" onClick={onClose}
-                        className="mt-2.5 flex items-center gap-3 rounded-[14px] bg-[#f5f3ff] px-4 py-3 transition hover:bg-[#ede9ff]">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8e4f8]">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7865ff" strokeWidth="2">
-                                <path d="M20 12v10H4V12" /><path d="M22 7H2v5h20V7z" /><path d="M12 22V7" />
-                                <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
-                            </svg>
-                        </div>
-                        <div className="flex-1">
-                            <div className="mb-0.5">
-                                <span className="rounded-full bg-[#e8e4f8] px-2 py-0.5 text-[9px] font-bold text-[#7865ff]">진행중</span>
-                            </div>
-                            <p className="text-[12px] font-bold text-[#3d2fa0]">이벤트 진행 중!</p>
-                            <p className="text-[10px] text-[#7865ff]">다양한 할인과 특별 혜택을 놓치지 마세요</p>
-                        </div>
-                        <span className="text-[12px] text-[#9b94b2]">›</span>
-                    </Link>
                 </div>
             </div>
+        </div>
+    );
+
+    return (
+        <>
+            <div className="mt-3 hidden overflow-hidden border-t border-[#ebe8ff] pt-3 md:block">
+                <div className="relative">
+                    <div className="flex gap-2 overflow-hidden">
+                        {quickLinks.map((item) => (
+                            <Link
+                                key={item.path}
+                                href={item.path}
+                                onClick={onClose}
+                                className={`flex h-10 shrink-0 items-center gap-2 rounded-[10px] border px-3 text-[12px] transition ${isActive(item.path)
+                                    ? "border-[#7865ff] bg-[#7865ff] text-white [&_img]:brightness-0 [&_img]:invert"
+                                    : "border-[#e4def7] bg-[#faf9ff] text-[#5f5870] hover:border-[#7865ff]/50 hover:text-[#7865ff]"
+                                    }`}
+                            >
+                                <img src={item.icon} alt="" className="h-4 w-4 object-contain" />
+                                <span className="whitespace-nowrap">{item.label}</span>
+                            </Link>
+                        ))}
+                    </div>
+                    {!open && <div className="pointer-events-none absolute bottom-0 right-0 top-0 w-20 bg-gradient-to-l from-white to-white/0" />}
+                </div>
+
+                <div className={`grid transition-all duration-300 ease-in-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="min-h-0 overflow-hidden">
+                        <div className="mt-4 rounded-[16px] border border-[#e4def7] bg-white p-4 shadow-[0_10px_28px_rgba(30,24,70,0.08)]">
+                            {menuContent}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {open && (
+                <div className="fixed inset-0 z-40 md:hidden">
+                    <button
+                        type="button"
+                        aria-label="카테고리 닫기"
+                        className="absolute inset-0 bg-black/25 backdrop-blur-[1px]"
+                        onClick={onClose}
+                    />
+                    <div className="absolute left-0 top-0 h-full w-[min(86vw,360px)] overflow-y-auto bg-white px-5 pb-8 pt-6 shadow-[18px_0_50px_rgba(30,24,70,0.18)]">
+                        <div className="mb-5 flex items-center justify-between">
+                            <div>
+                                <p className="text-[20px] font-extrabold tracking-wider text-[#7865ff]">STORE</p>
+                                <p className="mt-0.5 text-[12px] text-[#9b94b2]">카테고리 전체보기</p>
+                            </div>
+                            <button onClick={onClose} aria-label="카테고리 닫기" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f3ff] text-[#9b94b2]">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        {menuContent}
+                    </div>
+                </div>
+            )}
         </>
     );
 }

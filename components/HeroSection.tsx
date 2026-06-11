@@ -8,18 +8,35 @@ import { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 import 'swiper/css/effect-fade'
 import { useAniStore } from '@/store/useAniStore'
+import { useAuthStore } from '@/store/useAuthStore'
 
-const heroData = [
+const heroDataDefault = [
     { id: 123249, image: '/images/hero/hero01.png', video: '/videos/hero01.mp4', text: '최애를 향한 광기 어린 열정과  순정남의 금손 재능이 만났을 때, \n 보는 내내 광대 폭발하는 청춘 성장물' },
     { id: 105248, image: '/images/hero/hero02.png', video: '/videos/hero02.mp4', text: '달까지 달리는 도파민 급행 열차, \n 엔딩곡 듣는 순간 가슴이 웅장해지다 못해 찢어지는 작품' },
-    { id: 75214, image: '/images/hero/hero03.png', video: '/videos/hero03.mp4', text: '빛과 연출을 갈아 넣은 영상미의 정점, \n 편지 한 장에 담긴 진심이 가슴을 울리는 인생 명작' },
-    { id: 95479, image: '/images/hero/hero04.png', video: '/videos/hero04.mp4', text: '작화진의 영혼을 갈아 만든 눈호강 액션, \n 고죠 사토루 얼굴이 서사 그 자체!' },
+    { id: 75214,  image: '/images/hero/hero03.png', video: '/videos/hero03.mp4', text: '빛과 연출을 갈아 넣은 영상미의 정점, \n 편지 한 장에 담긴 진심이 가슴을 울리는 인생 명작' },
+    { id: 95479,  image: '/images/hero/hero04.png', video: '/videos/hero04.mp4', text: '작화진의 영혼을 갈아 만든 눈호강 액션, \n 고죠 사토루 얼굴이 서사 그 자체!' },
     { id: 271607, image: '/images/hero/hero05.png', video: '/videos/hero05.mp4', text: '순정만화 찢고 나온 역대급 비주얼, \n 서툴러서 더 설레는 맑고 고결한 로맨스의 정석' },
 ]
+
+const heroDataKids = [
+    { id: 60572, image: '/images/hero/hero06.png', video: '/videos/hero6.mp4',  text: '피카츄와 함께 떠나는 끝없는 모험, \n세대를 초월한 추억과 설렘의 원조!' },
+    { id: 3570,  image: '/images/hero/hero07.png', video: '/videos/hero7.mp4',  text: '화려한 변신과 감동적인 우정, \n마법소녀 장르의 역사를 만든 전설!' },
+    { id: 57911, image: '/images/hero/hero08.png', video: '/videos/hero9.mp4',  text: '신기한 미래도구보다 더 특별한, \n웃음과 따뜻함이 가득한 국민 애니!' },
+    { id: 31654, image: '/images/hero/hero09.png', video: '/videos/hero8.mp4',  text: '모험과 성장, \n그리고 진한 우정까지 담아낸 소년들의 레전드 서사!' },
+    { id: 35790, image: '/images/hero/hero10.png', video: '/videos/hero10.mp4', text: '사랑스러운 작화와 몽환적인 감성, \n지금 봐도 설레는 마법 같은 이야기!' },
+]
+
+const AGE_PRIORITY: Record<string, number> = {
+    'ALL': 0, '7': 7, '12': 12, '15': 15, '19': 19,
+}
 
 export default function HeroSection() {
     const router = useRouter()
     const { aniList, onFetchTopAni } = useAniStore()
+    const { user } = useAuthStore()
+
+    const ageLimit = AGE_PRIORITY[user?.ageLimit ?? '19'] ?? 19
+    const heroData = ageLimit <= 7 ? heroDataKids : heroDataDefault
 
     const [playingId, setPlayingId] = useState<number | null>(null)
     const [activeIndex, setActiveIndex] = useState(0)
@@ -33,6 +50,13 @@ export default function HeroSection() {
         onFetchTopAni()
     }, [])
 
+    // ageLimit 바뀌면 슬라이드 리셋
+    useEffect(() => {
+        setPlayingId(null)
+        setActiveIndex(0)
+        swiperRef.current?.slideToLoop(0, 0)
+    }, [ageLimit])
+
     useEffect(() => {
         if (!swiperRef.current) return
         if (playingId !== null) {
@@ -42,10 +66,8 @@ export default function HeroSection() {
         }
     }, [playingId])
 
-    // playingId 바뀔 때 opacity 트랜지션
     useEffect(() => {
         if (playingId !== null) {
-            // 약간 딜레이 후 fade in
             const t = setTimeout(() => setVideoOpacity(1), 50)
             return () => clearTimeout(t)
         } else {
@@ -91,13 +113,13 @@ export default function HeroSection() {
                     max-height: calc(100vh *16 / 18);
                 }
 
-            .hero-bg {
-    object-position: center 20%;
-}
+                .hero-bg {
+                    object-position: center 20%;
+                }
 
-.hero-main-image {
-    object-position: center 20%;
-}
+                .hero-main-image {
+                    object-position: center 20%;
+                }
 
                 .hero-copy {
                     position: absolute;
@@ -235,6 +257,7 @@ export default function HeroSection() {
                     }
                 }
             `}</style>
+
             <Swiper
                 modules={[Autoplay, EffectFade]}
                 effect="fade"
@@ -307,15 +330,11 @@ export default function HeroSection() {
 
                                     {!isPlaying && (
                                         <>
-                                            <h1
-                                                className="hero-copy"
-                                            >
+                                            <h1 className="hero-copy">
                                                 {hero.text}
                                             </h1>
 
-                                            <div
-                                                className="hero-actions"
-                                            >
+                                            <div className="hero-actions">
                                                 <button
                                                     onClick={() => router.push(`/anime/${hero.id}?play=1`)}
                                                     onMouseEnter={(e) => {

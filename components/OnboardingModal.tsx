@@ -7,6 +7,7 @@ import { db } from '@/firebase/firebase'
 interface Props {
     uid: string
     onComplete: () => void
+    onClose?: () => void
 }
 
 const GENRES = [
@@ -40,7 +41,7 @@ const WATCH_STYLES = [
     { id: 'ost', label: 'OST 먼저 찾아듣기', emoji: '🎧' },
 ]
 
-export default function OnboardingModal({ uid, onComplete }: Props) {
+export default function OnboardingModal({ uid, onComplete, onClose }: Props) {
     const [step, setStep] = useState(1)
     const [genres, setGenres] = useState<string[]>([])
     const [moods, setMoods] = useState<string[]>([])
@@ -78,22 +79,25 @@ export default function OnboardingModal({ uid, onComplete }: Props) {
     const canNext2 = moods.length >= 1
     const canFinish = watchStyle !== ''
 
-    const handleSkip = async () => {
-        try {
-            await updateDoc(doc(db, 'users', uid), {
-                onboardingDone: true,
-            })
-        } catch (e) {
-            console.error(e)
-        } finally {
-            onComplete()
+    // 건너뛰기: 현재 스텝만 넘김, 마지막 스텝이면 완료
+    const handleSkip = () => {
+        if (step < 3) {
+            setStep(s => s + 1)
+        } else {
+            handleComplete()
         }
+    }
+
+    // X 버튼: 그냥 닫기 (저장 없음)
+    const handleClose = () => {
+        if (onClose) onClose()
+        else onComplete()
     }
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center">
             {/* 백드롭 */}
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
 
             {/* 모달 */}
             <AnimatePresence mode="wait">
@@ -110,7 +114,7 @@ export default function OnboardingModal({ uid, onComplete }: Props) {
                     <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg,#6c63ff,#a78bfa)' }} />
 
                     <div className="p-7">
-                        {/* 스텝 인디케이터 */}
+                        {/* 스텝 인디케이터 + X 버튼 */}
                         <div className="flex items-center gap-2 mb-6">
                             {[1, 2, 3].map(s => (
                                 <div
@@ -123,6 +127,35 @@ export default function OnboardingModal({ uid, onComplete }: Props) {
                                     }}
                                 />
                             ))}
+                            <button
+                                onClick={handleClose}
+                                style={{
+                                    flexShrink: 0,
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: '50%',
+                                    background: 'rgba(255,255,255,0.06)',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    color: 'rgba(255,255,255,0.45)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'background .18s, color .18s',
+                                }}
+                                onMouseEnter={e => {
+                                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.12)'
+                                    ;(e.currentTarget as HTMLButtonElement).style.color = '#fff'
+                                }}
+                                onMouseLeave={e => {
+                                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+                                    ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)'
+                                }}
+                            >
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                                </svg>
+                            </button>
                         </div>
 
                         {/* STEP 1 — 장르 */}
@@ -281,16 +314,16 @@ export default function OnboardingModal({ uid, onComplete }: Props) {
                                 </div>
                             </>
                         )}
+
                         <div className="flex justify-end mt-5">
                             <button
                                 onClick={handleSkip}
                                 className="text-xs text-[rgba(255,255,255,0.45)] hover:text-white transition-colors"
                             >
-                                건너뛰기
+                                {step < 3 ? ' 건너뛰기 →' : '선택 없이 완료'}
                             </button>
                         </div>
                     </div>
-
                 </motion.div>
             </AnimatePresence>
         </div>
