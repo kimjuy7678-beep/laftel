@@ -61,7 +61,7 @@ export default function CouponPage() {
             if (usedSnap.exists()) { setError('이미 사용한 쿠폰입니다.'); return }
 
             await setDoc(usedRef, { uid: user.uid, code: upperCode, usedAt: new Date() })
-            await addDoc(collection(db, 'users', user.uid, 'coupon_history'), {
+            await addDoc(collection(db, 'users', user.uid!, 'coupon_history'), {
                 code: upperCode,
                 label: coupon.label,
                 type: coupon.type,
