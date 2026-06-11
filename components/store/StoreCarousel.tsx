@@ -42,7 +42,7 @@ const BANNERS_BASE: Banner[] = [
     // 신규 추가
 
     {
-        url: "./images/store/storebanner7.png",
+        url: "./images/store/storebanner8.png",
         title: "마루의 무해함으로 일상치유",
         content: "마루는 강쥐 공식 굿즈 대거 출시\n귀여운 마루와 함께라면 일주일은 두렵지 않아",
         button: "시리즈 페이지 가기",
