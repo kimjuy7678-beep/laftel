@@ -259,20 +259,20 @@ export default function SurveyBanner() {
                     }
                     .sb-btn {
                         position: absolute;
-                        right: 4.5%;
-                        bottom: 7.5%;
+                        right: 15.5%;
+                        bottom: 6%;
                         display: inline-flex; align-items: center; justify-content: center;
                         min-height: clamp(18px, 2.35vw, 38px);
                         padding: 0 clamp(8px, 1.5vw, 24px); border-radius: 50px;
                         background: rgba(255,255,255,0.15);
                         border: 1px solid rgba(255,255,255,0.4);
-                        color: #fff; font-size: clamp(8px, 0.86vw, 15px); font-weight: 600;
+                        color: #fff; font-size: clamp(15px, 0.86vw, 24px); font-weight: 600;
                         cursor: pointer; white-space: nowrap;
                         backdrop-filter: blur(4px); transition: background .2s;
                     }
                     .sb-btn:hover { background: rgba(255,255,255,0.5); }
                     @media (max-width: 1920px) {
-                        .sb-btn { right: 4.5%; }
+                        .sb-btn { right: 14.5%; }
                     }
                     .sb-dismiss {
                         position: absolute;
@@ -290,8 +290,8 @@ export default function SurveyBanner() {
                         .sb-section { padding-top: 32px; }
                         .sb-wrap { margin-top: -14px; padding-top: 26px; }
                         .sb-btn {
-                            right: 3.5%;
-                            bottom: 6.5%;
+                            right: 13.5%;
+                            bottom: 5%;
                             min-height: clamp(13px, 3vw, 22px);
                             padding: 0 clamp(5px, 1.8vw, 10px);
                             font-size: clamp(6px, 1.35vw, 9px);
