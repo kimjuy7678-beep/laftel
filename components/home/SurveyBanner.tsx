@@ -1,23 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { db } from '@/firebase/firebase'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 
 const QUESTIONS = [
-    {
-        id: 'satisfaction',
-        label: '라프텔 전반적인 만족도는?',
-        type: 'rating',
-        options: ['😫', '😕', '😐', '🙂', '😍'],
-        labels: ['최악', '별로', '보통', '좋음', '최고'],
-    },
-    {
-        id: 'usage_frequency',
-        label: '얼마나 자주 이용하세요?',
-        type: 'single',
-        options: ['매일', '주 2~3회', '주 1회', '월 1~2회', '가끔'],
-    },
     {
         id: 'favorite_feature',
         label: '가장 마음에 드는 기능은?',
@@ -49,17 +36,16 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
     const q = QUESTIONS[step]
     const isLast = step === QUESTIONS.length - 1
 
-    const handleRating = (val: number) => setAnswers(prev => ({ ...prev, [q.id]: val }))
     const handleSingle = (val: string) => setAnswers(prev => ({ ...prev, [q.id]: val }))
     const handleMulti = (val: string) => {
-        const cur = Array.isArray(answers[q.id]) ? answers[q.id] : []
+        const cur = Array.isArray(answers[q.id]) ? answers[q.id] as string[] : []
         setAnswers(prev => ({
             ...prev,
             [q.id]: cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val]
         }))
     }
     const handleText = (val: string) => setAnswers(prev => ({ ...prev, [q.id]: val }))
-    const canNext = q.type === 'text' || answers[q.id] !== undefined && answers[q.id] !== ''
+    const canNext = q.type === 'text' || (answers[q.id] !== undefined && answers[q.id] !== '')
 
     const handleNext = () => {
         if (!isLast) { setStep(s => s + 1); return }
@@ -72,11 +58,12 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
             const docId = user?.uid || `anonymous_${Date.now()}`
             await setDoc(doc(db, 'surveys', docId), {
                 ...answers,
+                surveyType: 'survey1',
                 userId: user?.uid || null,
                 userEmail: user?.email || null,
                 createdAt: serverTimestamp(),
             }, { merge: true })
-            if (user?.uid) await addPoints(700)
+            if (user?.uid) await addPoints(800)
             setDone(true)
         } catch (e) {
             console.error(e)
@@ -97,13 +84,6 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                 .sv-progress-dot { flex: 1; height: 3px; border-radius: 2px; transition: background .3s; }
                 .sv-body { padding: 0 28px 28px; }
                 .sv-question { font-size: 17px; font-weight: 800; color: #fff; margin: 0 0 20px; line-height: 1.4; }
-                .sv-rating { display: flex; gap: 8px; }
-                .sv-rating-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); cursor: pointer; transition: all .18s; }
-                .sv-rating-btn:hover { border-color: rgba(108,99,255,.4); background: rgba(108,99,255,.1); }
-                .sv-rating-btn.selected { border-color: #6c63ff; background: rgba(108,99,255,.18); }
-                .sv-rating-emoji { font-size: 22px; }
-                .sv-rating-label { font-size: 10px; color: rgba(255,255,255,.4); }
-                .sv-rating-btn.selected .sv-rating-label { color: #9d97ff; }
                 .sv-options { display: flex; flex-direction: column; gap: 8px; }
                 .sv-option { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); cursor: pointer; transition: all .15s; font-size: 14px; color: rgba(255,255,255,.75); text-align: left; }
                 .sv-option:hover { border-color: rgba(108,99,255,.35); background: rgba(108,99,255,.08); }
@@ -136,7 +116,7 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                             <span className="sv-done-emoji">🎉</span>
                             <p className="sv-done-title">소중한 의견 감사해요!</p>
                             <p className="sv-done-sub">더 나은 라프텔을 만드는 데 활용할게요</p>
-                            {user?.uid && <p className="sv-done-point">🎁 700p 포인트가 지급되었어요!</p>}
+                            {user?.uid && <p className="sv-done-point">🎁 800p 포인트가 지급되었어요!</p>}
                             <button className="sv-close-btn" onClick={onClose}>확인</button>
                         </div>
                     ) : (
@@ -152,26 +132,17 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                             <div className="sv-body">
                                 <p className="sv-question">{q.label}</p>
 
-                                {q.type === 'rating' && (
-                                    <div className="sv-rating">
-                                        {q.options!.map((emoji, i) => (
-                                            <button key={i} className={`sv-rating-btn${answers[q.id] === i + 1 ? ' selected' : ''}`}
-                                                onClick={() => handleRating(i + 1)}>
-                                                <span className="sv-rating-emoji">{emoji}</span>
-                                                <span className="sv-rating-label">{q.labels![i]}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
                                 {q.type === 'single' && (
                                     <div className="sv-options">
                                         {q.options!.map(opt => (
-                                            <button key={opt} className={`sv-option${answers[q.id] === opt ? ' selected' : ''}`}
+                                            <button key={opt}
+                                                className={`sv-option${answers[q.id] === opt ? ' selected' : ''}`}
                                                 onClick={() => handleSingle(opt)}>
                                                 <div className="sv-check">
                                                     {answers[q.id] === opt && (
-                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>
+                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+                                                            <polyline points="20,6 9,17 4,12" />
+                                                        </svg>
                                                     )}
                                                 </div>
                                                 {opt}
@@ -183,13 +154,16 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                                 {q.type === 'multi' && (
                                     <div className="sv-options">
                                         {q.options!.map(opt => {
-                                            const selected = (answers[q.id] || []).includes(opt)
+                                            const selected = Array.isArray(answers[q.id]) && (answers[q.id] as string[]).includes(opt)
                                             return (
-                                                <button key={opt} className={`sv-option${selected ? ' selected' : ''}`}
+                                                <button key={opt}
+                                                    className={`sv-option${selected ? ' selected' : ''}`}
                                                     onClick={() => handleMulti(opt)}>
                                                     <div className="sv-check" style={{ borderRadius: 4 }}>
                                                         {selected && (
-                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+                                                                <polyline points="20,6 9,17 4,12" />
+                                                            </svg>
                                                         )}
                                                     </div>
                                                     {opt}
@@ -203,7 +177,7 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                                     <textarea
                                         className="sv-textarea"
                                         placeholder="자유롭게 작성해주세요"
-                                        value={answers[q.id] || ''}
+                                        value={typeof answers[q.id] === 'string' ? answers[q.id] as string : ''}
                                         onChange={e => handleText(e.target.value)}
                                     />
                                 )}
@@ -216,7 +190,7 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
                                         )}
                                         <button
                                             className="sv-btn-next"
-                                            disabled={!canNext && q.type !== 'text' || submitting}
+                                            disabled={(!canNext && q.type !== 'text') || submitting}
                                             onClick={handleNext}
                                         >
                                             {submitting ? '제출 중...' : isLast ? '제출하기 🎉' : '다음'}
@@ -233,10 +207,19 @@ function SurveyModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function SurveyBanner() {
+    const { user } = useAuthStore()
     const [open, setOpen] = useState(false)
     const [dismissed, setDismissed] = useState(false)
+    const [alreadyDone, setAlreadyDone] = useState(false)
 
-    if (dismissed) return null
+    useEffect(() => {
+        if (!user?.uid) return
+        getDoc(doc(db, 'surveys', user.uid)).then(snap => {
+            if (snap.exists() && snap.data()?.surveyType === 'survey1') setAlreadyDone(true)
+        }).catch(() => {})
+    }, [user?.uid])
+
+    if (dismissed || alreadyDone) return null
 
     return (
         <>
@@ -244,41 +227,22 @@ export default function SurveyBanner() {
                 <style>{`
                     .sb-section { padding: 40px 0 0; }
                     .sb-wrap { width: 100%; margin: 0 auto; margin-top: -24px; padding-top: 38px; }
-                    .sb-inner {
-                        position: relative;
-                        overflow: hidden;
-                        padding-top: 26.1%;
-                        height: 0;
-                    }
-                    .sb-bg {
-                        position: absolute;
-                        top: 0; left: 0;
-                        width: 100%; height: 100%;
-                        object-fit: cover;
-                        display: block;
-                    }
+                    .sb-inner { position: relative; overflow: hidden; padding-top: 26.1%; height: 0; }
+                    .sb-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
                     .sb-btn {
-                        position: absolute;
-                        right: 15.5%;
-                        bottom: 6%;
+                        position: absolute; right: 15.5%; bottom: 6%;
                         display: inline-flex; align-items: center; justify-content: center;
                         min-height: clamp(18px, 2.35vw, 38px);
                         padding: 0 clamp(8px, 1.5vw, 24px); border-radius: 50px;
-                        background: rgba(255,255,255,0.15);
-                        border: 1px solid rgba(255,255,255,0.4);
+                        background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4);
                         color: #fff; font-size: clamp(15px, 0.86vw, 24px); font-weight: 600;
                         cursor: pointer; white-space: nowrap;
                         backdrop-filter: blur(4px); transition: background .2s;
                     }
                     .sb-btn:hover { background: rgba(255,255,255,0.5); }
-                    @media (max-width: 1920px) {
-                        .sb-btn { right: 14.5%; }
-                    }
+                    @media (max-width: 1920px) { .sb-btn { right: 14.5%; } }
                     .sb-dismiss {
-                        position: absolute;
-                        top: 8%;
-                        right: 1.5%;
-                        z-index: 2;
+                        position: absolute; top: 8%; right: 1.5%; z-index: 2;
                         width: 32px; height: 32px; border-radius: 50%;
                         background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
                         color: rgba(255,255,255,0.6); cursor: pointer;
@@ -289,36 +253,13 @@ export default function SurveyBanner() {
                     @media (max-width: 900px) {
                         .sb-section { padding-top: 32px; }
                         .sb-wrap { margin-top: -14px; padding-top: 26px; }
-                        .sb-btn {
-                            right: 13.5%;
-                            bottom: 5%;
-                            min-height: clamp(13px, 3vw, 22px);
-                            padding: 0 clamp(5px, 1.8vw, 10px);
-                            font-size: clamp(6px, 1.35vw, 9px);
-                        }
-                        .sb-dismiss {
-                            width: 26px;
-                            height: 26px;
-                        }
+                        .sb-btn { right: 13.5%; bottom: 5%; min-height: clamp(13px, 3vw, 22px); padding: 0 clamp(5px, 1.8vw, 10px); font-size: clamp(6px, 1.35vw, 9px); }
+                        .sb-dismiss { width: 26px; height: 26px; }
                     }
                     @media (max-width: 560px) {
-                        .sb-btn {
-                            right: 2.5%;
-                            bottom: 5.5%;
-                            min-height: clamp(11px, 4vw, 16px);
-                            padding: 0 clamp(4px, 1.8vw, 6px);
-                            font-size: clamp(5px, 1.8vw, 7px);
-                        }
-                        .sb-dismiss {
-                            top: 6%;
-                            right: 1.5%;
-                            width: 22px;
-                            height: 22px;
-                        }
-                        .sb-dismiss svg {
-                            width: 10px;
-                            height: 10px;
-                        }
+                        .sb-btn { right: 2.5%; bottom: 5.5%; min-height: clamp(11px, 4vw, 16px); padding: 0 clamp(4px, 1.8vw, 6px); font-size: clamp(5px, 1.8vw, 7px); }
+                        .sb-dismiss { top: 6%; right: 1.5%; width: 22px; height: 22px; }
+                        .sb-dismiss svg { width: 10px; height: 10px; }
                     }
                 `}</style>
 
@@ -326,7 +267,7 @@ export default function SurveyBanner() {
                     <div className="sb-inner">
                         <img className="sb-bg" src="/images/banner/survey-banner.png" alt="설문 배너" />
                         <button className="sb-btn" onClick={() => setOpen(true)}>
-                            설문 참여하기 · 🎁 700P
+                            설문 참여하기 · 🎁 800P
                         </button>
                         <button className="sb-dismiss" onClick={() => setDismissed(true)}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

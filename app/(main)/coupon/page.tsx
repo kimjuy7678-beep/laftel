@@ -21,6 +21,11 @@ const VALID_COUPONS: Record<string, { type: 'point' | 'basic' | 'premium', value
     'LAFTEL-SPECIAL-99': { type: 'point', value: 9900, label: '스페셜 포인트 쿠폰' },
 }
 
+const MEMBERSHIP_BY_COUPON = {
+    basic: 'anime',
+    premium: 'allinone',
+} as const
+
 const notices = [
     '쿠폰번호는 영문자와 숫자 혼합이며 대소문자 구분없이 입력할 수 있습니다.',
     '쿠폰마다 등록 가능한 기간이 다를 수 있습니다.',
@@ -48,7 +53,8 @@ export default function CouponPage() {
     }, [user])
 
     const handleRegister = async () => {
-        if (!code.trim() || !user) return
+        if (!code.trim() || !user?.uid) return
+        const uid = user.uid
         setError(''); setSuccess('')
         setLoading(true)
         try {
@@ -56,12 +62,12 @@ export default function CouponPage() {
             const coupon = VALID_COUPONS[upperCode]
             if (!coupon) { setError('유효하지 않은 쿠폰번호입니다.'); return }
 
-            const usedRef = doc(db, 'used_coupons', `${user.uid}_${upperCode}`)
+            const usedRef = doc(db, 'used_coupons', `${user.uid!}_${upperCode}`)
             const usedSnap = await getDoc(usedRef)
             if (usedSnap.exists()) { setError('이미 사용한 쿠폰입니다.'); return }
 
-            await setDoc(usedRef, { uid: user.uid, code: upperCode, usedAt: new Date() })
-            await addDoc(collection(db, 'users', user.uid, 'coupon_history'), {
+            await setDoc(usedRef, { uid: user.uid!, code: upperCode, usedAt: new Date() })
+            await addDoc(collection(db, 'users', user.uid!!, 'coupon_history'), {
                 code: upperCode,
                 label: coupon.label,
                 type: coupon.type,
@@ -70,9 +76,9 @@ export default function CouponPage() {
             })
 
             if (coupon.type === 'point') {
-                await chargePoints(user.uid, coupon.value, coupon.label)
-                await fetchPoints(user.uid)
-                await saveNotification(user.uid, {
+                await chargePoints(user.uid!!, coupon.value, coupon.label)
+                await fetchPoints(user.uid!!)
+                await saveNotification(user.uid!!, {
                     type: 'coupon',
                     title: '쿠폰 등록 완료',
                     body: `${coupon.label}이 등록되어 ${coupon.value.toLocaleString()}P가 충전되었어요.`,
@@ -80,24 +86,24 @@ export default function CouponPage() {
                 })
                 setSuccess(`🎉 ${coupon.label} 등록 완료! ${coupon.value.toLocaleString()}P가 충전되었어요.`)
             } else {
-                await setDoc(doc(db, 'users', user.uid), {
+                await setDoc(doc(db, 'users', user.uid!), {
                     membership: coupon.type,
                     membershipDays: coupon.value,
                     membershipStartAt: new Date(),
                 }, { merge: true })
-                await addDoc(collection(db, 'users', user.uid, 'membership_history'), {
+                await addDoc(collection(db, 'users', user.uid!, 'membership_history'), {
                     type: coupon.type,
                     label: coupon.label,
                     days: coupon.value,
                     createdAt: new Date(),
                 })
-                await saveNotification(user.uid, {
+                await saveNotification(user.uid!, {
                     type: 'membership',
                     title: '멤버십 시작',
                     body: `${coupon.label}이 시작되었어요!`,
                     link: '/membership',
                 })
-                setMembership(coupon.type)
+                setMembership(coupon.type as any)
                 setSuccess(`🎉 ${coupon.label} 등록 완료! 멤버십 혜택을 이용해보세요.`)
             }
             setCode('')

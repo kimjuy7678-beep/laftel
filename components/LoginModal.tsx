@@ -34,14 +34,17 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: Props) {
             onClick={onClose}
         >
             <div
-                className="relative bg-[#141414] rounded-2xl w-full max-w-sm p-8 flex flex-col items-center gap-5"
-                style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+                className="relative rounded-2xl w-full max-w-sm p-8 flex flex-col items-center gap-5"
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
                 onClick={e => e.stopPropagation()}
             >
                 {/* 닫기 */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+                    style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-secondary)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)'}
                 >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -58,27 +61,30 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: Props) {
                 </div>
 
                 <div className="text-center">
-                    <h3 className="text-white font-black text-xl mb-2">로그인이 필요해요</h3>
-                    <p className="text-[var(--text-subtle)] text-sm leading-relaxed">
+                    <h3 className="font-black text-xl mb-2" style={{ color: 'var(--text-primary)' }}>
+                        로그인이 필요해요
+                    </h3>
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--text-subtle)' }}>
                         영상을 시청하려면<br />먼저 로그인해 주세요
                     </p>
                 </div>
 
-                {/* 구분선 */}
-                <div className="w-full h-px bg-white/[0.06]" />
+                <div className="w-full h-px" style={{ background: 'var(--border)' }} />
 
-                {/* 구글 로그인 버튼 */}
                 <button
                     onClick={handleLogin}
-                    className="w-full flex items-center justify-center gap-3 py-3 px-5 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90 active:scale-[0.98] cursor-pointer"
-                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                    className="w-full flex items-center justify-center gap-3 py-3 px-5 rounded-xl font-bold text-sm transition-all hover:opacity-90 active:scale-[0.98] cursor-pointer"
+                    style={{ background: '#6c63ff', color: '#fff' }}
                 >
                     로그인 하러가기
                 </button>
 
                 <button
                     onClick={onClose}
-                    className="text-[var(--text-faint)] text-xs hover:text-[var(--text-muted)] transition-colors cursor-pointer"
+                    className="text-xs transition-colors cursor-pointer"
+                    style={{ color: 'var(--text-faint)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-faint)'}
                 >
                     나중에 하기
                 </button>
