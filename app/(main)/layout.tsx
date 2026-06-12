@@ -10,6 +10,7 @@ import AnimePreviewModal from "./anime/[id]/AnimePreviewModal"
 import OnboardingModal from "@/components/OnboardingModal"
 import { useAuthStore } from "@/store/useAuthStore"
 
+
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const hideLayout = pathname === '/profile'
