@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
 import OnboardingModal from '@/components/OnboardingModal'
+import SurveyBanner2 from '@/components/home/SurveyBanner2'
 
 export default function Home() {
   const [cursor, setCursor] = useState({ x: -100, y: -100 })
@@ -71,6 +72,7 @@ export default function Home() {
         <Top10Section />
         <ThemeRowSection genre={10759} title="작화진의 영혼을 갈아 넣은 눈호강 치트키 !!" rows={2} />
         <OstSection />
+        <SurveyBanner2 />
         <ThemeRowSection genre={10751} title="잔잔하게 스며들다 웅장하게 터지는 인생 치유물" rows={3} />
         <ThemeRowSection genre={16} title="등장하는 순간 영혼까지 홀리는 마성의 캐릭터들" rows={2} />
         <TagTop10Section />

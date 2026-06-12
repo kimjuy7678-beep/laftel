@@ -64,17 +64,14 @@ interface EventStore {
     onFetchComments: (eventId: number, sorting?: "latest" | "popular", offset?: number) => Promise<void>
 }
 
-const BASE = "https://api.laftel.net/api/events/v2"
+// ✅ Laftel API 직접 호출 대신 Next.js API Route 프록시 사용 (CORS 우회)
+const BASE = '/api/laftel/events'
 
 interface ApiComment {
     id: number
     content: string
     created: string
-    profile?: {
-        id: number
-        name: string
-        image: string
-    }
+    profile?: { id: number; name: string; image: string }
     count_like?: number
     is_click_like?: boolean
     reply_count?: number
@@ -98,10 +95,8 @@ export const useEventStore = create<EventStore>((set) => ({
     events: [],
     total: 0,
     loading: false,
-
     selectedEvent: null,
     detailLoading: false,
-
     comments: [],
     commentTotal: 0,
     commentLoading: false,
@@ -114,7 +109,7 @@ export const useEventStore = create<EventStore>((set) => ({
             let offset = 0
             const limit = 20
             while (true) {
-                const res = await fetch(`${BASE}/list/?offset=${offset}&limit=${limit}`)
+                const res = await fetch(`${BASE}/list?offset=${offset}&limit=${limit}`)
                 const data = await res.json()
                 allEvents = [...allEvents, ...data.results]
                 if (!data.next) break
@@ -129,7 +124,7 @@ export const useEventStore = create<EventStore>((set) => ({
     onFetchEventDetail: async (eventId: number) => {
         set({ detailLoading: true, selectedEvent: null })
         try {
-            const res = await fetch(`${BASE}/${eventId}/`)
+            const res = await fetch(`${BASE}/${eventId}`)
             const data: EventDetail = await res.json()
             set({ selectedEvent: data })
         } finally {
@@ -144,7 +139,7 @@ export const useEventStore = create<EventStore>((set) => ({
         )
         try {
             const res = await fetch(
-                `${BASE}/${eventId}/comments/?sorting=${sorting}&limit=20&offset=${offset}`
+                `${BASE}/${eventId}/comments?sorting=${sorting}&limit=20&offset=${offset}`
             )
             const data = await res.json()
             const comments = data.results.map(toComment)

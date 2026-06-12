@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { doc, setDoc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
-import Router from 'next/router'
+import { useRouter } from 'next/navigation'
 
 type PlanId = 'anime' | 'ost' | 'allinone'
 
@@ -37,6 +37,7 @@ export default function PaymentModal({ isOpen, onClose, onCloseAll, planId }: Pa
     const [paying, setPaying] = useState(false)
     const [done, setDone] = useState(false)
     const { setMembership } = useAuthStore()
+    const router = useRouter()
 
     useEffect(() => {
         if (!isOpen || !user?.uid) return
