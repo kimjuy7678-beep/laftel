@@ -64,8 +64,7 @@ interface EventStore {
     onFetchComments: (eventId: number, sorting?: "latest" | "popular", offset?: number) => Promise<void>
 }
 
-// ✅ Laftel API 직접 호출 대신 Next.js API Route 프록시 사용 (CORS 우회)
-const BASE = '/api/laftel/events'
+const BASE = '/api/laftel'
 
 interface ApiComment {
     id: number
