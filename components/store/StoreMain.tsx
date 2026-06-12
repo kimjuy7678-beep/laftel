@@ -1,19 +1,12 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useEffect, useState } from "react";
 import Link from "next/link";
 import type { StoreCategory, StoreMainProduct, StoreMainSourceProduct } from "@/types/store";
 import { RECENT_STORE_PRODUCT_IDS_KEY } from "@/types/store";
 import { StoreSearchBar } from "@/components/store/StoreSearch";
 import { BEST_PRODUCTS } from "@/lib/storeBestRanking";
 import products from "@/data/store.json";
-
-// ─── Typography System ────────────────────────────────────────────────────────
-// title      : 20px  font-semibold
-// sub        : 11px / 13px  (상황별 사용)
-// section title : 32px  font-bold
-// section sub   : 18px  font-medium
-// all-btn    : 16px  font-semibold
 
 const STORE_PRODUCTS = products as StoreMainSourceProduct[];
 
@@ -87,18 +80,15 @@ let cachedRecentProducts: StoreMainProduct[] = EMPTY_RECENT_PRODUCTS;
 
 function getRecentProducts() {
     if (typeof window === "undefined") return EMPTY_RECENT_PRODUCTS;
-
     try {
         const stored = window.localStorage.getItem(RECENT_STORE_PRODUCT_IDS_KEY);
         if (stored === cachedRecentStorage) return cachedRecentProducts;
-
         const ids = stored ? (JSON.parse(stored) as unknown) : [];
         if (!Array.isArray(ids)) {
             cachedRecentStorage = stored;
             cachedRecentProducts = EMPTY_RECENT_PRODUCTS;
             return cachedRecentProducts;
         }
-
         const productsById = new Map(STORE_PRODUCTS.map((product) => [product.productId, product]));
         cachedRecentStorage = stored;
         cachedRecentProducts = ids
@@ -107,7 +97,6 @@ function getRecentProducts() {
             .filter((product): product is StoreMainSourceProduct => Boolean(product))
             .slice(0, 7)
             .map((product) => toProduct(product));
-
         return cachedRecentProducts;
     } catch {
         cachedRecentStorage = null;
@@ -125,8 +114,6 @@ function subscribeRecentProducts(onStoreChange: () => void) {
     };
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function ImageSlot({ src, alt, className }: { src: string; alt: string; className: string }) {
     if (!src) return <div className={`${className} bg-[#eeeeef]`} aria-label={alt} />;
     return (
@@ -139,7 +126,6 @@ function ImageSlot({ src, alt, className }: { src: string; alt: string; classNam
     );
 }
 
-// inner 래퍼: max-w-[1770px]
 function Inner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
     return (
         <div className={`mx-auto w-full max-w-[1770px] px-4 sm:px-6 lg:px-[75px] ${className}`}>
@@ -147,8 +133,6 @@ function Inner({ children, className = "" }: { children: React.ReactNode; classN
         </div>
     );
 }
-
-// ─── MiniProductCard ──────────────────────────────────────────────────────────
 
 function MiniProductCard({ product }: { product: StoreMainProduct }) {
     return (
@@ -158,12 +142,121 @@ function MiniProductCard({ product }: { product: StoreMainProduct }) {
                 alt={product.title}
                 className="aspect-square w-full rounded-[8px]"
             />
-            {/* sub: 13px */}
             <p className="mt-2 truncate text-[13px] text-[#17151f]">{product.title}</p>
-            {/* sub: 11px */}
             <p className="text-[11px] font-bold text-[#7865ff]">{product.price}</p>
         </Link>
     );
+}
+
+// ─── OTT 최근 시청 기반 굿즈 추천 섹션 ──────────────────────────────────────
+
+function getOttRecentAnime(): string[] {
+    try {
+        // watch-progress-storage (Zustand persist)
+        const s = localStorage.getItem('watch-progress-storage')
+        if (s) {
+            const items = JSON.parse(s)?.state?.items || []
+            return items
+                .slice(0, 10)
+                .map((item: any) => item.animeName || item.title || item.name || '')
+                .filter(Boolean)
+        }
+    } catch { }
+    return []
+}
+
+function matchAnimeToCategory(animeName: string, category: string): boolean {
+    const a = animeName.replace(/\s/g, '').toLowerCase()
+    const c = category.replace(/\s/g, '').toLowerCase()
+    // 2글자 이상 공통 부분 있으면 매칭
+    if (a.includes(c) || c.includes(a)) return true
+    // 앞 2글자 매칭 (귀멸의칼날 → 귀멸)
+    if (a.slice(0, 2) === c.slice(0, 2)) return true
+    return false
+}
+
+function OttRecommendSection() {
+    const [sections, setSections] = useState<{ animeName: string; products: StoreMainProduct[] }[]>([])
+
+    useEffect(() => {
+        const recentAnime = getOttRecentAnime()
+        if (recentAnime.length === 0) return
+
+        const result: { animeName: string; products: StoreMainProduct[] }[] = []
+
+        recentAnime.forEach(animeName => {
+            const matched = STORE_PRODUCTS
+                .filter(p => matchAnimeToCategory(animeName, p.category))
+                .slice(0, 5)
+                .map(p => toProduct(p))
+
+            if (matched.length > 0) {
+                // 이미 같은 카테고리 추가됐으면 스킵
+                const alreadyAdded = result.some(r =>
+                    r.products[0]?.category === matched[0]?.category
+                )
+                if (!alreadyAdded) {
+                    result.push({ animeName, products: matched })
+                }
+            }
+        })
+
+        setSections(result.slice(0, 2)) // 최대 3개 시리즈
+    }, [])
+
+    if (sections.length === 0) return null
+
+    return (
+        <section className="mt-8 sm:mt-10">
+            <Inner>
+                <div className="rounded-[16px] border border-[#ebe8ff] bg-gradient-to-br from-[#f3f0ff] to-[#faf8ff] px-4 py-5 sm:rounded-[24px] sm:px-8 sm:py-7 lg:rounded-[28px] lg:px-10 lg:py-8">
+                    {/* 헤더 */}
+                    <div className="mb-6 flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7865ff]">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                                <polygon points="23 7 16 12 23 17 23 7" />
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 className="text-[18px] font-bold text-[#14111c] sm:text-[20px]">
+                                최근 시청한 작품의 굿즈
+                            </h2>
+                            <p className="text-[11px] text-[#8a8494]">라프텔에서 본 애니 굿즈를 바로 만나보세요</p>
+                        </div>
+                    </div>
+
+                    {/* 시리즈별 */}
+                    <div className="flex flex-col gap-8">
+                        {sections.map(({ animeName, products: sectionProducts }) => (
+                            <div key={animeName}>
+                                <div className="mb-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="rounded-full bg-[#7865ff]/10 px-3 py-1 text-[12px] font-bold text-[#7865ff]">
+                                            {sectionProducts[0]?.category}
+                                        </span>
+                                    </div>
+                                    <Link
+                                        href={seriesHref(sectionProducts[0]?.category || '')}
+                                        className="text-[12px] font-semibold text-[#7865ff]"
+                                    >
+                                        전체보기 →
+                                    </Link>
+                                </div>
+                                <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-6 lg:overflow-visible lg:px-0">
+                                    {sectionProducts.map(product => (
+                                        <div key={product.id} className="w-[132px] shrink-0 snap-start sm:w-[150px] lg:w-auto">
+                                            <MiniProductCard product={product} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </Inner>
+        </section>
+    )
 }
 
 // ─── FeaturedRecent ───────────────────────────────────────────────────────────
@@ -182,9 +275,7 @@ function FeaturedRecent() {
             <Inner>
                 <div className="rounded-[16px] border border-[#ebe8ff] bg-[#f8f6ff] px-4 py-5 sm:rounded-[24px] sm:px-8 sm:py-7 lg:rounded-[28px] lg:px-10 lg:py-8">
                     <div className="mb-5 flex items-center justify-between gap-4 sm:mb-7">
-                        {/* title: 20px */}
                         <h2 className="text-[18px] font-semibold text-[#14111c] sm:text-[20px]">최근본상품</h2>
-                        {/* all-btn: 16px */}
                         <Link href="/store/recent" className="shrink-0 text-[13px] font-semibold text-[#7865ff] sm:text-[16px]">
                             더보기
                         </Link>
@@ -211,9 +302,7 @@ function CategoryStrip() {
                 <div className="grid grid-cols-4 gap-x-3 gap-y-6 sm:grid-cols-6 sm:gap-6 lg:grid-cols-8 lg:gap-8">
                     {categories.map((category) => (
                         <Link key={category.slug} href={seriesHref(category.name)} className="flex flex-col items-center gap-3">
-                            <div
-                                className={`relative flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-full shadow-[0_8px_20px_rgba(20,16,44,0.22)] sm:h-[78px] sm:w-[78px] lg:h-[88px] lg:w-[88px]`}
-                            >
+                            <div className="relative flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-full shadow-[0_8px_20px_rgba(20,16,44,0.22)] sm:h-[78px] sm:w-[78px] lg:h-[88px] lg:w-[88px]">
                                 <ImageSlot
                                     src={category.imageSrc}
                                     alt={category.name}
@@ -225,7 +314,6 @@ function CategoryStrip() {
                                     </span>
                                 )}
                             </div>
-                            {/* sub: 13px */}
                             <span className="max-w-full text-center text-[11px] font-semibold leading-tight text-[#15121d] sm:text-[12px] lg:text-[13px]">{category.name}</span>
                         </Link>
                     ))}
@@ -234,8 +322,6 @@ function CategoryStrip() {
         </section>
     );
 }
-
-// ─── TopProductCard ───────────────────────────────────────────────────────────
 
 function TopProductCard({ product, rank }: { product: StoreMainProduct; rank: number }) {
     return (
@@ -256,12 +342,10 @@ function TopProductCard({ product, rank }: { product: StoreMainProduct; rank: nu
                 {rank}
             </span>
             <div className="relative mt-2 pl-7 sm:pl-9 lg:mt-3 lg:pl-12">
-                {/* title: 20px */}
                 <p className="truncate text-[12px] font-semibold text-[#111018] sm:text-[15px] lg:text-[20px]">{product.title}</p>
-                {/* sub: 13px */}
                 <p className="mt-0.5 truncate text-[11px] font-medium text-[#7865ff] sm:text-[12px] lg:mt-1 lg:text-[13px]">{product.price}</p>
             </div>
-        </Link >
+        </Link>
     );
 }
 
@@ -278,7 +362,6 @@ function ProductFeatureCard({ product }: { product: StoreMainProduct }) {
                     alt={displayTitle}
                     className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
                 />
-
                 {isReserve && !isSoldout && (
                     <span className="absolute left-3 top-3 rounded-full bg-[#7865ff] px-2.5 py-1 text-[11px] font-bold text-white">
                         예약
@@ -300,18 +383,11 @@ function ProductFeatureCard({ product }: { product: StoreMainProduct }) {
 }
 
 function ProductSeriesSection({
-    title,
-    subtitle,
-    series,
-    products,
+    title, subtitle, series, products,
 }: {
-    title: string;
-    subtitle: string;
-    series: string;
-    products: StoreMainProduct[];
+    title: string; subtitle: string; series: string; products: StoreMainProduct[];
 }) {
     if (products.length === 0) return null;
-
     return (
         <section className="py-10 sm:py-12 lg:py-16">
             <Inner>
@@ -336,24 +412,19 @@ function ProductSeriesSection({
     );
 }
 
-// ─── BestTopSection ───────────────────────────────────────────────────────────
-
 function BestTopSection() {
     return (
         <section className="relative left-1/2 mt-12 w-screen -translate-x-1/2 bg-[#fafafa] py-12 sm:mt-16 sm:py-16 lg:mt-24 lg:py-20">
             <Inner>
                 <div className="mb-3 flex items-end justify-between gap-4">
                     <div>
-                        {/* section title: 32px */}
                         <h2 className="text-[24px] font-bold leading-tight tracking-wide text-[#16121f] sm:text-[30px] lg:text-[32px]">
                             BEST-TOP 50
                         </h2>
-                        {/* section sub: 18px */}
                         <p className="mt-2 text-[13px] font-medium text-[#8a8494] sm:text-[16px] lg:text-[18px]">
                             팬들이 가장 사랑한 굿즈
                         </p>
                     </div>
-                    {/* all-btn: 16px */}
                     <Link href="/store/best" className="shrink-0 text-right text-[12px] font-semibold text-[#7865ff] sm:text-[15px] lg:text-[16px]">
                         베스트 굿즈 전체보기 →
                     </Link>
@@ -370,8 +441,6 @@ function BestTopSection() {
     );
 }
 
-// ─── CharacterSection ────────────────────────────────────────────────────────
-
 function CharacterCard({ character }: { character: (typeof characterCollections)[number] }) {
     return (
         <Link href={characterHref(character.series, character.keyword)} className="group block min-w-0">
@@ -380,10 +449,7 @@ function CharacterCard({ character }: { character: (typeof characterCollections)
                     className="absolute inset-0 bg-cover transition-transform duration-300 group-hover:scale-[1.04]"
                     role="img"
                     aria-label={character.name}
-                    style={{
-                        backgroundImage: `url(${character.imageSrc})`,
-                        backgroundPosition: "center top",
-                    }}
+                    style={{ backgroundImage: `url(${character.imageSrc})`, backgroundPosition: "center top" }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                 <span
@@ -407,16 +473,13 @@ function CharacterCollectionSection() {
             <Inner>
                 <div className="mb-6 flex items-end justify-between gap-4 sm:mb-8">
                     <div>
-                        {/* section title: 32px */}
                         <h2 className="text-[22px] font-bold leading-tight text-[#15121d] sm:text-[28px] lg:text-[32px]">
                             최애를 만나러 가는길
                         </h2>
-                        {/* section sub: 18px */}
                         <p className="mt-2 text-[13px] font-medium leading-relaxed text-[#8a8494] sm:text-[16px] lg:text-[18px]">
                             좋아하는 캐릭터의 굿즈만 골라서 만나보세요
                         </p>
                     </div>
-                    {/* all-btn: 16px */}
                     <Link href="/store/series" className="shrink-0 text-right text-[12px] font-semibold text-[#7865ff] sm:text-[15px] lg:text-[16px]">
                         전체 시리즈 보기 →
                     </Link>
@@ -431,13 +494,11 @@ function CharacterCollectionSection() {
     );
 }
 
-// ─── CollectionBanner ─────────────────────────────────────────────────────────
-
 function CollectionBanner() {
     return (
-        <section className="pb-14 sm:pb-18 lg:pb-24 pt-[80px] ">
+        <section className="pb-14 sm:pb-18 lg:pb-24 pt-[80px]">
             <Inner>
-                <div className="relative overflow-hidden rounded-[16px] bg-[#dedede] sm:rounded-[24px] ">
+                <div className="relative overflow-hidden rounded-[16px] bg-[#dedede] sm:rounded-[24px]">
                     <ImageSlot
                         src="images/store/store-main-rare.png"
                         alt="Hololive Anniversary Set"
@@ -445,18 +506,15 @@ function CollectionBanner() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
                     <div className="absolute left-5 right-5 top-1/2 max-w-[560px] -translate-y-1/2 sm:left-10 sm:right-auto lg:left-20">
-                        {/* section title: 32px */}
                         <h2 className="text-[24px] font-bold leading-tight text-white sm:text-[28px] lg:text-[32px]">
                             지금만 만날 수 있는 한정판 굿즈
                         </h2>
-                        {/* section sub: 18px */}
                         <p className="mt-3 text-[13px] font-medium leading-relaxed text-white/80 sm:text-[16px] lg:text-[18px]">
                             수량 한정! 지금 바로 만나보세요
                             망설이는 순간 품절될지도 몰라요
                         </p>
-                        {/* all-btn: 16px */}
                         <button className="mt-6 rounded-[10px] bg-white px-5 py-3 text-[13px] font-semibold text-[#7865ff] shadow-[0_10px_24px_rgba(0,0,0,0.15)] sm:mt-8 sm:px-8 sm:py-3.5 sm:text-[15px] lg:px-10 lg:py-4 lg:text-[16px]">
-                            <Link href="/store/rare">   한정판 보러가기</Link>
+                            <Link href="/store/rare">한정판 보러가기</Link>
                         </button>
                     </div>
                 </div>
@@ -465,19 +523,18 @@ function CollectionBanner() {
     );
 }
 
-// ─── Main Banner ──────────────────────────────────────────────────────────────
-
 export default function StoreBanner() {
     return (
         <div className="inner">
             <StoreSearchBar />
+            {/* OTT 최근 시청 기반 굿즈 — 최상단 */}
+            <OttRecommendSection />
             <FeaturedRecent />
             <CategoryStrip />
             <BestTopSection />
             <ProductSeriesSection
                 title="포켓몬 굿즈"
-                subtitle="지금 가장 사랑받는 포켓몬 굿즈
-피카츄부터 이브이까지, 인기 아이템 한곳에"
+                subtitle={`지금 가장 사랑받는 포켓몬 굿즈\n피카츄부터 이브이까지, 인기 아이템 한곳에`}
                 series="포켓몬"
                 products={pokemonProducts}
             />

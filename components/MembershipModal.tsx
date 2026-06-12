@@ -1,6 +1,8 @@
 "use client"
 import { useEffect, useState } from 'react'
 import PaymentModal from './MembershipPaymentModal'
+import { useRouter } from 'next/navigation'
+
 
 
 type PlanId = 'anime' | 'ost' | 'allinone'
@@ -58,11 +60,13 @@ interface MembershipModalProps {
 export default function MembershipModal({ isOpen, onClose, defaultPlan, hasMembership }: MembershipModalProps) {
     const [modalPlan, setModalPlan] = useState<PlanId>(defaultPlan ?? 'allinone')
     const [showPayment, setShowPayment] = useState(false)
+    const router = useRouter()
 
     // PaymentModal + MembershipModal 동시에 닫기
     const handleCloseAll = () => {
         setShowPayment(false)
         onClose()
+        router.push('/')
     }
 
     useEffect(() => {

@@ -4,6 +4,8 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
 import { useAuthStore } from '@/store/useAuthStore'
+import LoginModal from '@/components/LoginModal'
+import MembershipRequiredModal from '@/components/MembershipRequiredModal'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
 const ITUNES_BASE = 'https://itunes.apple.com/search'
@@ -1108,6 +1110,9 @@ export default function OstPage() {
     const currentTrackRef = useRef<Track | null>(null)
     const userName = user?.name || user?.email?.split('@')[0] || '라프텔'
     const isMobile = useIsMobile()
+    const [showMembershipModal, setShowMembershipModal] = useState(false)
+    const [showLoginModal, setShowLoginModal] = useState(false)
+    const hasOstMembership = user?.membership === 'ost' || user?.membership === 'allinone'
 
     useEffect(() => { tracksRef.current = tracks }, [tracks])
     useEffect(() => { volumeRef.current = volume; if (audioRef.current) audioRef.current.volume = volume }, [volume])
@@ -1213,9 +1218,11 @@ export default function OstPage() {
     useEffect(() => { playingIdRef.current = playingId }, [playingId])
 
     const handlePlay = useCallback((track: Track) => {
+        if (!user) { setShowLoginModal(true); return }
+        if (!hasOstMembership) { setShowMembershipModal(true); return }
         if (playingIdRef.current === track.id) { stopAudio(); return }
         startPlay(track)
-    }, [startPlay, stopAudio])
+    }, [startPlay, stopAudio, user, hasOstMembership])
 
     const handleSeek = useCallback((pct: number) => {
         if (!audioRef.current) return
@@ -1239,6 +1246,9 @@ export default function OstPage() {
 
     return (
         <>
+            <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+            <MembershipRequiredModal isOpen={showMembershipModal} onClose={() => setShowMembershipModal(false)} type="ost" />
+            {/* 나머지 기존 코드 */}
             {/* 커서 이펙트: 데스크탑 전용 */}
             {!isMobile && (
                 <div style={{
