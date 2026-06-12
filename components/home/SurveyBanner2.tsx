@@ -232,7 +232,7 @@ export default function SurveyBanner2() {
 
                 <div className="sb2-wrap">
                     <div className="sb2-inner">
-                        <img className="sb2-bg" src="/images/banner/survey-banner2.png" alt="설문 배너" />
+                        <img className="sb2-bg" src="/images/banner/survey-banner3.png" alt="설문 배너" />
                         <button className="sb2-btn" onClick={() => setOpen(true)}>
                             설문 참여하기 · 🎁 700P
                         </button>
