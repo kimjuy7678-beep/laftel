@@ -8,7 +8,7 @@ import LoginModal from '@/components/LoginModal'
 import MembershipRequiredModal from '@/components/MembershipRequiredModal'
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY
-const ITUNES_BASE = '/api/itunes'
+const ITUNES_BASE = 'https://itunes.apple.com/search'
 
 interface Track {
     id: string
