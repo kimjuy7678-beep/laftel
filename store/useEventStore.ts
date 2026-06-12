@@ -64,7 +64,7 @@ interface EventStore {
     onFetchComments: (eventId: number, sorting?: "latest" | "popular", offset?: number) => Promise<void>
 }
 
-const BASE = '/api/laftel/events/v2'
+const BASE = '/api/laftel'
 
 interface ApiComment {
     id: number
