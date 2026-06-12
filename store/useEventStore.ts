@@ -65,7 +65,7 @@ interface EventStore {
 }
 
 // ✅ Laftel API 직접 호출 대신 Next.js API Route 프록시 사용 (CORS 우회)
-const BASE = '/api/laftel/events'
+const BASE = 'https://api.laftel.net/api/events'
 
 interface ApiComment {
     id: number
