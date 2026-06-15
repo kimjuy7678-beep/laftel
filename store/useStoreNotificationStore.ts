@@ -54,10 +54,7 @@ export const useStoreNotificationStore =
                 })) as Notification[]
 
                 const notifications = all.filter(
-                    n =>
-                        n.type !== 'point' &&
-                        n.type !== 'membership' &&
-                        n.type !== 'live'
+                    n => n.source === 'store' || !n.source
                 )
 
                 set({

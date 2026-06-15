@@ -1,4 +1,3 @@
-// lib/coupon.ts
 import { db } from "@/firebase/firebase";
 import {
     collection,
@@ -8,24 +7,21 @@ import {
     addDoc,
     updateDoc,
     query,
-    orderBy,
     serverTimestamp,
     Timestamp,
 } from "firebase/firestore";
 import { saveNotification } from "@/utils/notification";
-
-// ─── 타입 ──────────────────────────────────────────────────────────────────
 
 export type CouponType = "rate" | "fixed";
 export type CouponStatus = "active" | "used" | "expired";
 
 export interface Coupon {
     id: string;
-    label: string;              // 쿠폰명
-    discount: number;           // rate: 0.1 = 10%, fixed: 원 단위
+    label: string;
+    discount: number;
     type: CouponType;
-    minOrderAmount: number;     // 최소 주문금액 (0이면 제한 없음)
-    maxDiscountAmount?: number; // rate 쿠폰의 최대 할인 한도
+    minOrderAmount: number;
+    maxDiscountAmount?: number;
     status: CouponStatus;
     expiresAt: Timestamp | null;
     issuedAt: Timestamp;
@@ -33,18 +29,13 @@ export interface Coupon {
     usedOrderId?: string | null;
 }
 
-// ─── 내 쿠폰 전체 목록 조회 ───────────────────────────────────────────────
-
 export async function fetchUserCoupons(uid: string): Promise<Coupon[]> {
-    const q = query(
-        collection(db, "users", uid, "coupons"),
-        orderBy("issuedAt", "desc")
+    const snap = await getDocs(collection(db, "users", uid, "coupons"));
+    const coupons = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Coupon));
+    return coupons.sort((a, b) =>
+        (b.issuedAt?.toMillis() ?? 0) - (a.issuedAt?.toMillis() ?? 0)
     );
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Coupon));
 }
-
-// ─── 사용 가능한 쿠폰만 ───────────────────────────────────────────────────
 
 export async function fetchActiveCoupons(uid: string): Promise<Coupon[]> {
     const all = await fetchUserCoupons(uid);
@@ -55,8 +46,6 @@ export async function fetchActiveCoupons(uid: string): Promise<Coupon[]> {
             (c.expiresAt === null || c.expiresAt.toMillis() > now.toMillis())
     );
 }
-
-// ─── 쿠폰 발급 ────────────────────────────────────────────────────────────
 
 export interface IssueCouponParams {
     uid: string;
@@ -86,13 +75,12 @@ export async function issueCoupon(params: IssueCouponParams): Promise<string> {
         minOrderAmount,
         ...(maxDiscountAmount !== undefined ? { maxDiscountAmount } : {}),
         status: "active",
-        issuedAt: serverTimestamp(),
+        issuedAt: Timestamp.fromDate(new Date()),
         expiresAt: expiresAt ? Timestamp.fromDate(expiresAt) : null,
         usedAt: null,
         usedOrderId: null,
     });
 
-    // 알림 저장 → 알림창에 즉시 반영
     const discountText =
         type === "rate"
             ? `${Math.round(discount * 100)}% 할인`
@@ -108,8 +96,6 @@ export async function issueCoupon(params: IssueCouponParams): Promise<string> {
     return ref.id;
 }
 
-// ─── 쿠폰 사용 처리 (주문 완료 시 호출) ──────────────────────────────────
-
 export async function useCoupon(
     uid: string,
     couponId: string,
@@ -123,8 +109,6 @@ export async function useCoupon(
     });
 }
 
-// ─── 단일 쿠폰 조회 ───────────────────────────────────────────────────────
-
 export async function getCoupon(
     uid: string,
     couponId: string
@@ -133,8 +117,6 @@ export async function getCoupon(
     if (!snap.exists()) return null;
     return { id: snap.id, ...snap.data() } as Coupon;
 }
-
-// ─── 할인 금액 계산 ───────────────────────────────────────────────────────
 
 export function calcCouponDiscount(
     coupon: Coupon,
@@ -146,7 +128,6 @@ export function calcCouponDiscount(
         return Math.min(coupon.discount, orderAmount);
     }
 
-    // rate
     const raw = Math.floor(orderAmount * coupon.discount);
     if (coupon.maxDiscountAmount !== undefined) {
         return Math.min(raw, coupon.maxDiscountAmount);

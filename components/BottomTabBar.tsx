@@ -2,86 +2,110 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useAuthStore } from '@/store/useAuthStore'
-import { useEffect, useState } from 'react'
-
-function isCapacitorApp() {
-    return typeof window !== 'undefined' && !!(window as any).Capacitor
-}
+import { useTheme } from '@/components/ThemeProvider'
+import { useState } from 'react'
+import HeaderSearch from './HeaderSearch'
 
 export default function BottomTabBar() {
     const pathname = usePathname()
-    const { user } = useAuthStore()
-    const [isApp, setIsApp] = useState(false)
-
-    useEffect(() => {
-        setIsApp(isCapacitorApp())
-    }, [])
-
-    if (!isApp) return null
+    const { resolvedTheme, setTheme } = useTheme()
+    const [searchOpen, setSearchOpen] = useState(false)
+    const isDark = resolvedTheme === 'dark'
 
     const tabs = [
         {
             label: '홈',
             path: '/',
             icon: (active: boolean) => (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
-                    <path d="M9 21V12h6v9" />
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 10.5 12 4l8 6.5" />
+                    <path d="M5.5 9.5V20h5v-5.5h3V20h5V9.5" />
                 </svg>
             ),
         },
         {
             label: '검색',
-            path: '/tag-search',
+            path: null,
             icon: (active: boolean) => (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8" />
                     <path d="m21 21-4.35-4.35" />
                 </svg>
             ),
         },
         {
-            label: '찜',
+            label: '보관함',
             path: '/library',
             icon: (active: boolean) => (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-            ),
-        },
-        {
-            label: '마이',
-            path: user ? '/mypage' : '/login',
-            icon: (active: boolean) => (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" fill={active ? 'currentColor' : 'none'} />
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 7h18v13H3z" />
+                    <path d="m7 7 2-4h6l2 4" />
                 </svg>
             ),
         },
     ]
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-[9998] border-t border-[var(--border)] bg-[var(--bg-primary)]">
-            <div className="flex h-[60px] items-center justify-around px-2">
-                {tabs.map((tab) => {
-                    const isActive = tab.path === '/'
-                        ? pathname === '/'
-                        : pathname.startsWith(tab.path)
-                    return (
-                        <Link
-                            key={tab.path}
-                            href={tab.path}
-                            className="flex flex-col items-center justify-center gap-0.5 min-w-[60px] py-1"
-                            style={{ color: isActive ? '#6c63ff' : 'var(--text-subtle)' }}
-                        >
-                            {tab.icon(isActive)}
-                            <span className="text-[10px] font-medium">{tab.label}</span>
-                        </Link>
-                    )
-                })}
-            </div>
-        </nav>
+        <>
+            {searchOpen && <HeaderSearch onClose={() => setSearchOpen(false)} />}
+            <nav id="bottom-tab-bar" className="fixed bottom-0 left-0 right-0 z-[9998] border-t border-[var(--border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl md:hidden">
+                <div className="flex h-[64px] items-center justify-around px-2 pb-[max(4px,env(safe-area-inset-bottom))]">
+                    {tabs.map((tab) => {
+                        const isActive = tab.path === '/'
+                            ? pathname === '/'
+                            : tab.path
+                                ? pathname.startsWith(tab.path)
+                                : searchOpen
+
+                        if (!tab.path) {
+                            return (
+                                <button
+                                    key={tab.label}
+                                    type="button"
+                                    onClick={() => setSearchOpen(true)}
+                                    className="flex min-w-[60px] flex-col items-center justify-center gap-0.5 py-1"
+                                    style={{ color: isActive ? '#6c63ff' : 'var(--text-subtle)' }}
+                                    aria-label="검색"
+                                >
+                                    {tab.icon(isActive)}
+                                    <span className="text-[10px] font-medium">{tab.label}</span>
+                                </button>
+                            )
+                        }
+
+                        return (
+                            <Link
+                                key={tab.path}
+                                href={tab.path}
+                                className="flex min-w-[60px] flex-col items-center justify-center gap-0.5 py-1"
+                                style={{ color: isActive ? '#6c63ff' : 'var(--text-subtle)' }}
+                            >
+                                {tab.icon(isActive)}
+                                <span className="text-[10px] font-medium">{tab.label}</span>
+                            </Link>
+                        )
+                    })}
+                <button
+                    type="button"
+                    onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                    className="flex min-w-[60px] flex-col items-center justify-center gap-0.5 py-1"
+                    style={{ color: 'var(--text-subtle)' }}
+                    aria-label="테마 변경"
+                >
+                    {isDark ? (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="4" />
+                            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                        </svg>
+                    ) : (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                        </svg>
+                    )}
+                    <span className="text-[10px] font-medium">테마변경</span>
+                </button>
+                </div>
+            </nav>
+        </>
     )
 }
