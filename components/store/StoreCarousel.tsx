@@ -57,17 +57,8 @@ const BANNERS_BASE: Banner[] = [
     }
 ];
 
-function shuffleBanners<T>(arr: T[]): T[] {
-    const copy = [...arr];
-    for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
-}
-
 export default function StoreCarousel() {
-    const [banners] = useState(() => shuffleBanners(BANNERS_BASE));
+    const banners = BANNERS_BASE;
     const [current, setCurrent] = useState(0);
     const [startX, setStartX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
@@ -155,20 +146,20 @@ export default function StoreCarousel() {
                                     />
                                     {/* 텍스트 */}
                                     <div
-                                        className="absolute inset-0 flex flex-col justify-center gap-2 px-8 pb-10 sm:gap-3 sm:px-12 sm:pb-0"
+                                        className="absolute inset-0 flex flex-col justify-center gap-1 px-5 pb-8 sm:gap-3 sm:px-12 sm:pb-0"
                                         style={{
                                             alignItems: b.textAlign === "left" ? "flex-start" : "flex-end",
                                             textAlign: b.textAlign,
                                             zIndex: 2,
                                         }}
                                     >
-                                        <h1 className="text-[22px] font-bold leading-tight text-white drop-shadow-lg sm:text-[28px] lg:text-[34px]">
+                                        <h1 className="max-w-[58%] text-[15px] font-bold leading-tight text-white drop-shadow-lg sm:max-w-[62%] sm:text-[28px] lg:text-[34px]">
                                             {b.title}
                                         </h1>
-                                        <p className="whitespace-pre-line text-[12px] leading-relaxed text-white/90 drop-shadow sm:text-[14px]">
+                                        <p className="hidden">
                                             {b.content}
                                         </p>
-                                        <Link href={b.link} className="mt-3 w-fit rounded-full border border-white/70 px-5 py-2 text-[12px] font-medium text-white shadow-md transition-colors hover:bg-white/20 sm:px-6 sm:text-sm">
+                                        <Link href={b.link} className="mt-1 w-fit rounded-full border border-white/70 px-3 py-1 text-[10px] font-medium text-white shadow-md transition-colors hover:bg-white/20 sm:mt-3 sm:px-6 sm:py-2 sm:text-sm">
                                             {b.button}
                                         </Link>
                                     </div>

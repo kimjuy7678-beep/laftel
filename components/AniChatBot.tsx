@@ -31,21 +31,37 @@ interface Props {
   onClose: () => void
 }
 
+const toRecommendation = (value: unknown): Recommendation | null => {
+  if (!value || typeof value !== 'object') return null
+
+  const item = value as Partial<Record<keyof Recommendation, unknown>>
+  if (typeof item.id !== 'number' || typeof item.title !== 'string') return null
+
+  return {
+    id: item.id,
+    title: item.title,
+    reason: typeof item.reason === 'string' ? item.reason : '',
+  }
+}
+
 const parseRecommend = (content: string): Recommendation[] | null => {
   const all: Recommendation[] = []
   const blockMatches = [...content.matchAll(/```recommend\n([\s\S]*?)\n```/g)]
   for (const m of blockMatches) {
     try {
       const parsed = JSON.parse(m[1])
-      if (Array.isArray(parsed)) all.push(...parsed.filter((p: any) => p?.id && p?.title))
+      if (Array.isArray(parsed)) {
+        all.push(...parsed.map(toRecommendation).filter((r): r is Recommendation => r !== null))
+      }
     } catch { }
   }
   const jsonMatches = [...content.matchAll(/\[\s*\{[\s\S]*?\}\s*\]/g)]
   for (const m of jsonMatches) {
     try {
       const parsed = JSON.parse(m[0])
-      if (Array.isArray(parsed) && parsed[0]?.id && parsed[0]?.title)
-        all.push(...parsed.filter((p: any) => p?.id && p?.title))
+      if (Array.isArray(parsed)) {
+        all.push(...parsed.map(toRecommendation).filter((r): r is Recommendation => r !== null))
+      }
     } catch { }
   }
   const seen = new Set<number>()
@@ -141,13 +157,13 @@ export default function AniChatBot({ rightOffset, onClose }: Props) {
 
   return (
     <div
-      className="fixed z-[9998] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
+      className="fixed z-[10002] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
       style={{
         bottom: 32,
         // 퀵메뉴 버튼(48px) + 간격(12px) 오른쪽에서 띄움
         right: rightOffset + 48 + 12,
-        width: 360,
-        height: 560,
+        width: 'min(360px, calc(100vw - 24px))',
+        height: 'min(560px, calc(100dvh - 64px))',
         background: 'var(--bg-card)',
         border: '1px solid var(--border)',
       }}
