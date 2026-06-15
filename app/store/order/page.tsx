@@ -110,9 +110,10 @@ function ModalWrap({ title, children, onClose }: { title: string; children: Reac
     }, [onClose]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm"
             onClick={onClose}>
-            <div className="w-full max-w-[420px] bg-white rounded-[24px] p-6 shadow-2xl"
+            {/* 모바일: 바텀시트 / sm+: 센터 모달 */}
+            <div className="w-full sm:max-w-[420px] bg-white sm:rounded-[24px] rounded-t-[24px] p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
                 style={{ animation: "modalIn 0.2s ease" }}>
                 <div className="flex items-center justify-between mb-5">
@@ -499,7 +500,8 @@ function CouponSelectModal({ coupons, selectedId, orderAmount, onSelect, onClose
     );
 }
 
-// ─── 포인트 입력 컴포넌트 ────────────────────────────────────────────────────
+
+// ─── 포인트 입력 컴포넌트 (리마운트 격리) ──────────────────────────────────
 function PointInput({ livePoints, onApply, onError }: {
     livePoints: number;
     onApply: (v: number) => void;
@@ -533,6 +535,7 @@ function PointInput({ livePoints, onApply, onError }: {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
+
         if (/[^0-9]/.test(raw)) {
             setNonNumericWarn(true);
             setTimeout(() => setNonNumericWarn(false), 1500);
@@ -540,14 +543,17 @@ function PointInput({ livePoints, onApply, onError }: {
             setVal(numOnly);
             return;
         }
+
         setNonNumericWarn(false);
         const v = Number(raw) || 0;
+
         if (v > livePoints) {
             setVal(String(livePoints));
             applyValue(livePoints);
             onError(`최대 사용 가능 포인트인 ${livePoints.toLocaleString()}P로 자동 설정됐어요.`);
             return;
         }
+
         setVal(raw);
         setApplied(false);
         onError("");
@@ -606,6 +612,7 @@ function OrderContent() {
     const searchParams = useSearchParams();
     const { user } = useAuthStore();
 
+    // ── 상품 파싱 ──
     type OrderItem = { productId: string; title: string; price: number; thumbnail: string; option: string; qty: number; category?: string; };
     const itemsParam = searchParams.get("items");
     const items: OrderItem[] = (() => {
@@ -627,15 +634,18 @@ function OrderContent() {
         return [];
     })();
 
+    // ── 멤버십 / 배송비 ──
     const isMember = !!user?.membership && user.membership !== "none";
     const FREE_SHIPPING_THRESHOLD = 100000;
     const shippingFee = isMember ? 0 : totalItemsPrice >= FREE_SHIPPING_THRESHOLD ? 0 : 3000;
 
+    // ── 단일 상품 호환용 ──
     const title = items[0]?.title ?? "상품명";
     const thumbnail = items[0]?.thumbnail ?? "";
     const option = items[0]?.option ?? "기본";
     const qty = items[0]?.qty ?? 1;
 
+    // ── 주문자 정보 ──
     const [buyer, setBuyer] = useState<BuyerInfo>({
         name: user?.name ?? "",
         phone: "",
@@ -643,19 +653,24 @@ function OrderContent() {
     });
     const [showBuyerModal, setShowBuyerModal] = useState(false);
 
+    // ── 배송지 ──
     const [shipping, setShipping] = useState<ShippingInfo>({
         name: "", phone: "", address: "", detail: "", zip: "", memo: "",
     });
     const [showShippingModal, setShowShippingModal] = useState(false);
     const [isDefaultAddress, setIsDefaultAddress] = useState(false);
 
+    // ── 유효성 에러 상태 ──
     const [formErrors, setFormErrors] = useState<{
         buyerName?: boolean;
         buyerPhone?: boolean;
         shippingAddress?: boolean;
     }>({});
 
+    // ── 저장된 주소 목록 (Firebase) ──
     const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+
+    // ── 저장된 카드 목록 (Firebase) ──
     const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
     const [selectedCardId, setSelectedCardId] = useState<string>("");
     const [selectedPayment, setSelectedPayment] = useState("laftel_pay");
@@ -664,6 +679,7 @@ function OrderContent() {
     const [agreeError, setAgreeError] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    // ── Firebase 주소 + 카드 로드 ──
     useEffect(() => {
         if (!user?.uid) return;
 
@@ -690,15 +706,19 @@ function OrderContent() {
         });
     }, [user?.uid]);
 
+    // ── 쿠폰 ──
     const { activeCoupons, fetchActiveCoupons, selectCoupon, selectedCoupon } = useCouponStore();
     const [showCouponModal, setShowCouponModal] = useState(false);
 
     useEffect(() => {
-        if (user?.uid) fetchActiveCoupons(user.uid);
+        if (user?.uid) {
+            fetchActiveCoupons(user.uid);
+        }
     }, [fetchActiveCoupons, user?.uid]);
 
     const couponDiscount = selectedCoupon ? calcCouponDiscount(selectedCoupon, totalItemsPrice) : 0;
 
+    // ── 포인트 ──
     const [livePoints, setLivePoints] = useState(user?.points ?? 0);
     const [appliedPoint, setAppliedPoint] = useState(0);
     const [pointError, setPointError] = useState("");
@@ -711,19 +731,24 @@ function OrderContent() {
         return () => unsub();
     }, [user?.uid]);
 
+    // ── 금액 계산 ──
     const totalDiscount = couponDiscount + appliedPoint;
     const totalPrice = Math.max(0, totalItemsPrice + shippingFee - totalDiscount);
 
+    // ── 금액 애니메이션 ──
     const animTotal = useAnimatedNumber(totalPrice);
     const animDiscount = useAnimatedNumber(totalDiscount);
     const flashTotal = useFlash(totalPrice);
 
+    // ── 유효성 검사 ──
     const validate = (): boolean => {
         const errors: typeof formErrors = {};
         if (!buyer.name.trim()) errors.buyerName = true;
         if (!buyer.phone.trim()) errors.buyerPhone = true;
         if (!shipping.address.trim()) errors.shippingAddress = true;
+
         setFormErrors(errors);
+
         if (Object.keys(errors).length > 0) {
             if (errors.buyerName || errors.buyerPhone) {
                 document.getElementById("section-buyer")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -735,8 +760,10 @@ function OrderContent() {
         return true;
     };
 
+    // ── 결제 처리 ──
     const handlePay = async () => {
         if (!validate()) return;
+
         if (!agreed) {
             setAgreeError(true);
             document.getElementById("agree-checkbox")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -771,6 +798,7 @@ function OrderContent() {
             const limitedItems = Array.from(
                 orderItems.reduce((map, item) => {
                     if (!isLimitedStoreProduct(item.productId)) return map;
+
                     const previous = map.get(item.productId);
                     map.set(item.productId, {
                         productId: item.productId,
@@ -785,38 +813,61 @@ function OrderContent() {
                 const limitedStockSnapshots = await Promise.all(
                     limitedItems.map(async (item) => {
                         const ref = doc(db, LIMITED_STOCK_COLLECTION, item.productId);
-                        return { item, ref, snap: await transaction.get(ref) };
+                        return {
+                            item,
+                            ref,
+                            snap: await transaction.get(ref),
+                        };
                     }),
                 );
+
                 limitedStockSnapshots.forEach(({ item, ref, snap }) => {
                     const initialQuantity = getLimitedInitialQuantity(item.productId);
                     if (initialQuantity === null) return;
+
                     const rawRemaining = snap.data()?.remainingQuantity;
                     const currentRemaining = typeof rawRemaining === "number" ? rawRemaining : initialQuantity;
-                    if (currentRemaining < item.qty) throw new Error(`LIMITED_STOCK_SHORTAGE:${item.title}`);
-                    transaction.set(ref, {
-                        productId: item.productId, initialQuantity,
-                        remainingQuantity: currentRemaining - item.qty,
-                        updatedAt: serverTimestamp(),
-                        ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
-                    }, { merge: true });
+                    if (currentRemaining < item.qty) {
+                        throw new Error(`LIMITED_STOCK_SHORTAGE:${item.title}`);
+                    }
+
+                    transaction.set(
+                        ref,
+                        {
+                            productId: item.productId,
+                            initialQuantity,
+                            remainingQuantity: currentRemaining - item.qty,
+                            updatedAt: serverTimestamp(),
+                            ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
+                        },
+                        { merge: true },
+                    );
                 });
+
                 transaction.set(orderRef, orderPayload);
             });
 
-            if (selectedCoupon) await markCouponUsed(user.uid, selectedCoupon.id, orderRef.id);
+            if (selectedCoupon) {
+                await markCouponUsed(user.uid, selectedCoupon.id, orderRef.id);
+            }
 
             if (appliedPoint > 0) {
                 const newPoints = Math.max(0, livePoints - appliedPoint);
                 await setDoc(doc(db, "users", user.uid), { points: newPoints }, { merge: true });
                 await addDoc(collection(db, "users", user.uid, "pointHistory"), {
-                    amount: -appliedPoint, type: "use",
-                    description: "스토어 결제 사용", createdAt: new Date(),
+                    amount: -appliedPoint,
+                    type: "use",
+                    description: "스토어 결제 사용",
+                    createdAt: new Date(),
                 });
             }
 
             if (cartRaws.length > 0) {
-                await setDoc(doc(db, "users", user.uid), { cart: arrayRemove(...cartRaws) }, { merge: true });
+                await setDoc(
+                    doc(db, "users", user.uid),
+                    { cart: arrayRemove(...cartRaws) },
+                    { merge: true }
+                );
             }
 
             sessionStorage.setItem(`order_new_${orderRef.id}`, "1");
@@ -914,9 +965,9 @@ function OrderContent() {
                 </div>
             )}
 
-            {/* 헤더 */}
+            {/* ── 헤더: 모바일 px-4, 태블릿 px-6, 데스크톱 px-[75px] 유지 ── */}
             <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[#ebe8ff]">
-                <div className="mx-auto max-w-[1770px] px-4 sm:px-[75px] h-14 flex items-center">
+                <div className="mx-auto max-w-[1770px] px-4 sm:px-6 lg:px-[75px] h-14 flex items-center">
                     <Link href="/store/cart" className="flex items-center gap-1.5 text-[13px] text-[#6B5CE7] hover:underline">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                         뒤로 돌아가기
@@ -924,38 +975,43 @@ function OrderContent() {
                 </div>
             </header>
 
-            <main className="mx-auto w-full max-w-[1770px] px-4 sm:px-[75px] py-6 sm:py-10">
-                <div className="text-center mb-6 sm:mb-10">
+            {/* ── main: 모바일 px-4 py-6, 태블릿 px-6, 데스크톱 px-[75px] py-10 유지 ── */}
+            <main className="mx-auto w-full max-w-[1770px] px-4 pb-[126px] pt-6 sm:px-6 sm:pb-10 lg:px-[75px] lg:py-10">
+
+                {/* ── 타이틀: 모바일에서 폰트 축소 ── */}
+                <div className="text-center mb-6 lg:mb-10">
                     <p className="text-[12px] font-semibold tracking-[0.2em] text-[#826CFF] uppercase mb-1">Laftel Store</p>
-                    <h1 className="text-[24px] sm:text-[34px] font-extrabold text-[#826CFF] tracking-tight">ORDER & PAY</h1>
-                    <p className="text-[14px] sm:text-[16px] text-[#aaa] mt-1">최종 주문하기</p>
+                    <h1 className="text-[24px] sm:text-[28px] lg:text-[34px] font-extrabold text-[#826CFF] tracking-tight">ORDER & PAY</h1>
+                    <p className="text-[14px] lg:text-[16px] text-[#aaa] mt-1">최종 주문하기</p>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 items-start">
+                {/* ── 좌우 레이아웃: 모바일/태블릿 세로 스택, 와이드 데스크톱 가로 유지 ── */}
+                <div className="flex flex-col gap-4 xl:flex-row xl:gap-5 xl:items-start">
                     {/* ── 왼쪽 ── */}
-                    <div className="flex-1 w-full space-y-4">
+                    <div className="w-full flex-1 space-y-4">
 
                         {/* 상품 정보 */}
-                        <section className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff] mb-5">
+                        <section className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff] mb-4 lg:mb-5">
                             <div className="space-y-4">
                                 {items.map((item, i) => (
                                     <div key={i} className="flex gap-3 sm:gap-4 pb-4 border-b border-[#f5f3ff] last:border-0 last:pb-0 items-center">
                                         {item.thumbnail && (
-                                            <div className="w-[90px] h-[90px] sm:w-[170px] sm:h-[170px] rounded-[12px] overflow-hidden bg-[#f5f3ff] flex-shrink-0 border border-[#ebe8ff]">
+                                            /* 모바일 80px, sm 120px, 데스크톱 170px 유지 */
+                                            <div className="w-[80px] h-[80px] sm:w-[120px] sm:h-[120px] lg:w-[170px] lg:h-[170px] rounded-[12px] overflow-hidden bg-[#f5f3ff] flex-shrink-0 border border-[#ebe8ff]">
                                                 <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
                                             </div>
                                         )}
                                         <div className="flex-1 min-w-0">
                                             {item.category && (
-                                                <p className="text-[12px] font-semibold text-[#826CFF] mb-1">{item.category}</p>
+                                                <p className="text-[11px] sm:text-[12px] font-semibold text-[#826CFF] mb-1">{item.category}</p>
                                             )}
                                             <h2 className="text-[14px] sm:text-[16px] font-bold text-[#111018] leading-snug line-clamp-2 mb-2 sm:mb-3">{item.title}</h2>
                                             {item.option !== "기본" && <p className="mt-1 text-[12px] sm:text-[13px] text-[#999]">옵션: {item.option}</p>}
-                                            <p className="mt-0.5 text-[12px] text-[#bbb]">수량: {item.qty}개</p>
+                                            <p className="mt-0.5 text-[11px] sm:text-[12px] text-[#bbb]">수량: {item.qty}개</p>
                                             <p className="mt-2 sm:mt-3 text-[11px] sm:text-[12px] text-[#826CFF] font-semibold">
                                                 {Math.floor(item.price * item.qty * 0.01).toLocaleString()}원 적립 예정 (결제금액의 1%)
                                             </p>
-                                            <p className="mt-0.5 text-[18px] sm:text-[23px] font-extrabold text-[#111018]">{(item.price * item.qty).toLocaleString()}원</p>
+                                            <p className="mt-0.5 text-[18px] sm:text-[20px] lg:text-[23px] font-extrabold text-[#111018]">{(item.price * item.qty).toLocaleString()}원</p>
                                         </div>
                                     </div>
                                 ))}
@@ -979,7 +1035,7 @@ function OrderContent() {
                                     정보수정
                                 </button>
                             </div>
-                            <div className="space-y-2 text-[14px]">
+                            <div className="space-y-2 text-[13px] sm:text-[14px]">
                                 <p className={`font-bold ${formErrors.buyerName && !buyer.name ? "text-[#ff4d6d]" : "text-[#111]"}`}>
                                     {buyer.name || <span className="font-normal text-[#bbb]">이름 미입력</span>}
                                 </p>
@@ -991,7 +1047,7 @@ function OrderContent() {
                                 </div>
                                 <div className="flex gap-3"><span className="w-14 text-[#aaa]">이메일</span><span className="text-[#333] font-medium">{buyer.email || "-"}</span></div>
                             </div>
-                            <p className="mt-3 text-[12px] text-[#ccc] leading-relaxed">
+                            <p className="mt-3 text-[11px] sm:text-[12px] text-[#ccc] leading-relaxed">
                                 * 위 연락처 정보는 배송 관련 알림 발송 시 사용됩니다.
                             </p>
                         </section>
@@ -1016,7 +1072,7 @@ function OrderContent() {
                                     주소변경
                                 </button>
                             </div>
-                            <div className="space-y-2 text-[14px]">
+                            <div className="space-y-2 text-[13px] sm:text-[14px]">
                                 {shipping.address ? (
                                     <>
                                         <p className="font-bold text-[#111]">{shipping.name}</p>
@@ -1037,7 +1093,8 @@ function OrderContent() {
                         {/* 할인혜택 */}
                         <section className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff]">
                             <h3 className="text-[16px] sm:text-[18px] font-bold text-[#111018] mb-4">할인혜택</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* 모바일 세로 스택, sm+ 가로 2열 */}
+                            <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
 
                                 {/* 쿠폰 */}
                                 <div>
@@ -1094,7 +1151,8 @@ function OrderContent() {
                     </div>
 
                     {/* ── 오른쪽: 결제 요약 ── */}
-                    <div className="w-full lg:w-[300px] space-y-4 lg:sticky lg:top-[80px]">
+                    {/* 모바일/태블릿: 전체 너비 / 와이드 데스크톱: w-[300px] sticky 유지 */}
+                    <div className="w-full space-y-3 xl:sticky xl:top-[80px] xl:w-[300px]">
 
                         {/* 최종결제 금액 */}
                         <section className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff] overflow-hidden">
@@ -1135,7 +1193,7 @@ function OrderContent() {
 
                                 <div className={`border-t border-[#f0eeff] pt-3 flex justify-between items-center rounded-[10px] px-2 py-2 -mx-2 transition-colors duration-300 ${flashTotal === "down" ? "bg-[#f0fdf4]" : flashTotal === "up" ? "bg-[#fff0f0]" : ""}`}>
                                     <span className="font-bold text-[#111]">총 결제 금액</span>
-                                    <span className="text-[20px] font-extrabold tabular-nums" style={{ color: "#826CFF" }}>
+                                    <span className="text-[18px] sm:text-[20px] font-extrabold tabular-nums" style={{ color: "#826CFF" }}>
                                         {animTotal.toLocaleString()}원
                                     </span>
                                 </div>
@@ -1221,7 +1279,7 @@ function OrderContent() {
                             id="agree-checkbox"
                             type="button"
                             onClick={() => { setAgreed(v => !v); setAgreeError(false); }}
-                            className={`mt-3 w-full flex items-center gap-2 rounded-[10px] px-3 py-2.5 transition-colors border ${agreeError
+                            className={`w-full flex items-center gap-2 rounded-[10px] px-3 py-2.5 transition-colors border ${agreeError
                                 ? "bg-[#fff0f3] border-[#ffb3c1]"
                                 : agreed
                                     ? "bg-[#f0eeff] border-[#d4ccff]"
@@ -1246,19 +1304,22 @@ function OrderContent() {
                             </p>
                         )}
 
-                        <button onClick={handlePay} disabled={loading}
-                            className="w-full h-[54px] rounded-full bg-[#826CFF] hover:bg-[#6B5CE7] text-white text-[16px] font-extrabold transition-all shadow-lg shadow-[#826cff30] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                            {loading ? (
-                                <>
-                                    <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" opacity="0.3" /><path d="M21 12a9 9 0 0 1-9 9" />
-                                    </svg>
-                                    처리 중...
-                                </>
-                            ) : (
-                                `${animTotal.toLocaleString()}원 결제하기`
-                            )}
-                        </button>
+                        {/* 결제 버튼: 모바일에서만 하단 fixed, 태블릿 이상은 일반 flow */}
+                        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#ebe8ff] bg-white/95 px-4 pb-[max(10px,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+                            <button onClick={handlePay} disabled={loading}
+                                className="w-full h-[54px] rounded-full bg-[#826CFF] hover:bg-[#6B5CE7] text-white text-[16px] font-extrabold transition-all shadow-lg shadow-[#826cff30] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                {loading ? (
+                                    <>
+                                        <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" opacity="0.3" /><path d="M21 12a9 9 0 0 1-9 9" />
+                                        </svg>
+                                        처리 중...
+                                    </>
+                                ) : (
+                                    `${animTotal.toLocaleString()}원 결제하기`
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -1272,6 +1333,7 @@ function OrderContent() {
         </div>
     );
 }
+
 
 export default function OrderPage() {
     return (

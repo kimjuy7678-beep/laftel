@@ -65,10 +65,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         }
     }, [episodes, epParam])
 
-    // 몰입 모드 시 헤더 + 퀵메뉴 숨기기
+    // 몰입 모드 시 헤더 + 퀵메뉴 + 모바일 하단바 숨기기
     useEffect(() => {
         const header = document.querySelector('header') as HTMLElement
         const quickMenu = document.getElementById('quick-menu') as HTMLElement
+        const bottomTabBar = document.getElementById('bottom-tab-bar') as HTMLElement
 
         if (header) {
             header.style.transition = 'opacity .3s ease'
@@ -80,10 +81,21 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             quickMenu.style.opacity = immersive ? '0' : '1'
             quickMenu.style.pointerEvents = immersive ? 'none' : 'auto'
         }
+        if (bottomTabBar) {
+            bottomTabBar.style.transition = 'opacity .3s ease, transform .3s ease'
+            bottomTabBar.style.opacity = immersive ? '0' : '1'
+            bottomTabBar.style.pointerEvents = immersive ? 'none' : 'auto'
+            bottomTabBar.style.transform = immersive ? 'translateY(100%)' : 'translateY(0)'
+        }
 
         return () => {
             if (header) { header.style.opacity = '1'; header.style.pointerEvents = 'auto' }
             if (quickMenu) { quickMenu.style.opacity = '1'; quickMenu.style.pointerEvents = 'auto' }
+            if (bottomTabBar) {
+                bottomTabBar.style.opacity = '1'
+                bottomTabBar.style.pointerEvents = 'auto'
+                bottomTabBar.style.transform = 'translateY(0)'
+            }
         }
     }, [immersive])
 
