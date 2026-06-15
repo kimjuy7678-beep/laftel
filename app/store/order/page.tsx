@@ -149,7 +149,6 @@ function Field({ label, value, onChange, placeholder, error, type = "text" }: {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (type === "tel") {
             const raw = e.target.value;
-            // 숫자 외 입력 감지 (하이픈 제외)
             if (/[^0-9\-]/.test(raw)) {
                 setNonNumericWarn(true);
                 setTimeout(() => setNonNumericWarn(false), 1500);
@@ -500,8 +499,7 @@ function CouponSelectModal({ coupons, selectedId, orderAmount, onSelect, onClose
     );
 }
 
-
-// ─── 포인트 입력 컴포넌트 (리마운트 격리) ──────────────────────────────────
+// ─── 포인트 입력 컴포넌트 ────────────────────────────────────────────────────
 function PointInput({ livePoints, onApply, onError }: {
     livePoints: number;
     onApply: (v: number) => void;
@@ -535,28 +533,21 @@ function PointInput({ livePoints, onApply, onError }: {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
-
-        // 숫자 외 입력 감지
         if (/[^0-9]/.test(raw)) {
             setNonNumericWarn(true);
             setTimeout(() => setNonNumericWarn(false), 1500);
-            // 숫자만 추출해서 유지
             const numOnly = raw.replace(/[^0-9]/g, "");
             setVal(numOnly);
             return;
         }
-
         setNonNumericWarn(false);
         const v = Number(raw) || 0;
-
-        // 최대치 초과 즉시 자동 클램핑
         if (v > livePoints) {
             setVal(String(livePoints));
             applyValue(livePoints);
             onError(`최대 사용 가능 포인트인 ${livePoints.toLocaleString()}P로 자동 설정됐어요.`);
             return;
         }
-
         setVal(raw);
         setApplied(false);
         onError("");
@@ -615,7 +606,6 @@ function OrderContent() {
     const searchParams = useSearchParams();
     const { user } = useAuthStore();
 
-    // ── 상품 파싱 ──
     type OrderItem = { productId: string; title: string; price: number; thumbnail: string; option: string; qty: number; category?: string; };
     const itemsParam = searchParams.get("items");
     const items: OrderItem[] = (() => {
@@ -637,18 +627,15 @@ function OrderContent() {
         return [];
     })();
 
-    // ── 멤버십 / 배송비 ──
     const isMember = !!user?.membership && user.membership !== "none";
     const FREE_SHIPPING_THRESHOLD = 100000;
     const shippingFee = isMember ? 0 : totalItemsPrice >= FREE_SHIPPING_THRESHOLD ? 0 : 3000;
 
-    // ── 단일 상품 호환용 ──
     const title = items[0]?.title ?? "상품명";
     const thumbnail = items[0]?.thumbnail ?? "";
     const option = items[0]?.option ?? "기본";
     const qty = items[0]?.qty ?? 1;
 
-    // ── 주문자 정보 ──
     const [buyer, setBuyer] = useState<BuyerInfo>({
         name: user?.name ?? "",
         phone: "",
@@ -656,24 +643,19 @@ function OrderContent() {
     });
     const [showBuyerModal, setShowBuyerModal] = useState(false);
 
-    // ── 배송지 ──
     const [shipping, setShipping] = useState<ShippingInfo>({
         name: "", phone: "", address: "", detail: "", zip: "", memo: "",
     });
     const [showShippingModal, setShowShippingModal] = useState(false);
     const [isDefaultAddress, setIsDefaultAddress] = useState(false);
 
-    // ── 유효성 에러 상태 ──
     const [formErrors, setFormErrors] = useState<{
         buyerName?: boolean;
         buyerPhone?: boolean;
         shippingAddress?: boolean;
     }>({});
 
-    // ── 저장된 주소 목록 (Firebase) ──
     const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
-
-    // ── 저장된 카드 목록 (Firebase) ──
     const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
     const [selectedCardId, setSelectedCardId] = useState<string>("");
     const [selectedPayment, setSelectedPayment] = useState("laftel_pay");
@@ -682,7 +664,6 @@ function OrderContent() {
     const [agreeError, setAgreeError] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // ── Firebase 주소 + 카드 로드 ──
     useEffect(() => {
         if (!user?.uid) return;
 
@@ -709,19 +690,15 @@ function OrderContent() {
         });
     }, [user?.uid]);
 
-    // ── 쿠폰 ──
     const { activeCoupons, fetchActiveCoupons, selectCoupon, selectedCoupon } = useCouponStore();
     const [showCouponModal, setShowCouponModal] = useState(false);
 
     useEffect(() => {
-        if (user?.uid) {
-            fetchActiveCoupons(user.uid);
-        }
+        if (user?.uid) fetchActiveCoupons(user.uid);
     }, [fetchActiveCoupons, user?.uid]);
 
     const couponDiscount = selectedCoupon ? calcCouponDiscount(selectedCoupon, totalItemsPrice) : 0;
 
-    // ── 포인트 ──
     const [livePoints, setLivePoints] = useState(user?.points ?? 0);
     const [appliedPoint, setAppliedPoint] = useState(0);
     const [pointError, setPointError] = useState("");
@@ -734,29 +711,20 @@ function OrderContent() {
         return () => unsub();
     }, [user?.uid]);
 
-
-
-
-    // ── 금액 계산 ──
     const totalDiscount = couponDiscount + appliedPoint;
     const totalPrice = Math.max(0, totalItemsPrice + shippingFee - totalDiscount);
 
-    // ── 금액 애니메이션 ──
     const animTotal = useAnimatedNumber(totalPrice);
     const animDiscount = useAnimatedNumber(totalDiscount);
     const flashTotal = useFlash(totalPrice);
 
-    // ─── 버그1 수정: 유효성 검사 ──────────────────────────────────────────────
     const validate = (): boolean => {
         const errors: typeof formErrors = {};
         if (!buyer.name.trim()) errors.buyerName = true;
         if (!buyer.phone.trim()) errors.buyerPhone = true;
         if (!shipping.address.trim()) errors.shippingAddress = true;
-
         setFormErrors(errors);
-
         if (Object.keys(errors).length > 0) {
-            // 첫 번째 에러 필드로 스크롤
             if (errors.buyerName || errors.buyerPhone) {
                 document.getElementById("section-buyer")?.scrollIntoView({ behavior: "smooth", block: "center" });
             } else if (errors.shippingAddress) {
@@ -767,11 +735,8 @@ function OrderContent() {
         return true;
     };
 
-    // ── 결제 처리 ──
     const handlePay = async () => {
-        // 필수 정보 유효성 체크
         if (!validate()) return;
-
         if (!agreed) {
             setAgreeError(true);
             document.getElementById("agree-checkbox")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -806,7 +771,6 @@ function OrderContent() {
             const limitedItems = Array.from(
                 orderItems.reduce((map, item) => {
                     if (!isLimitedStoreProduct(item.productId)) return map;
-
                     const previous = map.get(item.productId);
                     map.set(item.productId, {
                         productId: item.productId,
@@ -821,61 +785,38 @@ function OrderContent() {
                 const limitedStockSnapshots = await Promise.all(
                     limitedItems.map(async (item) => {
                         const ref = doc(db, LIMITED_STOCK_COLLECTION, item.productId);
-                        return {
-                            item,
-                            ref,
-                            snap: await transaction.get(ref),
-                        };
+                        return { item, ref, snap: await transaction.get(ref) };
                     }),
                 );
-
                 limitedStockSnapshots.forEach(({ item, ref, snap }) => {
                     const initialQuantity = getLimitedInitialQuantity(item.productId);
                     if (initialQuantity === null) return;
-
                     const rawRemaining = snap.data()?.remainingQuantity;
                     const currentRemaining = typeof rawRemaining === "number" ? rawRemaining : initialQuantity;
-                    if (currentRemaining < item.qty) {
-                        throw new Error(`LIMITED_STOCK_SHORTAGE:${item.title}`);
-                    }
-
-                    transaction.set(
-                        ref,
-                        {
-                            productId: item.productId,
-                            initialQuantity,
-                            remainingQuantity: currentRemaining - item.qty,
-                            updatedAt: serverTimestamp(),
-                            ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
-                        },
-                        { merge: true },
-                    );
+                    if (currentRemaining < item.qty) throw new Error(`LIMITED_STOCK_SHORTAGE:${item.title}`);
+                    transaction.set(ref, {
+                        productId: item.productId, initialQuantity,
+                        remainingQuantity: currentRemaining - item.qty,
+                        updatedAt: serverTimestamp(),
+                        ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
+                    }, { merge: true });
                 });
-
                 transaction.set(orderRef, orderPayload);
             });
 
-            if (selectedCoupon) {
-                await markCouponUsed(user.uid, selectedCoupon.id, orderRef.id);
-            }
+            if (selectedCoupon) await markCouponUsed(user.uid, selectedCoupon.id, orderRef.id);
 
             if (appliedPoint > 0) {
                 const newPoints = Math.max(0, livePoints - appliedPoint);
                 await setDoc(doc(db, "users", user.uid), { points: newPoints }, { merge: true });
                 await addDoc(collection(db, "users", user.uid, "pointHistory"), {
-                    amount: -appliedPoint,
-                    type: "use",
-                    description: "스토어 결제 사용",
-                    createdAt: new Date(),
+                    amount: -appliedPoint, type: "use",
+                    description: "스토어 결제 사용", createdAt: new Date(),
                 });
             }
 
             if (cartRaws.length > 0) {
-                await setDoc(
-                    doc(db, "users", user.uid),
-                    { cart: arrayRemove(...cartRaws) },
-                    { merge: true }
-                );
+                await setDoc(doc(db, "users", user.uid), { cart: arrayRemove(...cartRaws) }, { merge: true });
             }
 
             sessionStorage.setItem(`order_new_${orderRef.id}`, "1");
@@ -975,7 +916,7 @@ function OrderContent() {
 
             {/* 헤더 */}
             <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-[#ebe8ff]">
-                <div className="mx-auto max-w-[1770px] px-[75px] h-14 flex items-center">
+                <div className="mx-auto max-w-[1770px] px-4 sm:px-[75px] h-14 flex items-center">
                     <Link href="/store/cart" className="flex items-center gap-1.5 text-[13px] text-[#6B5CE7] hover:underline">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6" /></svg>
                         뒤로 돌아가기
@@ -983,24 +924,24 @@ function OrderContent() {
                 </div>
             </header>
 
-            <main className="mx-auto w-full max-w-[1770px] px-[75px] py-10">
-                <div className="text-center mb-10">
+            <main className="mx-auto w-full max-w-[1770px] px-4 sm:px-[75px] py-6 sm:py-10">
+                <div className="text-center mb-6 sm:mb-10">
                     <p className="text-[12px] font-semibold tracking-[0.2em] text-[#826CFF] uppercase mb-1">Laftel Store</p>
-                    <h1 className="text-[34px] font-extrabold text-[#826CFF] tracking-tight">ORDER & PAY</h1>
-                    <p className="text-[16px] text-[#aaa] mt-1">최종 주문하기</p>
+                    <h1 className="text-[24px] sm:text-[34px] font-extrabold text-[#826CFF] tracking-tight">ORDER & PAY</h1>
+                    <p className="text-[14px] sm:text-[16px] text-[#aaa] mt-1">최종 주문하기</p>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-5 items-start">
+                <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 items-start">
                     {/* ── 왼쪽 ── */}
-                    <div className="flex-1 space-y-4">
+                    <div className="flex-1 w-full space-y-4">
 
                         {/* 상품 정보 */}
-                        <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff] mb-5">
+                        <section className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff] mb-5">
                             <div className="space-y-4">
                                 {items.map((item, i) => (
-                                    <div key={i} className="flex gap-4 pb-4 border-b border-[#f5f3ff] last:border-0 last:pb-0 items-center">
+                                    <div key={i} className="flex gap-3 sm:gap-4 pb-4 border-b border-[#f5f3ff] last:border-0 last:pb-0 items-center">
                                         {item.thumbnail && (
-                                            <div className="w-[170px] h-[170px] rounded-[12px] overflow-hidden bg-[#f5f3ff] flex-shrink-0 border border-[#ebe8ff]">
+                                            <div className="w-[90px] h-[90px] sm:w-[170px] sm:h-[170px] rounded-[12px] overflow-hidden bg-[#f5f3ff] flex-shrink-0 border border-[#ebe8ff]">
                                                 <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
                                             </div>
                                         )}
@@ -1008,13 +949,13 @@ function OrderContent() {
                                             {item.category && (
                                                 <p className="text-[12px] font-semibold text-[#826CFF] mb-1">{item.category}</p>
                                             )}
-                                            <h2 className="text-[16px] font-bold text-[#111018] leading-snug line-clamp-2 mb-3">{item.title}</h2>
-                                            {item.option !== "기본" && <p className="mt-1 text-[13px] text-[#999]">옵션: {item.option}</p>}
+                                            <h2 className="text-[14px] sm:text-[16px] font-bold text-[#111018] leading-snug line-clamp-2 mb-2 sm:mb-3">{item.title}</h2>
+                                            {item.option !== "기본" && <p className="mt-1 text-[12px] sm:text-[13px] text-[#999]">옵션: {item.option}</p>}
                                             <p className="mt-0.5 text-[12px] text-[#bbb]">수량: {item.qty}개</p>
-                                            <p className="mt-3 text-[12px] text-[#826CFF] font-semibold">
+                                            <p className="mt-2 sm:mt-3 text-[11px] sm:text-[12px] text-[#826CFF] font-semibold">
                                                 {Math.floor(item.price * item.qty * 0.01).toLocaleString()}원 적립 예정 (결제금액의 1%)
                                             </p>
-                                            <p className="mt-0.5 text-[23px] font-extrabold text-[#111018]">{(item.price * item.qty).toLocaleString()}원</p>
+                                            <p className="mt-0.5 text-[18px] sm:text-[23px] font-extrabold text-[#111018]">{(item.price * item.qty).toLocaleString()}원</p>
                                         </div>
                                     </div>
                                 ))}
@@ -1022,10 +963,10 @@ function OrderContent() {
                         </section>
 
                         {/* 주문자 정보 */}
-                        <section id="section-buyer" className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
+                        <section id="section-buyer" className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff]">
                             <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <h3 className="text-[18px] font-bold text-[#111018]">주문자 정보</h3>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="text-[16px] sm:text-[18px] font-bold text-[#111018]">주문자 정보</h3>
                                     {(formErrors.buyerName || formErrors.buyerPhone) && (
                                         <span className="text-[11px] font-bold text-[#ff4d6d] bg-[#fff0f3] px-2 py-0.5 rounded-full" style={{ animation: "fadeSlideIn 0.2s ease" }}>
                                             필수 정보를 입력해주세요
@@ -1033,7 +974,7 @@ function OrderContent() {
                                     )}
                                 </div>
                                 <button onClick={() => setShowBuyerModal(true)}
-                                    className="text-[12px] text-[#826CFF] hover:underline font-semibold flex items-center gap-1">
+                                    className="text-[12px] text-[#826CFF] hover:underline font-semibold flex items-center gap-1 flex-shrink-0">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                     정보수정
                                 </button>
@@ -1056,10 +997,10 @@ function OrderContent() {
                         </section>
 
                         {/* 배송지 */}
-                        <section id="section-shipping" className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
+                        <section id="section-shipping" className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff]">
                             <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <h3 className="text-[18px] font-bold text-[#111018]">배송지 주소</h3>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="text-[16px] sm:text-[18px] font-bold text-[#111018]">배송지 주소</h3>
                                     {isDefaultAddress && (
                                         <span className="text-[11px] font-bold text-white bg-[#826CFF] px-2 py-0.5 rounded-full">기본 배송지</span>
                                     )}
@@ -1070,7 +1011,7 @@ function OrderContent() {
                                     )}
                                 </div>
                                 <button onClick={() => setShowShippingModal(true)}
-                                    className="text-[12px] text-[#826CFF] hover:underline font-semibold flex items-center gap-1">
+                                    className="text-[12px] text-[#826CFF] hover:underline font-semibold flex items-center gap-1 flex-shrink-0">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                     주소변경
                                 </button>
@@ -1094,9 +1035,9 @@ function OrderContent() {
                         </section>
 
                         {/* 할인혜택 */}
-                        <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
-                            <h3 className="text-[18px] font-bold text-[#111018] mb-4">할인혜택</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                        <section className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff]">
+                            <h3 className="text-[16px] sm:text-[18px] font-bold text-[#111018] mb-4">할인혜택</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                                 {/* 쿠폰 */}
                                 <div>
@@ -1153,11 +1094,11 @@ function OrderContent() {
                     </div>
 
                     {/* ── 오른쪽: 결제 요약 ── */}
-                    <div className="lg:w-[300px] space-y-4 lg:sticky lg:top-[80px]">
+                    <div className="w-full lg:w-[300px] space-y-4 lg:sticky lg:top-[80px]">
 
                         {/* 최종결제 금액 */}
-                        <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff] overflow-hidden">
-                            <h3 className="text-[18px] font-bold text-[#111018] mb-4">최종결제 금액</h3>
+                        <section className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff] overflow-hidden">
+                            <h3 className="text-[16px] sm:text-[18px] font-bold text-[#111018] mb-4">최종결제 금액</h3>
                             <div className="space-y-2.5 text-[13px]">
                                 <div className="flex justify-between">
                                     <span className="text-[#888]">총 상품 금액</span>
@@ -1210,7 +1151,7 @@ function OrderContent() {
                         </section>
 
                         {/* 결제 수단 */}
-                        <section className="bg-white rounded-[20px] p-6 border border-[#ebe8ff]">
+                        <section className="bg-white rounded-[20px] p-4 sm:p-6 border border-[#ebe8ff]">
                             <h3 className="text-[15px] font-bold text-[#111018] mb-4">결제수단</h3>
                             <div className="space-y-2">
 
@@ -1222,12 +1163,12 @@ function OrderContent() {
                                             {selectedPayment === "saved_card" ? (() => {
                                                 const card = savedCards.find(c => c.id === selectedCardId);
                                                 return card ? (
-                                                    <div className="flex items-center gap-2.5 flex-1">
+                                                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#826CFF" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
-                                                        <span className="text-[13px] font-bold text-[#111]">{card.name || card.brand}</span>
-                                                        <span className="text-[11px] font-bold text-[#826CFF] bg-[#ede9ff] px-1.5 py-0.5 rounded-[4px]">카드</span>
-                                                        <span className="text-[12px] text-[#aaa]">•••• {card.last4}</span>
-                                                        {card.isDefault && <span className="text-[10px] font-bold text-white bg-[#826CFF] px-2 py-0.5 rounded-full">기본</span>}
+                                                        <span className="text-[13px] font-bold text-[#111] truncate">{card.name || card.brand}</span>
+                                                        <span className="text-[11px] font-bold text-[#826CFF] bg-[#ede9ff] px-1.5 py-0.5 rounded-[4px] flex-shrink-0">카드</span>
+                                                        <span className="text-[12px] text-[#aaa] flex-shrink-0">•••• {card.last4}</span>
+                                                        {card.isDefault && <span className="text-[10px] font-bold text-white bg-[#826CFF] px-2 py-0.5 rounded-full flex-shrink-0">기본</span>}
                                                     </div>
                                                 ) : (
                                                     <span className="text-[13px] text-[#aaa]">카드를 선택해주세요</span>
@@ -1331,7 +1272,6 @@ function OrderContent() {
         </div>
     );
 }
-
 
 export default function OrderPage() {
     return (

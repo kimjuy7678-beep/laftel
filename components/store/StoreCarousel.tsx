@@ -71,7 +71,16 @@ export default function StoreCarousel() {
     const [current, setCurrent] = useState(0);
     const [startX, setStartX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    // 모바일 여부 감지 (SSR safe)
+    const [isMobile, setIsMobile] = useState(false);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 640);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const startTimer = useCallback(() => {
         if (timerRef.current) clearInterval(timerRef.current);
@@ -102,6 +111,9 @@ export default function StoreCarousel() {
         else if (diff > 50) goTo((current - 1 + banners.length) % banners.length);
     };
 
+    // 모바일: 16:9 비율(56.25%), 데스크탑: 1400:590 비율(42.14%)
+    const aspectPadding = isMobile ? '56.25%' : `${(590 / 1400) * 100}%`;
+
     return (
         <div className="w-full pt-4 sm:pt-8 lg:pt-[80px]">
             <div className="mx-auto max-w-[1770px] px-4 sm:px-6 lg:px-4">
@@ -110,13 +122,13 @@ export default function StoreCarousel() {
                     {/* prev 버튼 */}
                     <button
                         onClick={() => goTo((current - 1 + banners.length) % banners.length)}
-                        className="store-swiper-prev absolute bottom-3 right-14 z-20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:bg-gray-400 sm:hover:bg-gray-500">
+                        className="store-swiper-prev hidden sm:flex absolute bottom-3 right-14 z-20 h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:bg-gray-400 sm:hover:bg-gray-500">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                         </svg>
                     </button>
 
-                    {/* 슬라이더 — 1400×590 비율 강제 고정, 이미지 크기 무관 */}
+                    {/* 슬라이더 */}
                     <div
                         className="relative min-w-0 flex-1 cursor-grab select-none overflow-hidden rounded-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.2)] active:cursor-grabbing sm:rounded-xl"
                         onMouseDown={onMouseDown}
@@ -126,8 +138,8 @@ export default function StoreCarousel() {
                         onTouchStart={onTouchStart}
                         onTouchEnd={onTouchEnd}
                     >
-                        {/* 1400:590 비율 유지 spacer — 이미지 로딩·크기와 완전히 무관 */}
-                        <div style={{ paddingBottom: `${(590 / 1400) * 100}%` }} />
+                        {/* 비율 spacer — 모바일 16:9, 데스크탑 1400:590 */}
+                        <div style={{ paddingBottom: aspectPadding }} />
 
                         {/* 실제 콘텐츠 레이어 */}
                         <div className="absolute inset-0">
@@ -137,11 +149,11 @@ export default function StoreCarousel() {
                                     className="absolute inset-0 transition-opacity duration-700"
                                     style={{ opacity: i === current ? 1 : 0, zIndex: i === current ? 1 : 0 }}
                                 >
-                                    {/* 이미지: 컨테이너 꽉 채우기 */}
+                                    {/* 이미지: 중앙 기준 cover */}
                                     <img
                                         src={b.url}
                                         alt={b.title}
-                                        className="absolute inset-0 h-full w-full object-cover"
+                                        className="absolute inset-0 h-full w-full object-cover object-center"
                                         draggable={false}
                                     />
                                     {/* 그라디언트 오버레이 */}
@@ -155,20 +167,23 @@ export default function StoreCarousel() {
                                     />
                                     {/* 텍스트 */}
                                     <div
-                                        className="absolute inset-0 flex flex-col justify-center gap-2 px-8 pb-10 sm:gap-3 sm:px-12 sm:pb-0"
+                                        className="absolute inset-0 flex flex-col justify-end pb-8 px-5 gap-1.5 sm:justify-center sm:gap-3 sm:px-12 sm:pb-0"
                                         style={{
                                             alignItems: b.textAlign === "left" ? "flex-start" : "flex-end",
                                             textAlign: b.textAlign,
                                             zIndex: 2,
                                         }}
                                     >
-                                        <h1 className="text-[22px] font-bold leading-tight text-white drop-shadow-lg sm:text-[28px] lg:text-[34px]">
+                                        <h1 className="text-[15px] font-bold leading-tight text-white drop-shadow-lg sm:text-[28px] lg:text-[34px]">
                                             {b.title}
                                         </h1>
-                                        <p className="whitespace-pre-line text-[12px] leading-relaxed text-white/90 drop-shadow sm:text-[14px]">
+                                        <p className="whitespace-pre-line text-[11px] leading-relaxed text-white/90 drop-shadow sm:text-[14px]">
                                             {b.content}
                                         </p>
-                                        <Link href={b.link} className="mt-3 w-fit rounded-full border border-white/70 px-5 py-2 text-[12px] font-medium text-white shadow-md transition-colors hover:bg-white/20 sm:px-6 sm:text-sm">
+                                        <Link
+                                            href={b.link}
+                                            className="mt-1.5 w-fit rounded-full border border-white/70 px-3 py-1 text-[10px] font-medium text-white shadow-md transition-colors hover:bg-white/20 sm:mt-3 sm:px-6 sm:py-2 sm:text-sm"
+                                        >
                                             {b.button}
                                         </Link>
                                     </div>
@@ -176,12 +191,15 @@ export default function StoreCarousel() {
                             ))}
 
                             {/* 도트 인디케이터 */}
-                            <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+                            <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 sm:bottom-4 sm:gap-2">
                                 {banners.map((_, i) => (
                                     <button
                                         key={i}
                                         onClick={() => goTo(i)}
-                                        className={`rounded-full transition-all duration-300 ${i === current ? "w-6 h-2.5 bg-[#7865ff]" : "w-2.5 h-2.5 bg-white/50"}`}
+                                        className={`rounded-full transition-all duration-300 ${i === current
+                                            ? "w-5 h-2 bg-[#7865ff] sm:w-6 sm:h-2.5"
+                                            : "w-2 h-2 bg-white/50 sm:w-2.5 sm:h-2.5"
+                                            }`}
                                     />
                                 ))}
                             </div>
@@ -191,7 +209,7 @@ export default function StoreCarousel() {
                     {/* next 버튼 */}
                     <button
                         onClick={() => goTo((current + 1) % banners.length)}
-                        className="store-swiper-next absolute bottom-3 right-3 z-20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:bg-gray-400 sm:hover:bg-gray-500">
+                        className="store-swiper-next hidden sm:flex absolute bottom-3 right-3 z-20 h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-black/35 text-white shadow-md backdrop-blur transition-colors hover:bg-black/45 sm:static sm:h-10 sm:w-10 sm:bg-gray-400 sm:hover:bg-gray-500">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
