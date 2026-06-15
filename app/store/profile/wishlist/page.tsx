@@ -134,7 +134,7 @@ export default function WishlistPage() {
                         onChange={e => setNewFolderName(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter") createFolder(); if (e.key === "Escape") setShowNewFolder(false); }}
                         placeholder="폴더 이름 입력"
-                        className="flex-1 h-9 rounded-[8px] border border-[#e2ddf5] px-3 text-[13px] outline-none focus:border-[#7865ff] transition"
+                        className="flex-1 h-9 rounded-[8px] border border-[#e2ddf5] px-3 text-[13px] text-[#16121f] outline-none focus:border-[#7865ff] transition"
                     />
                     <button onClick={createFolder} className="h-9 px-4 rounded-[8px] bg-[#7865ff] text-[12px] font-bold text-white hover:bg-[#6b55f0] transition">만들기</button>
                     <button onClick={() => setShowNewFolder(false)} className="h-9 px-3 rounded-[8px] border border-[#e2ddf5] text-[12px] text-[#9b94b2] hover:border-[#7865ff] transition">취소</button>

@@ -1,4 +1,3 @@
-// utils/notification.ts
 import { db } from "@/firebase/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
@@ -24,6 +23,7 @@ export async function saveNotification(
 ): Promise<void> {
     await addDoc(collection(db, "users", uid, "notifications"), {
         ...payload,
+        source: 'store',
         read: false,
         createdAt: serverTimestamp(),
     });

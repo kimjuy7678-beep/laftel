@@ -29,6 +29,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <AnimatePresence mode="wait" initial={false}>
                 <motion.main
                     key={pathname}
+                    className={!hideLayout ? 'pb-[76px] md:pb-0' : undefined}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
