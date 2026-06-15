@@ -837,8 +837,11 @@ export default function CommunityPage() {
                 <div className="cp-hero-orb cp-hero-orb1" />
                 <div className="cp-hero-orb cp-hero-orb2" />
                 <div className="cp-hero-orb cp-hero-orb3" />
-                <div className="cp-hero-inner">
-                    <PageHeader title="덕후들의 광장" sub="애니라면 뭐든 ! 분석, 감상, 추천, 스포일러까지" />
+                <div className="w-[90%] mx-auto pt-[20px] pb-[32px]">
+                    <PageHeader
+                        title="덕후들의 광장"
+                        sub="애니라면 뭐든 ! 분석, 감상, 추천, 스포일러까지"
+                    />
                 </div>
                 <button className="cp-sidebar-toggle" onClick={() => setShowSidebar(true)}>
                     <span style={{ position: 'relative', display: 'inline-flex' }}>
