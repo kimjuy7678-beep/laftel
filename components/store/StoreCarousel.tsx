@@ -153,13 +153,13 @@ export default function StoreCarousel() {
                                             zIndex: 2,
                                         }}
                                     >
-                                        <h1 className="max-w-[58%] text-[15px] font-bold leading-tight text-white drop-shadow-lg sm:max-w-[62%] sm:text-[28px] lg:text-[34px]">
+                                        <h1 className="max-w-[58%] text-[15px] font-bold leading-tight text-white drop-shadow-lg sm:max-w-[62%] sm:text-[32px] lg:text-[42px]">
                                             {b.title}
                                         </h1>
-                                        <p className="hidden">
+                                        <p className="hidden max-w-[62%] whitespace-pre-line text-white/90 drop-shadow sm:block sm:text-[16px] sm:leading-relaxed lg:text-[18px]">
                                             {b.content}
                                         </p>
-                                        <Link href={b.link} className="mt-1 w-fit rounded-full border border-white/70 px-3 py-1 text-[10px] font-medium text-white shadow-md transition-colors hover:bg-white/20 sm:mt-3 sm:px-6 sm:py-2 sm:text-sm">
+                                        <Link href={b.link} className="mt-1 w-fit rounded-full border border-white/70 px-3 py-1 text-[10px] font-medium text-white shadow-md transition-colors hover:bg-white/20 sm:mt-4 sm:px-7 sm:py-2.5 sm:text-[15px] lg:text-[16px]">
                                             {b.button}
                                         </Link>
                                     </div>
