@@ -1,5 +1,6 @@
 "use client"
 import HeaderSearch from './HeaderSearch'
+import AniChatBot from './AniChatBot'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePointStore } from '@/store/usePointStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
@@ -11,6 +12,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { usePageTransition } from '@/hook/usePageTransition'
 import GradeModal from './GradeModal'
 import { toast } from 'sonner'
+import { FALLBACK_EVENTS, normalizeEventItem, type EventItem as LaftelEventItem } from '@/lib/eventData'
 
 const GRADES = [
     { level: 0, name: '베이비', req: 0, color: '#a78bfa', image: 'https://thumbnail.laftel.net/profiles/default/48363a65-24d6-45a0-9eac-8c1726656c63.png' },
@@ -55,13 +57,6 @@ const typeIcon: Record<string, string> = {
 }
 
 type DateLike = { toDate?: () => Date } | string | number | Date | null | undefined
-type EventItem = {
-    id: string | number
-    status?: string
-    img: string
-    name: string
-}
-
 const formatTime = (ts: DateLike) => {
     if (!ts) return ''
     const date = typeof ts === 'object' && 'toDate' in ts && typeof ts.toDate === 'function'
@@ -75,14 +70,19 @@ const formatTime = (ts: DateLike) => {
 }
 
 function EventNotifications() {
-    const [events, setEvents] = useState<EventItem[]>([])
+    const [events, setEvents] = useState<LaftelEventItem[]>([])
     const router = useRouter()
 
     useEffect(() => {
-        fetch('https://api.laftel.net/api/events/v2/list/?offset=0&limit=5')
+        fetch('/api/laftel/events/v2/list?offset=0&limit=5')
             .then(r => r.json())
-            .then((d: { results?: EventItem[] }) => setEvents(d.results?.filter((e) => e.status === 'ongoing').slice(0, 3) || []))
-            .catch(() => { })
+            .then((d: { results?: LaftelEventItem[] }) => {
+                const source = d.results?.map(normalizeEventItem) ?? FALLBACK_EVENTS
+                setEvents(source.filter((e) => e.status === 'ongoing').slice(0, 3))
+            })
+            .catch(() => {
+                setEvents(FALLBACK_EVENTS.filter((e) => e.status === 'ongoing').slice(0, 3))
+            })
     }, [])
 
     if (events.length === 0) return null
@@ -167,6 +167,7 @@ export default function Header() {
     const [scrolled, setScrolled] = useState(false)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const [mobileNotiOpen, setMobileNotiOpen] = useState(false)
+    const [mobileChatOpen, setMobileChatOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const notiRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
@@ -264,6 +265,7 @@ export default function Header() {
         <>
             {searchOpen && <HeaderSearch onClose={() => setSearchOpen(false)} />}
             {gradeOpen && <GradeModal onClose={() => setGradeOpen(false)} />}
+            {mobileChatOpen && <AniChatBot rightOffset={-48} onClose={() => setMobileChatOpen(false)} />}
 
             {/* 모바일 메뉴 배경 오버레이 */}
             <div
@@ -471,11 +473,35 @@ export default function Header() {
                         })}
                     </ul>
 
+                    <div className="mx-4 my-1 h-px bg-[var(--border)]" />
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMobileChatOpen(true)
+                            setMobileMenuOpen(false)
+                            setMobileNotiOpen(false)
+                        }}
+                        className="flex w-full items-center justify-between px-4 py-3 text-[14px] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                    >
+                        <span className="flex items-center gap-3">
+                            <span className="flex h-[18px] w-[18px] items-center justify-center text-[var(--text-subtle)]">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 3a7 7 0 0 0-7 7v2a5 5 0 0 0 5 5h1l3 3v-3h1a5 5 0 0 0 5-5v-2a7 7 0 0 0-7-7z" />
+                                    <path d="M9 10h.01" />
+                                    <path d="M15 10h.01" />
+                                    <path d="M9.5 13.5c1.4 1 3.6 1 5 0" />
+                                </svg>
+                            </span>
+                            <span>AI 추천</span>
+                        </span>
+                        <span className="rounded-full bg-[#6c5ce7]/15 px-2 py-0.5 text-[10px] font-bold text-[#6c5ce7]">라피</span>
+                    </button>
+
                     {user && (
                         <>
                             <div className="mx-4 my-1 h-px bg-[var(--border)]" />
                             <ul className="py-1.5">
-                                {DropdownMenu.slice(0, 5).map((item) => (
+                                {DropdownMenu.slice(0, 6).map((item) => (
                                     <li key={item.title}>
                                         <Link
                                             href={item.path}
@@ -621,7 +647,7 @@ export default function Header() {
                             type="button"
                             aria-label="검색"
                             onClick={() => setSearchOpen(true)}
-                            className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition-colors duration-200"
+                            className="hidden h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition-colors duration-200 md:flex"
                             style={{ color: textColor }}
                             onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = hoverBg}
                             onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}

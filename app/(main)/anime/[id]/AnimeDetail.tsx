@@ -43,17 +43,30 @@ export default function AnimeDetailPage({ animeId }: { animeId: number }) {
         }
     }, [episodes, epParam])
 
-    // 몰입 모드 시 헤더 숨기기
+    // 몰입 모드 시 헤더 + 모바일 하단바 숨기기
     useEffect(() => {
         const header = document.querySelector('header') as HTMLElement
-        if (!header) return
-        header.style.transition = 'opacity .3s ease'
-        header.style.opacity = immersive ? '0' : '1'
-        header.style.pointerEvents = immersive ? 'none' : 'auto'
+        const bottomTabBar = document.getElementById('bottom-tab-bar') as HTMLElement
+        if (header) {
+            header.style.transition = 'opacity .3s ease'
+            header.style.opacity = immersive ? '0' : '1'
+            header.style.pointerEvents = immersive ? 'none' : 'auto'
+        }
+        if (bottomTabBar) {
+            bottomTabBar.style.transition = 'opacity .3s ease, transform .3s ease'
+            bottomTabBar.style.opacity = immersive ? '0' : '1'
+            bottomTabBar.style.pointerEvents = immersive ? 'none' : 'auto'
+            bottomTabBar.style.transform = immersive ? 'translateY(100%)' : 'translateY(0)'
+        }
         return () => {
             if (header) {
                 header.style.opacity = '1'
                 header.style.pointerEvents = 'auto'
+            }
+            if (bottomTabBar) {
+                bottomTabBar.style.opacity = '1'
+                bottomTabBar.style.pointerEvents = 'auto'
+                bottomTabBar.style.transform = 'translateY(0)'
             }
         }
     }, [immersive])
