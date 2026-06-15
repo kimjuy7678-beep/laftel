@@ -501,7 +501,7 @@ export default function Header() {
                         <>
                             <div className="mx-4 my-1 h-px bg-[var(--border)]" />
                             <ul className="py-1.5">
-                                {DropdownMenu.slice(0, 5).map((item) => (
+                                {DropdownMenu.slice(0, 6).map((item) => (
                                     <li key={item.title}>
                                         <Link
                                             href={item.path}
