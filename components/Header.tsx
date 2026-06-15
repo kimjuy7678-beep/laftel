@@ -11,6 +11,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { usePageTransition } from '@/hook/usePageTransition'
 import GradeModal from './GradeModal'
 import { toast } from 'sonner'
+import { FALLBACK_EVENTS, normalizeEventItem, type EventItem as LaftelEventItem } from '@/lib/eventData'
 
 const GRADES = [
     { level: 0, name: '베이비', req: 0, color: '#a78bfa', image: 'https://thumbnail.laftel.net/profiles/default/48363a65-24d6-45a0-9eac-8c1726656c63.png' },
@@ -55,13 +56,6 @@ const typeIcon: Record<string, string> = {
 }
 
 type DateLike = { toDate?: () => Date } | string | number | Date | null | undefined
-type EventItem = {
-    id: string | number
-    status?: string
-    img: string
-    name: string
-}
-
 const formatTime = (ts: DateLike) => {
     if (!ts) return ''
     const date = typeof ts === 'object' && 'toDate' in ts && typeof ts.toDate === 'function'
@@ -75,14 +69,19 @@ const formatTime = (ts: DateLike) => {
 }
 
 function EventNotifications() {
-    const [events, setEvents] = useState<EventItem[]>([])
+    const [events, setEvents] = useState<LaftelEventItem[]>([])
     const router = useRouter()
 
     useEffect(() => {
-        fetch('https://api.laftel.net/api/events/v2/list/?offset=0&limit=5')
+        fetch('/api/laftel/events/v2/list?offset=0&limit=5')
             .then(r => r.json())
-            .then((d: { results?: EventItem[] }) => setEvents(d.results?.filter((e) => e.status === 'ongoing').slice(0, 3) || []))
-            .catch(() => { })
+            .then((d: { results?: LaftelEventItem[] }) => {
+                const source = d.results?.map(normalizeEventItem) ?? FALLBACK_EVENTS
+                setEvents(source.filter((e) => e.status === 'ongoing').slice(0, 3))
+            })
+            .catch(() => {
+                setEvents(FALLBACK_EVENTS.filter((e) => e.status === 'ongoing').slice(0, 3))
+            })
     }, [])
 
     if (events.length === 0) return null
