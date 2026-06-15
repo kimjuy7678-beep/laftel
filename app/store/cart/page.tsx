@@ -272,7 +272,7 @@ export default function CartPage() {
     const optionModalOptions = optionModal ? uniqueOptions(getOptionValues(optionModal.item.product)) : [];
 
     return (
-        <div className="min-h-screen bg-[#f5f3ff] pb-14">
+        <div className="min-h-screen bg-[#f5f3ff] pb-[126px] sm:pb-14">
             {/* 타이틀 */}
             <section className="mx-auto flex max-w-[1480px] flex-col items-center px-5 pb-8 pt-12 text-center md:px-10 md:pb-10 md:pt-14">
                 <p className="text-[12px] font-semibold tracking-[0.2em] text-[#826CFF] uppercase mb-1">Laftel Store</p>
@@ -426,7 +426,7 @@ export default function CartPage() {
                             )}
                         </span>
 
-                        <span className={`text-[12px] font-semibold ${agreed
+                        <span className={`min-w-0 flex-1 whitespace-nowrap text-left text-[11px] font-semibold tracking-[-0.01em] sm:text-[12px] sm:tracking-normal ${agreed
                                 ? "text-[#826CFF]"
                                 : agreeError
                                     ? "text-[#ff4d6d]"
@@ -439,14 +439,16 @@ export default function CartPage() {
                         <p className="mt-1.5 text-center text-[11px] text-[#ff4d6d] font-semibold">동의 후 결제를 진행해주세요.</p>
                     )}
 
-                    <button
-                        type="button"
-                        onClick={handleCheckout}
-                        disabled={selectedItems.length === 0 || checkoutLoading}
-                        className="mt-4 h-[52px] w-full rounded-full bg-[#826CFF] text-[17px] font-extrabold text-white transition hover:bg-[#6B5CE7] shadow-lg shadow-[#826cff25] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                        {checkoutLoading ? "이동 중..." : `${formatWon(animFinalTotal)} 결제하기`}
-                    </button>
+                    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#ebe8ff] bg-white/95 px-4 pb-[max(10px,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:static sm:mt-4 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+                        <button
+                            type="button"
+                            onClick={handleCheckout}
+                            disabled={selectedItems.length === 0 || checkoutLoading}
+                            className="h-[52px] w-full rounded-full bg-[#826CFF] text-[17px] font-extrabold text-white transition hover:bg-[#6B5CE7] shadow-lg shadow-[#826cff25] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            {checkoutLoading ? "이동 중..." : `${formatWon(animFinalTotal)} 결제하기`}
+                        </button>
+                    </div>
                 </aside>
             </main>
 

@@ -8,7 +8,11 @@ import { Timestamp } from "firebase/firestore";
 
 function formatFullDate(ts: Timestamp | null | undefined): string {
     if (!ts) return "-";
-    const d = ts.toDate();
+    // Timestamp일 수도 있고 Date일 수도 있어서 둘 다 처리
+    const d = typeof (ts as any).toDate === 'function'
+        ? (ts as any).toDate()
+        : new Date(ts as any);
+    if (isNaN(d.getTime())) return "-";
     return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
 }
 
