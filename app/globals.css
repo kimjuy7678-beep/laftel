@@ -46,6 +46,21 @@ html.light {
 }
 
 :root {
+  --bg-primary:    #0a0a0a;
+  --bg-secondary:  #111111;
+  --bg-card:       #1a1a1a;
+  --bg-hover:      #242424;
+
+  --text-primary:  #ffffff;
+  --text-high:     rgba(255,255,255,0.88);
+  --text-muted:    rgba(255,255,255,0.55);
+  --text-subtle:   rgba(255,255,255,0.38);
+  --text-faint:    rgba(255,255,255,0.22);
+
+  --border:        rgba(255,255,255,0.1);
+  --border-subtle: rgba(255,255,255,0.07);
+  --border-faint:  rgba(255,255,255,0.04);
+
   --main: #826cff;
   --gray: #bababa;
   --red:  #e40000;

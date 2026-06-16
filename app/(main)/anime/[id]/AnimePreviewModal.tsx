@@ -26,6 +26,11 @@ type PreviewDetail = {
     vote_average?: number
     status?: string
     seasons?: PreviewSeason[]
+    overview?: string
+    genres?: { id: number; name: string }[]
+    networks?: { name: string }[]
+    first_air_date?: string
+    production_companies?: { name: string }[]
 }
 type PreviewEpisode = {
     episode_number: number
@@ -41,6 +46,9 @@ type SimilarItem = {
     backdrop_path?: string | null
     vote_average?: number
 }
+type CastItem = { id: number; name: string; character: string; profile_path: string | null }
+type CrewItem = { job: string; name: string }
+type Keyword = { id: number; name: string }
 
 export default function AnimePreviewModal() {
     const { previewId, setPreviewId } = usePreviewStore()
@@ -62,6 +70,12 @@ export default function AnimePreviewModal() {
     const [isWishAdding, setIsWishAdding] = useState(false)
     const [showPurchase, setShowPurchase] = useState(false)
 
+    // 작품 정보 모달
+    const [showInfoModal, setShowInfoModal] = useState(false)
+    const [cast, setCast] = useState<CastItem[]>([])
+    const [crew, setCrew] = useState<CrewItem[]>([])
+    const [keywords, setKeywords] = useState<Keyword[]>([])
+
     const prevPathnameRef = useRef(pathname)
 
     useEffect(() => {
@@ -73,6 +87,14 @@ export default function AnimePreviewModal() {
             .then(r => r.json()).then((data: PreviewDetail) => { setDetail(data); setSelectedSeason(1) })
         fetch(`https://api.themoviedb.org/3/tv/${previewId}/similar?api_key=${TMDB_KEY}&language=ko-KR`)
             .then(r => r.json()).then((data: { results?: SimilarItem[] }) => setSimilar((data.results || []).slice(0, 12)))
+        // credits + keywords 미리 fetch
+        fetch(`https://api.themoviedb.org/3/tv/${previewId}/credits?api_key=${TMDB_KEY}&language=ko-KR`)
+            .then(r => r.json()).then((data: { cast?: CastItem[]; crew?: CrewItem[] }) => {
+                setCast((data.cast || []).slice(0, 8))
+                setCrew(data.crew || [])
+            })
+        fetch(`https://api.themoviedb.org/3/tv/${previewId}/keywords?api_key=${TMDB_KEY}`)
+            .then(r => r.json()).then((data: { results?: Keyword[] }) => setKeywords(data.results || []))
     }, [previewId])
 
     useEffect(() => {
@@ -83,6 +105,7 @@ export default function AnimePreviewModal() {
             setShowWishAdded(false)
             setShowLoginAlert(false)
             setShowPurchase(false)
+            setShowInfoModal(false)
         }
     }, [pathname])
 
@@ -94,12 +117,17 @@ export default function AnimePreviewModal() {
     }, [previewId, selectedSeason])
 
     useEffect(() => {
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setPreviewId(null) }
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (showInfoModal) setShowInfoModal(false)
+                else setPreviewId(null)
+            }
+        }
         const clickHandler = () => setShowMenu(false)
         window.addEventListener('keydown', handler)
         window.addEventListener('click', clickHandler)
         return () => { window.removeEventListener('keydown', handler); window.removeEventListener('click', clickHandler) }
-    }, [])
+    }, [showInfoModal])
 
     if (!previewId) return null
 
@@ -107,6 +135,9 @@ export default function AnimePreviewModal() {
     const poster = detail?.poster_path ? `${IMG}/w300${detail.poster_path}` : null
     const score = Math.round((detail?.vote_average || 0) * 10) / 10
     const status = detail?.status === 'Returning Series' ? '방영중' : '완결'
+    const overview = detail?.overview || ''
+    const director = crew.find(c => c.job === 'Director' || c.job === 'Series Director')
+    const firstAirYear = detail?.first_air_date ? detail.first_air_date.slice(0, 4) : ''
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4 lg:p-6" onClick={() => setPreviewId(null)}>
@@ -118,7 +149,6 @@ export default function AnimePreviewModal() {
                         ? <img src={backdrop} className="w-full h-full object-cover" alt={detail?.name} />
                         : <div className="w-full h-full bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg-card)]" />
                     }
-                    {/* 이미지 위 그라디언트 — 항상 어두운 배경 */}
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 60%)' }} />
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, transparent 70%)' }} />
 
@@ -154,14 +184,16 @@ export default function AnimePreviewModal() {
                         </div>
                     )}
 
-                    {/* 이미지 위 텍스트 — 항상 흰색 */}
+                    {/* 하단 텍스트 영역 */}
                     <div className="absolute bottom-5 left-4 right-4 sm:bottom-7 sm:left-6 sm:right-6 md:right-[180px] lg:bottom-9 lg:left-8 lg:right-[220px] xl:bottom-10 xl:left-10 xl:right-[250px]">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                             {score > 0 && <span className="text-xs font-semibold text-amber-400 sm:text-sm">★ {score}</span>}
                             {status && <span className={`text-[11px] font-semibold px-2 py-0.5 text-white rounded border ${status === '방영중' ? 'bg-green-500 border-green-500/25' : 'bg-white/10 text-white/60 border-white/15'}`}>{status}</span>}
                         </div>
                         <h2 className="mb-3 line-clamp-2 text-xl font-bold leading-tight text-white sm:text-2xl lg:text-[28px]">{detail?.name}</h2>
-                        <div className="flex flex-wrap gap-2">
+
+                        {/* 버튼들 */}
+                        <div className="flex flex-wrap gap-2 mb-3">
                             <button className="flex h-10 items-center gap-2 rounded-full border border-white px-4 text-xs text-white transition-all hover:border-[var(--main)] hover:bg-[var(--main)] sm:h-11 sm:px-5 sm:text-sm"
                                 onClick={() => { router.push(`/anime/${previewId}?ep=1`); setPreviewId(null) }}>
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
@@ -179,6 +211,21 @@ export default function AnimePreviewModal() {
                                 </svg>
                             </button>
                         </div>
+
+                        {/* 줄거리 + 더보기 */}
+                        {overview && (
+                            <div className="mt-1">
+                                <p className="text-white/70 text-xs leading-relaxed line-clamp-2 sm:text-sm">
+                                    {overview}
+                                </p>
+                                <button
+                                    className="mt-1 text-white/50 hover:text-white text-xs sm:text-sm transition-colors font-medium"
+                                    onClick={e => { e.stopPropagation(); setShowInfoModal(true) }}
+                                >
+                                    ...더보기
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -198,16 +245,120 @@ export default function AnimePreviewModal() {
                     {modalTab === 'episodes' && <EpisodesTab detail={detail} episodes={episodes} selectedSeason={selectedSeason} setSelectedSeason={setSelectedSeason} />}
                     {modalTab === 'similar' && <SimilarTab similar={similar} />}
                     {modalTab === 'review' && detail && (
-                        <ReviewTab
-                            previewId={previewId}
-                            user={user}
-                            animeTitle={detail.name}
-                            animePoster={detail.poster_path}
-                        />
+                        <ReviewTab previewId={previewId} user={user} animeTitle={detail.name} animePoster={detail.poster_path} />
                     )}
                     {modalTab === 'store' && <StoreTab detail={detail} />}
                 </div>
             </div>
+
+            {/* ── 작품 정보 모달 ── */}
+            {showInfoModal && detail && (
+                <div
+                    className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+                    onClick={() => setShowInfoModal(false)}
+                >
+                    <div
+                        className="relative w-full max-w-[540px] max-h-[88dvh] overflow-y-auto rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* 헤더 */}
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-faint)] sticky top-0 bg-[var(--bg-card)] z-10">
+                            <h3 className="text-base font-bold text-[var(--text-primary)]">작품 정보</h3>
+                            <button
+                                onClick={() => setShowInfoModal(false)}
+                                className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        <div className="px-6 py-5 flex flex-col gap-6">
+
+                            {/* 줄거리 */}
+                            {overview && (
+                                <div>
+                                    <p className="text-xs font-bold text-[var(--text-faint)] uppercase tracking-widest mb-2">줄거리</p>
+                                    <p className="text-sm text-[var(--text-muted)] leading-relaxed whitespace-pre-line">{overview}</p>
+                                </div>
+                            )}
+
+                            {/* 태그 (keywords) */}
+                            {keywords.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-bold text-[var(--text-faint)] uppercase tracking-widest mb-2">태그</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {keywords.slice(0, 10).map(kw => (
+                                            <span key={kw.id} className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--bg-hover)] text-[var(--text-muted)] border border-[var(--border-faint)]">
+                                                #{kw.name}
+                                            </span>
+                                        ))}
+                                        {detail.genres?.map(g => (
+                                            <span key={g.id} className="px-3 py-1 rounded-full text-xs font-semibold bg-[rgba(108,99,255,0.12)] text-[#9d97ff] border border-[rgba(108,99,255,0.2)]">
+                                                #{g.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 성우 정보 */}
+                            {cast.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-bold text-[var(--text-faint)] uppercase tracking-widest mb-3">성우 정보</p>
+                                    <div className="flex flex-col gap-2">
+                                        {cast.slice(0, 6).map(c => (
+                                            <div key={c.id} className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--bg-hover)] shrink-0">
+                                                    {c.profile_path
+                                                        ? <img src={`${IMG}/w92${c.profile_path}`} alt={c.name} className="w-full h-full object-cover" />
+                                                        : <div className="w-full h-full flex items-center justify-center text-[var(--text-faint)] text-xs font-bold">{c.name[0]}</div>
+                                                    }
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{c.character} 역</p>
+                                                    <p className="text-xs text-[var(--text-faint)] truncate">{c.name}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 제작 정보 */}
+                            <div>
+                                <p className="text-xs font-bold text-[var(--text-faint)] uppercase tracking-widest mb-3">제작 정보</p>
+                                <div className="flex flex-col gap-2">
+                                    {director && (
+                                        <div className="flex gap-3 text-sm">
+                                            <span className="text-[var(--text-faint)] w-14 shrink-0">감독</span>
+                                            <span className="text-[var(--text-muted)]">{director.name}</span>
+                                        </div>
+                                    )}
+                                    {detail.production_companies && detail.production_companies.length > 0 && (
+                                        <div className="flex gap-3 text-sm">
+                                            <span className="text-[var(--text-faint)] w-14 shrink-0">제작</span>
+                                            <span className="text-[var(--text-muted)]">{detail.production_companies.map(c => c.name).join(', ')}</span>
+                                        </div>
+                                    )}
+                                    {firstAirYear && (
+                                        <div className="flex gap-3 text-sm">
+                                            <span className="text-[var(--text-faint)] w-14 shrink-0">출시</span>
+                                            <span className="text-[var(--text-muted)]">{firstAirYear}년</span>
+                                        </div>
+                                    )}
+                                    {detail.networks && detail.networks.length > 0 && (
+                                        <div className="flex gap-3 text-sm">
+                                            <span className="text-[var(--text-faint)] w-14 shrink-0">방송국</span>
+                                            <span className="text-[var(--text-muted)]">{detail.networks.map(n => n.name).join(', ')}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showLoginAlert && <LoginAlert onClose={() => setShowLoginAlert(false)} />}
             {showPurchase && <PurchaseModal episodes={episodes} detail={detail} onClose={() => setShowPurchase(false)} />}
@@ -216,25 +367,14 @@ export default function AnimePreviewModal() {
                 <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowWishConfirm(false)}>
                     <div className="bg-[var(--bg-card)] rounded-2xl p-6 flex flex-col items-center gap-4 border border-[var(--border)] w-[320px] shadow-2xl" onClick={e => e.stopPropagation()}>
                         <div className="w-12 h-12 rounded-full bg-[var(--bg-hover)] flex items-center justify-center">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5">
-                                <path d="M12 5v14M5 12h14" />
-                            </svg>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5"><path d="M12 5v14M5 12h14" /></svg>
                         </div>
                         <div className="text-center">
-                            <p className="text-[var(--text-primary)] font-bold text-base mb-1">
-                                {isWishAdding ? '보고싶다에 추가할까요?' : '보고싶다에서 삭제할까요?'}
-                            </p>
-                            <p className="text-[var(--text-subtle)] text-xs">
-                                {isWishAdding ? '보관함에서 언제든 확인할 수 있어요' : '보관함에서 제거됩니다'}
-                            </p>
+                            <p className="text-[var(--text-primary)] font-bold text-base mb-1">{isWishAdding ? '보고싶다에 추가할까요?' : '보고싶다에서 삭제할까요?'}</p>
+                            <p className="text-[var(--text-subtle)] text-xs">{isWishAdding ? '보관함에서 언제든 확인할 수 있어요' : '보관함에서 제거됩니다'}</p>
                         </div>
                         <div className="flex gap-2 w-full">
-                            <button
-                                onClick={() => setShowWishConfirm(false)}
-                                className="flex-1 py-2.5 rounded-full border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors"
-                            >
-                                취소
-                            </button>
+                            <button onClick={() => setShowWishConfirm(false)} className="flex-1 py-2.5 rounded-full border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors">취소</button>
                             <button
                                 onClick={async () => {
                                     if (!isWishAdding) {
@@ -246,10 +386,7 @@ export default function AnimePreviewModal() {
                                         setTimeout(() => setShowWishAdded(true), 150)
                                     }
                                 }}
-                                className={`flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${isWishAdding
-                                    ? 'bg-[var(--main)] text-white hover:opacity-90'
-                                    : 'bg-red-500/90 text-white hover:bg-red-500'
-                                    }`}
+                                className={`flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${isWishAdding ? 'bg-[var(--main)] text-white hover:opacity-90' : 'bg-red-500/90 text-white hover:bg-red-500'}`}
                             >
                                 {isWishAdding ? '추가' : '삭제'}
                             </button>
@@ -262,27 +399,15 @@ export default function AnimePreviewModal() {
                 <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowWishAdded(false)}>
                     <div className="bg-[var(--bg-card)] rounded-2xl p-6 flex flex-col items-center gap-4 border border-[var(--border)] w-[320px] shadow-2xl" onClick={e => e.stopPropagation()}>
                         <div className="w-12 h-12 rounded-full bg-[var(--main)]/15 flex items-center justify-center">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2">
-                                <path d="M20 6L9 17l-5-5" />
-                            </svg>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>
                         </div>
                         <div className="text-center">
                             <p className="text-[var(--text-primary)] font-bold text-base mb-1">보고싶다에 추가됐어요!</p>
                             <p className="text-[var(--text-subtle)] text-xs">보관함에서 언제든 확인할 수 있어요</p>
                         </div>
                         <div className="flex gap-2 w-full">
-                            <button
-                                onClick={() => setShowWishAdded(false)}
-                                className="flex-1 py-2.5 rounded-full border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors"
-                            >
-                                닫기
-                            </button>
-                            <button
-                                onClick={() => { router.push('/library?tab=wishlist'); setShowWishAdded(false); setPreviewId(null) }}
-                                className="flex-1 py-2.5 rounded-full bg-[var(--main)] text-white text-sm font-bold hover:opacity-90 transition-opacity"
-                            >
-                                보관함으로 이동
-                            </button>
+                            <button onClick={() => setShowWishAdded(false)} className="flex-1 py-2.5 rounded-full border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-colors">닫기</button>
+                            <button onClick={() => { router.push('/library?tab=wishlist'); setShowWishAdded(false); setPreviewId(null) }} className="flex-1 py-2.5 rounded-full bg-[var(--main)] text-white text-sm font-bold hover:opacity-90 transition-opacity">보관함으로 이동</button>
                         </div>
                     </div>
                 </div>
