@@ -8,6 +8,7 @@ import { useAniStore } from '@/store/useAniStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { useFilteredAniList } from '@/hook/useFilteredAniList'
 import OnboardingModal from '@/components/OnboardingModal'
+import Image from 'next/image'
 
 const GENRE_TO_TMDB: Record<string, number> = {
     action: 10759, romance: 10749, fantasy: 14, scifi: 10765,
@@ -142,7 +143,7 @@ export default function PersonalRecommendSection({ onNoResult }: Props) {
                         ))}
                         <button className="pr-edit-btn" onClick={() => setEditOpen(true)}>
                             <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
-                                <path d="M9.5 1.5a1.414 1.414 0 0 1 2 2L4 11H1.5V8.5L9.5 1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M9.5 1.5a1.414 1.414 0 0 1 2 2L4 11H1.5V8.5L9.5 1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             수정
                         </button>
@@ -159,7 +160,7 @@ export default function PersonalRecommendSection({ onNoResult }: Props) {
                                 <div key={ani.id} className="pr-card" onClick={() => setPreviewId(ani.id)}>
                                     <div className="pr-thumb">
                                         {ani.backdrop_path
-                                            ? <img className="pr-img" src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} />
+                                            ? <Image className="pr-img" src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} fill sizes="(max-width:640px) 78vw, 25vw" style={{ objectFit: 'cover' }} />
                                             : <div className="pr-np">{(ani.name || '?')[0]}</div>
                                         }
                                         {idx === 0 && <span className="pr-pill">추천</span>}

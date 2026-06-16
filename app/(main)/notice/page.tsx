@@ -101,9 +101,7 @@ export default async function NoticePage({ searchParams }: PageProps) {
 
             <div className="nt-wrap">
                 <PageHeader title="공지사항" />
-                {fallback && (
-                    <p className="nt-fallback">실시간 공지 연결이 원활하지 않아 임시 공지 목록을 표시하고 있어요.</p>
-                )}
+
 
                 {notices.length === 0 ? (
                     <div className="nt-empty">등록된 공지사항이 없어요.</div>
