@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from "react"
 import { db } from "@/firebase/firebase"
 import {
-    collection, addDoc, getDocs, deleteDoc, updateDoc,
-    doc, query, serverTimestamp, where
+    collection, addDoc, deleteDoc, updateDoc,
+    doc, query, serverTimestamp, onSnapshot, orderBy
 } from "firebase/firestore"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useRouter } from "next/navigation"
@@ -76,7 +76,6 @@ function formatTime(ts: any) {
     return date.toLocaleDateString('ko-KR')
 }
 
-// 댓글 텍스트에서 시간 형식 감지 → 클릭 가능한 버튼으로 변환
 function parseTimestamps(text: string, onSeek: (seconds: number) => void) {
     const parts = text.split(/(\d{1,2}:\d{2})/)
     return parts.map((part, i) => {
@@ -110,7 +109,6 @@ function parseTimestamps(text: string, onSeek: (seconds: number) => void) {
 
 export default function EpisodeComments({ episodeId, animeId, animeTitle, animePoster, onBookmarkSeek }: Props) {
     const { user, avatarConfig } = useAuthStore()
-    const profileId = user?.currentProfileId || 'main'
     const myAvatarSrc = avatarConfig?.svgDataUrl || user?.photoURL || null
     const myName = user?.name || user?.email?.split('@')[0] || '나'
     const router = useRouter()
@@ -120,10 +118,10 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     const [loading, setLoading] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
-    // 수정 관련 state
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editText, setEditText] = useState('')
     const editInputRef = useRef<HTMLInputElement>(null)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
 
     const myWatched = (() => {
         try {
@@ -132,46 +130,37 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         } catch { return 0 }
     })()
 
-    const colName = 'anime_comments'
+    const colPath = `anime_comments/${animeId}/episodes/${episodeId}/comments`
 
     useEffect(() => {
-        if (!user?.uid || !animeId || !episodeId || isNaN(Number(animeId))) return
+        if (!animeId || !episodeId || isNaN(Number(animeId))) return
         setLoading(true)
-        getDocs(
-            query(
-                collection(db, 'users', user.uid, 'profiles', profileId, colName),
-                where('animeId', '==', Number(animeId)),
-                where('episodeNumber', '==', Number(episodeId))
-            )
-        ).then(snap => {
-            const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Comment))
-            setComments(data.sort((a, b) => {
-                const at = a.createdAt?.toDate?.()?.getTime?.() || 0
-                const bt = b.createdAt?.toDate?.()?.getTime?.() || 0
-                return bt - at
-            }))
-        }).finally(() => setLoading(false))
-    }, [animeId, episodeId, user?.uid, profileId])
 
-    // 수정 모드 진입
+        const q = query(
+            collection(db, colPath),
+            orderBy('createdAt', 'desc')
+        )
+
+        const unsub = onSnapshot(q, (snap) => {
+            const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Comment))
+            setComments(data)
+            setLoading(false)
+        })
+
+        return () => unsub()
+    }, [animeId, episodeId])
+
     const startEdit = (c: Comment) => {
         setEditingId(c.id)
         setEditText(c.text)
         setTimeout(() => editInputRef.current?.focus(), 50)
     }
 
-    // 수정 저장
     const handleEdit = async (id: string) => {
         const trimmed = editText.trim()
         if (!trimmed || !user?.uid) return
         try {
-            await updateDoc(
-                doc(db, 'users', user.uid, 'profiles', profileId, colName, id),
-                { text: trimmed, edited: true }
-            )
-            setComments(prev => prev.map(c =>
-                c.id === id ? { ...c, text: trimmed, edited: true } : c
-            ))
+            await updateDoc(doc(db, colPath, id), { text: trimmed, edited: true })
         } catch (e) { console.error(e) }
         setEditingId(null)
         setEditText('')
@@ -180,7 +169,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     const handleSubmit = async () => {
         const trimmed = input.trim()
         if (!trimmed || !user || !animeId || isNaN(Number(animeId))) return
-        if (!user) { router.push('/login'); return }
 
         setSubmitting(true)
         try {
@@ -198,14 +186,7 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 animePoster: animePoster || null,
                 watched: myWatched,
             }
-            const ref = await addDoc(
-                collection(db, 'users', user.uid!, 'profiles', profileId, colName),
-                payload
-            )
-            setComments(prev => [{
-                id: ref.id, ...payload,
-                createdAt: new Date().toISOString(),
-            } as Comment, ...prev])
+            await addDoc(collection(db, colPath), payload)
             setInput('')
             useActivityStore.setState(s => ({
                 counts: { ...s.counts, comment: s.counts.comment + 1 }
@@ -214,10 +195,9 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         finally { setSubmitting(false) }
     }
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('댓글을 삭제할까요?')) return
-        await deleteDoc(doc(db, 'users', user?.uid!, 'profiles', profileId, colName, id))
-        setComments(prev => prev.filter(c => c.id !== id))
+    const handleDeleteConfirm = async (id: string) => {
+        await deleteDoc(doc(db, colPath, id))
+        setDeletingId(null)
         useActivityStore.setState(s => ({
             counts: { ...s.counts, comment: Math.max(0, s.counts.comment - 1) }
         }))
@@ -251,7 +231,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 </span>
             </div>
 
-            {/* 입력창 */}
             <div className="flex gap-2.5 mb-5">
                 <Avatar src={myAvatarSrc} name={user ? myName : '?'} size={32} />
                 <div className="flex-1 flex flex-col gap-1.5">
@@ -282,7 +261,6 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 </div>
             </div>
 
-            {/* 댓글 목록 */}
             {loading ? (
                 <div className="flex justify-center py-6">
                     <div className="w-5 h-5 border-2 border-[var(--border)] border-t-[#6c63ff] rounded-full animate-spin" />
@@ -300,52 +278,81 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                                     <GradeBadge watched={c.watched ?? 0} size="sm" showName={true} />
                                     <span className="text-[11px] text-[var(--text-faint)]">{formatTime(c.createdAt)}</span>
                                     {c.edited && <span className="text-[10px] text-[var(--text-faint)]">(수정됨)</span>}
-                                    {/* 수정/삭제 버튼 — 내 댓글일 때만 */}
+
                                     {c.uid === user?.uid && editingId !== c.id && (
                                         <div className="ml-auto flex items-center gap-1.5">
-                                            <button
-                                                onClick={() => startEdit(c)}
-                                                style={{
-                                                    fontSize: 11, fontWeight: 600,
-                                                    padding: '3px 10px', borderRadius: 6,
-                                                    background: 'var(--bg-secondary)',
-                                                    border: '1px solid var(--border)',
-                                                    color: 'var(--text-muted)',
-                                                    cursor: 'pointer', transition: 'all .15s',
-                                                }}
-                                                onMouseEnter={e => {
-                                                    (e.currentTarget as HTMLButtonElement).style.borderColor = '#6c63ff'
-                                                    ;(e.currentTarget as HTMLButtonElement).style.color = '#9d97ff'
-                                                }}
-                                                onMouseLeave={e => {
-                                                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
-                                                    ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
-                                                }}
-                                            >수정</button>
-                                            <button
-                                                onClick={() => handleDelete(c.id)}
-                                                style={{
-                                                    fontSize: 11, fontWeight: 600,
-                                                    padding: '3px 10px', borderRadius: 6,
-                                                    background: 'var(--bg-secondary)',
-                                                    border: '1px solid var(--border)',
-                                                    color: 'var(--text-muted)',
-                                                    cursor: 'pointer', transition: 'all .15s',
-                                                }}
-                                                onMouseEnter={e => {
-                                                    (e.currentTarget as HTMLButtonElement).style.borderColor = '#ef4444'
-                                                    ;(e.currentTarget as HTMLButtonElement).style.color = '#f87171'
-                                                }}
-                                                onMouseLeave={e => {
-                                                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
-                                                    ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
-                                                }}
-                                            >삭제</button>
+                                            {deletingId === c.id ? (
+                                                <>
+                                                    <span className="text-[11px] text-[var(--text-faint)]">삭제할까요?</span>
+                                                    <button
+                                                        onClick={() => handleDeleteConfirm(c.id)}
+                                                        style={{
+                                                            fontSize: 11, fontWeight: 600,
+                                                            padding: '3px 10px', borderRadius: 6,
+                                                            background: 'rgba(239,68,68,0.15)',
+                                                            border: '1px solid #ef4444',
+                                                            color: '#f87171',
+                                                            cursor: 'pointer', transition: 'all .15s',
+                                                        }}
+                                                    >확인</button>
+                                                    <button
+                                                        onClick={() => setDeletingId(null)}
+                                                        style={{
+                                                            fontSize: 11, fontWeight: 600,
+                                                            padding: '3px 10px', borderRadius: 6,
+                                                            background: 'var(--bg-secondary)',
+                                                            border: '1px solid var(--border)',
+                                                            color: 'var(--text-muted)',
+                                                            cursor: 'pointer', transition: 'all .15s',
+                                                        }}
+                                                    >취소</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => startEdit(c)}
+                                                        style={{
+                                                            fontSize: 11, fontWeight: 600,
+                                                            padding: '3px 10px', borderRadius: 6,
+                                                            background: 'var(--bg-secondary)',
+                                                            border: '1px solid var(--border)',
+                                                            color: 'var(--text-muted)',
+                                                            cursor: 'pointer', transition: 'all .15s',
+                                                        }}
+                                                        onMouseEnter={e => {
+                                                            (e.currentTarget as HTMLButtonElement).style.borderColor = '#6c63ff'
+                                                            ;(e.currentTarget as HTMLButtonElement).style.color = '#9d97ff'
+                                                        }}
+                                                        onMouseLeave={e => {
+                                                            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
+                                                            ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
+                                                        }}
+                                                    >수정</button>
+                                                    <button
+                                                        onClick={() => setDeletingId(c.id)}
+                                                        style={{
+                                                            fontSize: 11, fontWeight: 600,
+                                                            padding: '3px 10px', borderRadius: 6,
+                                                            background: 'var(--bg-secondary)',
+                                                            border: '1px solid var(--border)',
+                                                            color: 'var(--text-muted)',
+                                                            cursor: 'pointer', transition: 'all .15s',
+                                                        }}
+                                                        onMouseEnter={e => {
+                                                            (e.currentTarget as HTMLButtonElement).style.borderColor = '#ef4444'
+                                                            ;(e.currentTarget as HTMLButtonElement).style.color = '#f87171'
+                                                        }}
+                                                        onMouseLeave={e => {
+                                                            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
+                                                            ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
+                                                        }}
+                                                    >삭제</button>
+                                                </>
+                                            )}
                                         </div>
                                     )}
                                 </div>
 
-                                {/* 수정 모드 */}
                                 {editingId === c.id ? (
                                     <div className="flex gap-2 mt-1">
                                         <input

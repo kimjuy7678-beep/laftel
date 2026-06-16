@@ -19,6 +19,7 @@ interface AniItem {
     backdrop_path: string | null
     first_air_date: string
     vote_average: number
+    vote_count: number
     genre_ids: number[]
     _ageBlocked?: boolean
 }
@@ -36,6 +37,7 @@ interface TMDBAniResult {
     first_air_date?: string
     release_date?: string
     vote_average?: number
+    vote_count?: number
     genre_ids?: number[]
 }
 
@@ -74,8 +76,8 @@ interface TagOption {
 }
 
 const ALL_GENRES: GenreOption[] = [
-    { key: 'bl', id: null, label: 'BL', textMatch: ['boys love', 'boy love', 'boy-love', 'bl', 'yaoi'], searchQueries: ['Sasaki and Miyano','Yuri on Ice','Banana Fish','No. 6 anime','Junjou Romantica','Sekai Ichi Hatsukoi','Love Stage','Cherry Magic anime'] },
-    { key: 'gl', id: null, label: 'GL 백합', textMatch: ['girls love', 'girl love', 'girl-love', 'yuri', 'gl'], searchQueries: ['Bloom Into You','Citrus anime','Adachi and Shimamura','Strawberry Panic','Sakura Trick','Yuri Is My Job','Magical Revolution Reincarnated Princess Genius Young Lady','Otherside Picnic','Whisper Me a Love Song','Maria Watches Over Us'] },
+    { key: 'bl', id: null, label: 'BL', textMatch: ['boys love', 'boy love', 'boy-love', 'bl', 'yaoi'], searchQueries: ['Sasaki and Miyano', 'Yuri on Ice', 'Banana Fish', 'No. 6 anime', 'Junjou Romantica', 'Sekai Ichi Hatsukoi', 'Love Stage', 'Cherry Magic anime'] },
+    { key: 'gl', id: null, label: 'GL 백합', textMatch: ['girls love', 'girl love', 'girl-love', 'yuri', 'gl'], searchQueries: ['Bloom Into You', 'Citrus anime', 'Adachi and Shimamura', 'Strawberry Panic', 'Sakura Trick', 'Yuri Is My Job', 'Magical Revolution Reincarnated Princess Genius Young Lady', 'Otherside Picnic', 'Whisper Me a Love Song', 'Maria Watches Over Us'] },
     { key: 'action', id: 10759, label: '액션' },
     { key: 'adventure', id: 10759, label: '모험' },
     { key: 'fantasy', id: 10765, label: '판타지', genreIds: [10765] },
@@ -125,7 +127,7 @@ const ALL_TAGS: TagOption[] = [
     { key: 'manga-original', id: '9717', label: '만화원작', genreIds: [10759, 35, 18] },
     { key: 'ninja', id: '4290', label: '닌자', genreIds: [10759] },
     { key: 'school', id: '158718', label: '학원물', genreIds: [35, 18, 10749] },
-    { key: 'magic', id: '9882', label: '마법', genreIds: [10765, 10759], searchQueries: ['Frieren Beyond Journey End','Black Clover','Fairy Tail','Little Witch Academia','MASHLE','The Ancient Magus Bride','Puella Magi Madoka Magica','Cardcaptor Sakura','The Irregular at Magic High School','Magi anime'] },
+    { key: 'magic', id: '9882', label: '마법', genreIds: [10765, 10759], searchQueries: ['Frieren Beyond Journey End', 'Black Clover', 'Fairy Tail', 'Little Witch Academia', 'MASHLE', 'The Ancient Magus Bride', 'Puella Magi Madoka Magica', 'Cardcaptor Sakura', 'The Irregular at Magic High School', 'Magi anime'] },
 ]
 const SIDEBAR_TAGS = [...ALL_TAGS.slice(0, 8), ALL_TAGS.find(t => t.key === 'magic')].filter((t): t is TagOption => Boolean(t))
 
@@ -141,8 +143,7 @@ const SIDEBAR_YEARS = QUARTER_YEARS.slice(0, 4)
 
 const SORT_OPTIONS = [
     { value: 'popularity.desc', label: '인기순' }, { value: 'first_air_date.desc', label: '신작순' },
-    { value: 'vote_count.desc', label: '업데이트순' }, { value: '0', label: '리뷰 많은순' },
-    { value: 'vote_average.desc', label: '별점 높은순' },
+    { value: 'vote_count.desc', label: '업데이트순' }, { value: 'vote_average.desc', label: '별점 높은순' },
 ]
 
 const GENRE_LABEL: Record<number, string> = {
@@ -192,7 +193,7 @@ function getSpecialGenreQueries(filters: Filters) {
     return [...new Set([...filters.genres.flatMap(key => ALL_GENRES.find(g => g.key === key)?.searchQueries || []), ...filters.tags.flatMap(key => ALL_TAGS.find(t => t.key === key)?.searchQueries || [])])]
 }
 function mapTmdbResult(r: TMDBAniResult): AniItem {
-    return { id: r.id, name: r.name || r.title || '', original_name: r.original_name || r.original_title || '', overview: r.overview || '', poster_path: r.poster_path, backdrop_path: r.backdrop_path, first_air_date: r.first_air_date || r.release_date || '', vote_average: r.vote_average || 0, genre_ids: r.genre_ids || [] }
+    return { id: r.id, name: r.name || r.title || '', original_name: r.original_name || r.original_title || '', overview: r.overview || '', poster_path: r.poster_path, backdrop_path: r.backdrop_path, first_air_date: r.first_air_date || r.release_date || '', vote_average: r.vote_average || 0, vote_count: r.vote_count || 0, genre_ids: r.genre_ids || [] }
 }
 async function fetchSpecialGenreResults(queries: string[], mediaType: string) {
     if (!TMDB_KEY || queries.length === 0) return []
@@ -334,22 +335,22 @@ function AniCard({ item }: { item: AniItem }) {
             )}
             {showLoginAlert && <LoginAlert onClose={() => setShowLoginAlert(false)} />}
             {showWishConfirm && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={() => setShowWishConfirm(false)}>
-                    <div className="bg-[var(--bg-card)] rounded-2xl p-6 flex flex-col items-center gap-4 border border-[var(--border)] w-[320px]" onClick={e => e.stopPropagation()}>
-                        <p className="text-[var(--text-primary)] font-bold text-base">{isWishAdding ? '보고싶다 보관함에 추가할까요?' : '보고싶다에서 삭제할까요?'}</p>
+                <div className="wish-modal-bg" onClick={() => setShowWishConfirm(false)}>
+                    <div className="wish-modal" onClick={e => e.stopPropagation()}>
+                        <p className="wish-modal-title">{isWishAdding ? '보고싶다 보관함에 추가할까요?' : '보고싶다에서 삭제할까요?'}</p>
                         <div className="flex gap-2 w-full">
-                            <button onClick={() => setShowWishConfirm(false)} className="flex-1 py-2 rounded-full border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] transition-colors">취소</button>
+                            <button onClick={() => setShowWishConfirm(false)} className="wish-modal-cancel">취소</button>
                             <button onClick={handleWishConfirm} className="flex-1 py-2 rounded-full bg-[var(--main)] text-white text-sm font-bold hover:opacity-90 transition-opacity">{isWishAdding ? '추가' : '삭제'}</button>
                         </div>
                     </div>
                 </div>
             )}
             {showWishAdded && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={() => setShowWishAdded(false)}>
-                    <div className="bg-[var(--bg-card)] rounded-2xl p-6 flex flex-col items-center gap-4 border border-[var(--border)] w-[320px]" onClick={e => e.stopPropagation()}>
-                        <p className="text-[var(--text-primary)] font-bold text-base">보고싶다에 추가됐어요!</p>
+                <div className="wish-modal-bg" onClick={() => setShowWishAdded(false)}>
+                    <div className="wish-modal" onClick={e => e.stopPropagation()}>
+                        <p className="wish-modal-title">보고싶다에 추가됐어요!</p>
                         <div className="flex gap-2 w-full">
-                            <button onClick={() => setShowWishAdded(false)} className="flex-1 py-2 rounded-full border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] transition-colors">닫기</button>
+                            <button onClick={() => setShowWishAdded(false)} className="wish-modal-cancel">닫기</button>
                             <button onClick={() => { router.push('/library?tab=wishlist'); setShowWishAdded(false) }} className="flex-1 py-2 rounded-full bg-[var(--main)] text-white text-sm font-bold hover:opacity-90 transition-opacity">보관함으로 이동</button>
                         </div>
                     </div>
@@ -369,6 +370,20 @@ function Skeleton() {
     )
 }
 
+function sortItems(items: AniItem[], sort: string): AniItem[] {
+    const sorted = [...items]
+    switch (sort) {
+        case 'first_air_date.desc':
+            return sorted.sort((a, b) => b.first_air_date.localeCompare(a.first_air_date))
+        case 'vote_count.desc':
+        case '0':
+            return sorted.sort((a, b) => b.vote_count - a.vote_count)
+        case 'vote_average.desc':
+            return sorted.sort((a, b) => b.vote_average - a.vote_average)
+        default:
+            return items
+    }
+}
 // ─── 메인 ─────────────────────────────────────────────────────
 function TagSearchInner() {
     const searchParams = useSearchParams()
@@ -419,6 +434,7 @@ function TagSearchInner() {
             backdrop_path: a.backdrop_path,
             first_air_date: a.first_air_date || a.release_date || '',
             vote_average: a.vote_average || 0,
+            vote_count: a.vote_count || 0,
             genre_ids: a.genre_ids || [],
         }))
         return applyAgeFilter(items)
@@ -470,9 +486,12 @@ function TagSearchInner() {
         pending.current = true
         setLoading(true)
         try {
-            const filtered = sortByLocalTextGenres(
-                filterBySelectedGroups(filterByYear(filterByAiring(filterByMediaType(aniItems, f), f), f), f),
-                f
+            const filtered = sortItems(
+                sortByLocalTextGenres(
+                    filterBySelectedGroups(filterByYear(filterByAiring(filterByMediaType(aniItems, f), f), f), f),
+                    f
+                ),
+                f.sort
             )
             const start = pg * PAGE_SIZE
             const slice = filtered.slice(start, start + PAGE_SIZE)
@@ -497,10 +516,14 @@ function TagSearchInner() {
         setResults([])
         try {
             if (aniItems.length === 0) return  // aniList 아직 로딩 중
-            const filtered = sortByLocalTextGenres(
-                filterBySelectedGroups(filterByYear(filterByAiring(filterByMediaType(aniItems, f), f), f), f),
-                f
+            const filtered = sortItems(
+                sortByLocalTextGenres(
+                    filterBySelectedGroups(filterByYear(filterByAiring(filterByMediaType(aniItems, f), f), f), f),
+                    f
+                ),
+                f.sort
             )
+
             const slice = filtered.slice(0, PAGE_SIZE)
             setResults(slice)
             setTotal(Math.ceil(filtered.length / PAGE_SIZE))
@@ -544,8 +567,8 @@ function TagSearchInner() {
     return (
         <>
             <style>{`
-                .fp { --fp-bg:var(--bg-primary); --fp-panel:var(--bg-card); --fp-panel-2:var(--bg-secondary); --fp-hover:var(--bg-hover); --fp-text:var(--text-primary); --fp-high:var(--text-high); --fp-muted:var(--text-muted); --fp-subtle:var(--text-subtle); --fp-faint:var(--text-faint); --fp-border:var(--border); --fp-border-subtle:var(--border-subtle); --fp-border-faint:var(--border-faint); --fp-soft:rgba(255,255,255,.06); --fp-soft-strong:rgba(255,255,255,.12); --fp-shadow:rgba(0,0,0,.45); --fp-skeleton-a:#161616; --fp-skeleton-b:#202020; min-height:100vh; background:var(--fp-bg); padding-top:64px; color:var(--fp-text); transition:background .2s, color .2s; }
-                html.light .fp { --fp-soft:rgba(0,0,0,.04); --fp-soft-strong:rgba(0,0,0,.1); --fp-shadow:rgba(25,25,35,.14); --fp-skeleton-a:#ececf2; --fp-skeleton-b:#f7f7fb; }
+                .fp { --fp-bg:var(--bg-primary); --fp-panel:var(--bg-card); --fp-panel-2:var(--bg-secondary); --fp-hover:var(--bg-hover); --fp-text:var(--text-primary); --fp-high:var(--text-high); --fp-muted:var(--text-muted); --fp-subtle:var(--text-subtle); --fp-faint:var(--text-faint); --fp-border:var(--border); --fp-border-subtle:var(--border-subtle); --fp-border-faint:var(--border-faint); --fp-soft:var(--border-faint); --fp-soft-strong:var(--bg-hover); --fp-check-border:var(--text-subtle); --fp-shadow:rgba(0,0,0,.45); --fp-skeleton-a:#161616; --fp-skeleton-b:#202020; min-height:100vh; background:var(--fp-bg); padding-top:64px; color:var(--fp-text); transition:background .2s, color .2s; }
+                html.light .fp { --fp-check-border:rgba(0,0,0,.28); --fp-shadow:rgba(25,25,35,.14); --fp-skeleton-a:#ececf2; --fp-skeleton-b:#f7f7fb; }
                 .fp-inner { width:90%; margin:0 auto; }
                 .fp-body { display:flex; gap:0; align-items:flex-start; }
                 .fp-sidebar { overflow:hidden; transition:width .3s cubic-bezier(.4,0,.2,1), opacity .3s ease; flex-shrink:0; }
@@ -564,11 +587,12 @@ function TagSearchInner() {
                 .btn-more-sec:hover { color:#9d97ff; }
                 .sb-checks { display:flex; flex-direction:column; gap:1px; }
                 .cb-row { display:flex; align-items:center; gap:9px; padding:5px 0; cursor:pointer; user-select:none; }
-                .cb-box { width:16px; height:16px; min-width:16px; border-radius:3px; border:1.5px solid var(--fp-border); display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; }
+                .cb-box { width:16px; height:16px; min-width:16px; border-radius:3px; border:1.5px solid var(--fp-check-border); background:var(--fp-panel); display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; box-shadow:inset 0 0 0 1px var(--fp-border-faint); }
                 .cb-box.checked { background:#6c63ff; border-color:#6c63ff; }
                 .cb-label { font-size:13px; color:var(--fp-muted); flex:1; }
                 .cb-row:hover .cb-label { color:var(--fp-high); }
-                .cb-row:hover .cb-box { border-color:var(--fp-muted); }
+                .cb-row:hover .cb-box { border-color:var(--fp-high); background:var(--fp-hover); }
+                .cb-row:hover .cb-box.checked { background:#6c63ff; border-color:#6c63ff; }
                 .fm { flex:1; display:flex; flex-direction:column; min-width:0; }
                 .fm-top { min-height:52px; padding:20px 0 20px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
                 .sort-wrap { position:relative; }
@@ -598,13 +622,13 @@ function TagSearchInner() {
                 .fc-info { margin-top:8px; }
                 .fc-name { font-size:13px; font-weight:600; color:var(--fp-high); line-height:1.4; margin:0 0 3px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
                 .fc-meta { font-size:11px; color:var(--fp-faint); margin:0; }
-                .fc-hover { position:absolute; top:0; left:50%; transform:translateX(-50%); width:248px; border-radius:10px; overflow:hidden; background:var(--fp-panel); border:1px solid var(--fp-border); box-shadow:0 18px 50px var(--fp-shadow); z-index:200; animation:pop .15s cubic-bezier(.34,1.56,.64,1); }
+                .fc-hover { position:absolute; top:0; left:50%; transform:translateX(-50%); width:248px; border-radius:10px; overflow:hidden; background:var(--fp-panel); border:1px solid var(--fp-border); box-shadow:0 18px 50px var(--fp-shadow); color:var(--fp-text); z-index:200; animation:pop .15s cubic-bezier(.34,1.56,.64,1); }
                 @keyframes pop { from{opacity:0;transform:translateX(-50%) scale(.92)}to{opacity:1;transform:translateX(-50%) scale(1)} }
                 .fh-bg { position:relative; width:100%; aspect-ratio:16/9; }
                 .fh-bg img { width:100%; height:100%; object-fit:cover; }
                 .fh-dim { position:absolute; inset:0; background:linear-gradient(to bottom,transparent 30%,var(--fp-panel) 100%); }
                 .fh-fallback { width:100%; aspect-ratio:16/9; background:linear-gradient(135deg,var(--fp-panel),var(--fp-panel-2)); }
-                .fh-body { padding:10px 14px 13px; }
+                .fh-body { padding:10px 14px 13px; background:var(--fp-panel); }
                 .fh-name { font-size:13px; font-weight:700; color:var(--fp-text); margin:0 0 6px; line-height:1.3; }
                 .fh-genres { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px; }
                 .fh-tag { font-size:10px; color:var(--fp-subtle); background:var(--fp-soft); border-radius:3px; padding:2px 6px; }
@@ -613,15 +637,15 @@ function TagSearchInner() {
                 .fh-play { flex:1; display:flex; align-items:center; justify-content:center; gap:5px; height:31px; background:#6c63ff; border:none; border-radius:6px; color:#fff; font-size:12px; font-weight:600; cursor:pointer; transition:background .2s; }
                 .fh-play:hover { background:#5a52e0; }
                 .fh-add { width:31px; height:31px; display:flex; align-items:center; justify-content:center; background:var(--fp-soft); border:1px solid var(--fp-border); border-radius:6px; color:var(--fp-muted); cursor:pointer; transition:all .2s; }
-                .fh-add:hover { background:var(--fp-soft-strong); color:var(--fp-text); }
+                .fh-add:hover { background:var(--fp-soft-strong); color:var(--fp-text); border-color:var(--fp-check-border); }
                 .fc-sk { list-style:none; }
                 .sk-t { width:100%; aspect-ratio:2/3; border-radius:8px; background:linear-gradient(90deg,var(--fp-skeleton-a) 25%,var(--fp-skeleton-b) 50%,var(--fp-skeleton-a) 75%); background-size:200% 100%; animation:shim 1.4s infinite; }
                 .sk-l { height:12px; border-radius:4px; margin-top:10px; background:linear-gradient(90deg,var(--fp-skeleton-a) 25%,var(--fp-skeleton-b) 50%,var(--fp-skeleton-a) 75%); background-size:200% 100%; animation:shim 1.4s infinite; }
                 @keyframes shim { 0%{background-position:200% 0}100%{background-position:-200% 0} }
                 .btn-more { display:flex; align-items:center; justify-content:center; width:100%; max-width:200px; margin:36px auto 0; height:42px; border-radius:21px; border:1px solid var(--fp-border); background:var(--fp-soft); color:var(--fp-muted); font-size:13px; font-weight:500; cursor:pointer; transition:all .2s; }
                 .btn-more:hover { background:var(--fp-soft-strong); color:var(--fp-text); border-color:var(--fp-muted); }
-                .modal-bg { --fp-panel:var(--bg-card); --fp-text:var(--text-primary); --fp-muted:var(--text-muted); --fp-subtle:var(--text-subtle); --fp-border:var(--border); --fp-border-subtle:var(--border-subtle); --fp-soft:rgba(255,255,255,.06); position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(4px); z-index:500; display:flex; align-items:center; justify-content:center; padding:24px; }
-                html.light .modal-bg { --fp-soft:rgba(0,0,0,.04); background:rgba(0,0,0,.35); }
+                .modal-bg { --fp-panel:var(--bg-card); --fp-text:var(--text-primary); --fp-muted:var(--text-muted); --fp-subtle:var(--text-subtle); --fp-border:var(--border); --fp-border-subtle:var(--border-subtle); --fp-border-faint:var(--border-faint); --fp-soft:var(--bg-hover); --fp-check-border:var(--text-subtle); position:fixed; inset:0; background:rgba(0,0,0,.58); backdrop-filter:blur(4px); z-index:500; display:flex; align-items:center; justify-content:center; padding:24px; }
+                html.light .modal-bg { --fp-check-border:rgba(0,0,0,.28); background:rgba(10,10,18,.34); }
                 .modal { background:var(--fp-panel); border:1px solid var(--fp-border); border-radius:14px; width:660px; max-width:90vw; max-height:80vh; overflow:hidden; display:flex; flex-direction:column; }
                 .modal-head { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; }
                 .modal-head h2 { font-size:18px; font-weight:700; color:var(--fp-text); margin:0; }
@@ -633,6 +657,12 @@ function TagSearchInner() {
                 .modal-cb:hover { background:var(--fp-soft); }
                 .modal-cb span:last-child { font-size:13px; color:var(--fp-muted); }
                 .modal-cb.on span:last-child { color:var(--fp-text); }
+                .wish-modal-bg { position:fixed; inset:0; z-index:500; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.58); backdrop-filter:blur(4px); padding:24px; }
+                html.light .wish-modal-bg { background:rgba(10,10,18,.34); }
+                .wish-modal { width:320px; max-width:calc(100vw - 40px); display:flex; flex-direction:column; align-items:center; gap:16px; border-radius:16px; border:1px solid var(--border); background:var(--bg-card); padding:24px; box-shadow:0 18px 50px rgba(0,0,0,.28); color:var(--text-primary); }
+                .wish-modal-title { margin:0; color:var(--text-primary); font-size:16px; font-weight:700; line-height:1.45; text-align:center; }
+                .wish-modal-cancel { flex:1; padding:8px 0; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--text-muted); font-size:14px; transition:all .18s; }
+                .wish-modal-cancel:hover { background:var(--bg-hover); color:var(--text-primary); border-color:var(--text-subtle); }
                 .modal-foot { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:14px 24px; border-top:1px solid var(--fp-border-subtle); }
                 .modal-reset { display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--fp-subtle); font-size:13px; cursor:pointer; margin-right:auto; padding:0; transition:color .2s; }
                 .modal-reset:hover { color:var(--fp-text); }
@@ -711,7 +741,7 @@ function TagSearchInner() {
                                     <div className="sb-sec-head"><p className="sb-sec-title">년도</p></div>
                                     <div className="sb-checks">
                                         {SIDEBAR_YEARS.map(y => {
-                                            const cnt = results.filter(r => { const yr = r.first_air_date?.slice(0, 4); if (!yr) return false; if (y.value.includes('-Q')) { const q = parseInt(y.value.split('-Q')[1]); const yy = y.value.split('-Q')[0]; const month = parseInt(r.first_air_date?.slice(5,7)||'0'); const qM = [[1,2,3],[4,5,6],[7,8,9],[10,11,12]]; return yr===yy && qM[q-1]?.includes(month) } if (y.value==='2010s') return parseInt(yr)>=2010&&parseInt(yr)<=2019; if (y.value==='2000s') return parseInt(yr)>=2000&&parseInt(yr)<=2009; if (y.value==='1990s') return parseInt(yr)>=1990&&parseInt(yr)<=1999; return yr===y.value }).length
+                                            const cnt = results.filter(r => { const yr = r.first_air_date?.slice(0, 4); if (!yr) return false; if (y.value.includes('-Q')) { const q = parseInt(y.value.split('-Q')[1]); const yy = y.value.split('-Q')[0]; const month = parseInt(r.first_air_date?.slice(5, 7) || '0'); const qM = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]; return yr === yy && qM[q - 1]?.includes(month) } if (y.value === '2010s') return parseInt(yr) >= 2010 && parseInt(yr) <= 2019; if (y.value === '2000s') return parseInt(yr) >= 2000 && parseInt(yr) <= 2009; if (y.value === '1990s') return parseInt(yr) >= 1990 && parseInt(yr) <= 1999; return yr === y.value }).length
                                             return <Checkbox key={y.value} checked={filters.year.includes(y.value)} onChange={() => toggleYear(y.value)} label={y.label} count={cnt} />
                                         })}
                                     </div>
