@@ -4,13 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAniStore } from '@/store/useAniStore'
 import { useRouter } from 'next/navigation'
 import { buildChannels, getCurrentIdx, getTodaySeed, nowInMinutes, ScheduleItem } from '@/utils/scheduleUtils'
+import channels from '@/data/channels.json'
 
 function ChannelBlock({
     label,
+    channelSlug,
     items,
     currentIdx,
 }: {
     label: string
+    channelSlug: string
     items: ScheduleItem[]
     currentIdx: number
 }) {
@@ -25,14 +28,21 @@ function ChannelBlock({
     }, [currentIdx])
 
     return (
-        <div className="flex flex-col min-w-0 h-full rounded-xl border border-[var(--border-faint)] bg-[var(--bg-card)] overflow-hidden xl:rounded-none xl:border-0 xl:bg-transparent">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-faint)] sticky top-0 z-10 backdrop-blur-xl bg-[var(--bg-card)]/[0.9] sm:px-5 sm:py-4 xl:bg-[var(--bg-primary)]/[0.85]">
+        <div className="flex flex-col min-w-0 h-full rounded-xl border border-[var(--border-faint)] bg-[var(--bg-card)] xl:rounded-none xl:border-0 xl:bg-transparent">
+            {/* 헤더 — 채널 로고 클릭 시 해당 채널 페이지로 이동 */}
+            <div
+                className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-faint)] shrink-0 backdrop-blur-xl bg-[var(--bg-card)]/[0.9] sm:px-5 sm:py-4 xl:bg-[var(--bg-primary)]/[0.85] cursor-pointer hover:bg-[var(--bg-hover)] transition-colors"
+                onClick={() => router.push(`/live/${channelSlug}`)}
+            >
                 <h3 className="flex items-center justify-center flex-1">
                     <img src={label} alt="img" className="h-7 w-28 object-contain sm:h-8 sm:w-30" />
                 </h3>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-faint)] shrink-0">
+                    <path d="m9 18 6-6-6-6" />
+                </svg>
             </div>
 
-            <ul>
+            <ul className="overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-0">
                 {items.map((item, i) => {
                     const isCurrent = i === currentIdx
                     const isPast    = i < currentIdx
@@ -44,9 +54,11 @@ function ChannelBlock({
                             key={item.tmdbId}
                             ref={isCurrent ? currentRef : null}
                             onClick={() => {
+                                // 현재 방영중 → 채널 페이지로
                                 if (isCurrent) {
-                                    router.push(`/live/party/dummy-${item.tmdbId}`)
+                                    router.push(`/live/${channelSlug}`)
                                 } else if (!isPast) {
+                                    // 예정 → 채널 페이지로 (scheduledAt 쿼리)
                                     const today = new Date()
                                     const h = Math.floor(item.minutesFromStart / 60) % 24
                                     const m = item.minutesFromStart % 60
@@ -54,7 +66,7 @@ function ChannelBlock({
                                     if (item.minutesFromStart >= 24 * 60) {
                                         today.setDate(today.getDate() + 1)
                                     }
-                                    router.push(`/live/party/dummy-${item.tmdbId}?scheduledAt=${today.toISOString()}`)
+                                    router.push(`/live/${channelSlug}?scheduledAt=${today.toISOString()}`)
                                 }
                             }}
                             className={[
@@ -146,7 +158,7 @@ function ChannelBlock({
 
 export default function ScheduleBoard() {
     const { onFetchDetail } = useAniStore()
-    const channels = useMemo(() => buildChannels(getTodaySeed()), [])
+    const scheduleChannels = useMemo(() => buildChannels(getTodaySeed()), [])
     const [nowMin, setNowMin] = useState(nowInMinutes)
 
     useEffect(() => {
@@ -155,7 +167,7 @@ export default function ScheduleBoard() {
     }, [])
 
     useEffect(() => {
-        const allIds = channels.flatMap((ch) => ch.items.map((item) => item.tmdbId))
+        const allIds = scheduleChannels.flatMap((ch) => ch.items.map((item) => item.tmdbId))
         ;[...new Set(allIds)].forEach((id) => onFetchDetail(id))
     }, [])
 
@@ -167,11 +179,19 @@ export default function ScheduleBoard() {
             </div>
 
             <div className="grid grid-flow-col auto-cols-[minmax(292px,86vw)] gap-3 overflow-x-auto pb-2 sm:auto-cols-[minmax(340px,42vw)] xl:grid-flow-row xl:grid-cols-3 xl:gap-0 xl:divide-x xl:divide-[var(--border-subtle)] xl:overflow-hidden xl:rounded-xl xl:border xl:border-[var(--border-faint)]">
-                {channels.map((ch) => {
-                    const currentIdx = getCurrentIdx(ch.items, nowMin)
+                {scheduleChannels.map((sch) => {
+                    const currentIdx = getCurrentIdx(sch.items, nowMin)
+                    // channels.json에서 slug 매칭
+                    const channelInfo = channels.find(c => c.id === sch.id)
+                    const slug = channelInfo?.slug ?? sch.id
                     return (
-                        <div key={ch.id} className="overflow-y-auto max-h-[520px] [&::-webkit-scrollbar]:w-0 sm:max-h-[640px] xl:max-h-[680px]">
-                            <ChannelBlock label={ch.label} items={ch.items} currentIdx={currentIdx} />
+                        <div key={sch.id} className="flex flex-col max-h-[520px] sm:max-h-[640px] xl:max-h-[680px]">
+                            <ChannelBlock
+                                label={sch.label}
+                                channelSlug={slug}
+                                items={sch.items}
+                                currentIdx={currentIdx}
+                            />
                         </div>
                     )
                 })}

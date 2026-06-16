@@ -17,12 +17,12 @@ export default function StoreLayout({
     const hideBottomTab = pathname === "/store/cart" || pathname.startsWith("/store/order");
 
     return (
-        <div className="bg-white min-h-auto">
+        <div className="bg-white min-h-screen isolate">
             <Header />
             <AnimatePresence mode="wait" initial={false}>
                 <motion.main
                     key={pathname}
-                    className={`bg-white ${hideBottomTab ? "" : "pb-[76px] md:pb-0"}`}
+                    className={`bg-white min-h-screen ${hideBottomTab ? "" : "pb-[76px] md:pb-0"}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}

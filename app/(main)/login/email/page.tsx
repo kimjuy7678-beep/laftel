@@ -55,16 +55,8 @@ export default function EmailLoginPage() {
                     points: 0,
                     createdAt: new Date().toISOString(),
                 })
-                onLogin({
-                    email: result.user.email,
-                    name: displayName,
-                    photoURL: null,
-                    uid,
-                    membership: 'none',
-                    points: 0,
-                })
                 showToast('회원가입 완료! 환영해요 🎉')
-                setTimeout(() => router.push('/profile'), 800)
+                setTimeout(() => router.push('/login'), 800)
             }
         } catch (err: any) {
             const msg: Record<string, string> = {

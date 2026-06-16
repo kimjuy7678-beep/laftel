@@ -1,6 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { buildChannels, getCurrentIdx, getTodaySeed, nowInMinutes } from '@/utils/scheduleUtils'
 import { useAniStore } from '@/store/useAniStore'
 import channels from '@/data/channels.json'
@@ -10,7 +10,15 @@ export default function LiveSection() {
     const router = useRouter()
     const { aniDetails, onFetchDetail } = useAniStore()
     const schedule = useMemo(() => buildChannels(getTodaySeed()), [])
-    const nowMin = nowInMinutes()
+    const [nowMin, setNowMin] = useState(0)          // ← 초기값 0으로 고정
+    const [mounted, setMounted] = useState(false)    // ← 마운트 여부
+
+    useEffect(() => {
+        setNowMin(nowInMinutes())   // 클라이언트에서만 실제 시간 적용
+        setMounted(true)
+        const timer = setInterval(() => setNowMin(nowInMinutes()), 60_000)
+        return () => clearInterval(timer)
+    }, [])
 
     const nowPlaying = useMemo(() => {
         return schedule.map((sch) => {
@@ -19,7 +27,7 @@ export default function LiveSection() {
             const next = sch.items[currentIdx + 1]
 
             let progress = 0
-            if (item) {
+            if (item && mounted) {  // ← mounted일 때만 progress 계산
                 const [startH, startM] = item.time.split(':').map(Number)
                 const startMin = startH * 60 + startM
                 const endMin = next
@@ -30,13 +38,13 @@ export default function LiveSection() {
             }
             return { channelId: sch.id, item, next, progress }
         })
-    }, [schedule, nowMin])
+    }, [schedule, nowMin, mounted])
 
     useEffect(() => {
         nowPlaying.forEach(({ item }) => {
             if (item?.tmdbId) onFetchDetail(item.tmdbId)
         })
-    }, [])
+    }, [nowPlaying])
 
     return (
         <section>
@@ -60,14 +68,12 @@ export default function LiveSection() {
 
                         return (
                             <div key={channelId} className={styles.card} onClick={() => router.push(`/live/${ch.slug}`)}>
-
                                 <div className={styles.thumb}>
                                     {backdropUrl
                                         ? <img className={styles.img} src={backdropUrl} alt={item.koTitle} />
                                         : <div className={styles.imgFallback}>{item.koTitle[0]}</div>
                                     }
                                     <div className={styles.overlay} />
-
                                     <span className={styles.badge}>
                                         <span className={styles.badgeDot} />
                                         LIVE
@@ -75,9 +81,11 @@ export default function LiveSection() {
                                     <div className={styles.play}>
                                         <svg viewBox="0 0 12 14"><path d="M1 1l10 6L1 13V1z" /></svg>
                                     </div>
-
                                     <div className={styles.progressWrap}>
-                                        <div className={styles.progressBar} style={{ width: `${progress}%` }} />
+                                        <div
+                                            className={styles.progressBar}
+                                            style={{ width: mounted ? `${progress}%` : '0%' }}  // ← mounted 전엔 0%
+                                        />
                                     </div>
                                 </div>
 
