@@ -19,6 +19,7 @@ interface AniItem {
     backdrop_path: string | null
     first_air_date: string
     vote_average: number
+    vote_count: number
     genre_ids: number[]
     _ageBlocked?: boolean
 }
@@ -36,6 +37,7 @@ interface TMDBAniResult {
     first_air_date?: string
     release_date?: string
     vote_average?: number
+    vote_count?: number
     genre_ids?: number[]
 }
 
@@ -74,8 +76,8 @@ interface TagOption {
 }
 
 const ALL_GENRES: GenreOption[] = [
-    { key: 'bl', id: null, label: 'BL', textMatch: ['boys love', 'boy love', 'boy-love', 'bl', 'yaoi'], searchQueries: ['Sasaki and Miyano','Yuri on Ice','Banana Fish','No. 6 anime','Junjou Romantica','Sekai Ichi Hatsukoi','Love Stage','Cherry Magic anime'] },
-    { key: 'gl', id: null, label: 'GL 백합', textMatch: ['girls love', 'girl love', 'girl-love', 'yuri', 'gl'], searchQueries: ['Bloom Into You','Citrus anime','Adachi and Shimamura','Strawberry Panic','Sakura Trick','Yuri Is My Job','Magical Revolution Reincarnated Princess Genius Young Lady','Otherside Picnic','Whisper Me a Love Song','Maria Watches Over Us'] },
+    { key: 'bl', id: null, label: 'BL', textMatch: ['boys love', 'boy love', 'boy-love', 'bl', 'yaoi'], searchQueries: ['Sasaki and Miyano', 'Yuri on Ice', 'Banana Fish', 'No. 6 anime', 'Junjou Romantica', 'Sekai Ichi Hatsukoi', 'Love Stage', 'Cherry Magic anime'] },
+    { key: 'gl', id: null, label: 'GL 백합', textMatch: ['girls love', 'girl love', 'girl-love', 'yuri', 'gl'], searchQueries: ['Bloom Into You', 'Citrus anime', 'Adachi and Shimamura', 'Strawberry Panic', 'Sakura Trick', 'Yuri Is My Job', 'Magical Revolution Reincarnated Princess Genius Young Lady', 'Otherside Picnic', 'Whisper Me a Love Song', 'Maria Watches Over Us'] },
     { key: 'action', id: 10759, label: '액션' },
     { key: 'adventure', id: 10759, label: '모험' },
     { key: 'fantasy', id: 10765, label: '판타지', genreIds: [10765] },
@@ -125,7 +127,7 @@ const ALL_TAGS: TagOption[] = [
     { key: 'manga-original', id: '9717', label: '만화원작', genreIds: [10759, 35, 18] },
     { key: 'ninja', id: '4290', label: '닌자', genreIds: [10759] },
     { key: 'school', id: '158718', label: '학원물', genreIds: [35, 18, 10749] },
-    { key: 'magic', id: '9882', label: '마법', genreIds: [10765, 10759], searchQueries: ['Frieren Beyond Journey End','Black Clover','Fairy Tail','Little Witch Academia','MASHLE','The Ancient Magus Bride','Puella Magi Madoka Magica','Cardcaptor Sakura','The Irregular at Magic High School','Magi anime'] },
+    { key: 'magic', id: '9882', label: '마법', genreIds: [10765, 10759], searchQueries: ['Frieren Beyond Journey End', 'Black Clover', 'Fairy Tail', 'Little Witch Academia', 'MASHLE', 'The Ancient Magus Bride', 'Puella Magi Madoka Magica', 'Cardcaptor Sakura', 'The Irregular at Magic High School', 'Magi anime'] },
 ]
 const SIDEBAR_TAGS = [...ALL_TAGS.slice(0, 8), ALL_TAGS.find(t => t.key === 'magic')].filter((t): t is TagOption => Boolean(t))
 
@@ -141,8 +143,7 @@ const SIDEBAR_YEARS = QUARTER_YEARS.slice(0, 4)
 
 const SORT_OPTIONS = [
     { value: 'popularity.desc', label: '인기순' }, { value: 'first_air_date.desc', label: '신작순' },
-    { value: 'vote_count.desc', label: '업데이트순' }, { value: '0', label: '리뷰 많은순' },
-    { value: 'vote_average.desc', label: '별점 높은순' },
+    { value: 'vote_count.desc', label: '업데이트순' }, { value: 'vote_average.desc', label: '별점 높은순' },
 ]
 
 const GENRE_LABEL: Record<number, string> = {
@@ -192,7 +193,7 @@ function getSpecialGenreQueries(filters: Filters) {
     return [...new Set([...filters.genres.flatMap(key => ALL_GENRES.find(g => g.key === key)?.searchQueries || []), ...filters.tags.flatMap(key => ALL_TAGS.find(t => t.key === key)?.searchQueries || [])])]
 }
 function mapTmdbResult(r: TMDBAniResult): AniItem {
-    return { id: r.id, name: r.name || r.title || '', original_name: r.original_name || r.original_title || '', overview: r.overview || '', poster_path: r.poster_path, backdrop_path: r.backdrop_path, first_air_date: r.first_air_date || r.release_date || '', vote_average: r.vote_average || 0, genre_ids: r.genre_ids || [] }
+    return { id: r.id, name: r.name || r.title || '', original_name: r.original_name || r.original_title || '', overview: r.overview || '', poster_path: r.poster_path, backdrop_path: r.backdrop_path, first_air_date: r.first_air_date || r.release_date || '', vote_average: r.vote_average || 0, vote_count: r.vote_count || 0, genre_ids: r.genre_ids || [] }
 }
 async function fetchSpecialGenreResults(queries: string[], mediaType: string) {
     if (!TMDB_KEY || queries.length === 0) return []
@@ -369,6 +370,20 @@ function Skeleton() {
     )
 }
 
+function sortItems(items: AniItem[], sort: string): AniItem[] {
+    const sorted = [...items]
+    switch (sort) {
+        case 'first_air_date.desc':
+            return sorted.sort((a, b) => b.first_air_date.localeCompare(a.first_air_date))
+        case 'vote_count.desc':
+        case '0':
+            return sorted.sort((a, b) => b.vote_count - a.vote_count)
+        case 'vote_average.desc':
+            return sorted.sort((a, b) => b.vote_average - a.vote_average)
+        default:
+            return items
+    }
+}
 // ─── 메인 ─────────────────────────────────────────────────────
 function TagSearchInner() {
     const searchParams = useSearchParams()
@@ -419,6 +434,7 @@ function TagSearchInner() {
             backdrop_path: a.backdrop_path,
             first_air_date: a.first_air_date || a.release_date || '',
             vote_average: a.vote_average || 0,
+            vote_count: a.vote_count || 0,
             genre_ids: a.genre_ids || [],
         }))
         return applyAgeFilter(items)
@@ -470,9 +486,12 @@ function TagSearchInner() {
         pending.current = true
         setLoading(true)
         try {
-            const filtered = sortByLocalTextGenres(
-                filterBySelectedGroups(filterByYear(filterByAiring(filterByMediaType(aniItems, f), f), f), f),
-                f
+            const filtered = sortItems(
+                sortByLocalTextGenres(
+                    filterBySelectedGroups(filterByYear(filterByAiring(filterByMediaType(aniItems, f), f), f), f),
+                    f
+                ),
+                f.sort
             )
             const start = pg * PAGE_SIZE
             const slice = filtered.slice(start, start + PAGE_SIZE)
@@ -497,10 +516,14 @@ function TagSearchInner() {
         setResults([])
         try {
             if (aniItems.length === 0) return  // aniList 아직 로딩 중
-            const filtered = sortByLocalTextGenres(
-                filterBySelectedGroups(filterByYear(filterByAiring(filterByMediaType(aniItems, f), f), f), f),
-                f
+            const filtered = sortItems(
+                sortByLocalTextGenres(
+                    filterBySelectedGroups(filterByYear(filterByAiring(filterByMediaType(aniItems, f), f), f), f),
+                    f
+                ),
+                f.sort
             )
+
             const slice = filtered.slice(0, PAGE_SIZE)
             setResults(slice)
             setTotal(Math.ceil(filtered.length / PAGE_SIZE))
@@ -711,7 +734,7 @@ function TagSearchInner() {
                                     <div className="sb-sec-head"><p className="sb-sec-title">년도</p></div>
                                     <div className="sb-checks">
                                         {SIDEBAR_YEARS.map(y => {
-                                            const cnt = results.filter(r => { const yr = r.first_air_date?.slice(0, 4); if (!yr) return false; if (y.value.includes('-Q')) { const q = parseInt(y.value.split('-Q')[1]); const yy = y.value.split('-Q')[0]; const month = parseInt(r.first_air_date?.slice(5,7)||'0'); const qM = [[1,2,3],[4,5,6],[7,8,9],[10,11,12]]; return yr===yy && qM[q-1]?.includes(month) } if (y.value==='2010s') return parseInt(yr)>=2010&&parseInt(yr)<=2019; if (y.value==='2000s') return parseInt(yr)>=2000&&parseInt(yr)<=2009; if (y.value==='1990s') return parseInt(yr)>=1990&&parseInt(yr)<=1999; return yr===y.value }).length
+                                            const cnt = results.filter(r => { const yr = r.first_air_date?.slice(0, 4); if (!yr) return false; if (y.value.includes('-Q')) { const q = parseInt(y.value.split('-Q')[1]); const yy = y.value.split('-Q')[0]; const month = parseInt(r.first_air_date?.slice(5, 7) || '0'); const qM = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]; return yr === yy && qM[q - 1]?.includes(month) } if (y.value === '2010s') return parseInt(yr) >= 2010 && parseInt(yr) <= 2019; if (y.value === '2000s') return parseInt(yr) >= 2000 && parseInt(yr) <= 2009; if (y.value === '1990s') return parseInt(yr) >= 1990 && parseInt(yr) <= 1999; return yr === y.value }).length
                                             return <Checkbox key={y.value} checked={filters.year.includes(y.value)} onChange={() => toggleYear(y.value)} label={y.label} count={cnt} />
                                         })}
                                     </div>
