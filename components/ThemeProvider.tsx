@@ -40,11 +40,13 @@ function subscribeTheme(onStoreChange: () => void) {
 
 function applyTheme(theme: Theme) {
     document.documentElement.classList.toggle("dark", theme === "dark")
+    document.documentElement.classList.toggle("light", theme === "light")
     document.documentElement.style.colorScheme = theme
 }
 
 function persistTheme(theme: Theme) {
     window.localStorage.setItem(STORAGE_KEY, theme)
+    applyTheme(theme)
     window.dispatchEvent(new Event(THEME_CHANGE_EVENT))
 }
 
