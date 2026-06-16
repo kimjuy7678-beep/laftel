@@ -4,6 +4,7 @@ import { useAniStore } from '@/store/useAniStore'
 import { useEffect } from 'react'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { useFilteredAniList } from '@/hook/useFilteredAniList'
+import Image from 'next/image'
 
 interface Props { genre: number; title: string; rows?: number }
 
@@ -77,7 +78,7 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
                             <div key={ani.id} className="tr-card" onClick={() => setPreviewId(ani.id)}>
                                 <div className="tr-thumb">
                                     {ani.backdrop_path
-                                        ? <img className="tr-img" src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} />
+                                        ? <Image className="tr-img" src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} fill sizes="(max-width:640px) 78vw, 25vw" style={{ objectFit: 'cover' }} />
                                         : <div className="tr-np">{(ani.name || '?')[0]}</div>
                                     }
                                     {showBadge && (
