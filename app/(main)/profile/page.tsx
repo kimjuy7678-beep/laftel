@@ -148,7 +148,14 @@ export default function ProfilePage() {
 
     const enterProfile = async (p: ProfileData) => {
         await setDoc(doc(db, 'users', user!.uid!), { lastProfileId: p.id }, { merge: true })
-        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit, profileId: p.id })
+        onLogin({
+            ...user!,
+            name: p.nickname,
+            photoURL: p.avatarUrl,
+            ageLimit: p.ageLimit,
+            profileId: p.id,
+            currentProfileId: p.id,
+        })
         router.push('/')
     }
 
