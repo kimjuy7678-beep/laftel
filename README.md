@@ -1,36 +1,16 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎬 Laftel 리뉴얼 프로젝트
 
-## Getting Started
+## 📌 프로젝트 소개
+애니메이션 OTT 플랫폼 '라프텔'의 웹사이트를 사용자 친화적으로 리뉴얼한 팀 프로젝트입니다.
 
-First, run the development server:
+## 🛠 사용 기술 스택
+- **Frontend:** Next.js, React, TailwindCSS, SASS
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🙋‍♀️ 나의 주요 역할 및 기여 (juyeon 브랜치)
+- **반응형 UI 구현:** Tailwind CSS와 SASS를 활용하여 다양한 디바이스 환경에 최적화된 레이아웃을 구현했습니다.
+- **인터랙션 설계:** 상세 페이지 내 모달 및 탭 컴포넌트 동적 설계를 통해 사용자 경험을 개선했습니다.
+- **기능 API 연동:** 리뷰 시스템(스포일러 차단, 좋아요, 신고) 및 굿즈 구매 페이지를 구현하고, 외부 API를 연동하여 동적 콘텐츠를 구성했습니다.
+- **데이터 흐름 최적화:** API 데이터 바인딩 오류를 주도적으로 해결하여 데이터 정합성과 정확성을 확보했습니다.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔗 코드 확인하기
+[juyeon 브랜치 바로가기](https://github.com/okok0216/laftel/tree/juyeon)
