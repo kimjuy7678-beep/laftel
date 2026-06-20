@@ -37,6 +37,11 @@ export async function POST(req: NextRequest) {
 
         // 3. Firebase Admin Custom Token 발급
         const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+
+        console.log('[DEBUG] PROJECT_ID:', JSON.stringify(process.env.FIREBASE_PROJECT_ID))
+        console.log('[DEBUG] PROJECT_ID length:', process.env.FIREBASE_PROJECT_ID?.length)
+        console.log('[DEBUG] CLIENT_EMAIL:', JSON.stringify(process.env.FIREBASE_CLIENT_EMAIL))
+
         const { default: admin } = await import('firebase-admin')
         if (!admin.apps.length) {
             admin.initializeApp({

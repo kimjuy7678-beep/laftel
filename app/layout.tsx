@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
+import AuthInit from "@/components/AUthInit";
 
 export const metadata: Metadata = {
   title: "LAFTEL",
@@ -34,6 +35,7 @@ export default function RootLayout({
     <html lang="ko" className="dark" suppressHydrationWarning>
       <body className="min-h-full flex flex-col transition-colors">
         <ThemeProvider>
+          <AuthInit />
           {children}
         </ThemeProvider>
       </body>
