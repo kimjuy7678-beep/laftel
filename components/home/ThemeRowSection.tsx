@@ -4,6 +4,7 @@ import { useAniStore } from '@/store/useAniStore'
 import { useEffect } from 'react'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { useFilteredAniList } from '@/hook/useFilteredAniList'
+import Image from 'next/image'
 
 interface Props { genre: number; title: string; rows?: number }
 
@@ -62,12 +63,12 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
             <div className="tr-wrap">
                 <div className="tr-head">
                     <h2 className="tr-title">{title}</h2>
-                    <button className="tr-more" onClick={() => router.push(`/genre/${genre}`)}>
+                    {/* <button className="tr-more" onClick={() => router.push(`/genre/${genre}`)}>
                         더보기
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                             <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                    </button>
+                    </button> */}
                 </div>
                 <div className="tr-grid">
                     {items.map((ani: any, idx: number) => {
@@ -77,7 +78,7 @@ export default function ThemeRowSection({ genre, title, rows = 2 }: Props) {
                             <div key={ani.id} className="tr-card" onClick={() => setPreviewId(ani.id)}>
                                 <div className="tr-thumb">
                                     {ani.backdrop_path
-                                        ? <img className="tr-img" src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} />
+                                        ? <Image className="tr-img" src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} fill sizes="(max-width:640px) 78vw, 25vw" style={{ objectFit: 'cover' }} />
                                         : <div className="tr-np">{(ani.name || '?')[0]}</div>
                                     }
                                     {showBadge && (

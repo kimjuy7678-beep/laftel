@@ -2,12 +2,14 @@
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import QuickMenu from "@/components/QuickMenu"
+import BottomTabBar from "@/components/BottomTabBar"
 import { Toaster } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import AnimePreviewModal from "./anime/[id]/AnimePreviewModal"
 import OnboardingModal from "@/components/OnboardingModal"
 import { useAuthStore } from "@/store/useAuthStore"
+
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -16,7 +18,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
     return (
         <>
-            {/* 온보딩 모달: 로그인된 신규 유저에게만 표시 */}
             {isNewUser && user?.uid && (
                 <OnboardingModal
                     uid={user.uid}
@@ -28,6 +29,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <AnimatePresence mode="wait" initial={false}>
                 <motion.main
                     key={pathname}
+                    className={!hideLayout ? 'pb-[76px] md:pb-0' : undefined}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -36,8 +38,19 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     {children}
                 </motion.main>
             </AnimatePresence>
-            {!hideLayout && <Footer />}
+
+            {/* 푸터 - 데스크탑만 */}
+            {!hideLayout && (
+                <div className="hidden min-[1281px]:block">
+                    <Footer />
+                </div>
+            )}
+
             {!hideLayout && <QuickMenu />}
+
+            {/* 하단 탭바 - Capacitor 앱에서만 자동 렌더링 */}
+            {!hideLayout && <BottomTabBar />}
+
             <AnimePreviewModal />
             <Toaster
                 position="top-center"

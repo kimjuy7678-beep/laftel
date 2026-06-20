@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { useWatchlistStore } from '@/store/useWatchlistStore'
@@ -6,9 +7,18 @@ import { useAuthStore } from '@/store/useAuthStore'
 
 const IMG = 'https://image.tmdb.org/t/p'
 
+type Season = { season_number: number; episode_count: number }
+type Episode = {
+    episode_number: number
+    name?: string
+    still_path?: string | null
+    runtime?: number
+}
+type Detail = { seasons?: Season[] }
+
 interface Props {
-    detail: any
-    episodes: any[]
+    detail: Detail | null
+    episodes: Episode[]
     selectedSeason: number
     setSelectedSeason: (v: number) => void
 }
@@ -18,6 +28,7 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
     const { previewId, setPreviewId } = usePreviewStore()
     const { items } = useWatchlistStore()
     const { user } = useAuthStore()
+    const [now] = useState(() => Date.now())
 
     const purchasedItems = items.filter(i => i.tab === 'purchased' && i.id === (previewId ?? 0))
 
@@ -28,7 +39,7 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
         if (!item) return false
         if (item.purchaseType === 'own') return true
         // 대여: 만료 여부 확인
-        return item.rentExpiry ? Date.now() < item.rentExpiry : false
+        return item.rentExpiry ? now < item.rentExpiry : false
     }
 
     return (
@@ -36,7 +47,7 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
             <select
                 value={selectedSeason}
                 onChange={e => setSelectedSeason(Number(e.target.value))}
-                className="mb-3 text-sm rounded-lg px-3 py-2 w-fit cursor-pointer"
+                className="mb-2 w-full cursor-pointer rounded-lg px-3 py-2 text-xs sm:mb-3 sm:w-fit sm:text-sm"
                 style={{
                     background: 'var(--bg-secondary)',
                     border: '1px solid var(--border)',
@@ -44,8 +55,8 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
                 }}
             >
                 {(detail?.seasons || [])
-                    .filter((s: any) => s.season_number > 0)
-                    .map((s: any) => (
+                    .filter((s) => s.season_number > 0)
+                    .map((s) => (
                         <option
                             key={s.season_number}
                             value={s.season_number}
@@ -61,12 +72,12 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
                 <div className="flex items-center justify-center py-10">
                     <div className="w-5 h-5 border-2 border-[var(--border)] border-t-[#6c63ff] rounded-full animate-spin" />
                 </div>
-            ) : episodes.map((ep: any) => {
+            ) : episodes.map((ep) => {
                 const unlocked = isUnlocked(ep.episode_number)
                 return (
                     <div
                         key={ep.episode_number}
-                        className="flex gap-3 items-center p-3 rounded-xl cursor-pointer group transition-colors"
+                        className="group flex cursor-pointer items-center gap-2.5 rounded-xl p-2.5 transition-colors sm:gap-3 sm:p-3"
                         style={{ background: 'transparent' }}
                         onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)'}
                         onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
@@ -78,8 +89,8 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
                     >
                         {/* 썸네일 */}
                         <div
-                            className="relative shrink-0 rounded-lg overflow-hidden"
-                            style={{ width: 120, minWidth: 120, aspectRatio: '16/9', background: 'var(--bg-secondary)' }}
+                            className="relative w-[92px] shrink-0 overflow-hidden rounded-lg sm:w-[110px] md:w-[120px]"
+                            style={{ aspectRatio: '16/9', background: 'var(--bg-secondary)' }}
                         >
                             {ep.still_path
                                 ? <img src={`${IMG}/w300${ep.still_path}`} alt={ep.name} className="w-full h-full object-cover" />
@@ -93,7 +104,7 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
                                         <rect x="3" y="11" width="18" height="11" rx="2" />
                                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                                     </svg>
-                                    <span className="text-white/70 text-[9px] font-semibold">구매 필요</span>
+                                    <span className="text-[8px] font-semibold text-white/70 sm:text-[9px]">구매 필요</span>
                                 </div>
                             )}
 
@@ -109,16 +120,16 @@ export default function EpisodesTab({ detail, episodes, selectedSeason, setSelec
 
                         {/* 에피소드 정보 */}
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
+                            <div className="mb-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
                                 <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>{ep.episode_number}화</p>
                                 {!unlocked && (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                                    <span className="rounded px-1.5 py-0.5 text-[8px] font-bold sm:text-[9px]"
                                         style={{ background: 'rgba(108,99,255,0.15)', color: '#9d97ff' }}>
                                         대여 700원 · 소장 1,500원
                                     </span>
                                 )}
                             </div>
-                            <p className="text-sm font-semibold truncate" style={{ color: unlocked ? 'var(--text-high)' : 'var(--text-subtle)' }}>
+                            <p className="truncate text-xs font-semibold sm:text-sm" style={{ color: unlocked ? 'var(--text-high)' : 'var(--text-subtle)' }}>
                                 {ep.name}
                             </p>
                             {ep.runtime && (

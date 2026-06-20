@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { doc, setDoc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/firebase/firebase'
+import { useRouter } from 'next/navigation'
+import { issueCoupon } from '@/lib/coupon'
 
 type PlanId = 'anime' | 'ost' | 'allinone'
 
@@ -36,6 +38,7 @@ export default function PaymentModal({ isOpen, onClose, onCloseAll, planId }: Pa
     const [paying, setPaying] = useState(false)
     const [done, setDone] = useState(false)
     const { setMembership } = useAuthStore()
+    const router = useRouter()
 
     useEffect(() => {
         if (!isOpen || !user?.uid) return
@@ -106,10 +109,11 @@ export default function PaymentModal({ isOpen, onClose, onCloseAll, planId }: Pa
         try {
             // 멤버십 상태 저장
             await setDoc(doc(db, 'users', user.uid), {
-                membership: planId,  // 'anime' | 'ost' | 'allinone'
+                membership: planId,
                 membershipStartedAt: new Date().toISOString(),
                 membershipExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             }, { merge: true })
+
             // 결제 내역 저장
             await addDoc(collection(db, 'users', user.uid, 'paymentHistory'), {
                 planId,
@@ -117,6 +121,17 @@ export default function PaymentModal({ isOpen, onClose, onCloseAll, planId }: Pa
                 price: plan.price,
                 createdAt: serverTimestamp(),
             })
+
+            // 멤버십 가입 축하 쿠폰 발급 + 알림 자동 생성
+            await issueCoupon({
+                uid: user.uid,
+                label: `${plan.name} 가입 축하 쿠폰`,
+                discount: 2000,
+                type: 'fixed',
+                minOrderAmount: 10000,
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            })
+
         } catch (e) { console.warn('멤버십 저장 실패:', e) }
         setPaying(false)
         setMembership(planId)
@@ -180,7 +195,7 @@ export default function PaymentModal({ isOpen, onClose, onCloseAll, planId }: Pa
                             </button>
                         )}
                         {showAddCard && (
-                            <div className="rounded-xl p-4 border border-[var(--border)] bg-[var(--bg-secondary)] flex flex-col gap-4"> {/* bg-white/[0.03] → 수정 */}
+                            <div className="rounded-xl p-4 border border-[var(--border)] bg-[var(--bg-secondary)] flex flex-col gap-4">
                                 <p className="text-[var(--text-primary)] text-sm font-bold">카드 등록</p>
                                 <input
                                     className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--text-primary)] outline-none text-sm py-2 text-[var(--text-primary)] placeholder:text-[var(--text-faint)]"

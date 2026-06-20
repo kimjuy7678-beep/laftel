@@ -16,6 +16,14 @@ const CATEGORIES = [
     { label: '👻 공포', key: 'horror' },
 ]
 
+type AnimeSearchResult = {
+    id: number
+    name: string
+    original_language?: string
+    poster_path?: string | null
+    first_air_date?: string
+}
+
 function normalize(v: string) { return v.toLowerCase().replace(/[\s\-_·.,!?'"()\[\]]+/g, '') }
 
 const CHARACTER_MAP: Record<string, string> = {
@@ -40,13 +48,13 @@ function resolveQuery(q: string): string {
 }
 
 function PopularAnime({ onClose }: { onClose: () => void }) {
-    const [items, setItems] = useState<any[]>([])
+    const [items, setItems] = useState<AnimeSearchResult[]>([])
     const router = useRouter()
 
     useEffect(() => {
         fetch(`https://api.themoviedb.org/3/trending/tv/week?api_key=${TMDB_KEY}&language=ko-KR`)
             .then(r => r.json())
-            .then(d => setItems((d.results || []).filter((r: any) => r.original_language === 'ja').slice(0, 6)))
+            .then((d: { results?: AnimeSearchResult[] }) => setItems((d.results || []).filter((r) => r.original_language === 'ja').slice(0, 6)))
             .catch(() => { })
     }, [])
 
@@ -73,7 +81,7 @@ function PopularAnime({ onClose }: { onClose: () => void }) {
 
 export default function HeaderSearch({ onClose }: { onClose: () => void }) {
     const [query, setQuery] = useState('')
-    const [results, setResults] = useState<any[]>([])
+    const [results, setResults] = useState<AnimeSearchResult[]>([])
     const [loading, setLoading] = useState(false)
     const [charHint, setCharHint] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -99,8 +107,8 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
         try {
             const allResults = await Promise.all(queries.map(async tq => {
                 const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(tq)}&language=ko-KR`)
-                const data = await res.json()
-                return (data.results || []).filter((r: any) => r.original_language === 'ja')
+                const data = await res.json() as { results?: AnimeSearchResult[] }
+                return (data.results || []).filter((r) => r.original_language === 'ja')
             }))
             const seen = new Set<number>()
             const merged = allResults.flat().filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true })
@@ -120,7 +128,7 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
 
     return (
         <div
-            style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 80 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 10050, background: 'rgba(0,0,0,.72)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 80 }}
             onClick={onClose}
         >
             <style>{`
@@ -133,10 +141,10 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
 
             <div
                 className="so-wrap"
-                style={{ width: 'min(720px, 92vw)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.8)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+                style={{ width: 'min(720px, 92vw)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.45)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
                 onClick={e => e.stopPropagation()}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: 16, height: 50, borderRadius: 25, border: '1px solid var(--border)', padding: '0 18px', background: 'var(--bg-hover)', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: 16, height: 50, borderRadius: 25, border: '1px solid var(--border)', padding: '0 18px', background: 'var(--bg-secondary)', flexShrink: 0 }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2">
                         <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                     </svg>
@@ -156,7 +164,7 @@ export default function HeaderSearch({ onClose }: { onClose: () => void }) {
 
                 {charHint && (
                     <div style={{ margin: '-8px 16px 8px', padding: '6px 14px', background: 'rgba(108,99,255,.12)', borderRadius: 8, border: '1px solid rgba(108,99,255,.2)', fontSize: 12, color: '#a5a0ff' }}>
-                        💡 <strong>"{query}"</strong> 캐릭터 기준으로 <strong>"{charHint}"</strong> 검색 중
+                        💡 <strong>&quot;{query}&quot;</strong> 캐릭터 기준으로 <strong>&quot;{charHint}&quot;</strong> 검색 중
                     </div>
                 )}
 

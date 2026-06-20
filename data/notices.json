@@ -1,0 +1,50 @@
+[
+  {
+    "id": 2026061501,
+    "title": "[공지] 2026-06-15(월) 시스템 점검 안내",
+    "zendesk_url": "/hc/ko",
+    "published_datetime": "2026-06-15T09:00:00+09:00"
+  },
+  {
+    "id": 2026061001,
+    "title": "[공지] 라프텔 서비스 이용약관 개정 안내",
+    "zendesk_url": "/hc/ko",
+    "published_datetime": "2026-06-10T10:00:00+09:00"
+  },
+  {
+    "id": 2026060301,
+    "title": "[안내] 일부 결제 수단 점검 안내",
+    "zendesk_url": "/hc/ko",
+    "published_datetime": "2026-06-03T14:00:00+09:00"
+  },
+  {
+    "id": 2026052801,
+    "title": "[안내] 프로필 이미지 변경 기능 업데이트",
+    "zendesk_url": "/hc/ko",
+    "published_datetime": "2026-05-28T11:30:00+09:00"
+  },
+  {
+    "id": 2026052101,
+    "title": "[공지] 개인정보 처리방침 개정 안내",
+    "zendesk_url": "/hc/ko",
+    "published_datetime": "2026-05-21T10:00:00+09:00"
+  },
+  {
+    "id": 2026051401,
+    "title": "[안내] 신규 멤버십 혜택 안내",
+    "zendesk_url": "/hc/ko",
+    "published_datetime": "2026-05-14T12:00:00+09:00"
+  },
+  {
+    "id": 2026050701,
+    "title": "[안내] 고객센터 운영 시간 안내",
+    "zendesk_url": "/hc/ko",
+    "published_datetime": "2026-05-07T09:30:00+09:00"
+  },
+  {
+    "id": 2026043001,
+    "title": "[공지] 서비스 안정화 작업 안내",
+    "zendesk_url": "/hc/ko",
+    "published_datetime": "2026-04-30T16:00:00+09:00"
+  }
+]

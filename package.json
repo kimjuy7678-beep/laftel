@@ -6,9 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync:events": "node scripts/sync-event-data.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
     "@dicebear/avataaars": "^9.4.2",
     "@dicebear/core": "^9.4.2",
     "@react-three/drei": "^10.7.7",

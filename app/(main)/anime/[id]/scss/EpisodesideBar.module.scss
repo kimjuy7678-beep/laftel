@@ -137,3 +137,123 @@
     line-height: 1.45;
 }
 .epRuntime { font-size: 11px; color: var(--text-faint); margin: 0; }
+
+@media (max-width: 1200px) {
+    .sidebar {
+        width: 260px;
+    }
+
+    .sidebarHeader {
+        padding: 14px 14px 0;
+    }
+
+    .seasonRow {
+        padding: 9px 14px 11px;
+    }
+
+    .episodeItem {
+        gap: 10px;
+        padding: 9px 10px;
+    }
+
+    .thumb {
+        width: 84px;
+        min-width: 84px;
+    }
+
+    .epName {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 960px) {
+    .sidebar {
+        width: 100%;
+        max-height: 260px;
+        border-left: 0;
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    .sidebarHeader {
+        padding: 12px 14px 0;
+    }
+
+    .seasonRow {
+        padding: 8px 14px 10px;
+    }
+
+    .episodeList {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0 14px 14px;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar { display: none; }
+    }
+
+    .episodeItem {
+        width: 180px;
+        min-width: 180px;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+        box-sizing: border-box;
+        height: auto;
+        border-left: 0;
+        border-bottom: 2px solid transparent;
+
+        &.active {
+            border-left-color: transparent;
+            border-bottom-color: #6c63ff;
+        }
+    }
+
+    .thumb {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .epInfo {
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .sidebar {
+        max-height: 270px;
+    }
+
+    .seriesTitle {
+        font-size: 12px;
+    }
+
+    .seasonSelect {
+        padding: 7px 30px 7px 10px;
+        font-size: 12px;
+    }
+
+    .episodeList {
+        gap: 8px;
+        padding: 0 10px 18px;
+    }
+
+    .episodeItem {
+        width: 150px;
+        min-width: 150px;
+        min-height: 150px;
+        padding: 8px;
+        border-radius: 10px;
+    }
+
+    .epNum,
+    .epRuntime {
+        font-size: 10px;
+    }
+
+    .epName {
+        font-size: 11px;
+        -webkit-line-clamp: 1;
+    }
+}

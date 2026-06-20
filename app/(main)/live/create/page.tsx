@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useAniStore } from '@/store/useAniStore'
 import { CreatePartyInput } from '@/types/party'
 import { toast } from 'sonner'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/ThemeProvider'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { ko } from 'date-fns/locale'
@@ -17,19 +17,21 @@ export default function CreatePartyPage() {
     const { user } = useAuthStore()
     const { aniList, onFetchTopAni } = useAniStore()
     const { theme } = useTheme()
-    const [mounted, setMounted] = useState(false)
 
     const [title, setTitle] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
-    const [selectedAnime, setSelectedAnime] = useState<any>(null)
+    const [selectedAnime, setSelectedAnime] = useState<{
+        id: number
+        name: string
+        poster_path?: string
+    } | null>(null)
     const [scheduledDate, setScheduledDate] = useState<Date | null>(null)
     const [maxAttendees, setMaxAttendees] = useState<10 | 20 | 30>(30)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    useEffect(() => { setMounted(true) }, [])
     useEffect(() => { if (aniList.length === 0) onFetchTopAni() }, [])
 
-    const isDark = mounted ? theme === 'dark' : true
+    const isDark = theme === 'dark'
 
     const bg = isDark ? '#1a1a1a' : '#ffffff'
     const bgHeader = isDark ? '#111111' : '#f5f5f7'
@@ -335,7 +337,7 @@ export default function CreatePartyPage() {
                         <label className="text-sm font-medium text-[var(--text-muted)]">시작 시간</label>
                         <DatePicker
                             selected={scheduledDate}
-                            onChange={(date) => setScheduledDate(date)}
+                            onChange={(date: Date | null) => setScheduledDate(date)}
                             showTimeSelect
                             timeFormat="HH:mm"
                             timeIntervals={30}

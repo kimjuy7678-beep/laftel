@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from "react"
 import { db } from "@/firebase/firebase"
 import {
-    collection, addDoc, getDocs, deleteDoc,
-    doc, query, serverTimestamp, where
+    collection, addDoc, deleteDoc, updateDoc,
+    doc, query, serverTimestamp, onSnapshot, orderBy
 } from "firebase/firestore"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useRouter } from "next/navigation"
@@ -53,7 +53,8 @@ interface Comment {
     liked: boolean
     episodeNumber: number
     animeId: number
-    watched?: number  // 등급 뱃지용
+    watched?: number
+    edited?: boolean
 }
 
 interface Props {
@@ -61,6 +62,7 @@ interface Props {
     animeId?: number | string
     animeTitle?: string
     animePoster?: string | null
+    onBookmarkSeek?: (timeSeconds: number) => void
 }
 
 function formatTime(ts: any) {
@@ -74,9 +76,39 @@ function formatTime(ts: any) {
     return date.toLocaleDateString('ko-KR')
 }
 
-export default function EpisodeComments({ episodeId, animeId, animeTitle, animePoster }: Props) {
+function parseTimestamps(text: string, onSeek: (seconds: number) => void) {
+    const parts = text.split(/(\d{1,2}:\d{2})/)
+    return parts.map((part, i) => {
+        if (/^\d{1,2}:\d{2}$/.test(part)) {
+            const [m, s] = part.split(':').map(Number)
+            const seconds = m * 60 + s
+            return (
+                <button
+                    key={i}
+                    onClick={e => { e.stopPropagation(); onSeek(seconds) }}
+                    style={{
+                        background: 'rgba(108,99,255,0.15)',
+                        border: '1px solid rgba(108,99,255,0.3)',
+                        borderRadius: 5, padding: '1px 7px',
+                        color: '#9d97ff', fontSize: 12, fontWeight: 700,
+                        cursor: 'pointer', marginRight: 3,
+                        transition: 'background .15s',
+                        fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(108,99,255,0.3)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(108,99,255,0.15)'}
+                    title={`${part}으로 이동`}
+                >
+                    {part}
+                </button>
+            )
+        }
+        return <span key={i}>{part}</span>
+    })
+}
+
+export default function EpisodeComments({ episodeId, animeId, animeTitle, animePoster, onBookmarkSeek }: Props) {
     const { user, avatarConfig } = useAuthStore()
-    const profileId = user?.currentProfileId || 'main'
     const myAvatarSrc = avatarConfig?.svgDataUrl || user?.photoURL || null
     const myName = user?.name || user?.email?.split('@')[0] || '나'
     const router = useRouter()
@@ -86,6 +118,11 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
     const [loading, setLoading] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editText, setEditText] = useState('')
+    const editInputRef = useRef<HTMLInputElement>(null)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+
     const myWatched = (() => {
         try {
             const s = typeof window !== 'undefined' ? localStorage.getItem('watch-progress-storage') : null
@@ -93,39 +130,45 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         } catch { return 0 }
     })()
 
-    const colName = 'anime_comments'
+    const colPath = `anime_comments/${animeId}/episodes/${episodeId}/comments`
 
     useEffect(() => {
         if (!animeId || !episodeId || isNaN(Number(animeId))) return
         setLoading(true)
-        getDocs(
-            query(
-                collection(db, 'users', user?.uid!, 'profiles', profileId, colName),
-                where('animeId', '==', Number(animeId))
-            )
-        ).then(snap => {
-            const docs = snap.docs
-                .map(d => ({ id: d.id, ...d.data() } as Comment))
-                .filter(d => d.episodeNumber === Number(episodeId))
-                .sort((a, b) => {
-                    const aTime = a.createdAt?.toDate?.() ?? new Date(a.createdAt ?? 0)
-                    const bTime = b.createdAt?.toDate?.() ?? new Date(b.createdAt ?? 0)
-                    return bTime.getTime() - aTime.getTime()
-                })
-            setComments(docs)
-        }).catch(e => {
-            console.error('댓글 fetch error:', e)
-        }).finally(() => setLoading(false))
+
+        const q = query(
+            collection(db, colPath),
+            orderBy('createdAt', 'desc')
+        )
+
+        const unsub = onSnapshot(q, (snap) => {
+            const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Comment))
+            setComments(data)
+            setLoading(false)
+        })
+
+        return () => unsub()
     }, [animeId, episodeId])
+
+    const startEdit = (c: Comment) => {
+        setEditingId(c.id)
+        setEditText(c.text)
+        setTimeout(() => editInputRef.current?.focus(), 50)
+    }
+
+    const handleEdit = async (id: string) => {
+        const trimmed = editText.trim()
+        if (!trimmed || !user?.uid) return
+        try {
+            await updateDoc(doc(db, colPath, id), { text: trimmed, edited: true })
+        } catch (e) { console.error(e) }
+        setEditingId(null)
+        setEditText('')
+    }
 
     const handleSubmit = async () => {
         const trimmed = input.trim()
-        if (!trimmed) return
-        if (!user) { router.push('/login'); return }
-        if (!animeId || isNaN(Number(animeId))) {
-            console.error('animeId가 유효하지 않아요:', animeId)
-            return
-        }
+        if (!trimmed || !user || !animeId || isNaN(Number(animeId))) return
 
         setSubmitting(true)
         try {
@@ -141,19 +184,10 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 animeId: Number(animeId),
                 animeTitle: animeTitle || '',
                 animePoster: animePoster || null,
-                watched: myWatched,  // 등급 뱃지용
+                watched: myWatched,
             }
-            const ref = await addDoc(
-                collection(db, 'users', user.uid!, 'profiles', profileId, colName),
-                payload
-            )
-            setComments(prev => [{
-                id: ref.id,
-                ...payload,
-                createdAt: new Date().toISOString(),
-            } as Comment, ...prev])
+            await addDoc(collection(db, colPath), payload)
             setInput('')
-            if (inputRef.current) inputRef.current.style.height = 'auto'
             useActivityStore.setState(s => ({
                 counts: { ...s.counts, comment: s.counts.comment + 1 }
             }))
@@ -161,10 +195,9 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         finally { setSubmitting(false) }
     }
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('댓글을 삭제할까요?')) return
-        await deleteDoc(doc(db, 'users', user?.uid!, 'profiles', profileId, colName, id))
-        setComments(prev => prev.filter(c => c.id !== id))
+    const handleDeleteConfirm = async (id: string) => {
+        await deleteDoc(doc(db, colPath, id))
+        setDeletingId(null)
         useActivityStore.setState(s => ({
             counts: { ...s.counts, comment: Math.max(0, s.counts.comment - 1) }
         }))
@@ -174,6 +207,17 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
         setComments(prev => prev.map(c =>
             c.id === id ? { ...c, liked: !c.liked, likes: c.liked ? c.likes - 1 : c.likes + 1 } : c
         ))
+    }
+
+    const handleSeek = (seconds: number) => {
+        if (onBookmarkSeek) {
+            onBookmarkSeek(seconds)
+        } else {
+            const iframe = document.querySelector('iframe') as HTMLIFrameElement
+            iframe?.contentWindow?.postMessage(JSON.stringify({
+                event: 'command', func: 'seekTo', args: [seconds, true]
+            }), '*')
+        }
     }
 
     return (
@@ -187,33 +231,36 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                 </span>
             </div>
 
-            {/* 입력창 */}
             <div className="flex gap-2.5 mb-5">
                 <Avatar src={myAvatarSrc} name={user ? myName : '?'} size={32} />
-                <div className="flex-1 flex gap-2">
-                    <input
-                        ref={inputRef}
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
-                        placeholder={user ? `${episodeId}화에 대한 생각을 남겨보세요` : '로그인 후 댓글을 남길 수 있어요'}
-                        disabled={!user}
-                        className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3.5 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-faint)] outline-none focus:border-[#6c63ff]/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    <button
-                        onClick={user ? handleSubmit : () => router.push('/login')}
-                        disabled={user ? (!input.trim() || submitting) : false}
-                        className="px-3.5 py-2 rounded-lg bg-[#6c63ff] text-white text-[12px] font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-opacity hover:bg-[#7c74ff] shrink-0"
-                    >
-                        {submitting
-                            ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            : user ? '등록' : '로그인'
-                        }
-                    </button>
+                <div className="flex-1 flex flex-col gap-1.5">
+                    <div className="flex gap-2">
+                        <input
+                            ref={inputRef}
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
+                            placeholder={user ? `${episodeId}화에 대한 생각을 남겨보세요 (예: 12:35 명장면)` : '로그인 후 댓글을 남길 수 있어요'}
+                            disabled={!user}
+                            className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3.5 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-faint)] outline-none focus:border-[#6c63ff]/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <button
+                            onClick={user ? handleSubmit : () => router.push('/login')}
+                            disabled={user ? (!input.trim() || submitting) : false}
+                            className="px-3.5 py-2 rounded-lg bg-[#6c63ff] text-white text-[12px] font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-opacity hover:bg-[#7c74ff] shrink-0"
+                        >
+                            {submitting
+                                ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                : user ? '등록' : '로그인'
+                            }
+                        </button>
+                    </div>
+                    <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: 0, paddingLeft: 2 }}>
+                        💡 <span style={{ color: '#9d97ff', fontWeight: 600 }}>1:23</span> 형식으로 시간을 입력하면 클릭해서 해당 장면으로 이동할 수 있어요
+                    </p>
                 </div>
             </div>
 
-            {/* 댓글 목록 */}
             {loading ? (
                 <div className="flex justify-center py-6">
                     <div className="w-5 h-5 border-2 border-[var(--border)] border-t-[#6c63ff] rounded-full animate-spin" />
@@ -226,18 +273,115 @@ export default function EpisodeComments({ episodeId, animeId, animeTitle, animeP
                         <div key={c.id} className="flex gap-2.5 group">
                             <Avatar src={c.avatar} name={c.author} size={32} />
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <span className="text-[12px] font-semibold text-[var(--text-muted)]">{c.author}</span>
                                     <GradeBadge watched={c.watched ?? 0} size="sm" showName={true} />
                                     <span className="text-[11px] text-[var(--text-faint)]">{formatTime(c.createdAt)}</span>
-                                    {c.uid === user?.uid && (
-                                        <button
-                                            onClick={() => handleDelete(c.id)}
-                                            className="ml-auto text-[10px] text-[var(--text-faint)] opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-400"
-                                        >삭제</button>
+                                    {c.edited && <span className="text-[10px] text-[var(--text-faint)]">(수정됨)</span>}
+
+                                    {c.uid === user?.uid && editingId !== c.id && (
+                                        <div className="ml-auto flex items-center gap-1.5">
+                                            {deletingId === c.id ? (
+                                                <>
+                                                    <span className="text-[11px] text-[var(--text-faint)]">삭제할까요?</span>
+                                                    <button
+                                                        onClick={() => handleDeleteConfirm(c.id)}
+                                                        style={{
+                                                            fontSize: 11, fontWeight: 600,
+                                                            padding: '3px 10px', borderRadius: 6,
+                                                            background: 'rgba(239,68,68,0.15)',
+                                                            border: '1px solid #ef4444',
+                                                            color: '#f87171',
+                                                            cursor: 'pointer', transition: 'all .15s',
+                                                        }}
+                                                    >확인</button>
+                                                    <button
+                                                        onClick={() => setDeletingId(null)}
+                                                        style={{
+                                                            fontSize: 11, fontWeight: 600,
+                                                            padding: '3px 10px', borderRadius: 6,
+                                                            background: 'var(--bg-secondary)',
+                                                            border: '1px solid var(--border)',
+                                                            color: 'var(--text-muted)',
+                                                            cursor: 'pointer', transition: 'all .15s',
+                                                        }}
+                                                    >취소</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => startEdit(c)}
+                                                        style={{
+                                                            fontSize: 11, fontWeight: 600,
+                                                            padding: '3px 10px', borderRadius: 6,
+                                                            background: 'var(--bg-secondary)',
+                                                            border: '1px solid var(--border)',
+                                                            color: 'var(--text-muted)',
+                                                            cursor: 'pointer', transition: 'all .15s',
+                                                        }}
+                                                        onMouseEnter={e => {
+                                                            (e.currentTarget as HTMLButtonElement).style.borderColor = '#6c63ff'
+                                                            ;(e.currentTarget as HTMLButtonElement).style.color = '#9d97ff'
+                                                        }}
+                                                        onMouseLeave={e => {
+                                                            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
+                                                            ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
+                                                        }}
+                                                    >수정</button>
+                                                    <button
+                                                        onClick={() => setDeletingId(c.id)}
+                                                        style={{
+                                                            fontSize: 11, fontWeight: 600,
+                                                            padding: '3px 10px', borderRadius: 6,
+                                                            background: 'var(--bg-secondary)',
+                                                            border: '1px solid var(--border)',
+                                                            color: 'var(--text-muted)',
+                                                            cursor: 'pointer', transition: 'all .15s',
+                                                        }}
+                                                        onMouseEnter={e => {
+                                                            (e.currentTarget as HTMLButtonElement).style.borderColor = '#ef4444'
+                                                            ;(e.currentTarget as HTMLButtonElement).style.color = '#f87171'
+                                                        }}
+                                                        onMouseLeave={e => {
+                                                            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'
+                                                            ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
+                                                        }}
+                                                    >삭제</button>
+                                                </>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
-                                <p className="text-[13px] text-[var(--text-muted)] leading-[1.6] break-words">{c.text}</p>
+
+                                {editingId === c.id ? (
+                                    <div className="flex gap-2 mt-1">
+                                        <input
+                                            ref={editInputRef}
+                                            value={editText}
+                                            onChange={e => setEditText(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') handleEdit(c.id)
+                                                if (e.key === 'Escape') { setEditingId(null); setEditText('') }
+                                            }}
+                                            className="flex-1 bg-[var(--bg-secondary)] border border-[#6c63ff]/50 rounded-lg px-3 py-1.5 text-[13px] text-[var(--text-primary)] outline-none"
+                                        />
+                                        <button
+                                            onClick={() => handleEdit(c.id)}
+                                            disabled={!editText.trim()}
+                                            className="px-3 py-1.5 rounded-lg bg-[#6c63ff] text-white text-[11px] font-semibold disabled:opacity-30 transition-opacity hover:bg-[#7c74ff] shrink-0"
+                                        >저장</button>
+                                        <button
+                                            onClick={() => { setEditingId(null); setEditText('') }}
+                                            className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--text-muted)] shrink-0"
+                                            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                        >취소</button>
+                                    </div>
+                                ) : (
+                                    <p className="text-[13px] text-[var(--text-muted)] leading-[1.6] break-words">
+                                        {parseTimestamps(c.text, handleSeek)}
+                                    </p>
+                                )}
+
                                 <button
                                     onClick={() => toggleLike(c.id)}
                                     className={`flex items-center gap-1 mt-1.5 text-[11px] transition-colors ${c.liked ? 'text-[#6c63ff]' : 'text-[var(--text-faint)] hover:text-[var(--text-subtle)]'}`}

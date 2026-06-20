@@ -7,6 +7,7 @@ import type { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { useFilteredAniList } from '@/hook/useFilteredAniList'
+import Image from 'next/image'
 
 const POSTER_W = 340
 const POSTER_H = 510
@@ -187,7 +188,7 @@ export default function Top10Section() {
                                         <span className="t10-rank">{i + 1}</span>
                                         <div className="t10-thumb">
                                             {ani.poster_path
-                                                ? <img src={`https://image.tmdb.org/t/p/w500${ani.poster_path}`} alt={ani.name} />
+                                                ? <Image src={`https://image.tmdb.org/t/p/w500${ani.poster_path}`} alt={ani.name} fill sizes="340px" style={{ objectFit: 'cover' }} />
                                                 : <div className="t10-thumb-np">{(ani.name || '?')[0]}</div>
                                             }
                                         </div>
@@ -210,7 +211,7 @@ export default function Top10Section() {
                                 <span className="t10-mobile-rank">{i + 1}</span>
                                 <div className="t10-mobile-thumb">
                                     {ani.poster_path
-                                        ? <img src={`https://image.tmdb.org/t/p/w500${ani.poster_path}`} alt={ani.name} />
+                                        ? <Image src={`https://image.tmdb.org/t/p/w500${ani.poster_path}`} alt={ani.name} fill sizes="156px" style={{ objectFit: 'cover' }} />
                                         : <div className="t10-mobile-thumb-np">{(ani.name || '?')[0]}</div>
                                     }
                                 </div>

@@ -1,18 +1,14 @@
 "use client"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/ThemeProvider"
 import { useEffect, useState } from "react"
 import AniChatBot from "./AniChatBot"
 
 const PROFILE_IMAGE = '/images/laftel-icon/laftel-chat.png'
 
 export default function QuickMenu() {
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
+  const { resolvedTheme, setTheme } = useTheme()
   const [rightOffset, setRightOffset] = useState(32)
   const [chatOpen, setChatOpen] = useState(false)
-  const [hasOpened, setHasOpened] = useState(false)
-
-  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -23,13 +19,10 @@ export default function QuickMenu() {
     return () => observer.disconnect()
   }, [])
 
-  if (!mounted) return null
-
-  const isDark = theme === 'dark'
+  const isDark = resolvedTheme === 'dark'
 
   const handleChatOpen = () => {
     setChatOpen(true)
-    setHasOpened(true)
   }
 
   return (
@@ -42,7 +35,8 @@ export default function QuickMenu() {
       )}
 
       <div
-        className="fixed bottom-8 z-[9999] flex flex-col items-center gap-3"
+        id="quick-menu"
+        className="fixed bottom-8 z-[9999] hidden flex-col items-center gap-3 md:flex"
         style={{ right: rightOffset, transition: 'right 0s' }}
       >
         {/* 2. 다크모드 버튼 */}
@@ -100,9 +94,9 @@ export default function QuickMenu() {
 
           {/* 뱃지 — wrapper 기준으로 버튼 밖에 위치해서 잘리지 않음 */}
           {!chatOpen && (
-            <span 
-                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center animate-pulse z-10 pointer-events-none"
-                style={{zIndex: 9999}}
+            <span
+              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center animate-pulse z-10 pointer-events-none"
+              style={{ zIndex: 9999 }}
             >
               AI
             </span>

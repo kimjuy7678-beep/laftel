@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from '@/store/useAuthStore'
 import { useActivityStore } from '@/store/useActiveStore'
 import GradeBadge from '@/components/GradeBadge'
+import { toast } from 'sonner'
 
 const AVATAR_COLORS = [
     { bg: 'rgba(108,99,255,0.2)', text: '#9d97ff' },
@@ -375,23 +376,23 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
     const reviewCount = reviews.filter(r => r.text.trim() !== '').length
 
     return (
-        <div className="flex flex-col gap-6 py-2">
+        <div className="flex min-w-0 flex-col gap-6 py-2">
             <style>{`
                 .reply-input::placeholder { color: var(--text-faint); }
                 .reply-input:focus { outline: none; border-color: rgba(108,99,255,.5) !important; }
             `}</style>
 
             {/* 별점 입력 + 평균 */}
-            <div className="flex gap-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                 {/* 내 별점 */}
-                <div className="flex-1 flex flex-col items-center gap-3 p-5 rounded-2xl border"
+                <div className="min-w-0 flex flex-col items-center gap-3 rounded-2xl border p-4 sm:p-5"
                     style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
                     <p className="text-[var(--text-subtle)] text-sm font-semibold">내 별점</p>
                     <p className="text-4xl font-bold text-[var(--text-primary)]">{myScore > 0 ? myScore.toFixed(1) : '0'}</p>
                     <p className="text-[var(--text-faint)] text-xs">
                         {myScore > 0 ? (scoreOnly ? '별점을 남겼어요' : '리뷰를 남겼어요') : '별점을 남겨주세요'}
                     </p>
-                    <div className="flex gap-1 items-center">
+                    <div className="flex flex-wrap items-center justify-center gap-1">
                         {[1, 2, 3, 4, 5].map(s => {
                             const active = hoverScore || myScore
                             const full = active >= s
@@ -453,7 +454,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                 onFocus={e => e.target.style.borderColor = 'rgba(108,99,255,.5)'}
                                 onBlur={e => e.target.style.borderColor = 'var(--border)'}
                             />
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex items-center gap-2 cursor-pointer" onClick={() => setIsSpoiler(v => !v)}>
                                     <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSpoiler ? 'bg-[#6c63ff] border-[#6c63ff]' : ''}`}
                                         style={!isSpoiler ? { borderColor: 'var(--border)' } : {}}>
@@ -461,7 +462,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                     </div>
                                     <span className="text-[var(--text-subtle)] text-xs">스포일러</span>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center justify-end gap-2">
                                     <span className="text-[var(--text-faint)] text-xs">{myReview.length}/1,000</span>
                                     {myScore > 0 && !myReview.trim() && (
                                         <button
@@ -486,7 +487,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                 </div>
 
                 {/* 평균 별점 */}
-                <div className="flex-1 flex flex-col items-center gap-3 p-5 rounded-2xl border"
+                <div className="min-w-0 flex flex-col items-center gap-3 rounded-2xl border p-4 sm:p-5"
                     style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
                     <p className="text-[var(--text-subtle)] text-sm font-semibold">평균 별점</p>
                     <p className="text-4xl font-bold text-[var(--text-primary)]">
@@ -535,8 +536,8 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                     {reviews.map((r) => (
                         <div key={r.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                             <div className="py-4">
-                                <div className="flex items-start justify-between mb-2">
-                                    <div className="flex gap-0.5 mt-0.5">
+                                <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+                                    <div className="flex shrink-0 items-center gap-0.5">
                                         {[1, 2, 3, 4, 5].map(s => {
                                             const full = r.score >= s
                                             const half = !full && r.score >= s - 0.5
@@ -556,15 +557,15 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                         })}
                                         <span className="ml-1 text-[var(--text-muted)] text-sm font-medium">{r.score.toFixed(1)}</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[var(--text-faint)] text-[11px]">
+                                    <div className="flex min-w-0 items-center justify-end gap-2">
+                                        <span className="hidden text-[var(--text-faint)] text-[11px] sm:inline">
                                             {formatDate(r.date)}{r.edited && ' (수정됨)'}
                                         </span>
-                                        <div className="flex items-center gap-1.5">
+                                        <div className="flex min-w-0 items-center gap-1.5">
                                             <Avatar src={r.profileImg} name={r.nickname} size={40} />
-                                            <span className="text-[var(--text-muted)] text-xs font-bold">{r.nickname}</span>
+                                            <span className="max-w-[68px] truncate text-[var(--text-muted)] text-xs font-bold sm:max-w-[140px]">{r.nickname}</span>
                                             <GradeBadge watched={r.watched ?? 0} size="sm" showName={true} />
-                                            <span className="text-[var(--text-faint)] text-[10px]">({r.user})</span>
+                                            <span className="hidden max-w-[120px] truncate text-[var(--text-faint)] text-[10px] sm:inline">({r.user})</span>
                                         </div>
                                         <div className="relative">
                                             <button
@@ -623,7 +624,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                             rows={3}
                                         />
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                             <div className="flex items-center gap-2 cursor-pointer"
                                                 onClick={() => setReviews(prev => prev.map(rv => rv.id === r.id ? { ...rv, spoiler: !rv.spoiler } : rv))}>
                                                 <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${r.spoiler ? 'bg-[#6c63ff] border-[#6c63ff]' : ''}`}
@@ -632,7 +633,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                                 </div>
                                                 <span className="text-[var(--text-subtle)] text-xs">스포일러</span>
                                             </div>
-                                            <div className="flex gap-2">
+                                            <div className="flex justify-end gap-2">
                                                 <button onClick={() => setEditingId(null)}
                                                     className="px-3 py-1.5 rounded-lg text-xs transition-colors"
                                                     style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>취소</button>
@@ -650,7 +651,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                             className="text-[#6c63ff] hover:underline transition-colors">보기</button>
                                     </p>
                                 ) : (
-                                    <p className="text-[var(--text-muted)] text-sm leading-relaxed whitespace-pre-line mt-1">{r.text}</p>
+                                    <p className="mt-1 break-words text-[var(--text-muted)] text-sm leading-relaxed whitespace-pre-line">{r.text}</p>
                                 )}
 
                                 <div className="flex items-center gap-4 mt-3">
@@ -685,7 +686,7 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                             </div>
 
                             {openRepliesId === r.id && (
-                                <div className="pb-4 pl-4" style={{ borderTop: '1px solid var(--border-faint)' }}>
+                                <div className="pb-4 pl-2 sm:pl-4" style={{ borderTop: '1px solid var(--border-faint)' }}>
                                     {(repliesMap[r.id] || []).map(reply => (
                                         <div key={reply.id} className="flex gap-3 pt-3">
                                             <div className="mt-0.5 text-[var(--text-faint)]">
@@ -696,8 +697,8 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                             </div>
                                             <Avatar src={reply.profileImg} name={reply.nickname} size={28} />
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <span className="text-[var(--text-muted)] text-xs font-bold">{reply.nickname}</span>
+                                                <div className="mb-0.5 flex flex-wrap items-center gap-2">
+                                                    <span className="max-w-[120px] truncate text-[var(--text-muted)] text-xs font-bold">{reply.nickname}</span>
                                                     <span className="text-[var(--text-faint)] text-[10px]">{formatDate(reply.createdAt)}</span>
                                                     {reply.uid === user?.uid && (
                                                         <button
@@ -709,14 +710,14 @@ export default function ReviewTab({ previewId, user, animeTitle, animePoster }: 
                                                         >삭제</button>
                                                     )}
                                                 </div>
-                                                <p className="text-[var(--text-muted)] text-xs leading-relaxed">{reply.text}</p>
+                                                <p className="break-words text-[var(--text-muted)] text-xs leading-relaxed">{reply.text}</p>
                                             </div>
                                         </div>
                                     ))}
 
                                     {user ? (
                                         replyingToId === r.id ? (
-                                            <div className="flex gap-2 mt-3 pl-4">
+                                            <div className="mt-3 flex gap-2 pl-0 sm:pl-4">
                                                 <Avatar src={myAvatarSrc} name={myName} size={28} />
                                                 <div className="flex-1 flex flex-col gap-1.5">
                                                     <input

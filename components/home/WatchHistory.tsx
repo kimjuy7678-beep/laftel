@@ -11,8 +11,12 @@ export default function WatchHistory() {
 
     const profileId = user?.currentProfileId || user?.profileId || 'main'
 
+
     useEffect(() => {
-        if (user?.uid) fetchProgress(user.uid, profileId)
+        if (user?.uid && profileId) {
+            useWatchProgressStore.setState({ items: [] })
+            fetchProgress(user.uid, profileId)
+        }
     }, [user?.uid, profileId])
 
     if (!user || loading || items.length === 0) return null

@@ -8,20 +8,12 @@ import { useAniStore } from '@/store/useAniStore'
 import { usePreviewStore } from '@/store/usePreviewStore'
 import { useFilteredAniList } from '@/hook/useFilteredAniList'
 import OnboardingModal from '@/components/OnboardingModal'
+import Image from 'next/image'
 
 const GENRE_TO_TMDB: Record<string, number> = {
-    action: 10759,
-    romance: 10749,
-    fantasy: 14,
-    scifi: 10765,
-    comedy: 35,
-    horror: 27,
-    sports: 10762,
-    slice: 16,
-    mystery: 9648,
-    mecha: 10759,
-    music: 10402,
-    isekai: 14,
+    action: 10759, romance: 10749, fantasy: 14, scifi: 10765,
+    comedy: 35, horror: 27, sports: 10762, slice: 16,
+    mystery: 9648, mecha: 10759, music: 10402, isekai: 14,
 }
 
 const GENRE_LABEL: Record<string, string> = {
@@ -32,7 +24,11 @@ const GENRE_LABEL: Record<string, string> = {
 
 interface Preferences { genres: string[]; moods: string[]; watchStyle: string }
 
-export default function PersonalRecommendSection() {
+interface Props {
+    onNoResult?: () => void  // ✅ 추가 — 결과 없을 때 홈에서 모달 다시 열기
+}
+
+export default function PersonalRecommendSection({ onNoResult }: Props) {
     const { user } = useAuthStore()
     const { onFetchAni } = useAniStore()
     const { setPreviewId } = usePreviewStore()
@@ -40,7 +36,8 @@ export default function PersonalRecommendSection() {
     const [prefs, setPrefs] = useState<Preferences | null>(null)
     const [ready, setReady] = useState(false)
     const [editOpen, setEditOpen] = useState(false)
-    const aniList = useFilteredAniList();
+    const [noResultCalled, setNoResultCalled] = useState(false)  // ✅ 중복 호출 방지
+    const aniList = useFilteredAniList()
 
     const loadPrefs = (uid: string) => {
         getDoc(doc(db, 'users', uid)).then(snap => {
@@ -51,17 +48,20 @@ export default function PersonalRecommendSection() {
         })
     }
 
-    // 1. preferences 로드
     useEffect(() => {
         if (!user?.uid) return
         loadPrefs(user.uid)
     }, [user?.uid])
 
-    // 2. aniList 로드 — 완료됐을 때 ready 플래그
+    // ✅ user.preferences 바뀌면 즉시 반영 (onLogin 후)
     useEffect(() => {
-        if (aniList.length === 0) {
-            onFetchAni()
+        if (user?.preferences) {
+            setPrefs(user.preferences as Preferences)
         }
+    }, [user?.preferences])
+
+    useEffect(() => {
+        if (aniList.length === 0) onFetchAni()
     }, [])
 
     useEffect(() => {
@@ -78,7 +78,14 @@ export default function PersonalRecommendSection() {
         return { genreKey, tmdbId, label: GENRE_LABEL[genreKey], items }
     }).filter(Boolean)
 
-    if (sections.length === 0) return null
+    // ✅ 결과가 없으면 onNoResult 호출
+    if (sections.length === 0) {
+        if (onNoResult && !noResultCalled) {
+            setNoResultCalled(true)
+            setTimeout(() => onNoResult(), 500)  // 약간의 딜레이 후 모달 오픈
+        }
+        return null
+    }
 
     const userName = user?.name?.split(' ')[0] || '님'
 
@@ -108,9 +115,7 @@ export default function PersonalRecommendSection() {
                 .pr-pill { position: absolute; top: 8px; left: 8px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: rgba(108,99,255,0.85); color: #fff; }
                 .pr-info { padding: 10px 10px 12px; }
                 .pr-name { font-size: 14px; font-weight: 600; color: var(--text-high); margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-                @media (max-width: 900px) {
-                    .pr-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
-                }
+                @media (max-width: 900px) { .pr-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; } }
                 @media (max-width: 640px) {
                     .pr-wrap { width: calc(100% - 32px); }
                     .pr-header { margin-bottom: 26px; }
@@ -138,7 +143,7 @@ export default function PersonalRecommendSection() {
                         ))}
                         <button className="pr-edit-btn" onClick={() => setEditOpen(true)}>
                             <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
-                                <path d="M9.5 1.5a1.414 1.414 0 0 1 2 2L4 11H1.5V8.5L9.5 1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M9.5 1.5a1.414 1.414 0 0 1 2 2L4 11H1.5V8.5L9.5 1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             수정
                         </button>
@@ -149,19 +154,13 @@ export default function PersonalRecommendSection() {
                     <div key={sec.genreKey} className="pr-section">
                         <div className="pr-section-head">
                             <h3 className="pr-section-title">{sec.label} 추천</h3>
-                            <button className="pr-more" onClick={() => router.push(`/genre/${sec.tmdbId}`)}>
-                                더보기
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
                         </div>
                         <div className="pr-grid">
                             {sec.items.map((ani: any, idx: number) => (
                                 <div key={ani.id} className="pr-card" onClick={() => setPreviewId(ani.id)}>
                                     <div className="pr-thumb">
                                         {ani.backdrop_path
-                                            ? <img className="pr-img" src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} />
+                                            ? <Image className="pr-img" src={`https://image.tmdb.org/t/p/w780${ani.backdrop_path}`} alt={ani.name} fill sizes="(max-width:640px) 78vw, 25vw" style={{ objectFit: 'cover' }} />
                                             : <div className="pr-np">{(ani.name || '?')[0]}</div>
                                         }
                                         {idx === 0 && <span className="pr-pill">추천</span>}
@@ -175,16 +174,18 @@ export default function PersonalRecommendSection() {
                     </div>
                 ))}
             </div>
-        {editOpen && user?.uid && (
-            <OnboardingModal
-                uid={user.uid}
-                onComplete={() => {
-                    setEditOpen(false)
-                    if (user?.uid) loadPrefs(user.uid)
-                }}
-                onClose={() => setEditOpen(false)}
-            />
-        )}
+
+            {editOpen && user?.uid && (
+                <OnboardingModal
+                    uid={user.uid}
+                    onComplete={() => {
+                        setEditOpen(false)
+                        setNoResultCalled(false)  // ✅ 수정 완료 후 리셋
+                        if (user?.uid) loadPrefs(user.uid)
+                    }}
+                    onClose={() => setEditOpen(false)}
+                />
+            )}
         </section>
     )
 }

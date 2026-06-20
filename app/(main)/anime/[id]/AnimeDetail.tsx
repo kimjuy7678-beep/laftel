@@ -1,8 +1,7 @@
 'use client'
-import { useState, useEffect } from "react"
-import { useAnimeDetail, IMG, GENRE_MAP } from "@/app/(main)/anime/[id]/useAnimeDetail"
+import { useState, useEffect, useRef } from "react"
+import { useAnimeDetail } from "@/app/(main)/anime/[id]/useAnimeDetail"
 import { useEpisodes } from "@/app/(main)/anime/[id]/useEpisodes"
-import { usePreviewStore } from "@/store/usePreviewStore"
 import SimilarPreviewModal from "@/app/(main)/anime/[id]/SimilarPreviewModal"
 import VideoPlayer from "@/components/Videoplayer"
 import EpisodeComments from "./Episodecomments"
@@ -14,7 +13,6 @@ import { useParams } from "next/navigation"
 
 export default function AnimeDetailPage({ animeId }: { animeId: number }) {
     const params = useParams()
-    const directId = Number(Array.isArray(params?.id) ? params.id[0] : params?.id)
 
     const {
         id, numericId, router,
@@ -30,6 +28,7 @@ export default function AnimeDetailPage({ animeId }: { animeId: number }) {
 
     const [currentEpisode, setCurrentEpisode] = useState<any>(null)
     const [previewItem, setPreviewItem] = useState<any>(null)
+    const [immersive, setImmersive] = useState(false)
 
     const { user } = useAuthStore()
 
@@ -43,6 +42,56 @@ export default function AnimeDetailPage({ animeId }: { animeId: number }) {
             setCurrentEpisode(target)
         }
     }, [episodes, epParam])
+
+    // 몰입 모드 시 헤더 + 모바일 하단바 숨기기
+    useEffect(() => {
+        const header = document.querySelector('header') as HTMLElement
+        const bottomTabBar = document.getElementById('bottom-tab-bar') as HTMLElement
+        if (header) {
+            header.style.transition = 'opacity .3s ease'
+            header.style.opacity = immersive ? '0' : '1'
+            header.style.pointerEvents = immersive ? 'none' : 'auto'
+        }
+        if (bottomTabBar) {
+            bottomTabBar.style.transition = 'opacity .3s ease, transform .3s ease'
+            bottomTabBar.style.opacity = immersive ? '0' : '1'
+            bottomTabBar.style.pointerEvents = immersive ? 'none' : 'auto'
+            bottomTabBar.style.transform = immersive ? 'translateY(100%)' : 'translateY(0)'
+        }
+        return () => {
+            if (header) {
+                header.style.opacity = '1'
+                header.style.pointerEvents = 'auto'
+            }
+            if (bottomTabBar) {
+                bottomTabBar.style.opacity = '1'
+                bottomTabBar.style.pointerEvents = 'auto'
+                bottomTabBar.style.transform = 'translateY(0)'
+            }
+        }
+    }, [immersive])
+
+    // ESC로 몰입 모드 해제 (VideoPlayer 밖에서도 대응)
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && immersive) setImmersive(false)
+        }
+        window.addEventListener('keydown', handler)
+        return () => window.removeEventListener('keydown', handler)
+    }, [immersive])
+
+    // 댓글 시간 클릭 → 영상 해당 시간으로 점프
+    const handleBookmarkSeek = (timeSeconds: number) => {
+        const iframe = document.querySelector('iframe') as HTMLIFrameElement
+        if (!iframe) return
+        // start 파라미터로 재로드 (seekTo 대신)
+        const currentSrc = iframe.src
+        const base = currentSrc.split('?')[0]
+        const params = new URLSearchParams(currentSrc.split('?')[1] || '')
+        params.set('start', String(Math.floor(timeSeconds)))
+        params.set('autoplay', '1')
+        iframe.src = `${base}?${params.toString()}`
+    }
 
     if (loading) return (
         <div className={styles.loadingScreen}>
@@ -63,15 +112,28 @@ export default function AnimeDetailPage({ animeId }: { animeId: number }) {
         <div className={styles.pageRoot}>
             <SimilarPreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
 
-            <button className={styles.backBtn} onClick={() => router.back()}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="m15 18-6-6 6-6" />
-                </svg>
-                뒤로
-            </button>
+            {/* 뒤로 버튼 — 몰입 모드에서 숨김 */}
+            {!immersive && (
+                <button className={styles.backBtn} onClick={() => router.back()}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                    뒤로
+                </button>
+            )}
 
             <div className={styles.playerRow}>
-                <div className={styles.playerArea}>
+                {/* playerArea — 몰입 모드 시 fixed 전체화면 */}
+                <div
+                    className={styles.playerArea}
+                    style={immersive ? {
+                        position: 'fixed',
+                        top: 0, left: 0,
+                        width: '100vw', height: '100vh',
+                        zIndex: 100,
+                        background: '#000',
+                    } : {}}
+                >
                     {videoLoading ? (
                         <div className={styles.playerState}>
                             <div className={styles.spinner} />
@@ -105,6 +167,8 @@ export default function AnimeDetailPage({ animeId }: { animeId: number }) {
                             title={detail.name}
                             episodeNumber={activeEpisode?.episode_number || 1}
                             episodeTitle={activeEpisode?.name || ''}
+                            poster={detail.poster_path}
+                            onImmersiveChange={setImmersive}
                             onNext={() => {
                                 const idx = episodes.findIndex(
                                     e => e.episode_number === activeEpisode?.episode_number
@@ -126,24 +190,32 @@ export default function AnimeDetailPage({ animeId }: { animeId: number }) {
                     )}
                 </div>
 
-                <EpisodeSidebar
-                    seasonList={seasonList}
-                    selectedSeason={selectedSeason}
-                    onSeasonChange={setSelectedSeason}
-                    episodes={episodes}
-                    currentEpisode={activeEpisode}
-                    onEpisodeClick={setCurrentEpisode}
-                    seriesTitle={detail.name}
-                />
+                {/* 사이드바 — 몰입 모드에서 숨김 */}
+                {!immersive && (
+                    <EpisodeSidebar
+                        seasonList={seasonList}
+                        selectedSeason={selectedSeason}
+                        onSeasonChange={setSelectedSeason}
+                        episodes={episodes}
+                        currentEpisode={activeEpisode}
+                        onEpisodeClick={setCurrentEpisode}
+                        seriesTitle={detail.name}
+                    />
+                )}
             </div>
 
-            <div className={styles.bottomRow}>
-                <EpisodeComments
-                    episodeId={activeEpisode?.episode_number ?? episodes[0]?.episode_number}
-                    animeId={animeId}
-                    animeTitle={detail.name}
-                />
-            </div>
+            {/* 하단 — 몰입 모드에서 숨김 */}
+            {!immersive && (
+                <div className={styles.bottomRow}>
+                    <EpisodeComments
+                        episodeId={activeEpisode?.episode_number ?? episodes[0]?.episode_number}
+                        animeId={animeId}
+                        animeTitle={detail.name}
+                        animePoster={detail.poster_path}
+                        onBookmarkSeek={handleBookmarkSeek}
+                    />
+                </div>
+            )}
         </div>
     )
 }

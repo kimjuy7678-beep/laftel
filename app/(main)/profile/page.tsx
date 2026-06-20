@@ -148,7 +148,14 @@ export default function ProfilePage() {
 
     const enterProfile = async (p: ProfileData) => {
         await setDoc(doc(db, 'users', user!.uid!), { lastProfileId: p.id }, { merge: true })
-        onLogin({ ...user!, name: p.nickname, photoURL: p.avatarUrl, ageLimit: p.ageLimit, profileId: p.id })
+        onLogin({
+            ...user!,
+            name: p.nickname,
+            photoURL: p.avatarUrl,
+            ageLimit: p.ageLimit,
+            profileId: p.id,
+            currentProfileId: p.id,
+        })
         router.push('/')
     }
 
@@ -350,11 +357,17 @@ export default function ProfilePage() {
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg) } }
                 @keyframes fade-up { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+                @keyframes pin-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
                 .pf-page { animation: fade-up .35s ease; width: 100%; }
                 .pf-box { animation: fade-up .35s ease; width: 100%; max-width: 600px; background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-subtle); overflow: hidden; }
+
+                /* ─── 공통 스크롤 ─── */
                 .custom-scroll::-webkit-scrollbar { width: 5px; }
                 .custom-scroll::-webkit-scrollbar-track { background: var(--border-faint); border-radius: 10px; }
                 .custom-scroll::-webkit-scrollbar-thumb { background: rgba(108,99,255,.5); border-radius: 10px; }
+
+                /* ─── 이미지 그리드 ─── */
                 .img-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 4px 2px; }
                 .img-item { aspect-ratio: 1; border-radius: 50%; overflow: hidden; cursor: pointer; border: 3px solid transparent; transition: border-color .15s, transform .15s; background: var(--bg-hover); }
                 .img-item:hover { transform: scale(1.06); }
@@ -365,6 +378,8 @@ export default function ProfilePage() {
                 .img-tab.on { color: var(--text-primary); border-bottom-color: #6c63ff; }
                 .drop-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 48px 24px; text-align: center; transition: all .2s; cursor: pointer; }
                 .drop-zone.dragging { border-color: #6c63ff; background: rgba(108,99,255,.08); }
+
+                /* ─── select 단계: 프로필 카드 ─── */
                 .pf-card { display: flex; flex-direction: column; align-items: center; gap: 16px; cursor: pointer; transition: transform .2s; }
                 .pf-card:hover { transform: scale(1.05); }
                 .pf-avatar-wrap { width: 180px; height: 180px; border-radius: 50%; overflow: hidden; background: var(--bg-card); transition: border .2s, box-shadow .2s; border: 4px solid transparent; }
@@ -373,7 +388,74 @@ export default function ProfilePage() {
                 .pf-card-name { font-size: 16px; font-weight: 500; color: var(--text-muted); transition: color .2s; }
                 .pf-card:hover .pf-card-name { color: var(--text-primary); }
                 .pf-card.selected .pf-card-name { color: var(--text-primary); font-weight: 700; }
-                @keyframes pin-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+                /* ─── select 단계: 카드 목록 ─── */
+                .pf-card-list { display: flex; justify-content: center; flex-wrap: wrap; gap: 40px; margin-bottom: 64px; }
+
+                /* ─── edit 단계: 2컬럼 레이아웃 ─── */
+                .edit-layout { display: flex; justify-content: center; gap: 64px; margin-bottom: 64px; align-items: flex-start; }
+                .edit-fields { width: 380px; }
+
+                /* ─── edit 단계: 버튼 그룹 ─── */
+                .edit-btns { display: flex; justify-content: center; gap: 16px; }
+                .edit-btn { padding: 13px 52px; border-radius: 4px; font-size: 15px; font-weight: 400; cursor: pointer; letter-spacing: 0.06em; transition: all .2s; font-family: inherit; }
+
+                /* ─── pin/age 단계: 입력 영역 ─── */
+                .pin-wrap { max-width: 360px; margin: 0 auto; width: 100%; }
+
+                /* ─── 타이틀 공통 ─── */
+                .step-title { font-size: 48px; font-weight: 800; color: var(--text-primary); margin: 0; letter-spacing: -0.02em; }
+                .step-title-mb { margin-bottom: 56px; text-align: center; }
+
+                /* ══════════════════════════════════════
+                   모바일 (≤ 480px)
+                ══════════════════════════════════════ */
+                @media (max-width: 480px) {
+                    /* 공통 타이틀 축소 */
+                    .step-title { font-size: 28px; }
+                    .step-title-mb { margin-bottom: 32px; }
+
+                    /* ── select: 카드 목록 ── */
+                    .pf-card-list { gap: 24px; margin-bottom: 40px; }
+                    .pf-avatar-wrap { width: 110px; height: 110px; }
+                    .pf-card-name { font-size: 13px; }
+
+                    /* ── edit: 세로 1컬럼 ── */
+                    .edit-layout { flex-direction: column; align-items: center; gap: 28px; margin-bottom: 36px; }
+                    .edit-fields { width: 100%; max-width: 100%; }
+
+                    /* ── edit: 버튼 꽉 채우기 ── */
+                    .edit-btns { flex-direction: column; gap: 10px; }
+                    .edit-btn { padding: 13px 0; width: 100%; text-align: center; }
+
+                    /* ── pin/age: 여백 줄이기 ── */
+                    .pin-wrap { max-width: 100%; padding: 0 4px; }
+
+                    /* ── image 단계: 4열 그리드 ── */
+                    .img-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+                    /* ── drop-zone 높이 줄이기 ── */
+                    .drop-zone { padding: 32px 16px; }
+                }
+
+                /* ══════════════════════════════════════
+                   태블릿 (481px ~ 768px)
+                ══════════════════════════════════════ */
+                @media (min-width: 481px) and (max-width: 768px) {
+                    .step-title { font-size: 36px; }
+                    .step-title-mb { margin-bottom: 40px; }
+
+                    .pf-card-list { gap: 28px; margin-bottom: 48px; }
+                    .pf-avatar-wrap { width: 140px; height: 140px; }
+
+                    .edit-layout { flex-direction: column; align-items: center; gap: 32px; margin-bottom: 40px; }
+                    .edit-fields { width: 100%; max-width: 480px; }
+
+                    .edit-btns { gap: 12px; }
+                    .edit-btn { padding: 13px 36px; }
+
+                    .img-grid { grid-template-columns: repeat(5, 1fr); }
+                }
             `}</style>
 
             {showOnboarding && user?.uid && (
@@ -399,10 +481,11 @@ export default function ProfilePage() {
                 </div>
             )}
 
+            {/* ════════════ PIN 입력 단계 ════════════ */}
             {step === 'pin_enter' && pendingProfile && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
-                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 48px', letterSpacing: '-0.02em' }}>프로필 잠금</h1>
+                    <div className="step-title-mb">
+                        <h1 className="step-title" style={{ marginBottom: 48 }}>프로필 잠금</h1>
                         <div style={{ width: 120, height: 120, borderRadius: '50%', overflow: 'hidden', margin: '0 auto 20px', border: '4px solid rgba(108,99,255,.4)' }}>
                             <img src={pendingProfile.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 onError={e => { (e.target as HTMLImageElement).src = LAFTEL_AVATARS[0] }} />
@@ -412,7 +495,7 @@ export default function ProfilePage() {
                             {pinLocked ? `⏳ ${pinLockTimer}초 후 다시 시도` : 'PIN을 입력해주세요'}
                         </h2>
                     </div>
-                    <div style={{ maxWidth: 360, margin: '0 auto', width: '100%' }}>
+                    <div className="pin-wrap">
                         {!showForgotPin && (
                             <div style={{ position: 'relative', marginBottom: pinError ? 8 : 40 }}>
                                 <input
@@ -472,15 +555,16 @@ export default function ProfilePage() {
                 </div>
             )}
 
+            {/* ════════════ PIN 설정 단계 ════════════ */}
             {(step === 'pin_setup' || step === 'pin_setup_confirm') && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
-                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.02em' }}>프로필 잠금 설정</h1>
+                    <div className="step-title-mb">
+                        <h1 className="step-title" style={{ marginBottom: 16 }}>프로필 잠금 설정</h1>
                         <p style={{ color: 'var(--text-subtle)', fontSize: 18, margin: 0 }}>
                             {step === 'pin_setup' ? '새 PIN 4자리를 입력해주세요' : '한 번 더 입력해주세요'}
                         </p>
                     </div>
-                    <div style={{ maxWidth: 360, margin: '0 auto', width: '100%', textAlign: 'center' }}>
+                    <div className="pin-wrap" style={{ textAlign: 'center' }}>
                         {(() => {
                             const isSetup = step === 'pin_setup'
                             const val = isSetup ? pinInput : pinConfirm
@@ -536,12 +620,13 @@ export default function ProfilePage() {
                 <img src="/images/logo-white.svg" alt="" style={{ display: 'block', marginBottom: '30px' }} />
             )}
 
+            {/* ════════════ 프로필 선택 단계 ════════════ */}
             {step === 'select' && (
                 <div className="pf-page">
-                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>프로필 선택</h1>
+                    <div className="step-title-mb">
+                        <h1 className="step-title">프로필 선택</h1>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 40, marginBottom: 64 }}>
+                    <div className="pf-card-list">
                         {profiles.map(p => {
                             const isSelected = selectedProfileId === p.id
                             const isMainProfile = p.id === profiles[0].id
@@ -559,15 +644,7 @@ export default function ProfilePage() {
                                         )}
                                     </div>
                                     <span className="pf-card-name">{p.nickname}</span>
-                                    {isMainProfile && memberInfo && (
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20,
-                                            background: `${memberInfo.color}20`, color: memberInfo.color,
-                                            border: `1px solid ${memberInfo.color}40`, marginTop: -4,
-                                        }}>
-                                            ✓ {memberInfo.label}
-                                        </span>
-                                    )}
+
                                     {isSelected && (
                                         <span style={{ fontSize: 12, color: '#9d97ff', fontWeight: 600, marginTop: -8 }}>
                                             {p.pinHash ? '🔒 한 번 더 클릭' : '한 번 더 클릭하여 입장 →'}
@@ -609,12 +686,14 @@ export default function ProfilePage() {
                 </div>
             )}
 
+            {/* ════════════ 프로필 편집 단계 ════════════ */}
             {step === 'edit' && (
                 <div className="pf-page">
-                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>프로필 편집</h1>
+                    <div className="step-title-mb">
+                        <h1 className="step-title">프로필 편집</h1>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 64, marginBottom: 64, alignItems: 'flex-start' }}>
+                    <div className="edit-layout">
+                        {/* 아바타 */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                             <div style={{ position: 'relative', cursor: 'pointer', width: 160, height: 160 }} onClick={() => setStep('image')}>
                                 <div style={{ width: 160, height: 160, borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-card)', border: '4px solid transparent', transition: 'border-color .2s' }}
@@ -629,7 +708,9 @@ export default function ProfilePage() {
                             </div>
                             <span style={{ fontSize: 13, color: 'var(--text-subtle)' }}>클릭하여 변경</span>
                         </div>
-                        <div style={{ width: 380 }}>
+
+                        {/* 필드 */}
+                        <div className="edit-fields">
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: 8, marginBottom: 16 }}>
                                 <input value={editNickname} onChange={e => setEditNickname(e.target.value.slice(0, 15))}
                                     placeholder="닉네임을 입력하세요"
@@ -669,15 +750,21 @@ export default function ProfilePage() {
                             )}
                         </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
-                        <button onClick={() => setStep('select')}
-                            style={{ padding: '13px 52px', background: 'none', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-muted)', fontSize: 15, fontWeight: 400, cursor: 'pointer', letterSpacing: '0.06em', transition: 'all .2s', fontFamily: 'inherit' }}
+
+                    {/* 저장/취소 버튼 */}
+                    <div className="edit-btns">
+                        <button
+                            className="edit-btn"
+                            onClick={() => setStep('select')}
+                            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
                             onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--text-primary)' }}
                             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}>
                             취소
                         </button>
-                        <button onClick={saveProfile} disabled={saving}
-                            style={{ padding: '13px 52px', background: '#6c63ff', border: '1px solid #6c63ff', borderRadius: 4, color: '#fff', fontSize: 15, fontWeight: 400, cursor: saving ? 'default' : 'pointer', letterSpacing: '0.06em', opacity: saving ? .6 : 1, transition: 'all .2s', fontFamily: 'inherit' }}
+                        <button
+                            className="edit-btn"
+                            onClick={saveProfile} disabled={saving}
+                            style={{ background: '#6c63ff', border: '1px solid #6c63ff', color: '#fff', cursor: saving ? 'default' : 'pointer', opacity: saving ? .6 : 1 }}
                             onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#7d74ff' }}
                             onMouseLeave={e => { e.currentTarget.style.background = '#6c63ff' }}>
                             {saving ? '저장 중...' : '저장'}
@@ -686,6 +773,7 @@ export default function ProfilePage() {
                 </div>
             )}
 
+            {/* ════════════ 이미지 선택 단계 ════════════ */}
             {step === 'image' && (
                 <div style={{ width: '100%', maxWidth: 560, animation: 'fade-up .3s ease' }}>
                     <div style={{ background: 'var(--bg-card)', borderRadius: 20, padding: '28px 24px', border: '1px solid var(--border-subtle)' }}>
@@ -754,16 +842,17 @@ export default function ProfilePage() {
                 </div>
             )}
 
+            {/* ════════════ 연령 PIN 확인 단계 ════════════ */}
             {step === 'age_pw' && (
                 <div className="pf-page" style={{ animation: 'pin-fade .3s ease' }}>
-                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-0.02em' }}>연령 제한 변경</h1>
+                    <div className="step-title-mb">
+                        <h1 className="step-title" style={{ marginBottom: 16 }}>연령 제한 변경</h1>
                         <p style={{ color: 'var(--text-subtle)', fontSize: 18, margin: 0 }}>
                             {editingProfile?.pinHash ? '프로필 PIN을 입력해주세요' : 'PIN이 설정되지 않아 바로 변경할 수 있어요'}
                         </p>
                     </div>
                     {editingProfile?.pinHash ? (
-                        <div style={{ maxWidth: 360, margin: '0 auto', width: '100%', textAlign: 'center' }}>
+                        <div className="pin-wrap" style={{ textAlign: 'center' }}>
                             <div style={{ position: 'relative', marginBottom: agePwError ? 8 : 40 }}>
                                 <input
                                     type="password" inputMode="numeric" maxLength={4}
@@ -801,6 +890,7 @@ export default function ProfilePage() {
                 </div>
             )}
 
+            {/* ════════════ 연령 선택 단계 ════════════ */}
             {step === 'age_select' && (
                 <div className="pf-box">
                     <div style={{ padding: '28px 24px 0' }}>

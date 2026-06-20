@@ -1,51 +1,14 @@
 import { create } from "zustand"
-
-interface EventItem {
-    id: number
-    name: string
-    img: string
-    banner_img?: string
-    start_datetime: string
-    end_datetime: string
-    status: string
-    type: string
-}
-
-interface EventContentText {
-    kind: "text"
-    content: string
-}
-
-interface EventContentBlock {
-    id: string
-    type: string
-    src?: string
-    size?: number
-    level?: number
-    content?: EventContentText[]
-    textAlign?: "left" | "center" | "right"
-}
-
-interface EventDetail extends EventItem {
-    content?: string
-    contents?: {
-        blocks: EventContentBlock[]
-    }
-}
-
-interface Comment {
-    id: number
-    content: string
-    created: string
-    author: {
-        id: number
-        nickname: string
-        profile_img: string
-    }
-    like_count: number
-    is_liked: boolean
-    reply_count: number
-}
+import {
+    FALLBACK_EVENT_COMMENTS,
+    FALLBACK_EVENTS,
+    getFallbackEventDetail,
+    normalizeEventItem,
+    normalizeEventStatus,
+    type EventComment as Comment,
+    type EventDetail,
+    type EventItem,
+} from "@/lib/eventData"
 
 interface EventStore {
     events: EventItem[]
@@ -64,17 +27,13 @@ interface EventStore {
     onFetchComments: (eventId: number, sorting?: "latest" | "popular", offset?: number) => Promise<void>
 }
 
-const BASE = "https://api.laftel.net/api/events/v2"
+const BASE = '/api/laftel/events/v2'
 
 interface ApiComment {
     id: number
     content: string
     created: string
-    profile?: {
-        id: number
-        name: string
-        image: string
-    }
+    profile?: { id: number; name: string; image: string }
     count_like?: number
     is_click_like?: boolean
     reply_count?: number
@@ -98,10 +57,8 @@ export const useEventStore = create<EventStore>((set) => ({
     events: [],
     total: 0,
     loading: false,
-
     selectedEvent: null,
     detailLoading: false,
-
     comments: [],
     commentTotal: 0,
     commentLoading: false,
@@ -114,13 +71,17 @@ export const useEventStore = create<EventStore>((set) => ({
             let offset = 0
             const limit = 20
             while (true) {
-                const res = await fetch(`${BASE}/list/?offset=${offset}&limit=${limit}`)
+                const res = await fetch(`${BASE}/list?offset=${offset}&limit=${limit}`)
+                if (!res.ok) throw new Error("failed to fetch events")
                 const data = await res.json()
-                allEvents = [...allEvents, ...data.results]
+                if (!Array.isArray(data.results)) throw new Error("invalid event response")
+                allEvents = [...allEvents, ...data.results.map(normalizeEventItem)]
                 if (!data.next) break
                 offset += limit
             }
             set({ events: allEvents, total: allEvents.length })
+        } catch {
+            set({ events: FALLBACK_EVENTS, total: FALLBACK_EVENTS.length })
         } finally {
             set({ loading: false })
         }
@@ -129,9 +90,27 @@ export const useEventStore = create<EventStore>((set) => ({
     onFetchEventDetail: async (eventId: number) => {
         set({ detailLoading: true, selectedEvent: null })
         try {
-            const res = await fetch(`${BASE}/${eventId}/`)
-            const data: EventDetail = await res.json()
-            set({ selectedEvent: data })
+            const res = await fetch(`${BASE}/${eventId}`)
+            if (!res.ok) throw new Error("failed to fetch event detail")
+            const data: Partial<EventDetail> = await res.json()
+            const fallback = getFallbackEventDetail(eventId)
+            if (!data?.id && !fallback) throw new Error("invalid event detail")
+            set({
+                selectedEvent: {
+                    ...(fallback ?? {}),
+                    ...data,
+                    id: data.id ?? fallback!.id,
+                    name: data.name ?? fallback!.name,
+                    img: data.img ?? fallback!.img,
+                    banner_img: data.banner_img ?? fallback?.banner_img,
+                    start_datetime: data.start_datetime ?? fallback!.start_datetime,
+                    end_datetime: data.end_datetime ?? fallback!.end_datetime,
+                    status: normalizeEventStatus(data.status ?? fallback?.status),
+                    type: data.type ?? fallback?.type ?? "ott",
+                },
+            })
+        } catch {
+            set({ selectedEvent: getFallbackEventDetail(eventId) })
         } finally {
             set({ detailLoading: false })
         }
@@ -144,14 +123,23 @@ export const useEventStore = create<EventStore>((set) => ({
         )
         try {
             const res = await fetch(
-                `${BASE}/${eventId}/comments/?sorting=${sorting}&limit=20&offset=${offset}`
+                `${BASE}/${eventId}/comments?sorting=${sorting}&limit=20&offset=${offset}`
             )
+            if (!res.ok) throw new Error("failed to fetch event comments")
             const data = await res.json()
+            if (!Array.isArray(data.results)) throw new Error("invalid comments response")
             const comments = data.results.map(toComment)
             set((state) => ({
                 comments: offset === 0 ? comments : [...state.comments, ...comments],
                 commentTotal: data.count,
                 hasNextComment: !!data.next,
+            }))
+        } catch {
+            const fallbackComments = FALLBACK_EVENT_COMMENTS[eventId] ?? []
+            set((state) => ({
+                comments: offset === 0 ? fallbackComments : state.comments,
+                commentTotal: fallbackComments.length,
+                hasNextComment: false,
             }))
         } finally {
             set({ commentLoading: false })

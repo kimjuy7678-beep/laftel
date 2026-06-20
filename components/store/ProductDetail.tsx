@@ -66,6 +66,8 @@ function seriesHref(series: string) {
     return `/store/series?series=${encodeURIComponent(series)}`;
 }
 
+
+
 // ─── productdetail 파싱 ───────────────────────────────────────────────────────
 type SpecRow = { label: string; value: string; highlight?: boolean; warn?: boolean };
 type ParsedDetail = { specs: SpecRow[]; noticelines: string[]; isReservation: boolean; size?: string; material?: string };
