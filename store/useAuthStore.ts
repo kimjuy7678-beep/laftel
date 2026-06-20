@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { signInWithPopup, signOut } from "firebase/auth";
+import { signInWithRedirect, getRedirectResult, signOut } from "firebase/auth";
 import { auth, googleProvider, db } from "@/firebase/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { issueCoupon } from "@/lib/coupon";
@@ -42,6 +42,7 @@ interface AuthStore {
     isNewUser: boolean;
     onLogin: (user: User) => void;
     googleLogin: () => Promise<void>;
+    handleRedirectResult: () => Promise<void>;   // ← 추가
     onLogout: () => Promise<void>;
     setMembership: (type: 'none' | 'anime' | 'ost' | 'allinone') => void;
     setAvatarConfig: (config: AvatarConfig) => void;
@@ -59,8 +60,16 @@ export const useAuthStore = create<AuthStore>()(
 
             onLogin: (user) => set({ user }),
 
+            // 버튼 클릭 시: 구글 로그인 페이지로 이동
             googleLogin: async () => {
-                const result = await signInWithPopup(auth, googleProvider)
+                await signInWithRedirect(auth, googleProvider)
+            },
+
+            // 리다이렉트 후 돌아왔을 때 결과 처리 (앱 진입 시 한 번 호출)
+            handleRedirectResult: async () => {
+                const result = await getRedirectResult(auth)
+                if (!result) return   // 리다이렉트 결과 없으면 그냥 종료
+
                 const { email, displayName, photoURL, uid } = result.user
 
                 const snap = await getDoc(doc(db, 'users', uid))
@@ -75,7 +84,6 @@ export const useAuthStore = create<AuthStore>()(
                         points: 0,
                         createdAt: new Date().toISOString(),
                     })
-
                 }
 
                 set({
