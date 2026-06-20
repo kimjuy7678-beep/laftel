@@ -21,6 +21,7 @@ export default function DayNewSection() {
 
     const dayItems = aniList.slice(activeDay * 6, activeDay * 6 + 6)
 
+     
     return (
         <section>
             <div className={styles.wrap}>
